@@ -1,0 +1,20 @@
+# Impede acesso direto ao arquivo JSON via web
+<Files "form_submissoes.json">
+  Order allow,deny
+  Deny from all
+</Files>
+
+<IfModule mod_proxy.c>
+    ProxyRequests Off
+    ProxyPreserveHost On
+    ProxyPass "/painelBot" "http://localhost:3001/"
+    ProxyPassReverse "/painelBot" "http://localhost:3001/"
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /site/
+</IfModule>
+
+ProxyPass /site/zap/webhook http://localhost:3017/webhook
+ProxyPassReverse /site/zap/webhook http://localhost:3017/webhook
