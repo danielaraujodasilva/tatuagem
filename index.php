@@ -10,7 +10,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <!-- End Google Tag Manager -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Estúdio de Tatuagem Daniel Araujo</title>
+<title>Estúdio de Tatuagem Daniel Araujo !</title>
 
 <!-- Favicon -->
 <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="img/favicon1.svg">
