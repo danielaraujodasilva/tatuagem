@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador de Conversas WhatsApp - Tudo Funcionando!</title>
+    <title>Analisador de Conversas WhatsApp - Com IA Integrada</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
         h1 { color: #25D366; }
@@ -27,6 +27,7 @@
         #progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #25D366, #128C7E); transition: width 0.4s ease; text-align: center; line-height: 35px; color: white; font-weight: bold; font-size: 1.1em; }
         #progress-text { margin-top: 10px; text-align: center; font-size: 1.2em; }
         #copiarBtn { background: #128C7E; margin-top: 20px; }
+        #analiseDiv { margin-top: 20px; padding: 20px; background: #f0f0f0; border-radius: 10px; white-space: pre-wrap; }
         .audio-progress { font-size: 0.9em; color: #555; margin-top: 5px; }
 
         /* Overlay para imagem grande */
@@ -38,7 +39,7 @@
 </head>
 <body>
     <h1>Analisador de Conversas WhatsApp</h1>
-    <p>Texto, imagens (clique para ampliar) e áudios com reprodução e transcrição!</p>
+    <p>Com análise de IA integrada (via ChatGPT)!</p>
     <div id="upload">
         <input type="file" id="fileInput" accept=".zip">
         <button id="processButton">Processar Conversa</button>
@@ -52,6 +53,8 @@
     <div id="status"></div>
     <div id="conversa"></div>
     <button id="copiarBtn" style="display:none;">Copiar toda a conversa para análise</button>
+    <button id="analiseBtn" style="display:none;">Analisar com IA (ChatGPT)</button>
+    <div id="analiseDiv"></div>
 
     <!-- Overlay para imagem grande -->
     <div id="overlay" onclick="this.style.display='none'">
@@ -71,9 +74,12 @@
         const statusDiv = document.getElementById('status');
         const conversaDiv = document.getElementById('conversa');
         const copiarBtn = document.getElementById('copiarBtn');
+        const analiseBtn = document.getElementById('analiseBtn');
+        const analiseDiv = document.getElementById('analiseDiv');
         const overlay = document.getElementById('overlay');
         const overlayImg = overlay.querySelector('img');
 
+       
         function atualizarProgresso(percent, texto) {
             progressContainer.style.display = 'block';
             progressFill.style.width = `${percent}%`;
@@ -104,6 +110,8 @@
 
             conversaDiv.innerHTML = '';
             copiarBtn.style.display = 'none';
+            analiseBtn.style.display = 'none';
+            analiseDiv.innerHTML = '';
             atualizarProgresso(0, 'Extraindo ZIP...');
 
             const zip = new JSZip();
@@ -170,15 +178,11 @@
                         }
                     }
 
-                    // Imagem anexada - busca super flexível
+                    // Imagem anexada
                     const imgMatch = mensagem.match(/([-\w]+\.(jpg|jpeg|png|gif|webp|bmp))/i);
                     if (imgMatch) {
-                        const baseName = imgMatch[1].replace(/\s/g, '').toLowerCase(); // remove espaços e normaliza
-                        const possibleFiles = Object.keys(zip.files).filter(f => {
-                            const lowerF = f.toLowerCase();
-                            return lowerF.includes(baseName.replace('.jpg', '').replace('.jpeg', '')) && (lowerF.endsWith('.jpg') || lowerF.endsWith('.jpeg') || lowerF.endsWith('.png') || lowerF.endsWith('.gif') || lowerF.endsWith('.webp'));
-                        });
-
+                        const baseName = imgMatch[1].replace(/\s/g, '').toLowerCase(); // normaliza
+                        const possibleFiles = Object.keys(zip.files).filter(f => f.toLowerCase().includes(baseName));
                         if (possibleFiles.length > 0) {
                             const imgFile = zip.files[possibleFiles[0]];
                             const imgBlob = await imgFile.async('blob');
@@ -189,9 +193,7 @@
                             imgContainer.innerHTML = `<img src="${imgUrl}" alt="Imagem anexada">`;
                             ultimaMsgDiv.appendChild(imgContainer);
 
-                            // Clique para ampliar
-                            imgContainer.onclick = (e) => {
-                                e.stopPropagation();
+                            imgContainer.onclick = () => {
                                 overlayImg.src = imgUrl;
                                 overlay.style.display = 'flex';
                             };
@@ -208,19 +210,47 @@
             atualizarProgresso(100, 'Concluído!');
             statusDiv.innerHTML = `<strong>${mensagensExibidas} mensagens exibidas!</strong> Role para cima para ver tudo.`;
             copiarBtn.style.display = 'block';
+            analiseBtn.style.display = 'block';
+        };
 
-            copiarBtn.onclick = () => {
-                let textoCompleto = '';
-                conversaDiv.querySelectorAll('.mensagem').forEach(div => {
-                    const data = div.querySelector('.data')?.innerText || '';
-                    const remetente = div.querySelector('.remetente')?.innerText || '';
-                    const mensagem = div.querySelector('.texto')?.innerHTML.replace(/<br>/g, '\n') || '';
-                    const transcricao = div.querySelector('.transcricao') ? div.querySelector('.transcricao').innerText : '';
-                    textoCompleto += `${data} - ${remetente}: ${mensagem}\n${transcricao}\n\n`;
+        // Botão para análise com IA
+        analiseBtn.onclick = async () => {
+            let textoCompleto = '';
+            conversaDiv.querySelectorAll('.mensagem').forEach(div => {
+                const data = div.querySelector('.data')?.innerText || '';
+                const remetente = div.querySelector('.remetente')?.innerText || '';
+                const mensagem = div.querySelector('.texto')?.innerHTML.replace(/<br>/g, '\n') || '';
+                const transcricao = div.querySelector('.transcricao') ? div.querySelector('.transcricao').innerText : '';
+                textoCompleto += `${data} - ${remetente}: ${mensagem}\n${transcricao}\n\n`;
+            });
+
+            analiseDiv.innerHTML = '<strong>Analisando com ChatGPT...</strong>';
+
+            try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${OPENAI_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        messages: [
+                            { role: 'system', content: 'Você é um analista de vendas. Analise a conversa de equipe de vendas com cliente, dê estatísticas numéricas, pontos fortes, pontos de melhoria e sugestões exatas.' },
+                            { role: 'user', content: `Analise essa conversa: \n\n${textoCompleto}` }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 1000
+                    })
                 });
-                navigator.clipboard.writeText(textoCompleto);
-                alert('Conversa copiada! Agora cole aqui no chat para análise.');
-            };
+                const result = await response.json();
+                const análise = result.choices[0].message.content.trim();
+
+                analiseDiv.innerHTML = `<strong>Análise da IA (ChatGPT):</strong><br>${análise.replace(/\n/g, '<br>')}`;
+            } catch (error) {
+                analiseDiv.innerHTML += '<br><em>Erro na análise (verifique API Key ou conexão).</em>';
+                console.error(error);
+            }
         };
 
         async function processarAudio(audioData, container) {
@@ -233,7 +263,7 @@
                 const rawData = ffmpeg.FS('readFile', 'output.raw');
                 const audioArray = new Float32Array(rawData.buffer);
 
-                // Player WAV completo
+                // Player de áudio
                 await ffmpeg.run('-i', 'input.opus', '-ar', '16000', '-ac', '1', 'output.wav');
                 const wavData = ffmpeg.FS('readFile', 'output.wav');
                 const wavBlob = new Blob([wavData.buffer], { type: 'audio/wav' });
@@ -276,4 +306,4 @@
         }
     </script>
 </body>
-</html> 
+</html>
