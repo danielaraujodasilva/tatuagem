@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador de Conversas WhatsApp - Pronto!</title>
+    <title>Analisador de Conversas WhatsApp - Completo!</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
         h1 { color: #25D366; }
@@ -18,6 +18,8 @@
         .data { color: gray; font-size: 0.8em; margin-bottom: 8px; }
         .audio-container { margin-top: 10px; background: #f0f0f0; padding: 12px; border-radius: 8px; }
         .transcricao { margin-top: 10px; background: #e8f5e9; padding: 10px; border-radius: 6px; font-style: italic; }
+        .imagem { margin-top: 10px; text-align: center; }
+        .imagem img { max-width: 100%; max-height: 400px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
         #status { margin: 20px 0; padding: 15px; background: #fff3e0; border-radius: 8px; white-space: pre-line; font-weight: bold; }
         audio { width: 100%; margin-top: 8px; }
         #progress-container { margin: 20px 0; display: none; }
@@ -31,7 +33,7 @@
 </head>
 <body>
     <h1>Analisador de Conversas WhatsApp</h1>
-    <p>Exporte a conversa com ou sem mídia. Tudo será exibido!</p>
+    <p>Texto, imagens e áudios com transcrição!</p>
     <div id="upload">
         <input type="file" id="fileInput" accept=".zip">
         <button id="processButton">Processar Conversa</button>
@@ -123,7 +125,6 @@
                 linha = linha.trim();
                 if (!linha) continue;
 
-                // Regex corrigido: DD/MM/AAAA HH:MM (sem vírgula após o ano)
                 const match = linha.match(/^(\d{1,2}\/\d{1,2}\/\d{4} \d{1,2}:\d{2}) - (.*?): (.*)$/);
 
                 if (match) {
@@ -156,8 +157,23 @@
                             await processarAudio(audioData, container);
                         }
                     }
+
+                    // Imagem anexada
+                    const imgMatch = mensagem.match(/(.+\.(jpg|jpeg|png|gif|webp|bmp)) \(arquivo anexado\)/i);
+                    if (imgMatch) {
+                        const imgName = imgMatch[1];
+                        const imgFile = zip.file(imgName);
+                        if (imgFile) {
+                            const imgBlob = await imgFile.async('blob');
+                            const imgUrl = URL.createObjectURL(imgBlob);
+
+                            const imgContainer = document.createElement('div');
+                            imgContainer.className = 'imagem';
+                            imgContainer.innerHTML = `<img src="${imgUrl}" alt="Imagem anexada">`;
+                            ultimaMsgDiv.appendChild(imgContainer);
+                        }
+                    }
                 } else if (ultimaMsgDiv && linha) {
-                    // Continuação de mensagem multilinha
                     const textoDiv = ultimaMsgDiv.querySelector('.texto');
                     if (textoDiv) {
                         textoDiv.innerHTML += '<br>' + linha.replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -166,7 +182,7 @@
             }
 
             atualizarProgresso(100, 'Concluído!');
-            statusDiv.innerHTML = `<strong>${mensagensExibidas} mensagens exibidas!</strong> Role para cima para ver a conversa.`;
+            statusDiv.innerHTML = `<strong>${mensagensExibidas} mensagens exibidas!</strong> Role para cima para ver tudo.`;
             copiarBtn.style.display = 'block';
 
             copiarBtn.onclick = () => {
@@ -186,18 +202,18 @@
         async function processarAudio(audioData, container) {
             try {
                 ffmpeg.FS('writeFile', 'input.opus', audioData);
-                await ffmpeg.run('-i', 'input.opus', '-ar', '16000', '-ac', '1', 'output.wav');
-                const wavData = ffmpeg.FS('readFile', 'output.wav');
-                const wavBlob = new Blob([wavData.buffer], { type: 'audio/wav' });
-                const wavUrl = URL.createObjectURL(wavBlob);
+                await ffmpeg.run('-i', 'input.opus', '-ar', '16000', '-ac', '1', '-f', 'f32le', '-'); // saída raw float32
+                const wavData = ffmpeg.FS('readFile', 'stdout');
+                const audioArray = new Float32Array(wavData.buffer);
 
                 const audioPlayer = document.createElement('audio');
+                const wavBlob = new Blob([wavData.buffer], { type: 'audio/wav' });
                 audioPlayer.controls = true;
-                audioPlayer.src = wavUrl;
+                audioPlayer.src = URL.createObjectURL(wavBlob);
 
                 container.innerHTML = '<strong>Áudio:</strong> Transcrevendo...';
 
-                const result = await whisperPipeline(wavBlob, { language: 'portuguese' });
+                const result = await whisperPipeline(audioArray, { language: 'portuguese' });
                 const transcricao = result.text.trim() || '(sem fala detectada)';
 
                 container.innerHTML = `
@@ -206,11 +222,10 @@
                     <div class="transcricao"><strong>Transcrição:</strong> ${transcricao}</div>
                 `;
             } catch (error) {
-                container.innerHTML += '<br><em>Erro na transcrição.</em>';
+                container.innerHTML += '<br><em>Erro na transcrição (áudio muito longo ou silencioso).</em>';
                 console.error(error);
             } finally {
                 try { ffmpeg.FS('unlink', 'input.opus'); } catch(e) {}
-                try { ffmpeg.FS('unlink', 'output.wav'); } catch(e) {}
             }
         }
     </script>
