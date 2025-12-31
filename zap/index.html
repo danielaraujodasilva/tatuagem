@@ -3,37 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador WhatsApp - Funciona Garantido!</title>
+    <title>Analisador de Conversas WhatsApp</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
         h1 { color: #25D366; }
+        p { line-height: 1.5; }
         #upload { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
         button { padding: 10px 20px; background: #25D366; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
         button:hover { background: #1da856; }
         #conversa { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 10px; }
-        .mensagem { padding: 10px; border-radius: 10px; max-width: 80%; word-wrap: break-word; }
-        .remetente { font-weight: bold; color: #25D366; }
-        .data { color: gray; font-size: 0.8em; }
-        .audio-container { margin-top: 10px; background: #f0f0f0; padding: 10px; border-radius: 8px; }
-        .transcricao { margin-top: 8px; background: #e8f5e9; padding: 8px; border-radius: 5px; font-style: italic; }
+        .mensagem { padding: 12px; border-radius: 12px; max-width: 80%; word-wrap: break-word; }
+        .remetente { font-weight: bold; color: #25D366; margin-bottom: 4px; }
+        .data { color: gray; font-size: 0.8em; margin-bottom: 8px; }
+        .audio-container { margin-top: 10px; background: #f0f0f0; padding: 12px; border-radius: 8px; }
+        .transcricao { margin-top: 10px; background: #e8f5e9; padding: 10px; border-radius: 6px; font-style: italic; }
         .esquerda { background: #e0f7fa; align-self: flex-start; }
-        .direita { background: #c8e6c9; align-self: flex-start: flex-end; margin-left: auto; }
-        #status { margin: 20px 0; padding: 10px; background: #fff3e0; border-radius: 5px; white-space: pre-line; }
-        audio { width: 100%; margin-top: 5px; }
+        .direita { background: #c8e6c9; align-self: flex-end; margin-left: auto; }
+        #status { margin: 20px 0; padding: 15px; background: #fff3e0; border-radius: 8px; white-space: pre-line; font-weight: bold; }
+        audio { width: 100%; margin-top: 8px; }
 
         #progress-container { margin: 20px 0; display: none; }
-        #progress-bar { height: 30px; width: 100%; background: #ddd; border-radius: 15px; overflow: hidden; }
-        #progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #25D366, #128C7E); transition: width 0.4s; text-align: center; line-height: 30px; color: white; font-weight: bold; }
-        #progress-text { margin-top: 8px; text-align: center; font-size: 1.1em; }
+        #progress-bar { height: 35px; width: 100%; background: #ddd; border-radius: 20px; overflow: hidden; box-shadow: inset 0 2px 5px rgba(0,0,0,0.2); }
+        #progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #25D366, #128C7E); transition: width 0.4s ease; text-align: center; line-height: 35px; color: white; font-weight: bold; font-size: 1.1em; }
+        #progress-text { margin-top: 10px; text-align: center; font-size: 1.2em; }
     </style>
-    <!-- Carrega bibliotecas de forma estável (UMD) -->
+    <!-- Bibliotecas estáveis -->
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
     <h1>Analisador de Conversas WhatsApp</h1>
-    <p><strong>Alta precisão com Whisper Small + Barra de progresso</strong></p>
-    <p>Use com export "Com mídia" para transcrever áudios.</p>
+    <p>Exporte a conversa com mídia (.zip) → faça upload → aguarde a transcrição automática dos áudios com alta precisão.</p>
     <div id="upload">
         <input type="file" id="fileInput" accept=".zip">
         <button id="processButton">Processar Conversa</button>
@@ -48,7 +48,11 @@
     <div id="conversa"></div>
 
     <script type="module">
-        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@latest';
+
+        // Força download correto dos modelos do Hugging Face (corrige o erro 404 que você viu)
+        env.allowRemoteModels = true;
+        env.allowLocalModels = false;
 
         const { createFFmpeg } = FFmpeg;
         const ffmpeg = createFFmpeg({ log: false });
@@ -71,30 +75,32 @@
 
         async function carregarWhisper() {
             if (!whisperPipeline) {
-                atualizarProgresso(0, 'Carregando modelo Whisper Small (alta precisão, ~500MB - só na primeira vez)...');
-                whisperPipeline = await pipeline('automatic-speech-recognition', 'Xenova/whisper-small');
-                atualizarProgresso(30, 'Modelo Whisper carregado!');
+                atualizarProgresso(0, 'Carregando modelo Whisper Small (alta precisão em PT-BR, ~500MB - só na primeira vez)...');
+                whisperPipeline = await pipeline('automatic-speech-recognition', 'openai/whisper-small');
+                atualizarProgresso(30, 'Modelo Whisper carregado com sucesso!');
             }
         }
 
         async function carregarFFmpeg() {
             if (!ffmpeg.isLoaded()) {
-                atualizarProgresso(30, 'Carregando FFmpeg...');
+                atualizarProgresso(30, 'Carregando FFmpeg para converter áudios...');
                 await ffmpeg.load();
-                atualizarProgresso(50, 'FFmpeg carregado!');
+                atualizarProgresso(50, 'FFmpeg pronto!');
             }
         }
 
         document.getElementById('processButton').onclick = async () => {
             const file = document.getElementById('fileInput').files[0];
-            if (!file) return alert('Selecione o arquivo ZIP exportado do WhatsApp.');
+            if (!file) return alert('Por favor, selecione o arquivo ZIP exportado do WhatsApp.');
 
-            atualizarProgresso(0, 'Extraindo ZIP...');
+            atualizarProgresso(0, 'Extraindo arquivo ZIP...');
+            statusDiv.innerText = '';
+
             const zip = new JSZip();
             await zip.loadAsync(file);
             atualizarProgresso(10, 'ZIP extraído.');
 
-            // Encontra o arquivo .txt
+            // Busca o arquivo .txt
             let chatFile = null;
             for (const filename in zip.files) {
                 if (filename.toLowerCase().endsWith('.txt') && !zip.files[filename].dir) {
@@ -102,14 +108,14 @@
                     break;
                 }
             }
-            if (!chatFile) return alert('Arquivo de texto não encontrado no ZIP.');
+            if (!chatFile) return alert('Não encontrei o arquivo de texto dentro do ZIP.');
 
             const chatText = await chatFile.async('string');
 
             await carregarWhisper();
             await carregarFFmpeg();
 
-            // Lista todos os .opus
+            // Lista todos os áudios .opus
             const audioFiles = [];
             for (const filename in zip.files) {
                 if (filename.toLowerCase().endsWith('.opus')) {
@@ -120,13 +126,13 @@
             let audiosProcessados = 0;
 
             document.getElementById('conversa').innerHTML = '';
-            atualizarProgresso(50, `Encontrados ${totalAudios} áudio(s). Processando...`);
+            atualizarProgresso(50, `Processando conversa (${totalAudios} áudio${totalAudios === 1 ? '' : 's'} encontrado${totalAudios === 1 ? '' : 's'})...`);
 
             const linhas = chatText.split('\n');
             let audioIndex = 0;
 
             for (let linha of linhas) {
-                const match = linha.match(/^(\d{1,2}\/\d{1,2}\/\d{2,4}, \d{1,2}:\d{2}.*) - (.*?): (.*)$/);
+                const match = linha.match(/^(\d{1,2}\/\d{1,2}\/\d{2,4}, \d{1,2}:\d{2}.*?) - (.*?): (.*)$/);
                 if (match) {
                     const data = match[1];
                     const remetente = match[2];
@@ -134,10 +140,14 @@
 
                     const msgDiv = document.createElement('div');
                     msgDiv.className = `mensagem ${remetente.toLowerCase().includes('você') || remetente.toLowerCase().includes('eu') ? 'direita' : 'esquerda'}`;
-                    msgDiv.innerHTML = `<div class="data">${data}</div><div class="remetente">${remetente}:</div><div class="texto">${mensagem}</div>`;
+                    msgDiv.innerHTML = `
+                        <div class="data">${data}</div>
+                        <div class="remetente">${remetente}:</div>
+                        <div class="texto">${mensagem}</div>
+                    `;
                     document.getElementById('conversa').appendChild(msgDiv);
 
-                    // Se for mensagem de áudio, associa o próximo .opus disponível
+                    // Detecta mensagem de áudio
                     if (mensagem.toLowerCase().includes('áudio') || mensagem.includes('omitido') || mensagem.includes('.opus') || mensagem.includes('PTT-')) {
                         if (audioIndex < audioFiles.length) {
                             const audioName = audioFiles[audioIndex++];
@@ -158,8 +168,8 @@
                 }
             }
 
-            atualizarProgresso(100, 'Tudo pronto! Conversa totalmente transcrita.');
-            statusDiv.innerHTML = '<strong>Pronto!</strong> Agora copie todo o conteúdo acima (texto + transcrições) e cole aqui no chat para analisarmos juntos a performance da sua equipe de vendas.';
+            atualizarProgresso(100, 'Concluído! Toda a conversa foi transcrita.');
+            statusDiv.innerHTML = '<strong>Pronto!</strong> Agora selecione e copie todo o texto acima (incluindo as transcrições) e cole aqui no chat para analisarmos a performance da sua equipe de vendas.';
         };
 
         async function processarAudio(audioData, container) {
@@ -176,21 +186,21 @@
 
                 container.innerHTML = '<strong>Áudio:</strong> Transcrevendo com alta precisão...';
 
-                const output = await whisperPipeline(wavBlob, {
+                const result = await whisperPipeline(wavBlob, {
                     language: 'portuguese',
                     task: 'transcribe'
                 });
 
-                const transcricao = output.text.trim() || '(sem fala detectada)';
+                const transcricao = result.text.trim() || '(sem fala detectada)';
 
                 container.innerHTML = `
                     <strong>Áudio:</strong><br>
                     ${audioPlayer.outerHTML}
                     <div class="transcricao"><strong>Transcrição:</strong> ${transcricao}</div>
                 `;
-            } catch (e) {
-                container.innerHTML += '<br><em>Erro ao processar este áudio (muito longo ou corrompido).</em>';
-                console.error(e);
+            } catch (error) {
+                container.innerHTML += '<br><em>Erro ao processar este áudio (pode ser muito longo).</em>';
+                console.error(error);
             } finally {
                 try { ffmpeg.FS('unlink', 'input.opus'); } catch(e) {}
                 try { ffmpeg.FS('unlink', 'output.wav'); } catch(e) {}
