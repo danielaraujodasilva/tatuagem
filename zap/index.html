@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador de Conversas WhatsApp - Tudo Funcionando!</title>
+    <title>Analisador de Conversas WhatsApp - Tudo Perfeito!</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
         h1 { color: #25D366; }
@@ -19,7 +19,7 @@
         .audio-container { margin-top: 10px; background: #f0f0f0; padding: 12px; border-radius: 8px; }
         .transcricao { margin-top: 10px; background: #e8f5e9; padding: 10px; border-radius: 6px; font-style: italic; }
         .imagem { margin-top: 10px; text-align: center; }
-        .imagem img { max-width: 100%; max-height: 400px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .imagem img { max-width: 100%; max-height: 500px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
         #status { margin: 20px 0; padding: 15px; background: #fff3e0; border-radius: 8px; white-space: pre-line; font-weight: bold; }
         audio { width: 100%; margin-top: 8px; }
         #progress-container { margin: 20px 0; display: none; }
@@ -34,7 +34,7 @@
 </head>
 <body>
     <h1>Analisador de Conversas WhatsApp</h1>
-    <p>Texto, imagens e áudios com transcrição!</p>
+    <p>Texto, imagens exibidas e áudios transcritos!</p>
     <div id="upload">
         <input type="file" id="fileInput" accept=".zip">
         <button id="processButton">Processar Conversa</button>
@@ -159,13 +159,28 @@
                         }
                     }
 
-                    // Imagem anexada - corrigido o erro "async is not a function"
-                    const imgMatch = mensagem.match(/(.+\.(jpg|jpeg|png|gif|webp|bmp))\s*\(arquivo anexado\)/i);
+                    // Imagem anexada - busca flexível (ignora maiúscula/minúscula e possíveis "(1)", "(2)")
+                    const imgMatch = mensagem.match(/([-\w]+\.(jpg|jpeg|png|gif|webp|bmp))/i);
                     if (imgMatch) {
-                        const imgName = imgMatch[1].trim();
-                        const imgFiles = zip.file(new RegExp('^' + imgName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i'));
-                        if (imgFiles && imgFiles.length > 0) {
-                            const imgFile = imgFiles[0];
+                        const baseName = imgMatch[1].replace(/\s*\(\d+\)/, ''); // remove (1), (2) etc.
+                        const possibleNames = [
+                            baseName,
+                            baseName.toUpperCase(),
+                            baseName.toLowerCase(),
+                            baseName.replace('.jpg', '.JPG'),
+                            baseName.replace('.jpeg', '.JPEG')
+                        ];
+
+                        let imgFile = null;
+                        for (const name of possibleNames) {
+                            const candidates = zip.file(new RegExp('^' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i'));
+                            if (candidates && candidates.length > 0) {
+                                imgFile = candidates[0];
+                                break;
+                            }
+                        }
+
+                        if (imgFile) {
                             const imgBlob = await imgFile.async('blob');
                             const imgUrl = URL.createObjectURL(imgBlob);
 
@@ -206,13 +221,11 @@
                 ffmpeg.FS('writeFile', 'input.opus', audioData);
                 container.innerHTML = '<strong>Áudio:</strong> Convertendo para formato compatível...';
 
-                // Saída raw float32 mono 16kHz
                 await ffmpeg.run('-i', 'input.opus', '-ar', '16000', '-ac', '1', '-f', 'f32le', 'output.raw');
 
                 const rawData = ffmpeg.FS('readFile', 'output.raw');
                 const audioArray = new Float32Array(rawData.buffer);
 
-                // Player de áudio (usando o raw convertido para WAV)
                 const wavBlob = new Blob([rawData.buffer], { type: 'audio/wav' });
                 const wavUrl = URL.createObjectURL(wavBlob);
 
@@ -252,4 +265,4 @@
         }
     </script>
 </body>
-</html> 
+</html>
