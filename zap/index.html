@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador de Conversas WhatsApp - Com Progresso</title>
+    <title>Analisador de Conversas WhatsApp - Versão Estável</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
         h1 { color: #25D366; }
         #upload { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
         button { padding: 10px 20px; background: #25D366; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
         button:hover { background: #1da856; }
-        #conversa { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .mensagem { margin-bottom: 15px; padding: 10px; border-radius: 10px; max-width: 80%; display: inline-block; }
+        #conversa { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 10px; }
+        .mensagem { margin-bottom: 15px; padding: 10px; border-radius: 10px; max-width: 80%; display: inline-block; word-wrap: break-word; }
         .remetente { font-weight: bold; color: #25D366; }
         .data { color: gray; font-size: 0.8em; margin-bottom: 5px; }
-        .texto { line-height: 1.5; word-wrap: break-word; }
+        .texto { line-height: 1.5; }
         .audio-container { margin-top: 10px; background: #f0f0f0; padding: 10px; border-radius: 8px; }
         .transcricao { margin-top: 8px; font-style: italic; color: #333; background: #e8f5e9; padding: 8px; border-radius: 5px; }
         .esquerda { background: #e0f7fa; align-self: flex-start; }
@@ -23,26 +23,21 @@
         audio { width: 100%; margin-top: 5px; }
 
         /* Barra de progresso */
-        #progress-container { margin: 20px 0; }
+        #progress-container { margin: 20px 0; display: none; }
         #progress-bar { height: 30px; width: 100%; background: #ddd; border-radius: 15px; overflow: hidden; box-shadow: inset 0 2px 5px rgba(0,0,0,0.2); }
-        #progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #25D366, #128C7E); transition: width 0.4s ease, background 0.6s; text-align: center; line-height: 30px; color: white; font-weight: bold; }
+        #progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #25D366, #128C7E); transition: width 0.4s ease; text-align: center; line-height: 30px; color: white; font-weight: bold; }
         #progress-text { margin-top: 8px; text-align: center; font-size: 1.1em; }
-
-        #conversa { display: flex; flex-direction: column; gap: 10px; }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2"></script>
 </head>
 <body>
     <h1>Analisador de Conversas WhatsApp - Alta Precisão + Progresso</h1>
-    <p><strong>Modelo:</strong> Whisper Small → alta precisão em PT-BR</p>
+    <p><strong>Modelo:</strong> Whisper Small → alta precisão em português brasileiro</p>
     <div id="upload">
         <input type="file" id="fileInput" accept=".zip">
-        <button onclick="processarArquivo()">Processar Conversa</button>
+        <button id="processButton">Processar Conversa</button>
     </div>
 
-    <div id="progress-container" style="display:none;">
+    <div id="progress-container">
         <div id="progress-bar"><div id="progress-fill">0%</div></div>
         <div id="progress-text">Iniciando...</div>
     </div>
@@ -50,84 +45,71 @@
     <div id="status"></div>
     <div id="conversa"></div>
 
-    <script>
-        const { createFFmpeg } = FFmpeg;
-        const ffmpeg = createFFmpeg({ log: false });
-        let pipeline = null;
+    <script type="module">
+        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+        import { FFmpeg } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js';
 
-        // Elementos de progresso
+        const ffmpeg = new FFmpeg();
+        let whisperPipeline = null;
+
+        // Elementos DOM
         const progressContainer = document.getElementById('progress-container');
         const progressFill = document.getElementById('progress-fill');
         const progressText = document.getElementById('progress-text');
         const statusDiv = document.getElementById('status');
+        const processButton = document.getElementById('processButton');
 
         function atualizarProgresso(percent, texto) {
             progressContainer.style.display = 'block';
-            progressFill.style.width = percent + '%';
-            progressFill.innerText = Math.round(percent) + '%';
+            progressFill.style.width = `${percent}%`;
+            progressFill.innerText = `${Math.round(percent)}%`;
             progressText.innerText = texto;
             if (percent >= 100) {
-                setTimeout(() => { progressContainer.style.display = 'none'; }, 2000);
+                setTimeout(() => progressContainer.style.display = 'none', 3000);
             }
         }
 
         async function carregarModeloWhisper() {
-            if (!pipeline) {
-                atualizarProgresso(0, 'Carregando modelo Whisper Small (~500MB - primeira vez)...');
-                pipeline = await Xenova.pipeline('automatic-speech-recognition', 'Xenova/whisper-small', {
+            if (!whisperPipeline) {
+                atualizarProgresso(0, 'Carregando modelo Whisper Small (~500MB - só na primeira vez)...');
+                whisperPipeline = await pipeline('automatic-speech-recognition', 'Xenova/whisper-small', {
                     progress_callback: (data) => {
                         if (data.status === 'downloading' || data.status === 'loading') {
-                            const percent = (data.loaded / data.total) * 100 || 0;
-                            atualizarProgresso(percent * 0.4, `Baixando modelo: ${data.file} (${Math.round(percent)}%)`);
-                        } else if (data.status === 'ready') {
-                            atualizarProgresso(40, 'Modelo Whisper carregado!');
+                            const p = (data.progress || 0) * 40;
+                            atualizarProgresso(p, `Baixando modelo: ${data.file || ''} (${Math.round(data.progress || 0 * 100)}%)`);
                         }
                     }
                 });
+                atualizarProgresso(40, 'Modelo Whisper carregado!');
             }
         }
 
         async function carregarFFmpeg() {
-            if (!ffmpeg.isLoaded()) {
+            if (!ffmpeg.loaded) {
                 atualizarProgresso(40, 'Carregando FFmpeg.wasm...');
-                // Manual fetch do wasm para progresso
-                const wasmURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.wasm';
-                const response = await fetch(wasmURL);
-                const total = parseInt(response.headers.get('content-length') || '0');
-                const reader = response.body.getReader();
-                let loaded = 0;
-                const chunks = [];
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    chunks.push(value);
-                    loaded += value.byteLength;
-                    const percent = total ? (loaded / total) * 20 + 40 : 50; // 20% do total
-                    atualizarProgresso(percent, `Carregando FFmpeg (${Math.round((loaded/1024/1024).toFixed(1))}MB)`);
-                }
-                const wasmBinary = await new Blob(chunks).arrayBuffer();
-                await ffmpeg.load({ wasmBinary });
+                await ffmpeg.load();
                 atualizarProgresso(60, 'FFmpeg carregado!');
             }
         }
 
-        async function processarArquivo() {
+        processButton.onclick = async () => {
             const file = document.getElementById('fileInput').files[0];
             if (!file) return alert('Selecione o arquivo ZIP exportado do WhatsApp.');
 
             atualizarProgresso(0, 'Extraindo ZIP...');
             statusDiv.innerText = '';
 
+            const { default: JSZip } = await import('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
             const zip = new JSZip();
             await zip.loadAsync(file);
-            atualizarProgresso(5, 'ZIP extraído.');
+            atualizarProgresso(10, 'ZIP extraído.');
 
             // Encontra o .txt
             let chatFile = null;
             let chatFileName = null;
             for (const filename in zip.files) {
                 if (filename.toLowerCase().endsWith('.txt') && !zip.files[filename].dir) {
-                    chatFile = zip.file(filename);
+                    chatFile = zip.files[filename];
                     chatFileName = filename;
                     break;
                 }
@@ -136,17 +118,11 @@
 
             const chatText = await chatFile.async('string');
 
-            // Carrega modelo e ffmpeg com progresso
             await carregarModeloWhisper();
             await carregarFFmpeg();
 
-            // Conta áudios para progresso geral
-            const audioFiles = [];
-            for (const fn in zip.files) {
-                if (fn.toLowerCase().endsWith('.opus')) {
-                    audioFiles.push(fn);
-                }
-            }
+            // Conta áudios
+            const audioFiles = Object.keys(zip.files).filter(f => f.toLowerCase().endsWith('.opus'));
             const totalAudios = audioFiles.length;
             let audiosProcessados = 0;
 
@@ -170,77 +146,59 @@
                         let audioName = null;
                         const opusMatch = mensagem.match(/(PTT-\d{8}-\w+\.opus|\w+\.opus)/i);
                         if (opusMatch) audioName = opusMatch[1];
-                        else {
-                            // Pega o próximo .opus disponível
-                            audioName = audioFiles.find(fn => zip.file(fn));
-                        }
 
-                        if (audioName && zip.file(audioName)) {
+                        const audioFileEntry = Object.entries(zip.files).find(([name]) => name.endsWith(audioName || '.opus'));
+                        if (audioFileEntry) {
+                            const [name, file] = audioFileEntry;
                             const audioContainer = document.createElement('div');
                             audioContainer.className = 'audio-container';
-                            audioContainer.innerHTML = '<strong>Áudio:</strong> Iniciando processamento...';
+                            audioContainer.innerHTML = '<strong>Áudio:</strong> Processando...';
                             msgDiv.appendChild(audioContainer);
 
-                            const audioData = await zip.file(audioName).async('uint8array');
-                            await processarAudio(audioName, audioData, audioContainer, () => {
+                            const audioData = await file.async('uint8array');
+                            await processarAudio(name, audioData, audioContainer, () => {
                                 audiosProcessados++;
-                                const percent = 60 + (audiosProcessados / totalAudios) * 40;
-                                atualizarProgresso(percent, `Processando áudio ${audiosProcessados} de ${totalAudios}...`);
+                                atualizarProgresso(60 + (audiosProcessados / totalAudios) * 40, `Transcrevendo áudio ${audiosProcessados}/${totalAudios}`);
                             });
-                            audioFiles.splice(audioFiles.indexOf(audioName), 1); // remove da lista
                         }
                     }
                 }
             }
 
-            atualizarProgresso(100, 'Concluído! Conversa totalmente analisada com transcrições.');
-            statusDiv.innerText = 'Pronto! Agora você pode copiar o texto e colar aqui para analisarmos a performance da equipe de vendas juntos.';
-        }
+            atualizarProgresso(100, 'Concluído! Tudo transcrito com alta precisão.');
+            statusDiv.innerText = 'Pronto! Copie o texto da conversa (com transcrições) e cole aqui para analisarmos a performance da equipe de vendas.';
+        };
 
         async function processarAudio(fileName, audioData, container, onProgress) {
             const inputName = 'input.opus';
             const outputName = 'output.wav';
 
-            // Progresso FFmpeg (transcode)
-            ffmpeg.setProgress(({ ratio }) => {
-                const percent = ratio >= 0 ? ratio : 0;
-                container.innerHTML = `<strong>Áudio:</strong> Convertendo (${Math.round(percent * 100)}%)...`;
-            });
+            ffmpeg.FS('writeFile', inputName, audioData);
+            await ffmpeg.run('-i', inputName, '-ar', '16000', '-ac', '1', outputName);
 
-            try {
-                ffmpeg.FS('write', inputName, audioData);
-                await ffmpeg.run('-i', inputName, '-ar', '16000', '-ac', '1', outputName);
-                const wavData = ffmpeg.FS('read', outputName);
-                const wavBlob = new Blob([wavData.buffer], { type: 'audio/wav' });
-                const wavUrl = URL.createObjectURL(wavBlob);
+            const wavData = ffmpeg.FS('readFile', outputName);
+            const wavBlob = new Blob([wavData.buffer], { type: 'audio/wav' });
+            const wavUrl = URL.createObjectURL(wavBlob);
 
-                const audioPlayer = document.createElement('audio');
-                audioPlayer.controls = true;
-                audioPlayer.src = wavUrl;
+            const audioPlayer = document.createElement('audio');
+            audioPlayer.controls = true;
+            audioPlayer.src = wavUrl;
 
-                container.innerHTML = '<strong>Áudio:</strong> Transcrevendo (0%)...';
-                onProgress();
+            container.innerHTML = '<strong>Áudio:</strong> Transcrevendo...';
+            onProgress();
 
-                const output = await pipeline(wavBlob, {
-                    language: 'portuguese',
-                    task: 'transcribe',
-                    // Não tem progress_callback direto na inferência, mas o modelo já está carregado
-                });
+            const output = await whisperPipeline(wavBlob, { language: 'portuguese' });
+            const transcricao = output.text.trim();
 
-                const transcricao = output.text.trim();
-                container.innerHTML = `
-                    <strong>Áudio:</strong><br>
-                    ${audioPlayer.outerHTML}
-                    <div class="transcricao"><strong>Transcrição:</strong> ${transcricao || '(sem fala detectada)'}</div>
-                `;
-                onProgress();
-            } catch (err) {
-                container.innerHTML += '<br><em>Erro ao processar áudio.</em>';
-                console.error(err);
-            } finally {
-                try { ffmpeg.FS('unlink', inputName); } catch(e) {}
-                try { ffmpeg.FS('unlink', outputName); } catch(e) {}
-            }
+            container.innerHTML = `
+                <strong>Áudio:</strong><br>
+                ${audioPlayer.outerHTML}
+                <div class="transcricao"><strong>Transcrição:</strong> ${transcricao || '(sem fala detectada)'}</div>
+            `;
+            onProgress();
+
+            ffmpeg.FS('unlink', inputName);
+            ffmpeg.FS('unlink', outputName);
         }
     </script>
 </body>
