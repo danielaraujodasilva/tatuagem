@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisador de Conversas WhatsApp - Alta Precisão</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
+        h1 { color: #25D366; }
+        #upload { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        button { padding: 10px 20px; background: #25D366; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #1da856; }
+        #conversa { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .mensagem { margin-bottom: 15px; padding: 10px; border-radius: 10px; max-width: 80%; }
+        .remetente { font-weight: bold; color: #25D366; }
+        .data { color: gray; font-size: 0.8em; margin-bottom: 5px; }
+        .texto { line-height: 1.5; }
+        .audio-container { margin-top: 10px; background: #f0f0f0; padding: 10px; border-radius: 8px; }
+        .transcricao { margin-top: 8px; font-style: italic; color: #333; background: #e8f5e9; padding: 8px; border-radius: 5px; }
+        .esquerda { background: #e0f7fa; align-self: flex-start; }
+        .direita { background: #c8e6c9; align-self: flex-end; margin-left: auto; }
+        #status { margin: 20px 0; padding: 10px; background: #fff3e0; border-radius: 5px; }
+        audio { width: 100%; margin-top: 5px; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2"></script>
+</head>
+<body>
+    <h1>Analisador de Conversas WhatsApp - Alta Precisão</h1>
+    <p><strong>Modelo:</strong> Whisper Small (melhor precisão em português, mais lento que o Tiny)</p>
+    <div id="upload">
+        <input type="file" id="fileInput" accept=".zip">
+        <button onclick="processarArquivo()">Processar Conversa</button>
+    </div>
+    <div id="status"></div>
+    <div id="conversa"></div>
+
+    <script>
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: false });
+        let pipeline = null;
+
+        async function carregarModeloWhisper() {
+            if (!pipeline) {
+                document.getElementById('status').innerText = 'Carregando modelo Whisper Small (alta precisão, ~500MB - só na primeira vez)...';
+                pipeline = await Xenova.pipeline('automatic-speech-recognition', 'Xenova/whisper-small', {
+                    progress_callback: (data) => {
+                        if (data.status === 'ready') {
+                            document.getElementById('status').innerText = 'Modelo carregado! Pronto para transcrever com alta precisão.';
+                        }
+                    }
+                });
+            }
+        }
+
+        async function processarArquivo() {
+            const file = document.getElementById('fileInput').files[0];
+            if (!file) return alert('Selecione o arquivo ZIP exportado do WhatsApp.');
+
+            document.getElementById('status').innerText = 'Extraindo ZIP...';
+            const zip = new JSZip();
+            await zip.loadAsync(file);
+
+            const chatFile = zip.file('_chat.txt');
+            if (!chatFile) return alert('_chat.txt não encontrado no ZIP.');
+
+            const chatText = await chatFile.async('string');
+
+            await carregarModeloWhisper();
+            await ffmpeg.load();
+
+            document.getElementById('conversa').innerHTML = '';
+            document.getElementById('status').innerText = 'Processando mensagens e áudios (pode demorar mais por áudio)...';
+
+            const linhas = chatText.split('\n');
+            let currentMessageDiv = null;
+
+            for (let linha of linhas) {
+                const match = linha.match(/^(\d{1,2}\/\d{1,2}\/\d{2,4}, \d{1,2}:\d{2}) - (.*?): (.*)$/);
+                if (match) {
+                    const data = match[1];
+                    const remetente = match[2];
+                    let mensagem = match[3].trim();
+
+                    currentMessageDiv = document.createElement('div');
+                    currentMessageDiv.className = `mensagem ${remetente.includes('Você') || remetente.toLowerCase() === 'eu' ? 'direita' : 'esquerda'}`;
+                    
+                    currentMessageDiv.innerHTML = `
+                        <div class="data">${data}</div>
+                        <div class="remetente">${remetente}:</div>
+                        <div class="texto">${mensagem}</div>
+                    `;
+                    document.getElementById('conversa').appendChild(currentMessageDiv);
+
+                    if (mensagem.includes('<áudio omitido>') || mensagem.includes('audio omitted') || mensagem.includes('.opus')) {
+                        const audioName = mensagem.match(/(\w+\.opus)/)?.[1] || 'audio.opus';
+                        const audioFile = zip.file(audioName);
+
+                        if (audioFile) {
+                            const audioContainer = document.createElement('div');
+                            audioContainer.className = 'audio-container';
+                            audioContainer.innerHTML = '<strong>Áudio:</strong> Processando transcrição (alta precisão)...';
+                            currentMessageDiv.appendChild(audioContainer);
+
+                            const audioData = await audioFile.async('uint8array');
+                            await processarAudio(audioName, audioData, audioContainer);
+                        }
+                    }
+                }
+            }
+            document.getElementById('status').innerText = 'Tudo pronto! Transcrições com alta precisão concluídas.';
+        }
+
+        async function processarAudio(fileName, audioData, container) {
+            const inputName = 'input.opus';
+            const outputName = 'output.wav';
+            ffmpeg.FS('write', inputName, audioData);
+            await ffmpeg.run('-i', inputName, '-ar', '16000', '-ac', '1', outputName);
+            const wavData = ffmpeg.FS('read', outputName);
+            const wavBlob = new Blob([wavData.buffer], { type: 'audio/wav' });
+            const wavUrl = URL.createObjectURL(wavBlob);
+
+            const audioPlayer = document.createElement('audio');
+            audioPlayer.controls = true;
+            audioPlayer.src = wavUrl;
+
+            container.innerHTML = '<strong>Áudio:</strong> Transcrevendo com alta precisão...';
+            try {
+                const output = await pipeline(wavBlob, {
+                    language: 'portuguese',
+                    task: 'transcribe',
+                });
+                const transcricao = output.text.trim();
+
+                container.innerHTML = `
+                    <strong>Áudio:</strong><br>
+                    ${audioPlayer.outerHTML}
+                    <div class="transcricao"><strong>Transcrição:</strong> ${transcricao || '(sem fala detectada)'}</div>
+                `;
+            } catch (err) {
+                container.innerHTML += '<br><em>Erro na transcrição (tente áudios mais curtos).</em>';
+                console.error(err);
+            }
+
+            ffmpeg.FS('unlink', inputName);
+            ffmpeg.FS('unlink', outputName);
+        }
+    </script>
+</body>
+</html>
