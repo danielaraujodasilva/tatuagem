@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador de Conversas WhatsApp - Completo!</title>
+    <title>Analisador de Conversas WhatsApp - Tudo Funcionando!</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
         h1 { color: #25D366; }
@@ -38,7 +38,7 @@
 </head>
 <body>
     <h1>Analisador de Conversas WhatsApp</h1>
-    <p>Texto, imagens (clique para ampliar) e áudios com transcrição e reprodução!</p>
+    <p>Texto, imagens (clique para ampliar) e áudios com reprodução e transcrição!</p>
     <div id="upload">
         <input type="file" id="fileInput" accept=".zip">
         <button id="processButton">Processar Conversa</button>
@@ -170,13 +170,17 @@
                         }
                     }
 
-                    // Imagem anexada
-                    const imgMatch = mensagem.match(/(.+\.(jpg|jpeg|png|gif|webp|bmp))\s*\(arquivo anexado\)/i);
+                    // Imagem anexada - busca super flexível
+                    const imgMatch = mensagem.match(/([-\w]+\.(jpg|jpeg|png|gif|webp|bmp))/i);
                     if (imgMatch) {
-                        const baseName = imgMatch[1].trim();
-                        const possibleNames = Object.keys(zip.files).filter(f => f.toLowerCase().includes(baseName.toLowerCase().replace('.jpg', '').replace('.jpeg', '')));
-                        if (possibleNames.length > 0) {
-                            const imgFile = zip.files[possibleNames[0]];
+                        const baseName = imgMatch[1].replace(/\s/g, '').toLowerCase(); // remove espaços e normaliza
+                        const possibleFiles = Object.keys(zip.files).filter(f => {
+                            const lowerF = f.toLowerCase();
+                            return lowerF.includes(baseName.replace('.jpg', '').replace('.jpeg', '')) && (lowerF.endsWith('.jpg') || lowerF.endsWith('.jpeg') || lowerF.endsWith('.png') || lowerF.endsWith('.gif') || lowerF.endsWith('.webp'));
+                        });
+
+                        if (possibleFiles.length > 0) {
+                            const imgFile = zip.files[possibleFiles[0]];
                             const imgBlob = await imgFile.async('blob');
                             const imgUrl = URL.createObjectURL(imgBlob);
 
@@ -186,7 +190,8 @@
                             ultimaMsgDiv.appendChild(imgContainer);
 
                             // Clique para ampliar
-                            imgContainer.onclick = () => {
+                            imgContainer.onclick = (e) => {
+                                e.stopPropagation();
                                 overlayImg.src = imgUrl;
                                 overlay.style.display = 'flex';
                             };
@@ -223,7 +228,12 @@
                 ffmpeg.FS('writeFile', 'input.opus', audioData);
                 container.innerHTML = '<strong>Áudio:</strong> Convertendo para formato compatível...';
 
-                // Converte para WAV completo (com header) para o player tocar
+                await ffmpeg.run('-i', 'input.opus', '-ar', '16000', '-ac', '1', '-f', 'f32le', 'output.raw');
+
+                const rawData = ffmpeg.FS('readFile', 'output.raw');
+                const audioArray = new Float32Array(rawData.buffer);
+
+                // Player WAV completo
                 await ffmpeg.run('-i', 'input.opus', '-ar', '16000', '-ac', '1', 'output.wav');
                 const wavData = ffmpeg.FS('readFile', 'output.wav');
                 const wavBlob = new Blob([wavData.buffer], { type: 'audio/wav' });
@@ -232,11 +242,6 @@
                 const audioPlayer = document.createElement('audio');
                 audioPlayer.controls = true;
                 audioPlayer.src = wavUrl;
-
-                // Para transcrição: usa raw float32
-                await ffmpeg.run('-i', 'input.opus', '-ar', '16000', '-ac', '1', '-f', 'f32le', 'output.raw');
-                const rawData = ffmpeg.FS('readFile', 'output.raw');
-                const audioArray = new Float32Array(rawData.buffer);
 
                 container.innerHTML = '<strong>Áudio:</strong> Transcrevendo 0%...';
                 const progressDiv = document.createElement('div');
@@ -265,8 +270,8 @@
                 console.error(error);
             } finally {
                 try { ffmpeg.FS('unlink', 'input.opus'); } catch(e) {}
-                try { ffmpeg.FS('unlink', 'output.wav'); } catch(e) {}
                 try { ffmpeg.FS('unlink', 'output.raw'); } catch(e) {}
+                try { ffmpeg.FS('unlink', 'output.wav'); } catch(e) {}
             }
         }
     </script>
