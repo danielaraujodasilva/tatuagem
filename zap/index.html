@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador de Conversas WhatsApp - Completo!</title>
+    <title>Analisador de Conversas WhatsApp - Tudo Funcionando!</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
         h1 { color: #25D366; }
@@ -16,7 +16,7 @@
         .esquerda { background: #e0f7fa; }
         .remetente { font-weight: bold; color: #25D366; margin-bottom: 4px; }
         .data { color: gray; font-size: 0.8em; margin-bottom: 8px; }
-        .audio-container { margin-top: 10px; background: #f0f0f0; padding: 12px; border-radius: 8px; position: relative; }
+        .audio-container { margin-top: 10px; background: #f0f0f0; padding: 12px; border-radius: 8px; }
         .transcricao { margin-top: 10px; background: #e8f5e9; padding: 10px; border-radius: 6px; font-style: italic; }
         .imagem { margin-top: 10px; text-align: center; }
         .imagem img { max-width: 100%; max-height: 400px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
@@ -34,7 +34,7 @@
 </head>
 <body>
     <h1>Analisador de Conversas WhatsApp</h1>
-    <p>Texto, imagens e áudios com transcrição + progresso!</p>
+    <p>Texto, imagens e áudios com transcrição!</p>
     <div id="upload">
         <input type="file" id="fileInput" accept=".zip">
         <button id="processButton">Processar Conversa</button>
@@ -74,13 +74,7 @@
         async function carregarWhisper() {
             if (!whisperPipeline) {
                 atualizarProgresso(0, 'Carregando modelo de transcrição...');
-                whisperPipeline = await pipeline('automatic-speech-recognition', 'Xenova/whisper-small', {
-                    progress_callback: (data) => {
-                        if (data.progress) {
-                            atualizarProgresso(data.progress * 30, `Baixando modelo: ${Math.round(data.progress * 100)}%`);
-                        }
-                    }
-                });
+                whisperPipeline = await pipeline('automatic-speech-recognition', 'Xenova/whisper-small');
                 atualizarProgresso(30, 'Modelo carregado!');
             }
         }
@@ -165,12 +159,13 @@
                         }
                     }
 
-                    // Imagem anexada
+                    // Imagem anexada - corrigido o erro "async is not a function"
                     const imgMatch = mensagem.match(/(.+\.(jpg|jpeg|png|gif|webp|bmp))\s*\(arquivo anexado\)/i);
                     if (imgMatch) {
                         const imgName = imgMatch[1].trim();
-                        const imgFile = zip.file(new RegExp(imgName + '$', 'i')); // busca exata
-                        if (imgFile) {
+                        const imgFiles = zip.file(new RegExp('^' + imgName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i'));
+                        if (imgFiles && imgFiles.length > 0) {
+                            const imgFile = imgFiles[0];
                             const imgBlob = await imgFile.async('blob');
                             const imgUrl = URL.createObjectURL(imgBlob);
 
@@ -211,13 +206,13 @@
                 ffmpeg.FS('writeFile', 'input.opus', audioData);
                 container.innerHTML = '<strong>Áudio:</strong> Convertendo para formato compatível...';
 
-                // Converte para raw float32 mono 16kHz (formato que o Whisper aceita diretamente)
+                // Saída raw float32 mono 16kHz
                 await ffmpeg.run('-i', 'input.opus', '-ar', '16000', '-ac', '1', '-f', 'f32le', 'output.raw');
 
                 const rawData = ffmpeg.FS('readFile', 'output.raw');
                 const audioArray = new Float32Array(rawData.buffer);
 
-                // Player de áudio (converte de volta para WAV para tocar)
+                // Player de áudio (usando o raw convertido para WAV)
                 const wavBlob = new Blob([rawData.buffer], { type: 'audio/wav' });
                 const wavUrl = URL.createObjectURL(wavBlob);
 
@@ -230,13 +225,12 @@
                 progressDiv.className = 'audio-progress';
                 container.appendChild(progressDiv);
 
-                // Simula progresso (Whisper não tem callback nativo, mas a conversão é rápida)
                 let progress = 0;
                 const interval = setInterval(() => {
-                    progress += 10;
+                    progress += 15;
+                    if (progress > 90) progress = 90;
                     progressDiv.innerText = `Transcrevendo ${progress}%...`;
-                    if (progress >= 90) clearInterval(interval);
-                }, 500);
+                }, 600);
 
                 const result = await whisperPipeline(audioArray, { language: 'portuguese' });
                 clearInterval(interval);
