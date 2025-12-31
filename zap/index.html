@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador de Conversas WhatsApp - Versão Final</title>
+    <title>Analisador de Conversas WhatsApp - Funciona!</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
         h1 { color: #25D366; }
@@ -18,21 +18,20 @@
         .data { color: gray; font-size: 0.8em; margin-bottom: 8px; }
         .audio-container { margin-top: 10px; background: #f0f0f0; padding: 12px; border-radius: 8px; }
         .transcricao { margin-top: 10px; background: #e8f5e9; padding: 10px; border-radius: 6px; font-style: italic; }
-        #status { margin: 20px 0; padding: 15px; background: #fff3e0; border-radius: 8px; white-space: pre-line; }
+        #status { margin: 20px 0; padding: 15px; background: #fff3e0; border-radius: 8px; white-space: pre-line; font-weight: bold; }
         audio { width: 100%; margin-top: 8px; }
         #progress-container { margin: 20px 0; display: none; }
         #progress-bar { height: 35px; width: 100%; background: #ddd; border-radius: 20px; overflow: hidden; }
         #progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #25D366, #128C7E); transition: width 0.4s ease; text-align: center; line-height: 35px; color: white; font-weight: bold; font-size: 1.1em; }
         #progress-text { margin-top: 10px; text-align: center; font-size: 1.2em; }
         #copiarBtn { background: #128C7E; margin-top: 20px; }
-        pre { background: #f0f0f0; padding: 10px; border-radius: 5px; }
     </style>
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
     <h1>Analisador de Conversas WhatsApp</h1>
-    <p>Exporte a conversa no WhatsApp (com ou sem mídia).</p>
+    <p>Exporte a conversa com ou sem mídia. Tudo será exibido na tela!</p>
     <div id="upload">
         <input type="file" id="fileInput" accept=".zip">
         <button id="processButton">Processar Conversa</button>
@@ -108,10 +107,6 @@
 
             const chatText = await chatFile.async('string');
 
-            // DEBUG: Mostra as primeiras linhas do TXT para ajustar o regex se necessário
-            const primeirasLinhas = chatText.split(/\r?\n/).slice(0, 15).join('\n');
-            statusDiv.innerHTML = `<strong>Primeiras linhas do arquivo (para debug):</strong><pre>${primeirasLinhas}</pre>`;
-
             await carregarWhisper();
             await carregarFFmpeg();
 
@@ -122,28 +117,28 @@
 
             const linhas = chatText.split(/\r?\n/);
             let mensagensExibidas = 0;
+            let ultimaMsgDiv = null;
 
-            for (let i = 0; i < linhas.length; i++) {
-                let linha = linhas[i].trim();
+            for (let linha of linhas) {
+                linha = linha.trim();
                 if (!linha) continue;
 
-                // Regex super robusto – captura vários formatos possíveis
-                const regex = /^(\d{1,2}\/\d{1,2}\/\d{2,4}, \d{1,2}:\d{2}(?::\d{2})?(?: [AP]M)?) - (.*?): (.*)$/;
-                const match = linha.match(regex);
+                // Regex ajustado para o formato exato do seu export (DD/MM/AAAA, HH:MM)
+                const match = linha.match(/^(\d{1,2}\/\d{1,2}\/\d{4}, \d{1,2}:\d{2}) - (.*?): (.*)$/);
 
                 if (match) {
-                    const data = match[1].trim();
+                    const data = match[1];
                     const remetente = match[2].trim();
                     let mensagem = match[3].trim();
 
-                    const msgDiv = document.createElement('div');
-                    msgDiv.className = `mensagem ${remetente.toLowerCase().includes('você') || remetente.toLowerCase().includes('eu') ? 'direita' : 'esquerda'}`;
-                    msgDiv.innerHTML = `
+                    ultimaMsgDiv = document.createElement('div');
+                    ultimaMsgDiv.className = `mensagem ${remetente.toLowerCase().includes('estúdio') || remetente.toLowerCase().includes('deise') ? 'direita' : 'esquerda'}`;
+                    ultimaMsgDiv.innerHTML = `
                         <div class="data">${data}</div>
                         <div class="remetente">${remetente}:</div>
                         <div class="texto">${mensagem.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
                     `;
-                    conversaDiv.appendChild(msgDiv);
+                    conversaDiv.appendChild(ultimaMsgDiv);
                     mensagensExibidas++;
 
                     // Áudio
@@ -155,30 +150,23 @@
                             const container = document.createElement('div');
                             container.className = 'audio-container';
                             container.innerHTML = '<strong>Áudio:</strong> Processando transcrição...';
-                            msgDiv.appendChild(container);
+                            ultimaMsgDiv.appendChild(container);
 
                             const audioData = await audioFile.async('uint8array');
                             await processarAudio(audioData, container);
                         }
                     }
-                } 
-                // Caso seja mensagem multilinha (continuação da anterior)
-                else if (mensagensExibidas > 0 && linha && !linha.match(/^\d{1,2}\/\d{1,2}\/\d{2,4}/)) {
-                    // Adiciona à última mensagem
-                    const ultimaMsg = conversaDiv.lastChild.querySelector('.texto');
-                    if (ultimaMsg) {
-                        ultimaMsg.innerHTML += '<br>' + linha.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                } else if (ultimaMsgDiv && linha) {
+                    // Mensagem multilinha ou continuação
+                    const textoDiv = ultimaMsgDiv.querySelector('.texto');
+                    if (textoDiv) {
+                        textoDiv.innerHTML += '<br>' + linha.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     }
                 }
             }
 
-            if (mensagensExibidas === 0) {
-                statusDiv.innerHTML += '<br><strong>Nenhuma mensagem reconhecida.</strong> Veja as primeiras linhas acima e me diga como elas aparecem para eu ajustar o regex.';
-            } else {
-                statusDiv.innerHTML += `<br><strong>${mensagensExibidas} mensagens exibidas!</strong>`;
-            }
-
-            atualizarProgresso(100, 'Concluído!');
+            atualizarProgresso(100, 'Conversa exibida!');
+            statusDiv.innerHTML = `<strong>${mensagensExibidas} mensagens exibidas!</strong> Role para cima para ver tudo.`;
             copiarBtn.style.display = 'block';
 
             copiarBtn.onclick = () => {
