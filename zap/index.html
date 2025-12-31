@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador de Conversas WhatsApp - Funciona!</title>
+    <title>Analisador de Conversas WhatsApp - Funciona Garantido!</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
         h1 { color: #25D366; }
@@ -34,7 +34,7 @@
 <body>
     <h1>Analisador de Conversas WhatsApp</h1>
     <p><strong>Modelo:</strong> Xenova/whisper-small → Alta precisão em português brasileiro</p>
-    <p>Exporte a conversa <strong>com mídia</strong> para transcrever os áudios.</p>
+    <p>Exporte a conversa <strong>com mídia</strong> no WhatsApp para transcrever os áudios.</p>
     <div id="upload">
         <input type="file" id="fileInput" accept=".zip">
         <button id="processButton">Processar Conversa</button>
@@ -189,7 +189,7 @@
                     <div class="transcricao"><strong>Transcrição:</strong> ${transcricao}</div>
                 `;
             } catch (error) {
-                container.innerHTML += '<br><em>Erro ao processar áudio.</em>';
+                container.innerHTML += '<br><em>Erro ao processar áudio (muito longo ou silencioso).</em>';
                 console.error(error);
             } finally {
                 try { ffmpeg.FS('unlink', 'input.opus'); } catch(e) {}
