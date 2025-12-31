@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador de Conversas WhatsApp - Funciona!</title>
+    <title>Analisador de Conversas WhatsApp - Pronto!</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
         h1 { color: #25D366; }
@@ -31,7 +31,7 @@
 </head>
 <body>
     <h1>Analisador de Conversas WhatsApp</h1>
-    <p>Exporte a conversa com ou sem mídia. Tudo será exibido na tela!</p>
+    <p>Exporte a conversa com ou sem mídia. Tudo será exibido!</p>
     <div id="upload">
         <input type="file" id="fileInput" accept=".zip">
         <button id="processButton">Processar Conversa</button>
@@ -123,8 +123,8 @@
                 linha = linha.trim();
                 if (!linha) continue;
 
-                // Regex ajustado para o formato exato do seu export (DD/MM/AAAA, HH:MM)
-                const match = linha.match(/^(\d{1,2}\/\d{1,2}\/\d{4}, \d{1,2}:\d{2}) - (.*?): (.*)$/);
+                // Regex corrigido: DD/MM/AAAA HH:MM (sem vírgula após o ano)
+                const match = linha.match(/^(\d{1,2}\/\d{1,2}\/\d{4} \d{1,2}:\d{2}) - (.*?): (.*)$/);
 
                 if (match) {
                     const data = match[1];
@@ -132,7 +132,7 @@
                     let mensagem = match[3].trim();
 
                     ultimaMsgDiv = document.createElement('div');
-                    ultimaMsgDiv.className = `mensagem ${remetente.toLowerCase().includes('estúdio') || remetente.toLowerCase().includes('deise') ? 'direita' : 'esquerda'}`;
+                    ultimaMsgDiv.className = `mensagem ${remetente.toLowerCase().includes('estúdio tattooage') || remetente.toLowerCase().includes('deise') ? 'direita' : 'esquerda'}`;
                     ultimaMsgDiv.innerHTML = `
                         <div class="data">${data}</div>
                         <div class="remetente">${remetente}:</div>
@@ -157,7 +157,7 @@
                         }
                     }
                 } else if (ultimaMsgDiv && linha) {
-                    // Mensagem multilinha ou continuação
+                    // Continuação de mensagem multilinha
                     const textoDiv = ultimaMsgDiv.querySelector('.texto');
                     if (textoDiv) {
                         textoDiv.innerHTML += '<br>' + linha.replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -165,8 +165,8 @@
                 }
             }
 
-            atualizarProgresso(100, 'Conversa exibida!');
-            statusDiv.innerHTML = `<strong>${mensagensExibidas} mensagens exibidas!</strong> Role para cima para ver tudo.`;
+            atualizarProgresso(100, 'Concluído!');
+            statusDiv.innerHTML = `<strong>${mensagensExibidas} mensagens exibidas!</strong> Role para cima para ver a conversa.`;
             copiarBtn.style.display = 'block';
 
             copiarBtn.onclick = () => {
