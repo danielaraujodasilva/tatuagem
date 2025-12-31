@@ -11,16 +11,17 @@
         button { padding: 10px 20px; background: #25D366; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
         button:hover { background: #1da856; }
         #conversa { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .mensagem { margin-bottom: 15px; padding: 10px; border-radius: 10px; max-width: 80%; }
+        .mensagem { margin-bottom: 15px; padding: 10px; border-radius: 10px; max-width: 80%; display: inline-block; }
         .remetente { font-weight: bold; color: #25D366; }
         .data { color: gray; font-size: 0.8em; margin-bottom: 5px; }
-        .texto { line-height: 1.5; }
+        .texto { line-height: 1.5; word-wrap: break-word; }
         .audio-container { margin-top: 10px; background: #f0f0f0; padding: 10px; border-radius: 8px; }
         .transcricao { margin-top: 8px; font-style: italic; color: #333; background: #e8f5e9; padding: 8px; border-radius: 5px; }
         .esquerda { background: #e0f7fa; align-self: flex-start; }
         .direita { background: #c8e6c9; align-self: flex-end; margin-left: auto; }
-        #status { margin: 20px 0; padding: 10px; background: #fff3e0; border-radius: 5px; }
+        #status { margin: 20px 0; padding: 10px; background: #fff3e0; border-radius: 5px; white-space: pre-line; }
         audio { width: 100%; margin-top: 5px; }
+        #conversa { display: flex; flex-direction: column; gap: 10px; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
@@ -28,7 +29,7 @@
 </head>
 <body>
     <h1>Analisador de Conversas WhatsApp - Alta Precisão</h1>
-    <p><strong>Modelo:</strong> Whisper Small (melhor precisão em português, mais lento que o Tiny)</p>
+    <p><strong>Modelo:</strong> Whisper Small → alta precisão em português brasileiro</p>
     <div id="upload">
         <input type="file" id="fileInput" accept=".zip">
         <button onclick="processarArquivo()">Processar Conversa</button>
@@ -37,7 +38,7 @@
     <div id="conversa"></div>
 
     <script>
-        const { createFFmpeg, fetchFile } = FFmpeg;
+        const { createFFmpeg } = FFmpeg;
         const ffmpeg = createFFmpeg({ log: false });
         let pipeline = null;
 
@@ -47,7 +48,7 @@
                 pipeline = await Xenova.pipeline('automatic-speech-recognition', 'Xenova/whisper-small', {
                     progress_callback: (data) => {
                         if (data.status === 'ready') {
-                            document.getElementById('status').innerText = 'Modelo carregado! Pronto para transcrever com alta precisão.';
+                            document.getElementById('status').innerText += '\nModelo carregado!';
                         }
                     }
                 });
@@ -62,8 +63,20 @@
             const zip = new JSZip();
             await zip.loadAsync(file);
 
-            const chatFile = zip.file('_chat.txt');
-            if (!chatFile) return alert('_chat.txt não encontrado no ZIP.');
+            // PROCURA O ARQUIVO .TXT (qualquer nome)
+            let chatFile = null;
+            let chatFileName = null;
+            for (const filename in zip.files) {
+                if (filename.toLowerCase().endsWith('.txt') && !zip.files[filename].dir) {
+                    chatFile = zip.file(filename);
+                    chatFileName = filename;
+                    break;
+                }
+            }
+
+            if (!chatFile) return alert('Nenhum arquivo .txt encontrado dentro do ZIP. Verifique se exportou com mídia ou tente novamente.');
+
+            document.getElementById('status').innerText += `\nArquivo de texto encontrado: ${chatFileName}`;
 
             const chatText = await chatFile.async('string');
 
@@ -71,20 +84,21 @@
             await ffmpeg.load();
 
             document.getElementById('conversa').innerHTML = '';
-            document.getElementById('status').innerText = 'Processando mensagens e áudios (pode demorar mais por áudio)...';
+            document.getElementById('status').innerText += '\nProcessando mensagens e áudios...';
 
             const linhas = chatText.split('\n');
             let currentMessageDiv = null;
 
             for (let linha of linhas) {
-                const match = linha.match(/^(\d{1,2}\/\d{1,2}\/\d{2,4}, \d{1,2}:\d{2}) - (.*?): (.*)$/);
+                // Regex robusta para formato brasileiro do WhatsApp
+                const match = linha.match(/^(\d{1,2}\/\d{1,2}\/\d{2,4}, \d{1,2}:\d{2}(?::\d{2})?) - (.*?): (.*)$/);
                 if (match) {
                     const data = match[1];
                     const remetente = match[2];
                     let mensagem = match[3].trim();
 
                     currentMessageDiv = document.createElement('div');
-                    currentMessageDiv.className = `mensagem ${remetente.includes('Você') || remetente.toLowerCase() === 'eu' ? 'direita' : 'esquerda'}`;
+                    currentMessageDiv.className = `mensagem ${remetente.toLowerCase().includes('você') || remetente.toLowerCase() === 'eu' ? 'direita' : 'esquerda'}`;
                     
                     currentMessageDiv.innerHTML = `
                         <div class="data">${data}</div>
@@ -93,44 +107,65 @@
                     `;
                     document.getElementById('conversa').appendChild(currentMessageDiv);
 
-                    if (mensagem.includes('<áudio omitido>') || mensagem.includes('audio omitted') || mensagem.includes('.opus')) {
-                        const audioName = mensagem.match(/(\w+\.opus)/)?.[1] || 'audio.opus';
-                        const audioFile = zip.file(audioName);
+                    // Detecta áudio (mensagens comuns no export)
+                    if (mensagem.includes('<áudio omitido>') || 
+                        mensagem.includes('audio omitted') || 
+                        mensagem.includes('.opus') ||
+                        mensagem.includes('PTT-') || // padrão comum para voice notes
+                        mensagem.includes('voice message')) {
 
-                        if (audioFile) {
+                        // Tenta extrair nome do áudio da mensagem ou procura arquivos .opus próximos
+                        let audioName = null;
+                        const opusMatch = mensagem.match(/(PTT-\d{8}-\w+\.opus|\w+\.opus)/i);
+                        if (opusMatch) {
+                            audioName = opusMatch[1];
+                        } else {
+                            // Se não achou na mensagem, procura qualquer .opus (útil em exports antigos)
+                            for (const fn in zip.files) {
+                                if (fn.toLowerCase().endsWith('.opus')) {
+                                    audioName = fn;
+                                    break; // pega o primeiro (geralmente só tem um por mensagem)
+                                }
+                            }
+                        }
+
+                        if (audioName && zip.file(audioName)) {
                             const audioContainer = document.createElement('div');
                             audioContainer.className = 'audio-container';
                             audioContainer.innerHTML = '<strong>Áudio:</strong> Processando transcrição (alta precisão)...';
                             currentMessageDiv.appendChild(audioContainer);
 
-                            const audioData = await audioFile.async('uint8array');
+                            const audioData = await zip.file(audioName).async('uint8array');
                             await processarAudio(audioName, audioData, audioContainer);
                         }
                     }
                 }
             }
-            document.getElementById('status').innerText = 'Tudo pronto! Transcrições com alta precisão concluídas.';
+
+            document.getElementById('status').innerText += '\n\nTudo pronto! Conversa carregada com transcrições de áudio.';
         }
 
         async function processarAudio(fileName, audioData, container) {
             const inputName = 'input.opus';
             const outputName = 'output.wav';
-            ffmpeg.FS('write', inputName, audioData);
-            await ffmpeg.run('-i', inputName, '-ar', '16000', '-ac', '1', outputName);
-            const wavData = ffmpeg.FS('read', outputName);
-            const wavBlob = new Blob([wavData.buffer], { type: 'audio/wav' });
-            const wavUrl = URL.createObjectURL(wavBlob);
-
-            const audioPlayer = document.createElement('audio');
-            audioPlayer.controls = true;
-            audioPlayer.src = wavUrl;
-
-            container.innerHTML = '<strong>Áudio:</strong> Transcrevendo com alta precisão...';
             try {
+                ffmpeg.FS('write', inputName, audioData);
+                await ffmpeg.run('-i', inputName, '-ar', '16000', '-ac', '1', '-af', 'silenceremove=1:0:-50dB', outputName);
+                const wavData = ffmpeg.FS('read', outputName);
+                const wavBlob = new Blob([wavData.buffer], { type: 'audio/wav' });
+                const wavUrl = URL.createObjectURL(wavBlob);
+
+                const audioPlayer = document.createElement('audio');
+                audioPlayer.controls = true;
+                audioPlayer.src = wavUrl;
+
+                container.innerHTML = '<strong>Áudio:</strong> Transcrevendo...';
+
                 const output = await pipeline(wavBlob, {
                     language: 'portuguese',
                     task: 'transcribe',
                 });
+
                 const transcricao = output.text.trim();
 
                 container.innerHTML = `
@@ -139,12 +174,13 @@
                     <div class="transcricao"><strong>Transcrição:</strong> ${transcricao || '(sem fala detectada)'}</div>
                 `;
             } catch (err) {
-                container.innerHTML += '<br><em>Erro na transcrição (tente áudios mais curtos).</em>';
+                container.innerHTML = '<strong>Áudio:</strong> Erro ao processar (pode ser muito longo ou corrompido).<br>' + container.innerHTML;
                 console.error(err);
+            } finally {
+                // Limpa arquivos temporários
+                try { ffmpeg.FS('unlink', inputName); } catch(e) {}
+                try { ffmpeg.FS('unlink', outputName); } catch(e) {}
             }
-
-            ffmpeg.FS('unlink', inputName);
-            ffmpeg.FS('unlink', outputName);
         }
     </script>
 </body>
