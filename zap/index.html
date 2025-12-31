@@ -16,7 +16,7 @@
         .esquerda { background: #e0f7fa; }
         .remetente { font-weight: bold; color: #25D366; margin-bottom: 4px; }
         .data { color: gray; font-size: 0.8em; margin-bottom: 8px; }
-        .audio-container { margin-top: 10px; background: #f0f0f0; padding: 12px; border-radius: 8px; }
+        .audio-container { margin-top: 10px; background: #f0f0f0; padding: 12px; border-radius: 8px; position: relative; }
         .transcricao { margin-top: 10px; background: #e8f5e9; padding: 10px; border-radius: 6px; font-style: italic; }
         .imagem { margin-top: 10px; text-align: center; }
         .imagem img { max-width: 100%; max-height: 400px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
@@ -27,13 +27,14 @@
         #progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #25D366, #128C7E); transition: width 0.4s ease; text-align: center; line-height: 35px; color: white; font-weight: bold; font-size: 1.1em; }
         #progress-text { margin-top: 10px; text-align: center; font-size: 1.2em; }
         #copiarBtn { background: #128C7E; margin-top: 20px; }
+        .audio-progress { font-size: 0.9em; color: #555; margin-top: 5px; }
     </style>
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
     <h1>Analisador de Conversas WhatsApp</h1>
-    <p>Texto, imagens e áudios com transcrição!</p>
+    <p>Texto, imagens e áudios com transcrição + progresso!</p>
     <div id="upload">
         <input type="file" id="fileInput" accept=".zip">
         <button id="processButton">Processar Conversa</button>
@@ -73,7 +74,13 @@
         async function carregarWhisper() {
             if (!whisperPipeline) {
                 atualizarProgresso(0, 'Carregando modelo de transcrição...');
-                whisperPipeline = await pipeline('automatic-speech-recognition', 'Xenova/whisper-small');
+                whisperPipeline = await pipeline('automatic-speech-recognition', 'Xenova/whisper-small', {
+                    progress_callback: (data) => {
+                        if (data.progress) {
+                            atualizarProgresso(data.progress * 30, `Baixando modelo: ${Math.round(data.progress * 100)}%`);
+                        }
+                    }
+                });
                 atualizarProgresso(30, 'Modelo carregado!');
             }
         }
@@ -150,7 +157,7 @@
 
                             const container = document.createElement('div');
                             container.className = 'audio-container';
-                            container.innerHTML = '<strong>Áudio:</strong> Processando transcrição...';
+                            container.innerHTML = '<strong>Áudio:</strong> Convertendo...';
                             ultimaMsgDiv.appendChild(container);
 
                             const audioData = await audioFile.async('uint8array');
@@ -159,10 +166,10 @@
                     }
 
                     // Imagem anexada
-                    const imgMatch = mensagem.match(/(.+\.(jpg|jpeg|png|gif|webp|bmp)) \(arquivo anexado\)/i);
+                    const imgMatch = mensagem.match(/(.+\.(jpg|jpeg|png|gif|webp|bmp))\s*\(arquivo anexado\)/i);
                     if (imgMatch) {
-                        const imgName = imgMatch[1];
-                        const imgFile = zip.file(imgName);
+                        const imgName = imgMatch[1].trim();
+                        const imgFile = zip.file(new RegExp(imgName + '$', 'i')); // busca exata
                         if (imgFile) {
                             const imgBlob = await imgFile.async('blob');
                             const imgUrl = URL.createObjectURL(imgBlob);
@@ -202,18 +209,38 @@
         async function processarAudio(audioData, container) {
             try {
                 ffmpeg.FS('writeFile', 'input.opus', audioData);
-                await ffmpeg.run('-i', 'input.opus', '-ar', '16000', '-ac', '1', '-f', 'f32le', '-'); // saída raw float32
-                const wavData = ffmpeg.FS('readFile', 'stdout');
-                const audioArray = new Float32Array(wavData.buffer);
+                container.innerHTML = '<strong>Áudio:</strong> Convertendo para formato compatível...';
+
+                // Converte para raw float32 mono 16kHz (formato que o Whisper aceita diretamente)
+                await ffmpeg.run('-i', 'input.opus', '-ar', '16000', '-ac', '1', '-f', 'f32le', 'output.raw');
+
+                const rawData = ffmpeg.FS('readFile', 'output.raw');
+                const audioArray = new Float32Array(rawData.buffer);
+
+                // Player de áudio (converte de volta para WAV para tocar)
+                const wavBlob = new Blob([rawData.buffer], { type: 'audio/wav' });
+                const wavUrl = URL.createObjectURL(wavBlob);
 
                 const audioPlayer = document.createElement('audio');
-                const wavBlob = new Blob([wavData.buffer], { type: 'audio/wav' });
                 audioPlayer.controls = true;
-                audioPlayer.src = URL.createObjectURL(wavBlob);
+                audioPlayer.src = wavUrl;
 
-                container.innerHTML = '<strong>Áudio:</strong> Transcrevendo...';
+                container.innerHTML = '<strong>Áudio:</strong> Transcrevendo 0%...';
+                const progressDiv = document.createElement('div');
+                progressDiv.className = 'audio-progress';
+                container.appendChild(progressDiv);
+
+                // Simula progresso (Whisper não tem callback nativo, mas a conversão é rápida)
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += 10;
+                    progressDiv.innerText = `Transcrevendo ${progress}%...`;
+                    if (progress >= 90) clearInterval(interval);
+                }, 500);
 
                 const result = await whisperPipeline(audioArray, { language: 'portuguese' });
+                clearInterval(interval);
+
                 const transcricao = result.text.trim() || '(sem fala detectada)';
 
                 container.innerHTML = `
@@ -226,6 +253,7 @@
                 console.error(error);
             } finally {
                 try { ffmpeg.FS('unlink', 'input.opus'); } catch(e) {}
+                try { ffmpeg.FS('unlink', 'output.raw'); } catch(e) {}
             }
         }
     </script>
