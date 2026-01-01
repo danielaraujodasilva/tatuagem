@@ -38,6 +38,7 @@
 <body>
     <h1>Analisador de Conversas WhatsApp</h1>
     <p>Texto, imagens (clique para ampliar) e áudios com reprodução e transcrição!</p>
+    <p><strong>Análise com IA gratuita (Groq - Llama 3 70B)</strong></p>
     <div id="upload">
         <input type="file" id="fileInput" accept=".zip">
         <button id="processButton">Processar Conversa</button>
@@ -51,7 +52,7 @@
     <div id="status"></div>
     <div id="conversa"></div>
     <button id="copiarBtn" style="display:none;">Copiar toda a conversa</button>
-    <button id="analiseBtn" style="display:none;">Analisar com IA (ChatGPT)</button>
+    <button id="analiseBtn" style="display:none;">Analisar com IA (Groq - Grátis)</button>
     <div id="analiseDiv"></div>
 
     <div id="overlay" onclick="this.style.display='none'">
@@ -60,7 +61,7 @@
 
     <script type="module">
         import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@latest';
-        import { OPENAI_API_KEY } from './config.js';  // ← Importa a key do config.js como módulo
+        import { GROQ_API_KEY } from './config.js';  // ← Carrega a key do config.js como módulo
 
         const { createFFmpeg } = FFmpeg;
         const ffmpeg = createFFmpeg({ log: false });
@@ -211,8 +212,8 @@
         };
 
         analiseBtn.onclick = async () => {
-            if (!OPENAI_API_KEY || OPENAI_API_KEY.trim() === '') {
-                analiseDiv.innerHTML = '<strong style="color:red;">Erro: API Key não carregada. Verifique o config.js.</strong>';
+            if (!GROQ_API_KEY || GROQ_API_KEY.trim() === '') {
+                analiseDiv.innerHTML = '<strong style="color:red;">Erro: API Key da Groq não carregada. Verifique o config.js.</strong>';
                 return;
             }
 
@@ -225,17 +226,17 @@
                 textoCompleto += `${data} - ${remetente}: ${mensagem}\n${transcricao}\n\n`;
             });
 
-            analiseDiv.innerHTML = '<strong>Analisando com ChatGPT (gpt-4o-mini)...</strong>';
+            analiseDiv.innerHTML = '<strong>Analisando com IA gratuita (Groq - Llama 3 70B)...</strong>';
 
             try {
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${OPENAI_API_KEY}`
+                        'Authorization': `Bearer ${GROQ_API_KEY}`
                     },
                     body: JSON.stringify({
-                        model: 'gpt-4o-mini',
+                        model: 'llama3-70b-8192',
                         messages: [
                             { role: 'system', content: 'Você é um analista de vendas especializado em atendimento por WhatsApp. Analise a conversa, dê estatísticas numéricas (tempo de resposta, volume de mensagens, taxa de engajamento), pontos fortes, pontos de melhoria e sugestões práticas para aumentar conversões.' },
                             { role: 'user', content: textoCompleto }
@@ -245,14 +246,14 @@
                     })
                 });
 
-                if (!response.ok) throw new Error('Erro na API OpenAI');
+                if (!response.ok) throw new Error('Erro na API Groq');
 
                 const result = await response.json();
                 const análise = result.choices[0].message.content.trim();
 
-                analiseDiv.innerHTML = `<strong>Análise da IA:</strong><br><br>${análise.replace(/\n/g, '<br>')}`;
+                analiseDiv.innerHTML = `<strong>Análise da IA (Groq):</strong><br><br>${análise.replace(/\n/g, '<br>')}`;
             } catch (error) {
-                analiseDiv.innerHTML += '<br><strong style="color:red;">Erro ao conectar com a IA. Verifique sua API Key no config.js.</strong>';
+                analiseDiv.innerHTML += '<br><strong style="color:red;">Erro ao conectar com a IA. Verifique sua key Groq.</strong>';
                 console.error(error);
             }
         };
