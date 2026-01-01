@@ -61,7 +61,7 @@
 
     <script type="module">
         import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@latest';
-        import { GROQ_API_KEY } from './config.js';  // ← Carrega a key do config.js como módulo
+        import { GROQ_API_KEY } from './config.js';  // ← Carrega a key do config.js
 
         const { createFFmpeg } = FFmpeg;
         const ffmpeg = createFFmpeg({ log: false });
@@ -246,14 +246,17 @@
                     })
                 });
 
-                if (!response.ok) throw new Error('Erro na API Groq');
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Erro ${response.status}: ${errorText}`);
+                }
 
                 const result = await response.json();
                 const análise = result.choices[0].message.content.trim();
 
                 analiseDiv.innerHTML = `<strong>Análise da IA (Groq):</strong><br><br>${análise.replace(/\n/g, '<br>')}`;
             } catch (error) {
-                analiseDiv.innerHTML += '<br><strong style="color:red;">Erro ao conectar com a IA. Verifique sua key Groq.</strong>';
+                analiseDiv.innerHTML += '<br><strong style="color:red;">Erro ao conectar com a IA. Verifique sua key Groq no config.js.</strong>';
                 console.error(error);
             }
         };
