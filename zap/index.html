@@ -34,6 +34,8 @@
     </style>
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- Carrega a key de forma simples e segura -->
+    <script src="config.js"></script>
 </head>
 <body>
     <h1>Analisador de Conversas WhatsApp</h1>
@@ -61,7 +63,6 @@
 
     <script type="module">
         import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@latest';
-        import { GROQ_API_KEY } from './config.js';  // ← Carrega a key do config.js
 
         const { createFFmpeg } = FFmpeg;
         const ffmpeg = createFFmpeg({ log: false });
@@ -212,7 +213,7 @@
         };
 
         analiseBtn.onclick = async () => {
-            if (!GROQ_API_KEY || GROQ_API_KEY.trim() === '') {
+            if (!window.GROQ_API_KEY || window.GROQ_API_KEY.trim() === '') {
                 analiseDiv.innerHTML = '<strong style="color:red;">Erro: API Key da Groq não carregada. Verifique o config.js.</strong>';
                 return;
             }
@@ -233,7 +234,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${GROQ_API_KEY}`
+                        'Authorization': `Bearer ${window.GROQ_API_KEY}`
                     },
                     body: JSON.stringify({
                         model: 'llama3-70b-8192',
@@ -246,17 +247,14 @@
                     })
                 });
 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Erro ${response.status}: ${errorText}`);
-                }
+                if (!response.ok) throw new Error('Erro na API Groq');
 
                 const result = await response.json();
                 const análise = result.choices[0].message.content.trim();
 
                 analiseDiv.innerHTML = `<strong>Análise da IA (Groq):</strong><br><br>${análise.replace(/\n/g, '<br>')}`;
             } catch (error) {
-                analiseDiv.innerHTML += '<br><strong style="color:red;">Erro ao conectar com a IA. Verifique sua key Groq no config.js.</strong>';
+                analiseDiv.innerHTML += '<br><strong style="color:red;">Erro ao conectar com a IA. Verifique sua key Groq.</strong>';
                 console.error(error);
             }
         };
