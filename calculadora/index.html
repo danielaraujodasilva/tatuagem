@@ -4,30 +4,81 @@
   <meta charset="UTF-8">
   <title>Calculadora de Taxas</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
   <style>
     body {
-      background: #121212;
-      color: #f1f1f1;
+      background: #f4f6f9;
+      color: #212529;
     }
+
     .card {
-      background: #1e1e1e;
       border: none;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+      animation: fadeUp 0.6s ease;
     }
-    .form-control, .form-select {
-      background: #2a2a2a;
-      color: #fff;
-      border: 1px solid #444;
+
+    h2 {
+      font-weight: 700;
     }
-    .result-box {
-      background: #0d6efd;
-      border-radius: 10px;
-      padding: 20px;
-      color: #fff;
-    }
-    .small-muted {
+
+    .form-label {
+      font-weight: 600;
       font-size: 0.9rem;
-      opacity: 0.8;
+    }
+
+    .form-control, .form-select {
+      border-radius: 12px;
+    }
+
+    .btn-primary {
+      border-radius: 14px;
+      padding: 12px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(13,110,253,0.25);
+    }
+
+    .result-box {
+      background: linear-gradient(135deg, #0d6efd, #4f8dff);
+      color: #fff;
+      border-radius: 18px;
+      padding: 24px;
+      animation: fadeUp 0.5s ease;
+    }
+
+    .result-box p {
+      margin-bottom: 6px;
+      font-size: 1.05rem;
+    }
+
+    .highlight {
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .small-muted {
+      font-size: 0.85rem;
+      opacity: 0.85;
+      margin-top: 10px;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(15px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
   </style>
 </head>
@@ -35,16 +86,16 @@
 
 <div class="container py-5">
   <div class="row justify-content-center">
-    <div class="col-lg-8">
+    <div class="col-lg-8 col-xl-7">
 
-      <div class="card p-4 shadow">
-        <h2 class="mb-4">💳 Calculadora de Taxas</h2>
+      <div class="card p-4 p-md-5">
+        <h2 class="mb-4 text-center">💳 Calculadora de Taxas</h2>
 
         <div class="mb-3">
           <label class="form-label">Modo de cálculo</label>
           <select id="modo" class="form-select">
-            <option value="liquido">Quero receber líquido</option>
-            <option value="bruto">Vou cobrar do cliente</option>
+            <option value="liquido">Quero receber um valor líquido</option>
+            <option value="bruto">Vou cobrar um valor do cliente</option>
           </select>
         </div>
 
@@ -55,7 +106,7 @@
           </div>
 
           <div class="col-md-6">
-            <label class="form-label">Tipo de Venda</label>
+            <label class="form-label">Tipo de venda</label>
             <select id="tipo" class="form-select"></select>
           </div>
 
@@ -66,19 +117,32 @@
 
           <div class="col-md-6">
             <label class="form-label" id="labelValor">Valor líquido desejado (R$)</label>
-            <input type="number" step="0.01" id="valor" class="form-control">
+            <input type="number" step="0.01" id="valor" class="form-control" placeholder="Ex: 500">
           </div>
         </div>
 
         <button class="btn btn-primary mt-4 w-100" onclick="calcular()">Calcular</button>
 
         <div id="resultado" class="result-box mt-4 d-none">
-          <h4>Resultado</h4>
-          <p><strong>Valor cobrado:</strong> R$ <span id="valorCobrar"></span></p>
-          <p><strong>Valor líquido:</strong> R$ <span id="valorLiquido"></span></p>
-          <p><strong>Taxas:</strong> R$ <span id="valorTaxa"></span></p>
-          <p><strong>Percentual efetivo:</strong> <span id="percentual"></span>%</p>
-          <p class="small-muted">O banco ganha sempre. Aqui a gente só calcula.</p>
+          <div class="row">
+            <div class="col-md-6">
+              <p>Valor cobrado</p>
+              <div class="highlight">R$ <span id="valorCobrar"></span></div>
+            </div>
+            <div class="col-md-6">
+              <p>Valor líquido</p>
+              <div class="highlight">R$ <span id="valorLiquido"></span></div>
+            </div>
+          </div>
+
+          <hr class="my-3 opacity-25">
+
+          <p>Taxas descontadas: <strong>R$ <span id="valorTaxa"></span></strong></p>
+          <p>Percentual efetivo: <strong><span id="percentual"></span>%</strong></p>
+
+          <div class="small-muted">
+            Não é mágica. É matemática + sistema financeiro te olhando torto.
+          </div>
         </div>
 
       </div>
@@ -92,33 +156,21 @@ const taxas = {
   Visa: {
     "Crédito à Vista": { taxa: 3.4 },
     "Débito": { taxa: 0.99 },
-    "Crédito Parcelado": {
-      2: 4.96, 3: 5.63, 4: 6.3, 5: 7.02, 6: 7.7,
-      7: 8.82, 8: 9.69, 9: 10.65, 10: 11.13, 11: 12.3, 12: 13.29
-    }
+    "Crédito Parcelado": { 2:4.96,3:5.63,4:6.3,5:7.02,6:7.7,7:8.82,8:9.69,9:10.65,10:11.13,11:12.3,12:13.29 }
   },
   Mastercard: {
     "Crédito à Vista": { taxa: 3.4 },
     "Débito": { taxa: 0.99 },
-    "Crédito Parcelado": {
-      2: 4.96, 3: 5.63, 4: 6.3, 5: 7.02, 6: 7.7,
-      7: 8.82, 8: 9.69, 9: 10.65, 10: 11.13, 11: 12.3, 12: 13.29
-    }
+    "Crédito Parcelado": { 2:4.96,3:5.63,4:6.3,5:7.02,6:7.7,7:8.82,8:9.69,9:10.65,10:11.13,11:12.3,12:13.29 }
   },
   Amex: {
     "Crédito à Vista": { taxa: 3.9 },
-    "Crédito Parcelado": {
-      2: 5.56, 3: 6.23, 4: 6.9, 5: 7.62, 6: 8.3,
-      7: 9.42, 8: 10.29, 9: 11.25, 10: 11.73, 11: 12.9, 12: 13.89
-    }
+    "Crédito Parcelado": { 2:5.56,3:6.23,4:6.9,5:7.62,6:8.3,7:9.42,8:10.29,9:11.25,10:11.73,11:12.9,12:13.89 }
   },
   Elo: {
     "Crédito à Vista": { taxa: 3.95 },
     "Débito": { taxa: 1.54 },
-    "Crédito Parcelado": {
-      2: 5.61, 3: 6.28, 4: 6.95, 5: 7.67, 6: 8.35,
-      7: 9.47, 8: 10.34, 9: 11.3, 10: 11.78, 11: 12.95, 12: 13.94
-    }
+    "Crédito Parcelado": { 2:5.61,3:6.28,4:6.95,5:7.67,6:8.35,7:9.47,8:10.34,9:11.3,10:11.78,11:12.95,12:13.94 }
   }
 };
 
@@ -142,7 +194,6 @@ carregarTipos();
 
 function carregarTipos() {
   tipo.innerHTML = "";
-  parcelas.innerHTML = "";
   Object.keys(taxas[bandeira.value]).forEach(t => tipo.innerHTML += `<option>${t}</option>`);
   carregarParcelas();
 }
