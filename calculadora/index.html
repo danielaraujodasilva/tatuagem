@@ -54,31 +54,23 @@
       animation: fadeUp 0.5s ease;
     }
 
-    .result-box p {
-      margin-bottom: 6px;
-      font-size: 1.05rem;
-    }
-
     .highlight {
       font-size: 1.4rem;
       font-weight: 700;
     }
 
-    .small-muted {
-      font-size: 0.85rem;
-      opacity: 0.85;
-      margin-top: 10px;
+    .parcelas-box {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+      animation: fadeUp 0.5s ease;
     }
 
     @keyframes fadeUp {
-      from {
-        opacity: 0;
-        transform: translateY(15px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
@@ -117,7 +109,7 @@
 
           <div class="col-md-6">
             <label class="form-label" id="labelValor">Valor líquido desejado (R$)</label>
-            <input type="number" step="0.01" id="valor" class="form-control" placeholder="Ex: 500">
+            <input type="number" step="0.01" id="valor" class="form-control">
           </div>
         </div>
 
@@ -134,15 +126,23 @@
               <div class="highlight">R$ <span id="valorLiquido"></span></div>
             </div>
           </div>
+          <hr class="opacity-25">
+          <p>Taxas: <strong>R$ <span id="valorTaxa"></span></strong></p>
+          <p>Percentual: <strong><span id="percentual"></span>%</strong></p>
+        </div>
 
-          <hr class="my-3 opacity-25">
-
-          <p>Taxas descontadas: <strong>R$ <span id="valorTaxa"></span></strong></p>
-          <p>Percentual efetivo: <strong><span id="percentual"></span>%</strong></p>
-
-          <div class="small-muted">
-            Não é mágica. É matemática + sistema financeiro te olhando torto.
-          </div>
+        <div id="parcelamento" class="parcelas-box d-none">
+          <h5 class="mb-3">Simulação de parcelamento</h5>
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Parcelas</th>
+                <th>Total</th>
+                <th>Valor da parcela</th>
+              </tr>
+            </thead>
+            <tbody id="listaParcelas"></tbody>
+          </table>
         </div>
 
       </div>
@@ -232,8 +232,30 @@ function calcular() {
   document.getElementById("valorLiquido").innerText = liquido.toFixed(2);
   document.getElementById("valorTaxa").innerText = (bruto - liquido).toFixed(2);
   document.getElementById("percentual").innerText = taxaPerc.toFixed(2);
-
   document.getElementById("resultado").classList.remove("d-none");
+
+  const boxParcelas = document.getElementById("parcelamento");
+  const lista = document.getElementById("listaParcelas");
+  lista.innerHTML = "";
+
+  if (tipo.value === "Crédito Parcelado") {
+    Object.entries(taxas[bandeira.value]["Crédito Parcelado"]).forEach(([p, t]) => {
+      const taxaP = t / 100;
+      const total = modo.value === "liquido"
+        ? liquido / (1 - taxaP)
+        : bruto;
+
+      lista.innerHTML += `
+        <tr>
+          <td>${p}x</td>
+          <td>R$ ${total.toFixed(2)}</td>
+          <td>R$ ${(total / p).toFixed(2)}</td>
+        </tr>`;
+    });
+    boxParcelas.classList.remove("d-none");
+  } else {
+    boxParcelas.classList.add("d-none");
+  }
 }
 </script>
 
