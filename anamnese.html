@@ -60,9 +60,29 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
+            margin-bottom: 10px;
         }
         button:hover {
             background-color: #218838;
+        }
+        #autoFill {
+            background-color: #007bff;
+        }
+        #autoFill:hover {
+            background-color: #0069d9;
+        }
+        #clearSignature {
+            background-color: #dc3545;
+            width: auto;
+            display: inline-block;
+        }
+        #clearSignature:hover {
+            background-color: #c82333;
+        }
+        #signatureCanvas {
+            border: 1px solid #000;
+            cursor: crosshair;
+            touch-action: none;
         }
         #jsonOutput {
             margin-top: 20px;
@@ -78,6 +98,9 @@
 <body>
     <h1>Ficha de Anamnese para Tatuagem</h1>
     <form id="anamneseForm">
+        <!-- Botão de Preenchimento Automático -->
+        <button type="button" id="autoFill">Preencher com Dados Fictícios</button>
+
         <!-- Seção 1: Dados do Cliente -->
         <section id="dadosCliente">
             <h2>Dados do Cliente</h2>
@@ -130,11 +153,12 @@
             <label for="localizacaoCorpo">Localização no Corpo:</label>
             <input type="text" id="localizacaoCorpo" name="localizacaoCorpo" required>
 
-            <label for="tamanhoTatuagem">Tamanho Aproximado (em cm):</label>
-            <input type="text" id="tamanhoTatuagem" name="tamanhoTatuagem">
+            <label>Estilo da Tatuagem:</label>
+            <input type="radio" id="pretoBranco" name="estiloCor" value="pretoBranco" checked><label for="pretoBranco">Preto e Branco</label>
+            <input type="radio" id="colorido" name="estiloCor" value="colorido"><label for="colorido">Colorido</label><br>
 
-            <label for="cores">Cores a Serem Usadas:</label>
-            <input type="text" id="cores" name="cores">
+            <label for="imagensTatuagem">Anexar Imagem(ns) da Tatuagem:</label>
+            <input type="file" id="imagensTatuagem" name="imagensTatuagem" multiple accept="image/*">
         </section>
 
         <!-- Seção 3: Histórico Médico -->
@@ -174,26 +198,26 @@
 
             <label>Você fuma?</label>
             <input type="radio" id="fumaSim" name="fuma" value="sim"><label for="fumaSim">Sim</label>
-            <input type="radio" id="fumaNao" name="fuma" value="nao"><label for="fumaNao">Não</label><br>
+            <input type="radio" id="fumaNao" name="fuma" value="nao" checked><label for="fumaNao">Não</label><br>
 
             <label>Você consome álcool regularmente?</label>
             <input type="radio" id="alcoolSim" name="alcool" value="sim"><label for="alcoolSim">Sim</label>
-            <input type="radio" id="alcoolNao" name="alcool" value="nao"><label for="alcoolNao">Não</label><br>
+            <input type="radio" id="alcoolNao" name="alcool" value="nao" checked><label for="alcoolNao">Não</label><br>
 
             <label>Você está grávida ou amamentando? (Se aplicável)</label>
             <input type="radio" id="gravidaSim" name="gravida" value="sim"><label for="gravidaSim">Sim</label>
             <input type="radio" id="gravidaNao" name="gravida" value="nao"><label for="gravidaNao">Não</label>
-            <input type="radio" id="gravidaNaoAplica" name="gravida" value="naoAplica"><label for="gravidaNaoAplica">Não se aplica</label><br>
+            <input type="radio" id="gravidaNaoAplica" name="gravida" value="naoAplica" checked><label for="gravidaNaoAplica">Não se aplica</label><br>
 
             <label>Você fez alguma cirurgia recente? (Últimos 6 meses)</label>
             <input type="radio" id="cirurgiaSim" name="cirurgia" value="sim"><label for="cirurgiaSim">Sim</label>
-            <input type="radio" id="cirurgiaNao" name="cirurgia" value="nao"><label for="cirurgiaNao">Não</label><br>
+            <input type="radio" id="cirurgiaNao" name="cirurgia" value="nao" checked><label for="cirurgiaNao">Não</label><br>
             <label for="cirurgiaDetalhes">Detalhes da Cirurgia:</label>
             <textarea id="cirurgiaDetalhes" name="cirurgiaDetalhes" rows="3"></textarea>
 
             <label>Você tem tatuagens anteriores?</label>
             <input type="radio" id="tatuagensAnterioresSim" name="tatuagensAnteriores" value="sim"><label for="tatuagensAnterioresSim">Sim</label>
-            <input type="radio" id="tatuagensAnterioresNao" name="tatuagensAnteriores" value="nao"><label for="tatuagensAnterioresNao">Não</label><br>
+            <input type="radio" id="tatuagensAnterioresNao" name="tatuagensAnteriores" value="nao" checked><label for="tatuagensAnterioresNao">Não</label><br>
             <label for="tatuagensAnterioresDetalhes">Detalhes (reações, infecções, etc.):</label>
             <textarea id="tatuagensAnterioresDetalhes" name="tatuagensAnterioresDetalhes" rows="3"></textarea>
         </section>
@@ -207,8 +231,9 @@
                 <input type="checkbox" id="consentimentoMaioridade" name="consentimento[]" value="maioridade" required><label for="consentimentoMaioridade">Declaro ser maior de 18 anos ou ter autorização legal.</label><br>
                 <input type="checkbox" id="consentimentoDados" name="consentimento[]" value="dados" required><label for="consentimentoDados">Autorizo o armazenamento e uso dos meus dados para fins do estúdio.</label>
             </div>
-            <label for="assinaturaDigital">Assinatura Digital (Digite seu nome):</label>
-            <input type="text" id="assinaturaDigital" name="assinaturaDigital" required>
+            <label>Assinatura Digital:</label>
+            <canvas id="signatureCanvas" width="400" height="200"></canvas><br>
+            <button type="button" id="clearSignature">Limpar Assinatura</button>
 
             <label for="dataAssinatura">Data:</label>
             <input type="date" id="dataAssinatura" name="dataAssinatura" required>
@@ -222,31 +247,138 @@
     <script>
         const form = document.getElementById('anamneseForm');
         const jsonOutput = document.getElementById('jsonOutput');
+        const canvas = document.getElementById('signatureCanvas');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
 
-        form.addEventListener('submit', function(event) {
+        // Funções para desenho na canvas
+        canvas.addEventListener('mousedown', () => { drawing = true; });
+        canvas.addEventListener('mouseup', () => { drawing = false; ctx.beginPath(); });
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('touchstart', (e) => { drawing = true; getTouchPos(e); });
+        canvas.addEventListener('touchend', () => { drawing = false; ctx.beginPath(); });
+        canvas.addEventListener('touchmove', (e) => { if (drawing) draw(getTouchPos(e)); });
+
+        function draw(e) {
+            if (!drawing) return;
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#000';
+            ctx.lineTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+        }
+
+        function getTouchPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                clientX: e.touches[0].clientX - rect.left,
+                clientY: e.touches[0].clientY - rect.top
+            };
+        }
+
+        document.getElementById('clearSignature').addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+
+        // Preenchimento automático com dados fictícios
+        document.getElementById('autoFill').addEventListener('click', function() {
+            document.getElementById('nome').value = 'João Silva';
+            document.getElementById('dataNascimento').value = '1990-05-15';
+            document.getElementById('idade').value = 35;
+            document.getElementById('endereco').value = 'Rua Exemplo, 123, São Paulo, SP';
+            document.getElementById('telefone').value = '(11) 99999-9999';
+            document.getElementById('email').value = 'joao.silva@example.com';
+            document.getElementById('cpf').value = '123.456.789-00';
+            document.getElementById('genero').value = 'masculino';
+
+            document.getElementById('dataAgendamento').value = '2026-01-11';
+            document.getElementById('horaAgendamento').value = '14:00';
+            document.getElementById('tatuador').value = 'Artista Exemplo';
+            document.getElementById('descricaoTatuagem').value = 'Uma tatuagem de dragão no braço.';
+            document.getElementById('localizacaoCorpo').value = 'Braço direito';
+            // Estilo cor default já é preto e branco
+
+            // Histórico Médico fictício
+            document.getElementById('diabetes').checked = false;
+            document.getElementById('hipertensao').checked = true;
+            document.getElementById('outrasCondicoesDetalhes').value = 'Nenhuma outra.';
+            document.getElementById('medicamentos').value = 'Nenhum.';
+            document.getElementById('alergias').value = 'Alergia a látex.';
+            document.getElementById('psoriase').checked = false;
+            document.getElementById('queloides').checked = true;
+            document.getElementById('outrasPeleDetalhes').value = '';
+            document.getElementById('fumaNao').checked = true;
+            document.getElementById('alcoolNao').checked = true;
+            document.getElementById('gravidaNaoAplica').checked = true;
+            document.getElementById('cirurgiaNao').checked = true;
+            document.getElementById('cirurgiaDetalhes').value = '';
+            document.getElementById('tatuagensAnterioresSim').checked = true;
+            document.getElementById('tatuagensAnterioresDetalhes').value = 'Uma tatuagem anterior sem problemas.';
+
+            // Consentimento
+            document.getElementById('consentimentoInformado').checked = true;
+            document.getElementById('consentimentoCuidados').checked = true;
+            document.getElementById('consentimentoMaioridade').checked = true;
+            document.getElementById('consentimentoDados').checked = true;
+            document.getElementById('dataAssinatura').value = '2026-01-11';
+
+            // Simular assinatura (desenho simples)
+            ctx.beginPath();
+            ctx.moveTo(50, 100);
+            ctx.lineTo(350, 100);
+            ctx.stroke();
+        });
+
+        // Submissão do formulário
+        form.addEventListener('submit', async function(event) {
             event.preventDefault();
             const formData = new FormData(form);
             const data = {};
+            const files = document.getElementById('imagensTatuagem').files;
+            data.imagensBase64 = [];
+
+            // Processar imagens para base64
+            for (let file of files) {
+                const base64 = await readFileAsBase64(file);
+                data.imagensBase64.push({
+                    nome: file.name,
+                    base64: base64
+                });
+            }
 
             // Processar campos simples
             for (let [key, value] of formData.entries()) {
                 if (key.endsWith('[]')) {
-                    key = key.slice(0, -2); // Remover [] para arrays
+                    key = key.slice(0, -2);
                     if (!data[key]) data[key] = [];
                     data[key].push(value);
-                } else {
+                } else if (key !== 'imagensTatuagem') { // Ignorar o campo de files
                     data[key] = value;
                 }
             }
+
+            // Adicionar assinatura como base64
+            const assinaturaBase64 = canvas.toDataURL('image/png');
+            data.assinaturaBase64 = assinaturaBase64;
+            data.assinaturaNomeArquivo = data.nome ? `${data.nome.replace(/\s/g, '_')}.png` : 'assinatura.png';
 
             // Exibir JSON
             jsonOutput.textContent = JSON.stringify(data, null, 2);
             console.log(data); // Para depuração ou integração futura com BD
 
-            // Aqui você pode adicionar código para enviar o JSON para um servidor ou salvar em localStorage
-            // Exemplo: localStorage.setItem('anamneseData', JSON.stringify(data));
-            // Ou fetch('/api/salvar', { method: 'POST', body: JSON.stringify(data) });
+            // Aqui, em um ambiente com servidor, você poderia enviar o JSON para salvar as imagens e assinatura em pastas como 'img' e 'assinaturas'
         });
+
+        function readFileAsBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
     </script>
 </body>
 </html>
