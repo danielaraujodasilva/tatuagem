@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ficha de Anamnese - Estúdio de Tatuagem</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        form {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        section {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 20px;
+        }
+        h2 {
+            color: #555;
+            margin-bottom: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="email"], input[type="tel"], input[type="date"], input[type="time"], input[type="number"], select, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        input[type="checkbox"], input[type="radio"] {
+            margin-right: 5px;
+        }
+        .checkbox-group {
+            margin-bottom: 10px;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #jsonOutput {
+            margin-top: 20px;
+            padding: 10px;
+            background: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ficha de Anamnese para Tatuagem</h1>
+    <form id="anamneseForm">
+        <!-- Seção 1: Dados do Cliente -->
+        <section id="dadosCliente">
+            <h2>Dados do Cliente</h2>
+            <label for="nome">Nome Completo:</label>
+            <input type="text" id="nome" name="nome" required>
+
+            <label for="dataNascimento">Data de Nascimento:</label>
+            <input type="date" id="dataNascimento" name="dataNascimento" required>
+
+            <label for="idade">Idade:</label>
+            <input type="number" id="idade" name="idade" min="18" required>
+
+            <label for="endereco">Endereço:</label>
+            <input type="text" id="endereco" name="endereco" required>
+
+            <label for="telefone">Telefone:</label>
+            <input type="tel" id="telefone" name="telefone" required>
+
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+
+            <label for="cpf">CPF:</label>
+            <input type="text" id="cpf" name="cpf" required>
+
+            <label for="genero">Gênero:</label>
+            <select id="genero" name="genero" required>
+                <option value="">Selecione</option>
+                <option value="masculino">Masculino</option>
+                <option value="feminino">Feminino</option>
+                <option value="naoBinario">Não Binário</option>
+                <option value="outro">Outro</option>
+            </select>
+        </section>
+
+        <!-- Seção 2: Dados do Agendamento -->
+        <section id="dadosAgendamento">
+            <h2>Dados do Agendamento</h2>
+            <label for="dataAgendamento">Data do Agendamento:</label>
+            <input type="date" id="dataAgendamento" name="dataAgendamento" required>
+
+            <label for="horaAgendamento">Hora do Agendamento:</label>
+            <input type="time" id="horaAgendamento" name="horaAgendamento" required>
+
+            <label for="tatuador">Nome do Tatuador:</label>
+            <input type="text" id="tatuador" name="tatuador" required>
+
+            <label for="descricaoTatuagem">Descrição da Tatuagem:</label>
+            <textarea id="descricaoTatuagem" name="descricaoTatuagem" rows="4" required></textarea>
+
+            <label for="localizacaoCorpo">Localização no Corpo:</label>
+            <input type="text" id="localizacaoCorpo" name="localizacaoCorpo" required>
+
+            <label for="tamanhoTatuagem">Tamanho Aproximado (em cm):</label>
+            <input type="text" id="tamanhoTatuagem" name="tamanhoTatuagem">
+
+            <label for="cores">Cores a Serem Usadas:</label>
+            <input type="text" id="cores" name="cores">
+        </section>
+
+        <!-- Seção 3: Histórico Médico -->
+        <section id="historicoMedico">
+            <h2>Histórico Médico</h2>
+            <div class="checkbox-group">
+                <label>Possui alguma condição médica? (Marque as que se aplicam)</label>
+                <input type="checkbox" id="diabetes" name="condicoes[]" value="diabetes"><label for="diabetes">Diabetes</label><br>
+                <input type="checkbox" id="hipertensao" name="condicoes[]" value="hipertensao"><label for="hipertensao">Hipertensão</label><br>
+                <input type="checkbox" id="problemasCardiacos" name="condicoes[]" value="problemasCardiacos"><label for="problemasCardiacos">Problemas Cardíacos</label><br>
+                <input type="checkbox" id="problemasRenais" name="condicoes[]" value="problemasRenais"><label for="problemasRenais">Problemas Renais</label><br>
+                <input type="checkbox" id="epilepsia" name="condicoes[]" value="epilepsia"><label for="epilepsia">Epilepsia</label><br>
+                <input type="checkbox" id="hepatite" name="condicoes[]" value="hepatite"><label for="hepatite">Hepatite</label><br>
+                <input type="checkbox" id="hiv" name="condicoes[]" value="hiv"><label for="hiv">HIV/AIDS</label><br>
+                <input type="checkbox" id="cancer" name="condicoes[]" value="cancer"><label for="cancer">Câncer</label><br>
+                <input type="checkbox" id="outrasCondicoes" name="condicoes[]" value="outras"><label for="outrasCondicoes">Outras (especifique abaixo)</label>
+            </div>
+            <label for="outrasCondicoesDetalhes">Detalhes de Outras Condições:</label>
+            <textarea id="outrasCondicoesDetalhes" name="outrasCondicoesDetalhes" rows="3"></textarea>
+
+            <label for="medicamentos">Medicamentos em Uso:</label>
+            <textarea id="medicamentos" name="medicamentos" rows="3"></textarea>
+
+            <label for="alergias">Alergias (incluindo látex, metais, tintas, etc.):</label>
+            <textarea id="alergias" name="alergias" rows="3"></textarea>
+
+            <div class="checkbox-group">
+                <label>Histórico de Pele:</label>
+                <input type="checkbox" id="psoriase" name="pele[]" value="psoriase"><label for="psoriase">Psoríase</label><br>
+                <input type="checkbox" id="eczema" name="pele[]" value="eczema"><label for="eczema">Eczema</label><br>
+                <input type="checkbox" id="queloides" name="pele[]" value="queloides"><label for="queloides">Tendência a Queloides</label><br>
+                <input type="checkbox" id="cicatrizacaoLenta" name="pele[]" value="cicatrizacaoLenta"><label for="cicatrizacaoLenta">Cicatrizacao Lenta</label><br>
+                <input type="checkbox" id="outrasPele" name="pele[]" value="outras"><label for="outrasPele">Outras (especifique abaixo)</label>
+            </div>
+            <label for="outrasPeleDetalhes">Detalhes de Outras Condições de Pele:</label>
+            <textarea id="outrasPeleDetalhes" name="outrasPeleDetalhes" rows="3"></textarea>
+
+            <label>Você fuma?</label>
+            <input type="radio" id="fumaSim" name="fuma" value="sim"><label for="fumaSim">Sim</label>
+            <input type="radio" id="fumaNao" name="fuma" value="nao"><label for="fumaNao">Não</label><br>
+
+            <label>Você consome álcool regularmente?</label>
+            <input type="radio" id="alcoolSim" name="alcool" value="sim"><label for="alcoolSim">Sim</label>
+            <input type="radio" id="alcoolNao" name="alcool" value="nao"><label for="alcoolNao">Não</label><br>
+
+            <label>Você está grávida ou amamentando? (Se aplicável)</label>
+            <input type="radio" id="gravidaSim" name="gravida" value="sim"><label for="gravidaSim">Sim</label>
+            <input type="radio" id="gravidaNao" name="gravida" value="nao"><label for="gravidaNao">Não</label>
+            <input type="radio" id="gravidaNaoAplica" name="gravida" value="naoAplica"><label for="gravidaNaoAplica">Não se aplica</label><br>
+
+            <label>Você fez alguma cirurgia recente? (Últimos 6 meses)</label>
+            <input type="radio" id="cirurgiaSim" name="cirurgia" value="sim"><label for="cirurgiaSim">Sim</label>
+            <input type="radio" id="cirurgiaNao" name="cirurgia" value="nao"><label for="cirurgiaNao">Não</label><br>
+            <label for="cirurgiaDetalhes">Detalhes da Cirurgia:</label>
+            <textarea id="cirurgiaDetalhes" name="cirurgiaDetalhes" rows="3"></textarea>
+
+            <label>Você tem tatuagens anteriores?</label>
+            <input type="radio" id="tatuagensAnterioresSim" name="tatuagensAnteriores" value="sim"><label for="tatuagensAnterioresSim">Sim</label>
+            <input type="radio" id="tatuagensAnterioresNao" name="tatuagensAnteriores" value="nao"><label for="tatuagensAnterioresNao">Não</label><br>
+            <label for="tatuagensAnterioresDetalhes">Detalhes (reações, infecções, etc.):</label>
+            <textarea id="tatuagensAnterioresDetalhes" name="tatuagensAnterioresDetalhes" rows="3"></textarea>
+        </section>
+
+        <!-- Seção 4: Consentimento e Termos -->
+        <section id="consentimento">
+            <h2>Consentimento e Termos</h2>
+            <div class="checkbox-group">
+                <input type="checkbox" id="consentimentoInformado" name="consentimento[]" value="informado" required><label for="consentimentoInformado">Declaro que fui informado sobre os riscos da tatuagem, incluindo infecções, reações alérgicas e cicatrização.</label><br>
+                <input type="checkbox" id="consentimentoCuidados" name="consentimento[]" value="cuidados" required><label for="consentimentoCuidados">Comprometo-me a seguir as instruções de cuidados pós-tatuagem.</label><br>
+                <input type="checkbox" id="consentimentoMaioridade" name="consentimento[]" value="maioridade" required><label for="consentimentoMaioridade">Declaro ser maior de 18 anos ou ter autorização legal.</label><br>
+                <input type="checkbox" id="consentimentoDados" name="consentimento[]" value="dados" required><label for="consentimentoDados">Autorizo o armazenamento e uso dos meus dados para fins do estúdio.</label>
+            </div>
+            <label for="assinaturaDigital">Assinatura Digital (Digite seu nome):</label>
+            <input type="text" id="assinaturaDigital" name="assinaturaDigital" required>
+
+            <label for="dataAssinatura">Data:</label>
+            <input type="date" id="dataAssinatura" name="dataAssinatura" required>
+        </section>
+
+        <button type="submit">Enviar e Gerar JSON</button>
+    </form>
+
+    <div id="jsonOutput"></div>
+
+    <script>
+        const form = document.getElementById('anamneseForm');
+        const jsonOutput = document.getElementById('jsonOutput');
+
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(form);
+            const data = {};
+
+            // Processar campos simples
+            for (let [key, value] of formData.entries()) {
+                if (key.endsWith('[]')) {
+                    key = key.slice(0, -2); // Remover [] para arrays
+                    if (!data[key]) data[key] = [];
+                    data[key].push(value);
+                } else {
+                    data[key] = value;
+                }
+            }
+
+            // Exibir JSON
+            jsonOutput.textContent = JSON.stringify(data, null, 2);
+            console.log(data); // Para depuração ou integração futura com BD
+
+            // Aqui você pode adicionar código para enviar o JSON para um servidor ou salvar em localStorage
+            // Exemplo: localStorage.setItem('anamneseData', JSON.stringify(data));
+            // Ou fetch('/api/salvar', { method: 'POST', body: JSON.stringify(data) });
+        });
+    </script>
+</body>
+</html>
