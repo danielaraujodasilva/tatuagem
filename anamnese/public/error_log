@@ -1,0 +1,492 @@
+[16-Apr-2025 18:49:00 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php:23
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php(23): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php on line 23
+[16-Apr-2025 18:50:47 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'marcacao' in 'field list' in /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php:23
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php(23): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php on line 23
+[16-Apr-2025 18:53:30 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'marcacao' in 'field list' in /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php:23
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php(23): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php on line 23
+[16-Apr-2025 19:01:04 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'marcacao' in 'field list' in /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php:23
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php(23): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php on line 23
+[16-Apr-2025 19:01:45 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'marcacao' in 'field list' in /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php:23
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php(23): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php on line 23
+[16-Apr-2025 19:01:50 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'marcacao' in 'field list' in /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php:23
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php(23): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php on line 23
+[16-Apr-2025 19:02:35 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'marcacao' in 'field list' in /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php:23
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php(23): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php on line 23
+[16-Apr-2025 19:02:39 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'marcacao' in 'field list' in /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php:23
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php(23): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha2/public/cadastrar_cliente.php on line 23
+[16-Apr-2025 19:55:00 America/Fortaleza] PHP Warning:  Undefined variable $cliente in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_tatuagem.php on line 2
+[16-Apr-2025 19:55:00 America/Fortaleza] PHP Warning:  Trying to access array offset on value of type null in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_tatuagem.php on line 2
+[16-Apr-2025 19:55:00 America/Fortaleza] PHP Warning:  Undefined variable $cliente in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_tatuagem.php on line 4
+[16-Apr-2025 19:55:00 America/Fortaleza] PHP Warning:  Trying to access array offset on value of type null in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_tatuagem.php on line 4
+[16-Apr-2025 20:04:53 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[16-Apr-2025 20:04:53 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[16-Apr-2025 20:04:53 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[16-Apr-2025 20:04:53 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[16-Apr-2025 20:04:53 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[16-Apr-2025 20:04:53 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[16-Apr-2025 20:04:53 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[16-Apr-2025 20:04:53 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[16-Apr-2025 20:04:53 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[16-Apr-2025 20:04:53 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[16-Apr-2025 20:04:53 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[16-Apr-2025 20:04:53 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[21-Apr-2025 23:46:09 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[21-Apr-2025 23:46:09 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[21-Apr-2025 23:46:09 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[21-Apr-2025 23:46:09 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[21-Apr-2025 23:46:09 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[21-Apr-2025 23:46:09 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[21-Apr-2025 23:46:09 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[21-Apr-2025 23:46:09 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[21-Apr-2025 23:46:09 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[21-Apr-2025 23:46:09 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[21-Apr-2025 23:46:09 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[21-Apr-2025 23:46:09 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[21-Apr-2025 23:52:46 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[21-Apr-2025 23:52:46 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[21-Apr-2025 23:52:46 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[21-Apr-2025 23:52:46 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[21-Apr-2025 23:52:46 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[21-Apr-2025 23:52:46 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[21-Apr-2025 23:52:46 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[21-Apr-2025 23:52:46 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[21-Apr-2025 23:52:46 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[21-Apr-2025 23:52:46 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[21-Apr-2025 23:52:46 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[21-Apr-2025 23:52:46 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[21-Apr-2025 23:57:16 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[21-Apr-2025 23:57:16 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[21-Apr-2025 23:57:16 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[21-Apr-2025 23:57:16 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[21-Apr-2025 23:57:16 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[21-Apr-2025 23:57:16 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[21-Apr-2025 23:57:16 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[21-Apr-2025 23:57:16 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[21-Apr-2025 23:57:16 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[21-Apr-2025 23:57:16 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[21-Apr-2025 23:57:16 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[21-Apr-2025 23:57:16 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 00:08:27 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 00:08:27 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 00:08:27 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 00:08:27 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 00:08:27 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 00:08:27 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 00:08:27 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 00:08:27 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 00:08:27 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 00:08:27 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 00:08:27 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 00:08:27 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 00:08:29 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 00:08:29 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 00:08:29 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 00:08:29 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 00:08:29 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 00:08:29 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 00:08:29 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 00:08:29 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 00:08:29 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 00:08:29 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 00:08:29 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 00:08:29 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 02:50:58 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 02:51:01 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 02:51:01 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 02:51:01 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 02:51:01 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 02:51:01 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 02:51:01 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 02:51:01 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 02:51:01 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 02:51:01 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 02:51:01 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 02:51:01 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 02:51:01 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 02:51:51 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 02:51:51 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 02:51:51 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 02:51:51 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 02:51:51 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 02:51:51 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 02:51:51 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 02:51:51 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 02:51:51 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 02:51:51 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 02:51:51 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 02:51:51 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 07:22:58 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 07:22:58 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 07:22:58 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 07:22:58 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 07:22:58 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 07:22:58 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 07:22:58 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 07:22:58 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 07:22:58 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 07:22:58 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 07:22:58 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 07:22:58 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 07:22:59 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 07:22:59 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 07:22:59 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 07:22:59 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 07:22:59 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 07:22:59 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 07:22:59 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 07:22:59 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 07:22:59 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 07:22:59 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 07:22:59 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 07:22:59 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 08:02:32 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 08:02:32 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 08:02:32 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 08:02:32 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 08:02:32 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 08:02:32 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 08:02:32 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 08:02:32 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 08:02:32 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 08:02:32 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 08:02:32 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 08:02:32 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 10:12:20 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 10:12:20 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 10:12:20 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 10:12:20 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 10:12:20 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 10:12:20 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 10:12:20 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 10:12:20 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 10:12:20 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 10:12:20 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 10:12:20 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 10:12:20 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 10:12:27 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 10:12:27 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 10:12:27 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 10:12:27 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 10:12:27 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 10:12:27 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 10:12:27 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 10:12:27 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 10:12:27 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 10:12:27 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 10:12:27 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 10:12:27 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 10:12:43 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 10:12:43 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 10:12:43 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 10:12:43 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 10:12:43 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 10:12:43 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 10:12:43 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 10:12:43 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 10:12:43 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 10:12:43 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 10:12:43 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 10:12:43 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 10:12:46 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 10:12:46 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 10:12:46 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 10:12:46 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 10:12:46 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 10:12:46 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 10:12:46 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 10:12:46 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 10:12:46 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 10:12:46 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 10:12:46 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 10:12:46 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 10:12:57 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 10:12:57 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 10:12:57 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 10:12:57 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 10:12:57 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 10:12:57 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 10:12:57 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 10:12:57 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 10:12:57 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 10:12:57 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 10:12:57 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 10:12:57 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 10:13:32 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 10:13:32 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 10:13:32 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 10:13:32 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 10:13:32 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 10:13:32 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 10:13:32 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 10:13:32 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 10:13:32 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 10:13:32 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 10:13:32 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 10:13:32 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 10:17:24 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 10:17:24 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 10:17:24 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 10:17:24 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 10:17:24 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 10:17:24 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 10:17:24 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 10:17:24 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 10:17:24 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 10:17:24 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 10:17:24 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 10:17:24 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 12:48:17 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 12:48:17 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 12:48:17 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 12:48:17 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 12:48:17 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 12:48:17 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 12:48:17 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 12:48:17 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 12:48:17 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 12:48:17 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 12:48:17 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 12:48:17 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 12:49:25 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 12:49:25 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 12:49:25 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 12:49:25 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 12:49:25 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 12:49:25 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 12:49:25 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 12:49:25 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 12:49:25 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 12:49:25 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 12:49:25 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 12:49:25 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 12:50:00 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 12:50:00 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 12:50:00 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 12:50:00 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 12:50:00 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 12:50:00 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 12:50:00 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 12:50:00 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 12:50:00 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 12:50:00 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 12:50:00 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 12:50:00 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 14:14:19 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 22:34:14 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 22:34:14 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 22:34:14 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 22:34:14 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 22:34:14 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 22:34:14 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 22:34:14 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 22:34:14 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 22:34:14 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 22:34:14 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 22:34:14 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 22:34:14 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[22-Apr-2025 22:34:15 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[22-Apr-2025 22:34:15 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[22-Apr-2025 22:34:15 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[22-Apr-2025 22:34:15 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[22-Apr-2025 22:34:15 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[22-Apr-2025 22:34:15 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[22-Apr-2025 22:34:15 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[22-Apr-2025 22:34:15 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[22-Apr-2025 22:34:15 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[22-Apr-2025 22:34:15 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[22-Apr-2025 22:34:15 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[22-Apr-2025 22:34:15 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
+[07-May-2025 06:59:50 America/Fortaleza] PHP Warning:  Undefined array key "nome" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 4
+[07-May-2025 06:59:50 America/Fortaleza] PHP Warning:  Undefined array key "telefone" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 5
+[07-May-2025 06:59:50 America/Fortaleza] PHP Warning:  Undefined array key "vai_tatuar" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 6
+[07-May-2025 06:59:50 America/Fortaleza] PHP Warning:  Undefined array key "email" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 7
+[07-May-2025 06:59:50 America/Fortaleza] PHP Warning:  Undefined array key "data_nascimento" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 8
+[07-May-2025 06:59:50 America/Fortaleza] PHP Warning:  Undefined array key "genero" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 9
+[07-May-2025 06:59:50 America/Fortaleza] PHP Warning:  Undefined array key "profissao" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 10
+[07-May-2025 06:59:50 America/Fortaleza] PHP Warning:  Undefined array key "endereco" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 11
+[07-May-2025 06:59:50 America/Fortaleza] PHP Warning:  Undefined array key "hobbies" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 12
+[07-May-2025 06:59:50 America/Fortaleza] PHP Warning:  Undefined array key "estilo_tatuagem" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 13
+[07-May-2025 06:59:50 America/Fortaleza] PHP Warning:  Undefined array key "instagram_cliente" in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 15
+[07-May-2025 06:59:50 America/Fortaleza] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'vai_tatuar' in 'field list' in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php:22
+Stack trace:
+#0 /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php(22): mysqli->query('INSERT INTO cli...')
+#1 {main}
+  thrown in /home2/fran5062/danieltatuador.com/ficha/public/cadastrar_cliente.php on line 22
