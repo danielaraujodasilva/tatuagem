@@ -18,44 +18,54 @@
     }
     .app-card {
       background: #121212;
-      border-radius: 16px;
-      box-shadow: 0 0 30px rgba(0,0,0,.6);
+      border-radius: 18px;
+      box-shadow: 0 0 40px rgba(0,0,0,.7);
+      animation: fadeIn .5s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     canvas {
       width: 100%;
-      max-height: 320px;
-      border-radius: 12px;
+      max-height: 340px;
+      border-radius: 14px;
       cursor: crosshair;
       background: #000;
-      transition: transform .2s ease;
-    }
-    canvas:hover { transform: scale(1.01); }
-    .color-preview {
-      height: 70px;
-      border-radius: 10px;
-      box-shadow: inset 0 0 10px rgba(0,0,0,.5);
-    }
-    .preset-card {
-      background: #181818;
-      border-radius: 14px;
       transition: transform .2s ease, box-shadow .2s ease;
     }
+    canvas:hover {
+      transform: scale(1.015);
+      box-shadow: 0 0 20px rgba(255,0,0,.15);
+    }
+    .preset-card {
+      background: linear-gradient(180deg, #1a1a1a, #111);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.6);
+      animation: fadeIn .4s ease;
+      transition: transform .2s ease;
+    }
     .preset-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 10px 30px rgba(0,0,0,.7);
+      transform: translateY(-6px);
+    }
+    .color-preview {
+      height: 80px;
+      border-radius: 12px;
+      box-shadow: inset 0 0 15px rgba(0,0,0,.6);
+    }
+    .badge-color {
+      background: #000;
+      font-size: .75rem;
     }
     .btn-danger {
       background: linear-gradient(135deg, #b30000, #ff1a1a);
       border: none;
     }
-    .badge-color {
-      font-size: .75rem;
-      background: #000;
-    }
+    .btn-danger:hover { opacity: .9; }
     @media print {
       body { background: #fff; color: #000; }
       .no-print { display: none; }
-      .preset-card { break-inside: avoid; border: 1px solid #000; }
+      .preset-card { break-inside: avoid; border: 1px solid #000; box-shadow:none; }
     }
   </style>
 </head>
@@ -63,7 +73,7 @@
 
 <div class="container py-4">
 
-  <h1 class="fw-bold mb-4 text-center">Misturador de Cores – Pinça & Presets</h1>
+  <h1 class="fw-bold text-center mb-4">Misturador de Cores – Pinça & Presets</h1>
 
   <div class="row g-4">
 
@@ -83,14 +93,14 @@
         <div class="mb-3">
           <label class="form-label">Batoque</label>
           <select id="batoque" class="form-select">
-            <option value="P">P – 2ml</option>
-            <option value="M">M – 3ml</option>
-            <option value="G">G – 4ml</option>
-            <option value="GG">GG – 5ml</option>
+            <option value="P">P – 0,5 ml (~5 gotas)</option>
+            <option value="M">M – 1 ml (~10 gotas)</option>
+            <option value="G">G – 2 ml (~20 gotas)</option>
+            <option value="GG">GG – 4 ml (~40 gotas)</option>
           </select>
         </div>
 
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 no-print">
           <button class="btn btn-danger w-100" onclick="window.print()">Imprimir</button>
           <button class="btn btn-outline-light w-100" onclick="clearPresets()">Limpar tudo</button>
         </div>
@@ -107,8 +117,10 @@
 </div>
 
 <script>
-const dropsPerMl = 10;
-const cupVolumes = { P: 2, M: 3, G: 4, GG: 5 };
+// === CONFIGURAÇÃO REALISTA ===
+const dropsPerMl = 10; // tinta de tatuagem
+const cupVolumes = { P: 0.5, M: 1, G: 2, GG: 4 };
+
 let presets = JSON.parse(localStorage.getItem('presets') || '[]');
 
 const canvas = document.getElementById('canvas');
@@ -141,7 +153,7 @@ function renderPresets() {
             Amarelo: ${p.mix.yellow}% – ${p.drops.yellow} gotas<br>
             Azul: ${p.mix.blue}% – ${p.drops.blue} gotas
           </small>
-          <button class="btn btn-sm btn-outline-danger w-100 mt-3" onclick="removePreset(${i})">Excluir</button>
+          <button class="btn btn-sm btn-outline-danger w-100 mt-3 no-print" onclick="removePreset(${i})">Excluir</button>
         </div>
       </div>`;
   });
