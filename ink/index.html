@@ -84,26 +84,32 @@
 <div class="preset-list" id="presetList"></div>
 
 <script>
-const presets = JSON.parse(localStorage.getItem('presets') || '[]');
-
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const imageInput = document.getElementById('imageInput');
+const presetName = document.getElementById('presetName');
+const batoque = document.getElementById('batoque');
 const pickedColor = document.getElementById('pickedColor');
+const presetList = document.getElementById('presetList');
+
 let lastPicked = null;
+let presets = JSON.parse(localStorage.getItem('presets') || '[]');
 
 function render() {
-  const list = document.getElementById('presetList');
-  list.innerHTML = '';
+  presetList.innerHTML = '';
   presets.forEach((p, i) => {
-    list.innerHTML += `
-      <div class="preset">
-        <div class="color-preview" style="background:${p.color}"></div>
-        <strong>${p.name}</strong><br>
-        ${p.formula}<br>
-        Batoque: ${p.batoque}<br><br>
-        <button onclick="removePreset(${i})">Excluir</button>
-      </div>`;
+    const div = document.createElement('div');
+    div.className = 'preset';
+    div.innerHTML = `
+      <div class="color-preview" style="background:${p.color}"></div>
+      <strong>${p.name}</strong><br>
+      Vermelho: ${p.mix.red} gotas<br>
+      Amarelo: ${p.mix.yellow} gotas<br>
+      Azul: ${p.mix.blue} gotas<br>
+      Batoque: ${p.batoque}<br><br>
+      <button onclick="removePreset(${i})">Excluir</button>
+    `;
+    presetList.appendChild(div);
   });
   localStorage.setItem('presets', JSON.stringify(presets));
 }
@@ -113,12 +119,26 @@ function removePreset(i) {
   render();
 }
 
-imageInput.addEventListener('change', e => {
-  const file = e.target.files[0];
+function savePickedPreset() {
+  if (!lastPicked) {
+    alert('Pinça uma cor primeiro, gênio do caos.');
+    return;
+  }
+  presets.push({
+    name: presetName.value || 'Cor Pinçada',
+    color: lastPicked.color,
+    mix: lastPicked.mix,
+    batoque: batoque.value
+  });
+  render();
+}
+
+imageInput.addEventListener('change', () => {
+  const file = imageInput.files[0];
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = ev => {
+  reader.onload = e => {
     const img = new Image();
     img.onload = () => {
       canvas.width = img.naturalWidth;
@@ -126,55 +146,30 @@ imageInput.addEventListener('change', e => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0);
     };
-    img.src = ev.target.result;
+    img.src = e.target.result;
   };
   reader.readAsDataURL(file);
 });
-  img.onload = () => {
-    canvas.width = img.width;
-    canvas.height = img.height;
-    ctx.drawImage(img, 0, 0);
-  };
-  img.src = URL.createObjectURL(e.target.files[0]);
-});
 
 canvas.addEventListener('click', e => {
-  if (!canvas.width) return;
   const rect = canvas.getBoundingClientRect();
-  const x = ((e.clientX - rect.left) / rect.width) * canvas.width;
-  const y = ((e.clientY - rect.top) / rect.height) * canvas.height;
+  const x = Math.floor((e.clientX - rect.left) * canvas.width / rect.width);
+  const y = Math.floor((e.clientY - rect.top) * canvas.height / rect.height);
   const data = ctx.getImageData(x, y, 1, 1).data;
+
   const rgb = `rgb(${data[0]}, ${data[1]}, ${data[2]})`;
 
-  const r = Math.round(data[0] / 25);
-  const yel = Math.round(data[1] / 25);
-  const b = Math.round(data[2] / 25);
-
-  lastPicked = { rgb, r, yel, b };
+  lastPicked = {
+    color: rgb,
+    mix: {
+      red: Math.round(data[0] / 25),
+      yellow: Math.round(data[1] / 25),
+      blue: Math.round(data[2] / 25)
+    }
+  };
 
   pickedColor.innerHTML = `Cor pinçada: <span style="display:inline-block;width:30px;height:30px;background:${rgb};border-radius:50%;vertical-align:middle"></span> ${rgb}`;
 });
-
-function savePickedPreset() {
-  if (!lastPicked) {
-    alert('Carrega uma imagem e pinça uma cor primeiro, criatura.');
-    return;
-  }
-
-  const name = document.getElementById('presetName').value || 'Cor Pinçada';
-  const batoque = document.getElementById('batoque').value;
-
-  const formula = `Vermelho: ${lastPicked.r} gotas | Amarelo: ${lastPicked.yel} gotas | Azul: ${lastPicked.b} gotas`;
-
-  presets.push({
-    name,
-    color: lastPicked.rgb,
-    formula,
-    batoque
-  });
-
-  render();
-}
 
 render();
 </script>
