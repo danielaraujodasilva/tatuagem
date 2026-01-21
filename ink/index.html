@@ -1,177 +1,153 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Misturador de Cores – Tatuagem</title>
+<meta charset="UTF-8">
+<title>Pinçar Cor – Mistura em Gotas</title>
 
-  <!-- PWA -->
-  <!-- PWA opcional: só ativa se existir manifest.json -->
-  <!-- <link rel="manifest" href="manifest.json"> -->
-  <meta name="theme-color" content="#000000">
+<style>
+body {
+  background:#111;
+  color:#eee;
+  font-family: Arial, sans-serif;
+  padding:20px;
+}
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: #fff;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 { margin-bottom: 10px; }
-    .controls, .preset {
-      background: #1c1c1c;
-      border-radius: 10px;
-      padding: 15px;
-      margin-bottom: 15px;
-    }
-    label { display: block; margin-top: 10px; }
-    input, select, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      border-radius: 6px;
-      border: none;
-    }
-    button {
-      background: #b30000;
-      color: #fff;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    button:hover { opacity: 0.85; }
-    .preset-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
-    .color-preview {
-      height: 60px;
-      border-radius: 6px;
-      margin-bottom: 10px;
-    }
-    @media print {
-      body { background: #fff; color: #000; }
-      .controls, button { display: none; }
-      .preset { break-inside: avoid; border: 1px solid #000; }
-    }
-  </style>
+canvas {
+  border:1px solid #444;
+  cursor: crosshair;
+  max-width:100%;
+}
+
+.controls {
+  margin:15px 0;
+}
+
+select, button {
+  padding:8px;
+  margin-right:5px;
+}
+
+.color-box {
+  width:40px;
+  height:40px;
+  border:1px solid #000;
+  display:inline-block;
+  vertical-align:middle;
+}
+
+.preset {
+  background:#1b1b1b;
+  border:1px solid #333;
+  padding:10px;
+  margin-top:10px;
+}
+
+.preset button {
+  float:right;
+}
+
+small {
+  color:#aaa;
+}
+</style>
 </head>
+
 <body>
 
-<h1>Misturador de Cores – Presets</h1>
+<h2>Pinçar cor da imagem</h2>
+
+<input type="file" id="imageLoader" accept="image/*">
 
 <div class="controls">
-  <label>Nome do preset</label>
-  <input id="presetName" placeholder="Ex: Marrom Quente">
-
-  <label>Imagem de referência</label>
-  <input type="file" id="imageInput" accept="image/*" hidden>
-  <button type="button" onclick="document.getElementById('imageInput').click()">Carregar imagem de referência</button>
-  <canvas id="canvas" style="width:100%;height:auto;display:block;border-radius:10px;margin-top:10px;cursor:crosshair;background:#000"></canvas>
-
-  <div id="pickedColor" style="margin-top:10px;font-weight:bold"></div>
-
-  <label>Batoque</label>
-  <select id="batoque">
-    <option value="P">P</option>
-    <option value="M">M</option>
-    <option value="G">G</option>
-    <option value="GG">GG</option>
+  Batoque:
+  <select id="cupSize">
+    <option value="P">P (5ml)</option>
+    <option value="M">M (10ml)</option>
+    <option value="G">G (15ml)</option>
+    <option value="GG">GG (20ml)</option>
   </select>
 
-  <button onclick="savePickedPreset()">Salvar preset da cor pinçada</button>
+  <button onclick="clearPresets()">Limpar tudo</button>
 </div>
 
-<button onclick="window.print()">Imprimir presets</button>
+<canvas id="canvas"></canvas>
 
-<div class="preset-list" id="presetList"></div>
+<h3>Presets</h3>
+<div id="presets"></div>
 
 <script>
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
-const imageInput = document.getElementById('imageInput');
-const presetName = document.getElementById('presetName');
-const batoque = document.getElementById('batoque');
-const pickedColor = document.getElementById('pickedColor');
-const presetList = document.getElementById('presetList');
+const img = new Image();
 
-let lastPicked = null;
-let presets = JSON.parse(localStorage.getItem('presets') || '[]');
+const presetsDiv = document.getElementById('presets');
 
-function render() {
-  presetList.innerHTML = '';
-  presets.forEach((p, i) => {
-    const div = document.createElement('div');
-    div.className = 'preset';
-    div.innerHTML = `
-      <div class="color-preview" style="background:${p.color}"></div>
-      <strong>${p.name}</strong><br>
-      Vermelho: ${p.mix.red} gotas<br>
-      Amarelo: ${p.mix.yellow} gotas<br>
-      Azul: ${p.mix.blue} gotas<br>
-      Batoque: ${p.batoque}<br><br>
-      <button onclick="removePreset(${i})">Excluir</button>
-    `;
-    presetList.appendChild(div);
-  });
-  localStorage.setItem('presets', JSON.stringify(presets));
-}
+const dropsPerMl = 20;
 
-function removePreset(i) {
-  presets.splice(i, 1);
-  render();
-}
+const cupVolumes = {
+  P: 5,
+  M: 10,
+  G: 15,
+  GG: 20
+};
 
-function savePickedPreset() {
-  if (!lastPicked) {
-    alert('Pinça uma cor primeiro, gênio do caos.');
-    return;
-  }
-  presets.push({
-    name: presetName.value || 'Cor Pinçada',
-    color: lastPicked.color,
-    mix: lastPicked.mix,
-    batoque: batoque.value
-  });
-  render();
-}
-
-imageInput.addEventListener('change', () => {
-  const file = imageInput.files[0];
-  if (!file) return;
-
+document.getElementById('imageLoader').addEventListener('change', e => {
   const reader = new FileReader();
-  reader.onload = e => {
-    const img = new Image();
+  reader.onload = evt => {
     img.onload = () => {
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      canvas.width = img.width;
+      canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
     };
-    img.src = e.target.result;
+    img.src = evt.target.result;
   };
-  reader.readAsDataURL(file);
+  reader.readAsDataURL(e.target.files[0]);
 });
 
 canvas.addEventListener('click', e => {
   const rect = canvas.getBoundingClientRect();
   const x = Math.floor((e.clientX - rect.left) * canvas.width / rect.width);
   const y = Math.floor((e.clientY - rect.top) * canvas.height / rect.height);
-  const data = ctx.getImageData(x, y, 1, 1).data;
 
-  const rgb = `rgb(${data[0]}, ${data[1]}, ${data[2]})`;
-
-  lastPicked = {
-    color: rgb,
-    mix: {
-      red: Math.round(data[0] / 25),
-      yellow: Math.round(data[1] / 25),
-      blue: Math.round(data[2] / 25)
-    }
-  };
-
-  pickedColor.innerHTML = `Cor pinçada: <span style="display:inline-block;width:30px;height:30px;background:${rgb};border-radius:50%;vertical-align:middle"></span> ${rgb}`;
+  const pixel = ctx.getImageData(x, y, 1, 1).data;
+  createPreset(pixel[0], pixel[1], pixel[2]);
 });
 
-render();
+function createPreset(r, g, b) {
+  const total = r + g + b || 1;
+
+  const rPct = (r / total) * 100;
+  const gPct = (g / total) * 100;
+  const bPct = (b / total) * 100;
+
+  const size = document.getElementById('cupSize').value;
+  const totalDrops = cupVolumes[size] * dropsPerMl;
+
+  const rDrops = Math.round(totalDrops * (rPct / 100));
+  const gDrops = Math.round(totalDrops * (gPct / 100));
+  const bDrops = Math.round(totalDrops * (bPct / 100));
+
+  const div = document.createElement('div');
+  div.className = 'preset';
+
+  div.innerHTML = `
+    <button onclick="this.parentElement.remove()">X</button>
+    <div class="color-box" style="background: rgb(${r},${g},${b})"></div>
+    <strong> RGB(${r}, ${g}, ${b})</strong><br>
+    <small>
+      R: ${rPct.toFixed(1)}% → ${rDrops} gotas<br>
+      G: ${gPct.toFixed(1)}% → ${gDrops} gotas<br>
+      B: ${bPct.toFixed(1)}% → ${bDrops} gotas<br>
+      Batoque: ${size} (${totalDrops} gotas)
+    </small>
+  `;
+
+  presetsDiv.prepend(div);
+}
+
+function clearPresets() {
+  presetsDiv.innerHTML = '';
+}
 </script>
 
 </body>
