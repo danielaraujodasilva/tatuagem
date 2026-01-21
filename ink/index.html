@@ -60,8 +60,9 @@
   <label>Nome do preset</label>
   <input id="presetName" placeholder="Ex: Marrom Quente">
 
-  <label>Enviar imagem para pinçar cor</label>
-  <input type="file" id="imageInput" accept="image/*">
+  <label>Imagem de referência</label>
+  <input type="file" id="imageInput" accept="image/*" hidden>
+  <button type="button" onclick="document.getElementById('imageInput').click()">Carregar imagem de referência</button>
   <canvas id="canvas" style="width:100%;max-height:300px;border-radius:10px;margin-top:10px;cursor:crosshair"></canvas>
 
   <div id="pickedColor" style="margin-top:10px;font-weight:bold"></div>
@@ -84,14 +85,11 @@
 <script>
 const presets = JSON.parse(localStorage.getItem('presets') || '[]');
 
-function colorMix(c1, c2) {
-  const map = {
-    red: [255,0,0], yellow: [255,255,0], blue: [0,0,255], black:[0,0,0], white:[255,255,255]
-  };
-  const a = map[c1];
-  const b = map[c2];
-  return `rgb(${Math.floor((a[0]+b[0])/2)},${Math.floor((a[1]+b[1])/2)},${Math.floor((a[2]+b[2])/2)})`;
-}
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const imageInput = document.getElementById('imageInput');
+const pickedColor = document.getElementById('pickedColor');
+let lastPicked = null;
 
 function render() {
   const list = document.getElementById('presetList');
@@ -101,8 +99,7 @@ function render() {
       <div class="preset">
         <div class="color-preview" style="background:${p.color}"></div>
         <strong>${p.name}</strong><br>
-        ${p.c1}: ${p.c1g} gotas<br>
-        ${p.c2}: ${p.c2g} gotas<br>
+        ${p.formula}<br>
         Batoque: ${p.batoque}<br><br>
         <button onclick="removePreset(${i})">Excluir</button>
       </div>`;
@@ -110,23 +107,10 @@ function render() {
   localStorage.setItem('presets', JSON.stringify(presets));
 }
 
-function savePickedPreset() {
-  if(!lastPicked) return alert('Pinça uma cor primeiro, artista ansioso.');
-  const name = presetName.value || 'Cor Pinçada';
-  presets.push({
-    name,
-    c1: 'Mix automático',
-    c1g: lastPicked.mix.red,
-    c2: 'Mix automático',
-    c2g: lastPicked.mix.yellow,
-    batoque: batoque.value,
-    color: lastPicked.color
-  });
+function removePreset(i) {
+  presets.splice(i, 1);
   render();
-
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-let lastPicked = null;
+}
 
 imageInput.addEventListener('change', e => {
   const img = new Image();
@@ -139,29 +123,44 @@ imageInput.addEventListener('change', e => {
 });
 
 canvas.addEventListener('click', e => {
+  if (!canvas.width) return;
   const rect = canvas.getBoundingClientRect();
   const x = ((e.clientX - rect.left) / rect.width) * canvas.width;
   const y = ((e.clientY - rect.top) / rect.height) * canvas.height;
   const data = ctx.getImageData(x, y, 1, 1).data;
-  const rgb = `rgb(${data[0]},${data[1]},${data[2]})`;
+  const rgb = `rgb(${data[0]}, ${data[1]}, ${data[2]})`;
 
-  // mistura burra porém funcional baseada em RGB
-  lastPicked = {
-    color: rgb,
-    mix: {
-      red: Math.round(data[0] / 25),
-      yellow: Math.round(data[1] / 25),
-      blue: Math.round(data[2] / 25)
-    }
-  };
+  const r = Math.round(data[0] / 25);
+  const yel = Math.round(data[1] / 25);
+  const b = Math.round(data[2] / 25);
+
+  lastPicked = { rgb, r, yel, b };
 
   pickedColor.innerHTML = `Cor pinçada: <span style="display:inline-block;width:30px;height:30px;background:${rgb};border-radius:50%;vertical-align:middle"></span> ${rgb}`;
 });
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js');
-}('sw.js');
+function savePickedPreset() {
+  if (!lastPicked) {
+    alert('Carrega uma imagem e pinça uma cor primeiro, criatura.');
+    return;
+  }
+
+  const name = document.getElementById('presetName').value || 'Cor Pinçada';
+  const batoque = document.getElementById('batoque').value;
+
+  const formula = `Vermelho: ${lastPicked.r} gotas | Amarelo: ${lastPicked.yel} gotas | Azul: ${lastPicked.b} gotas`;
+
+  presets.push({
+    name,
+    color: lastPicked.rgb,
+    formula,
+    batoque
+  });
+
+  render();
 }
+
+render();
 </script>
 
 </body>
