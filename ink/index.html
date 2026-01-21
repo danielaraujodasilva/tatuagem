@@ -5,94 +5,110 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Misturador de Cores – Pinça & Presets</title>
 
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
   <meta name="theme-color" content="#000000">
 
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #111;
+      background: radial-gradient(circle at top, #1a1a1a, #000);
       color: #fff;
-      margin: 0;
-      padding: 20px;
+      min-height: 100vh;
     }
-    h1 { margin-bottom: 10px; }
-    .controls, .preset {
-      background: #1c1c1c;
-      border-radius: 10px;
-      padding: 15px;
-      margin-bottom: 15px;
+    .app-card {
+      background: #121212;
+      border-radius: 16px;
+      box-shadow: 0 0 30px rgba(0,0,0,.6);
     }
-    label { display: block; margin-top: 10px; }
-    input, select, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      border-radius: 6px;
-      border: none;
-    }
-    button {
-      background: #b30000;
-      color: #fff;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    button:hover { opacity: 0.85; }
     canvas {
       width: 100%;
-      max-height: 300px;
-      display: block;
-      margin-top: 10px;
-      border-radius: 10px;
+      max-height: 320px;
+      border-radius: 12px;
       cursor: crosshair;
       background: #000;
+      transition: transform .2s ease;
     }
-    .preset-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 10px;
-    }
+    canvas:hover { transform: scale(1.01); }
     .color-preview {
-      height: 60px;
-      border-radius: 6px;
-      margin-bottom: 10px;
+      height: 70px;
+      border-radius: 10px;
+      box-shadow: inset 0 0 10px rgba(0,0,0,.5);
+    }
+    .preset-card {
+      background: #181818;
+      border-radius: 14px;
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .preset-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 30px rgba(0,0,0,.7);
+    }
+    .btn-danger {
+      background: linear-gradient(135deg, #b30000, #ff1a1a);
+      border: none;
+    }
+    .badge-color {
+      font-size: .75rem;
+      background: #000;
     }
     @media print {
       body { background: #fff; color: #000; }
-      .controls, button { display: none; }
-      .preset { break-inside: avoid; border: 1px solid #000; }
+      .no-print { display: none; }
+      .preset-card { break-inside: avoid; border: 1px solid #000; }
     }
   </style>
 </head>
 <body>
 
-<h1>Misturador de Cores – Pinça & Presets</h1>
+<div class="container py-4">
 
-<div class="controls">
-  <label>Enviar imagem de referência</label>
-  <input type="file" id="imageInput" accept="image/*">
+  <h1 class="fw-bold mb-4 text-center">Misturador de Cores – Pinça & Presets</h1>
 
-  <canvas id="canvas"></canvas>
+  <div class="row g-4">
 
-  <div id="pickedInfo" style="margin-top:10px"></div>
+    <!-- CONTROLES -->
+    <div class="col-lg-5">
+      <div class="app-card p-4">
 
-  <label>Batoque</label>
-  <select id="batoque">
-    <option value="P">P</option>
-    <option value="M">M</option>
-    <option value="G">G</option>
-    <option value="GG">GG</option>
-  </select>
+        <div class="mb-3">
+          <label class="form-label">Imagem de referência</label>
+          <input type="file" class="form-control" id="imageInput" accept="image/*">
+        </div>
+
+        <canvas id="canvas" class="mb-3"></canvas>
+
+        <div id="pickedInfo" class="fw-bold text-center mb-3"></div>
+
+        <div class="mb-3">
+          <label class="form-label">Batoque</label>
+          <select id="batoque" class="form-select">
+            <option value="P">P – 2ml</option>
+            <option value="M">M – 3ml</option>
+            <option value="G">G – 4ml</option>
+            <option value="GG">GG – 5ml</option>
+          </select>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button class="btn btn-danger w-100" onclick="window.print()">Imprimir</button>
+          <button class="btn btn-outline-light w-100" onclick="clearPresets()">Limpar tudo</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- PRESETS -->
+    <div class="col-lg-7">
+      <div class="row g-3" id="presetList"></div>
+    </div>
+
+  </div>
 </div>
-
-<button onclick="window.print()">Imprimir presets</button>
-<button onclick="clearPresets()">Limpar todos</button>
-
-<div class="preset-list" id="presetList"></div>
 
 <script>
 const dropsPerMl = 10;
 const cupVolumes = { P: 2, M: 3, G: 4, GG: 5 };
-
 let presets = JSON.parse(localStorage.getItem('presets') || '[]');
 
 const canvas = document.getElementById('canvas');
@@ -113,15 +129,20 @@ function renderPresets() {
 
   presets.forEach((p, i) => {
     list.innerHTML += `
-      <div class="preset">
-        <div class="color-preview" style="background:${p.color}"></div>
-        <strong>${p.color}</strong><br><br>
-        RGB: ${p.rgb}<br>
-        Vermelho: ${p.mix.red}% – ${p.drops.red} gotas<br>
-        Amarelo: ${p.mix.yellow}% – ${p.drops.yellow} gotas<br>
-        Azul: ${p.mix.blue}% – ${p.drops.blue} gotas<br><br>
-        Batoque: ${p.batoque}<br><br>
-        <button onclick="removePreset(${i})">Excluir</button>
+      <div class="col-md-6">
+        <div class="preset-card p-3 h-100">
+          <div class="color-preview mb-2" style="background:${p.color}"></div>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="badge badge-color">RGB ${p.rgb}</span>
+            <span class="badge bg-secondary">${p.batoque}</span>
+          </div>
+          <small>
+            Vermelho: ${p.mix.red}% – ${p.drops.red} gotas<br>
+            Amarelo: ${p.mix.yellow}% – ${p.drops.yellow} gotas<br>
+            Azul: ${p.mix.blue}% – ${p.drops.blue} gotas
+          </small>
+          <button class="btn btn-sm btn-outline-danger w-100 mt-3" onclick="removePreset(${i})">Excluir</button>
+        </div>
       </div>`;
   });
 
@@ -163,7 +184,6 @@ canvas.addEventListener('click', e => {
 
   const rgb = `rgb(${data[0]}, ${data[1]}, ${data[2]})`;
   const mix = rgbToMix(data[0], data[1], data[2]);
-
   const totalDrops = cupVolumes[batoque.value] * dropsPerMl;
 
   const drops = {
@@ -172,7 +192,7 @@ canvas.addEventListener('click', e => {
     blue: Math.round(totalDrops * mix.blue / 100)
   };
 
-  presets.push({
+  presets.unshift({
     color: rgb,
     rgb: `${data[0]}, ${data[1]}, ${data[2]}`,
     mix,
@@ -180,7 +200,7 @@ canvas.addEventListener('click', e => {
     batoque: batoque.value
   });
 
-  pickedInfo.innerHTML = `Cor pinçada: <span style="display:inline-block;width:30px;height:30px;background:${rgb};border-radius:50%"></span> ${rgb}`;
+  pickedInfo.innerHTML = `Cor pinçada: <span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:${rgb}"></span> ${rgb}`;
 
   renderPresets();
 });
