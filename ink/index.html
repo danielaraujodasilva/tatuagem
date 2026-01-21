@@ -1,153 +1,191 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<title>Pinçar Cor – Mistura em Gotas</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Misturador de Cores – Pinça & Presets</title>
 
-<style>
-body {
-  background:#111;
-  color:#eee;
-  font-family: Arial, sans-serif;
-  padding:20px;
-}
+  <meta name="theme-color" content="#000000">
 
-canvas {
-  border:1px solid #444;
-  cursor: crosshair;
-  max-width:100%;
-}
-
-.controls {
-  margin:15px 0;
-}
-
-select, button {
-  padding:8px;
-  margin-right:5px;
-}
-
-.color-box {
-  width:40px;
-  height:40px;
-  border:1px solid #000;
-  display:inline-block;
-  vertical-align:middle;
-}
-
-.preset {
-  background:#1b1b1b;
-  border:1px solid #333;
-  padding:10px;
-  margin-top:10px;
-}
-
-.preset button {
-  float:right;
-}
-
-small {
-  color:#aaa;
-}
-</style>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 { margin-bottom: 10px; }
+    .controls, .preset {
+      background: #1c1c1c;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    label { display: block; margin-top: 10px; }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 6px;
+      border: none;
+    }
+    button {
+      background: #b30000;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover { opacity: 0.85; }
+    canvas {
+      width: 100%;
+      max-height: 300px;
+      display: block;
+      margin-top: 10px;
+      border-radius: 10px;
+      cursor: crosshair;
+      background: #000;
+    }
+    .preset-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 10px;
+    }
+    .color-preview {
+      height: 60px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+    @media print {
+      body { background: #fff; color: #000; }
+      .controls, button { display: none; }
+      .preset { break-inside: avoid; border: 1px solid #000; }
+    }
+  </style>
 </head>
-
 <body>
 
-<h2>Pinçar cor da imagem</h2>
-
-<input type="file" id="imageLoader" accept="image/*">
+<h1>Misturador de Cores – Pinça & Presets</h1>
 
 <div class="controls">
-  Batoque:
-  <select id="cupSize">
-    <option value="P">P (5ml)</option>
-    <option value="M">M (10ml)</option>
-    <option value="G">G (15ml)</option>
-    <option value="GG">GG (20ml)</option>
-  </select>
+  <label>Enviar imagem de referência</label>
+  <input type="file" id="imageInput" accept="image/*">
 
-  <button onclick="clearPresets()">Limpar tudo</button>
+  <canvas id="canvas"></canvas>
+
+  <div id="pickedInfo" style="margin-top:10px"></div>
+
+  <label>Batoque</label>
+  <select id="batoque">
+    <option value="P">P</option>
+    <option value="M">M</option>
+    <option value="G">G</option>
+    <option value="GG">GG</option>
+  </select>
 </div>
 
-<canvas id="canvas"></canvas>
+<button onclick="window.print()">Imprimir presets</button>
+<button onclick="clearPresets()">Limpar todos</button>
 
-<h3>Presets</h3>
-<div id="presets"></div>
+<div class="preset-list" id="presetList"></div>
 
 <script>
+const dropsPerMl = 10;
+const cupVolumes = { P: 2, M: 3, G: 4, GG: 5 };
+
+let presets = JSON.parse(localStorage.getItem('presets') || '[]');
+
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
-const img = new Image();
 
-const presetsDiv = document.getElementById('presets');
+function rgbToMix(r, g, b) {
+  const total = r + g + b || 1;
+  return {
+    red: Math.round((r / total) * 100),
+    yellow: Math.round((g / total) * 100),
+    blue: Math.round((b / total) * 100)
+  };
+}
 
-const dropsPerMl = 20;
+function renderPresets() {
+  const list = document.getElementById('presetList');
+  list.innerHTML = '';
 
-const cupVolumes = {
-  P: 5,
-  M: 10,
-  G: 15,
-  GG: 20
-};
+  presets.forEach((p, i) => {
+    list.innerHTML += `
+      <div class="preset">
+        <div class="color-preview" style="background:${p.color}"></div>
+        <strong>${p.color}</strong><br><br>
+        RGB: ${p.rgb}<br>
+        Vermelho: ${p.mix.red}% – ${p.drops.red} gotas<br>
+        Amarelo: ${p.mix.yellow}% – ${p.drops.yellow} gotas<br>
+        Azul: ${p.mix.blue}% – ${p.drops.blue} gotas<br><br>
+        Batoque: ${p.batoque}<br><br>
+        <button onclick="removePreset(${i})">Excluir</button>
+      </div>`;
+  });
 
-document.getElementById('imageLoader').addEventListener('change', e => {
+  localStorage.setItem('presets', JSON.stringify(presets));
+}
+
+function removePreset(i) {
+  presets.splice(i, 1);
+  renderPresets();
+}
+
+function clearPresets() {
+  presets = [];
+  renderPresets();
+}
+
+imageInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+
   const reader = new FileReader();
-  reader.onload = evt => {
+  reader.onload = ev => {
+    const img = new Image();
     img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
       ctx.drawImage(img, 0, 0);
     };
-    img.src = evt.target.result;
+    img.src = ev.target.result;
   };
-  reader.readAsDataURL(e.target.files[0]);
+  reader.readAsDataURL(file);
 });
 
 canvas.addEventListener('click', e => {
   const rect = canvas.getBoundingClientRect();
-  const x = Math.floor((e.clientX - rect.left) * canvas.width / rect.width);
-  const y = Math.floor((e.clientY - rect.top) * canvas.height / rect.height);
+  const x = ((e.clientX - rect.left) / rect.width) * canvas.width;
+  const y = ((e.clientY - rect.top) / rect.height) * canvas.height;
+  const data = ctx.getImageData(x, y, 1, 1).data;
 
-  const pixel = ctx.getImageData(x, y, 1, 1).data;
-  createPreset(pixel[0], pixel[1], pixel[2]);
+  const rgb = `rgb(${data[0]}, ${data[1]}, ${data[2]})`;
+  const mix = rgbToMix(data[0], data[1], data[2]);
+
+  const totalDrops = cupVolumes[batoque.value] * dropsPerMl;
+
+  const drops = {
+    red: Math.round(totalDrops * mix.red / 100),
+    yellow: Math.round(totalDrops * mix.yellow / 100),
+    blue: Math.round(totalDrops * mix.blue / 100)
+  };
+
+  presets.push({
+    color: rgb,
+    rgb: `${data[0]}, ${data[1]}, ${data[2]}`,
+    mix,
+    drops,
+    batoque: batoque.value
+  });
+
+  pickedInfo.innerHTML = `Cor pinçada: <span style="display:inline-block;width:30px;height:30px;background:${rgb};border-radius:50%"></span> ${rgb}`;
+
+  renderPresets();
 });
 
-function createPreset(r, g, b) {
-  const total = r + g + b || 1;
-
-  const rPct = (r / total) * 100;
-  const gPct = (g / total) * 100;
-  const bPct = (b / total) * 100;
-
-  const size = document.getElementById('cupSize').value;
-  const totalDrops = cupVolumes[size] * dropsPerMl;
-
-  const rDrops = Math.round(totalDrops * (rPct / 100));
-  const gDrops = Math.round(totalDrops * (gPct / 100));
-  const bDrops = Math.round(totalDrops * (bPct / 100));
-
-  const div = document.createElement('div');
-  div.className = 'preset';
-
-  div.innerHTML = `
-    <button onclick="this.parentElement.remove()">X</button>
-    <div class="color-box" style="background: rgb(${r},${g},${b})"></div>
-    <strong> RGB(${r}, ${g}, ${b})</strong><br>
-    <small>
-      R: ${rPct.toFixed(1)}% → ${rDrops} gotas<br>
-      G: ${gPct.toFixed(1)}% → ${gDrops} gotas<br>
-      B: ${bPct.toFixed(1)}% → ${bDrops} gotas<br>
-      Batoque: ${size} (${totalDrops} gotas)
-    </small>
-  `;
-
-  presetsDiv.prepend(div);
-}
-
-function clearPresets() {
-  presetsDiv.innerHTML = '';
-}
+renderPresets();
 </script>
 
 </body>
