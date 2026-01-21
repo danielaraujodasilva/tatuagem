@@ -6,7 +6,8 @@
   <title>Misturador de Cores – Tatuagem</title>
 
   <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
+  <!-- PWA opcional: só ativa se existir manifest.json -->
+  <!-- <link rel="manifest" href="manifest.json"> -->
   <meta name="theme-color" content="#000000">
 
   <style>
@@ -63,7 +64,7 @@
   <label>Imagem de referência</label>
   <input type="file" id="imageInput" accept="image/*" hidden>
   <button type="button" onclick="document.getElementById('imageInput').click()">Carregar imagem de referência</button>
-  <canvas id="canvas" style="width:100%;max-height:300px;border-radius:10px;margin-top:10px;cursor:crosshair"></canvas>
+  <canvas id="canvas" style="width:100%;height:auto;display:block;border-radius:10px;margin-top:10px;cursor:crosshair;background:#000"></canvas>
 
   <div id="pickedColor" style="margin-top:10px;font-weight:bold"></div>
 
@@ -113,7 +114,22 @@ function removePreset(i) {
 }
 
 imageInput.addEventListener('change', e => {
-  const img = new Image();
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
   img.onload = () => {
     canvas.width = img.width;
     canvas.height = img.height;
@@ -164,4 +180,4 @@ render();
 </script>
 
 </body>
-</html> 
+</html>
