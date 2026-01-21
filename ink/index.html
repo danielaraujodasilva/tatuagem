@@ -2,55 +2,56 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Misturador de Cores – Presets</title>
+  <title>Misturador de Tintas – Calibração Real</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
   <style>
-    body { background:#0f0f0f; color:#fff; }
-    .card { background:#1c1c1c; border:none; }
-    .color-sample { width:100%; height:50px; border-radius:6px; border:1px solid #333; }
+    body { background:#0e0e0e; color:#fff; }
+    .card { background:#1b1b1b; border:none; }
+    .swatch { height:60px; border-radius:8px; border:1px solid #333; }
+    canvas { cursor:crosshair; }
 
-    /* PRINT */
     @media print {
-      body { background:#fff; color:#000; }
+      body { background:#fff !important; color:#000 !important; }
       .no-print { display:none !important; }
       table { width:100%; border-collapse:collapse; }
       th, td { border:1px solid #000; padding:6px; text-align:center; }
-      .color-sample { border:1px solid #000; }
+      .swatch { border:1px solid #000; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     }
   </style>
 </head>
 <body class="container py-4">
 
-<h2 class="mb-4">🎨 Presets de Mistura de Tinta</h2>
+<h2 class="mb-3">🎨 Misturador de Tintas – Calibração Real</h2>
 
-<div class="card p-3 mb-4 no-print">
-  <label class="form-label">Carregar imagem para pinçar cor</label>
-  <input type="file" id="imageInput" class="form-control" accept="image/*">
-  <canvas id="canvas" class="w-100 mt-3 rounded" style="cursor:crosshair"></canvas>
-
-  <div class="row mt-3">
-    <div class="col-md-4">
-      <label class="form-label">Batoque</label>
-      <select id="batoque" class="form-select">
-        <option value="P">P (20 gotas)</option>
-        <option value="M">M (40 gotas)</option>
-        <option value="G">G (80 gotas)</option>
-        <option value="GG">GG (160 gotas)</option>
-      </select>
-    </div>
-    <div class="col-md-8 d-flex align-items-end">
-      <button class="btn btn-danger w-100" onclick="savePreset()">Salvar cor pinçada</button>
-    </div>
-  </div>
+<!-- CALIBRAÇÃO -->
+<div class="card p-3 mb-4">
+  <h5 class="mb-3">1️⃣ Calibração das tintas base</h5>
+  <div class="row g-3" id="calibration"></div>
+  <button class="btn btn-outline-danger mt-3" onclick="saveCalibration()">Salvar perfil de tinta</button>
 </div>
 
+<!-- REFERÊNCIA -->
+<div class="card p-3 mb-4 no-print">
+  <h5 class="mb-3">2️⃣ Pinçar cor da referência</h5>
+  <input type="file" id="imageInput" class="form-control mb-3" accept="image/*">
+  <canvas id="canvas" class="w-100 rounded"></canvas>
+  <select id="batoque" class="form-select mt-3">
+    <option value="P">P – 20 gotas</option>
+    <option value="M">M – 40 gotas</option>
+    <option value="G">G – 80 gotas</option>
+    <option value="GG">GG – 160 gotas</option>
+  </select>
+  <button class="btn btn-danger mt-3" onclick="savePreset()">Salvar mistura</button>
+</div>
+
+<!-- TABELA -->
 <div class="d-flex justify-content-between align-items-center mb-2">
-  <h4>📋 Tabela de Misturas</h4>
+  <h5>📋 Misturas salvas</h5>
   <div class="no-print">
-    <button class="btn btn-outline-light me-2" onclick="window.print()">Imprimir tabela</button>
+    <button class="btn btn-outline-light me-2" onclick="window.print()">Imprimir</button>
     <button class="btn btn-outline-danger" onclick="clearPresets()">Limpar tudo</button>
   </div>
 </div>
@@ -64,76 +65,78 @@
       <th>Azul</th>
       <th>Branco</th>
       <th>Preto</th>
-      <th class="no-print">Ações</th>
+      <th class="no-print">X</th>
     </tr>
   </thead>
   <tbody id="presetTable"></tbody>
 </table>
 
 <script>
-const DROP_PER_ML = 40;
+const BASE_COLORS = ['Vermelho','Verde','Azul','Branco','Preto'];
 const BATOQUES = { P:20, M:40, G:80, GG:160 };
-let presets = JSON.parse(localStorage.getItem('presets') || '[]');
+let calibration = JSON.parse(localStorage.getItem('calibration')) || {};
+let presets = JSON.parse(localStorage.getItem('presets')) || [];
 let lastPicked = null;
 
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+const calDiv = document.getElementById('calibration');
 
-imageInput.addEventListener('change', e => {
-  const img = new Image();
-  img.onload = () => {
-    canvas.width = img.width;
-    canvas.height = img.height;
-    ctx.drawImage(img,0,0);
-  };
-  img.src = URL.createObjectURL(e.target.files[0]);
+BASE_COLORS.forEach(c => {
+  const rgb = calibration[c] || { r: c==='Preto'?0:255, g: c==='Preto'?0:255, b: c==='Preto'?0:255 };
+  calDiv.innerHTML += `
+    <div class="col-md-4">
+      <label class="form-label">${c}</label>
+      <input type="color" class="form-control form-control-color" value="rgb(${rgb.r},${rgb.g},${rgb.b})" onchange="updateCal('${c}', this.value)">
+      <div class="swatch mt-2" id="sw_${c}" style="background:rgb(${rgb.r},${rgb.g},${rgb.b})"></div>
+    </div>`;
 });
 
-canvas.addEventListener('click', e => {
-  const rect = canvas.getBoundingClientRect();
-  const x = ((e.clientX - rect.left) / rect.width) * canvas.width;
-  const y = ((e.clientY - rect.top) / rect.height) * canvas.height;
-  const d = ctx.getImageData(x,y,1,1).data;
+function updateCal(color, val){
+  const r=parseInt(val.substr(1,2),16);
+  const g=parseInt(val.substr(3,2),16);
+  const b=parseInt(val.substr(5,2),16);
+  calibration[color]={r,g,b};
+  document.getElementById('sw_'+color).style.background=`rgb(${r},${g},${b})`;
+}
 
-  const r=d[0], g=d[1], b=d[2];
-  const min=Math.min(r,g,b);
-  const max=Math.max(r,g,b);
+function saveCalibration(){
+  localStorage.setItem('calibration',JSON.stringify(calibration));
+  alert('Perfil de tinta salvo');
+}
 
-  const white=min;
-  const black=255-max;
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
 
-  const rr=r-white;
-  const gg=g-white;
-  const bb=b-white;
-
-  const total=rr+gg+bb+white+black || 1;
-
-  lastPicked={
-    color:`rgb(${r},${g},${b})`,
-    mix:{
-      r:rr/total,
-      g:gg/total,
-      b:bb/total,
-      w:white/total,
-      k:black/total
-    }
-  };
+imageInput.addEventListener('change',e=>{
+  const img=new Image();
+  img.onload=()=>{canvas.width=img.width;canvas.height=img.height;ctx.drawImage(img,0,0);};
+  img.src=URL.createObjectURL(e.target.files[0]);
 });
+
+canvas.addEventListener('click',e=>{
+  const rect=canvas.getBoundingClientRect();
+  const x=((e.clientX-rect.left)/rect.width)*canvas.width;
+  const y=((e.clientY-rect.top)/rect.height)*canvas.height;
+  const d=ctx.getImageData(x,y,1,1).data;
+  lastPicked={r:d[0],g:d[1],b:d[2]};
+});
+
+function dist(a,b){return Math.sqrt((a.r-b.r)**2+(a.g-b.g)**2+(a.b-b.b)**2);}
 
 function savePreset(){
   if(!lastPicked) return;
   const drops=BATOQUES[batoque.value];
-  const m=lastPicked.mix;
+  const weights={}; let sum=0;
 
-  presets.push({
-    color:lastPicked.color,
-    r:Math.round(m.r*drops),
-    g:Math.round(m.g*drops),
-    b:Math.round(m.b*drops),
-    w:Math.round(m.w*drops),
-    k:Math.round(m.k*drops)
-  });
+  for(const c in calibration){
+    const d=dist(lastPicked,calibration[c]);
+    const w=1/(d+1);
+    weights[c]=w; sum+=w;
+  }
 
+  const mix={};
+  for(const c in weights){ mix[c]=Math.round((weights[c]/sum)*drops); }
+
+  presets.push({ color:`rgb(${lastPicked.r},${lastPicked.g},${lastPicked.b})`, mix });
   localStorage.setItem('presets',JSON.stringify(presets));
   render();
 }
@@ -143,12 +146,12 @@ function render(){
   presets.forEach((p,i)=>{
     presetTable.innerHTML+=`
       <tr>
-        <td><div class="color-sample" style="background:${p.color}"></div></td>
-        <td>${p.r}</td>
-        <td>${p.g}</td>
-        <td>${p.b}</td>
-        <td>${p.w}</td>
-        <td>${p.k}</td>
+        <td><div class="swatch" style="background:${p.color}"></div></td>
+        <td>${p.mix.Vermelho||0}</td>
+        <td>${p.mix.Verde||0}</td>
+        <td>${p.mix.Azul||0}</td>
+        <td>${p.mix.Branco||0}</td>
+        <td>${p.mix.Preto||0}</td>
         <td class="no-print"><button class="btn btn-sm btn-danger" onclick="removePreset(${i})">X</button></td>
       </tr>`;
   });
