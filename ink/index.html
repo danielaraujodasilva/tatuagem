@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Misturador de Cores – Tatuagem</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 { margin-bottom: 10px; }
+    .controls, .preset {
+      background: #1c1c1c;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    label { display: block; margin-top: 10px; }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 6px;
+      border: none;
+    }
+    button {
+      background: #b30000;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover { opacity: 0.85; }
+    .preset-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+    .color-preview {
+      height: 60px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+    @media print {
+      body { background: #fff; color: #000; }
+      .controls, button { display: none; }
+      .preset { break-inside: avoid; border: 1px solid #000; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>Misturador de Cores – Presets</h1>
+
+<div class="controls">
+  <label>Nome do preset</label>
+  <input id="presetName" placeholder="Ex: Marrom Quente">
+
+  <label>Enviar imagem para pinçar cor</label>
+  <input type="file" id="imageInput" accept="image/*">
+  <canvas id="canvas" style="width:100%;max-height:300px;border-radius:10px;margin-top:10px;cursor:crosshair"></canvas>
+
+  <div id="pickedColor" style="margin-top:10px;font-weight:bold"></div>
+
+  <label>Batoque</label>
+  <select id="batoque">
+    <option value="P">P</option>
+    <option value="M">M</option>
+    <option value="G">G</option>
+    <option value="GG">GG</option>
+  </select>
+
+  <button onclick="savePickedPreset()">Salvar preset da cor pinçada</button>
+</div>
+
+<button onclick="window.print()">Imprimir presets</button>
+
+<div class="preset-list" id="presetList"></div>
+
+<script>
+const presets = JSON.parse(localStorage.getItem('presets') || '[]');
+
+function colorMix(c1, c2) {
+  const map = {
+    red: [255,0,0], yellow: [255,255,0], blue: [0,0,255], black:[0,0,0], white:[255,255,255]
+  };
+  const a = map[c1];
+  const b = map[c2];
+  return `rgb(${Math.floor((a[0]+b[0])/2)},${Math.floor((a[1]+b[1])/2)},${Math.floor((a[2]+b[2])/2)})`;
+}
+
+function render() {
+  const list = document.getElementById('presetList');
+  list.innerHTML = '';
+  presets.forEach((p, i) => {
+    list.innerHTML += `
+      <div class="preset">
+        <div class="color-preview" style="background:${p.color}"></div>
+        <strong>${p.name}</strong><br>
+        ${p.c1}: ${p.c1g} gotas<br>
+        ${p.c2}: ${p.c2g} gotas<br>
+        Batoque: ${p.batoque}<br><br>
+        <button onclick="removePreset(${i})">Excluir</button>
+      </div>`;
+  });
+  localStorage.setItem('presets', JSON.stringify(presets));
+}
+
+function savePickedPreset() {
+  if(!lastPicked) return alert('Pinça uma cor primeiro, artista ansioso.');
+  const name = presetName.value || 'Cor Pinçada';
+  presets.push({
+    name,
+    c1: 'Mix automático',
+    c1g: lastPicked.mix.red,
+    c2: 'Mix automático',
+    c2g: lastPicked.mix.yellow,
+    batoque: batoque.value,
+    color: lastPicked.color
+  });
+  render();
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let lastPicked = null;
+
+imageInput.addEventListener('change', e => {
+  const img = new Image();
+  img.onload = () => {
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+  };
+  img.src = URL.createObjectURL(e.target.files[0]);
+});
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const x = ((e.clientX - rect.left) / rect.width) * canvas.width;
+  const y = ((e.clientY - rect.top) / rect.height) * canvas.height;
+  const data = ctx.getImageData(x, y, 1, 1).data;
+  const rgb = `rgb(${data[0]},${data[1]},${data[2]})`;
+
+  // mistura burra porém funcional baseada em RGB
+  lastPicked = {
+    color: rgb,
+    mix: {
+      red: Math.round(data[0] / 25),
+      yellow: Math.round(data[1] / 25),
+      blue: Math.round(data[2] / 25)
+    }
+  };
+
+  pickedColor.innerHTML = `Cor pinçada: <span style="display:inline-block;width:30px;height:30px;background:${rgb};border-radius:50%;vertical-align:middle"></span> ${rgb}`;
+});
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}('sw.js');
+}
+</script>
+
+</body>
+</html>
