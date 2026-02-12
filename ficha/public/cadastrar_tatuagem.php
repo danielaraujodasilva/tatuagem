@@ -4,38 +4,44 @@ include("../config/conexao.php");
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-/* =====================================================
-   SALVAR TATUAGEM (POST AJAX)
-===================================================== */
+/* ======================================================
+   SALVAR TATUAGEM
+====================================================== */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cliente_id'])) {
 
     header('Content-Type: application/json');
 
-    $cliente_id   = $_POST['cliente_id'];
-    $descricao    = $_POST['descricao'];
-    $valor        = $_POST['valor'];
-    $data         = $_POST['data_tatuagem'];
-    $hora         = $_POST['hora_tatuagem'];
-
-    $data_tatuagem = $data . " " . $hora . ":00";
+    $cliente_id = $_POST['cliente_id'];
+    $descricao  = $_POST['descricao'];
+    $valor      = $_POST['valor'];
+    $data       = $_POST['data_tatuagem'];
+    $inicio     = $_POST['hora_inicio'];
+    $fim        = $_POST['hora_fim'];
 
     $stmt = $conn->prepare("
-        INSERT INTO tatuagens 
-        (cliente_id, descricao, valor, data_tatuagem) 
-        VALUES (?, ?, ?, ?)
+        INSERT INTO tatuagens
+        (cliente_id, descricao, valor, data_tatuagem, hora_inicio, hora_fim)
+        VALUES (?, ?, ?, ?, ?, ?)
     ");
 
-    $stmt->bind_param("isds", $cliente_id, $descricao, $valor, $data_tatuagem);
+    $stmt->bind_param("isdsss",
+        $cliente_id,
+        $descricao,
+        $valor,
+        $data,
+        $inicio,
+        $fim
+    );
 
-    if ($stmt->execute()) {
+    if($stmt->execute()){
         echo json_encode([
-            "status" => "success",
-            "message" => "Tatuagem salva com sucesso 🔥"
+            "status"=>"success",
+            "message"=>"Agendamento salvo com sucesso 🔥"
         ]);
-    } else {
+    }else{
         echo json_encode([
-            "status" => "error",
-            "message" => $stmt->error
+            "status"=>"error",
+            "message"=>$stmt->error
         ]);
     }
 
@@ -47,6 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cliente_id'])) {
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
+
 <title>Cadastrar Tatuagem</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -120,13 +127,24 @@ body{
         <input type="date" name="data_tatuagem" class="form-control" required>
     </div>
 
-    <!-- HORA -->
-    <div class="mb-3">
-        <label>Hora</label>
-        <input type="time" name="hora_tatuagem" class="form-control" required>
+    <!-- HORÁRIOS -->
+    <div class="row">
+        <div class="col">
+            <label>Hora início</label>
+            <input type="time" name="hora_inicio" class="form-control" required>
+        </div>
+
+        <div class="col">
+            <label>Hora fim</label>
+            <input type="time" name="hora_fim" class="form-control" required>
+        </div>
     </div>
 
-    <button class="btn btn-success w-100">Salvar Tatuagem</button>
+    <br>
+
+    <button class="btn btn-success w-100">
+        Salvar Agendamento
+    </button>
 
 </form>
 
@@ -136,10 +154,7 @@ body{
 <script>
 $(function(){
 
-/* =====================================================
-   AUTOCOMPLETE CLIENTE
-===================================================== */
-
+/* AUTOCOMPLETE CLIENTE */
 $('#clienteInput').on('input', function(){
 
     let valor = $(this).val();
@@ -168,22 +183,19 @@ $(document).click(function(e){
 });
 
 
-/* =====================================================
-   SUBMIT AJAX (AGORA FUNCIONA DE VERDADE)
-===================================================== */
-
+/* SALVAR VIA AJAX */
 $('#formTatuagem').submit(function(e){
 
     e.preventDefault();
 
     if(!$('#clienteId').val()){
-        alert('Seleciona um cliente primeiro, criatura.');
+        alert('Escolhe um cliente antes né campeão.');
         return;
     }
 
     $.ajax({
         url:'cadastrar_tatuagem.php',
-        method:'POST',
+        type:'POST',
         data:$(this).serialize(),
         dataType:'json',
 
@@ -202,7 +214,7 @@ $('#formTatuagem').submit(function(e){
 
             $('#alerta').html(`
                 <div class="alert alert-danger">
-                    Erro no servidor. Abre o F12 e para de confiar no destino.
+                    Deu erro no servidor. Abre o console e xinga o PHP.
                 </div>
             `);
         }
