@@ -1,14 +1,15 @@
 <?php include("../../config/conexao.php"); ?>
 <?php
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 
 $sql = "
 SELECT 
- id,
- descricao as title,
-CONCAT(data_tatuagem,'T',hora_inicio) as start,
-CONCAT(data_tatuagem,'T',hora_fim) as end
- status
+    id,
+    descricao AS title,
+    CONCAT(data_tatuagem,'T',hora_inicio) AS start,
+    CONCAT(data_tatuagem,'T',hora_fim) AS end,
+    status
 FROM agendamentos
 ";
 
@@ -16,17 +17,17 @@ $res = $conn->query($sql);
 
 $eventos = [];
 
+$cores = [
+    'agendado'=>'#3788d8',
+    'confirmado'=>'#28a745',
+    'cancelado'=>'#dc3545',
+    'concluido'=>'#6c757d'
+];
+
 while($r = $res->fetch_assoc()){
-    $cores = [
-        'agendado'=>'#3788d8',
-        'confirmado'=>'#28a745',
-        'cancelado'=>'#dc3545',
-        'concluido'=>'#6c757d'
-    ];
-
     $r['color'] = $cores[$r['status']] ?? '#3788d8';
-
     $eventos[] = $r;
 }
 
+header('Content-Type: application/json');
 echo json_encode($eventos);
