@@ -6,8 +6,8 @@ $sql = "
 SELECT 
  id,
  descricao as title,
- CONCAT(data_tatuagem,' ',hora_inicio) as start,
- CONCAT(data_tatuagem,' ',hora_fim) as end,
+CONCAT(data_tatuagem,'T',hora_inicio) as start,
+CONCAT(data_tatuagem,'T',hora_fim) as end
  status
 FROM agendamentos
 ";
