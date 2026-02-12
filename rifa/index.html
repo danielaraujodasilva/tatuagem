@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Rifa da Tatuagem - [Seu Nome/Estúdio]</title>
-  
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <title>Rifa Beneficente • Estúdio Cereja2</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -17,6 +17,7 @@
       color: #2c3e50;
       min-height: 100vh;
     }
+
     .top-bar {
       background: white;
       box-shadow: 0 2px 15px rgba(0,0,0,0.08);
@@ -25,32 +26,37 @@
       top: 0;
       z-index: 1000;
     }
+
     .card-numero {
       border: none;
       border-radius: 12px;
       overflow: hidden;
       transition: all 0.35s ease;
       box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-      position: relative;
-      height: 130px; /* altura fixa para uniformidade e cards menores */
+      height: 130px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-direction: column;
+      position: relative;
       text-align: center;
     }
+
     .card-numero:hover {
       transform: translateY(-8px) scale(1.05);
       box-shadow: 0 12px 30px rgba(0,0,0,0.15);
     }
+
     .disponivel {
       background: #e6ffe6;
       border: 2px solid #28a745;
     }
+
     .vendido {
       background: #ffebee;
       border: 2px solid #dc3545;
     }
+
     .vendido::after {
       content: "VENDIDO";
       position: absolute;
@@ -62,239 +68,144 @@
       font-size: 0.85rem;
       padding: 6px 45px;
       transform: rotate(45deg);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      z-index: 1;
     }
+
     .numero {
       font-size: 2.4rem;
       font-weight: 700;
-      margin: 0;
-      line-height: 1;
     }
+
     .nome {
       font-size: 0.85rem;
-      font-weight: 500;
       margin-top: 6px;
       max-width: 90%;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .disponivel .numero, .disponivel .nome { color: #155724; }
-    .vendido .numero, .vendido .nome { color: #721c24; }
-    .btn-regras {
-      font-weight: 600;
-      padding: 10px 30px;
-      border-radius: 50px;
-    }
+
     .btn-whatsapp {
       background: #25D366;
       border: none;
       font-size: 1.25rem;
       padding: 14px 40px;
       border-radius: 50px;
-      transition: all 0.3s;
+      transition: .3s;
     }
+
     .btn-whatsapp:hover {
       background: #20b358;
       transform: scale(1.05);
     }
+
     .img-tattoo {
       border-radius: 20px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.1);
       max-height: 450px;
       object-fit: cover;
     }
-    .modal-content {
-      border-radius: 16px;
-      border: none;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-    }
-    .modal-header {
-      background: #007bff;
-      color: white;
-      border-top-left-radius: 16px;
-      border-top-right-radius: 16px;
-    }
   </style>
 </head>
+
 <body>
 
-  <!-- Top Bar -->
-  <div class="top-bar">
-    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-3">
-      <h2 class="mb-0 fw-bold text-primary">Rifa da Tatuagem</h2>
-      <div class="d-flex align-items-center gap-3">
-        <button class="btn btn-outline-primary btn-regras" data-bs-toggle="modal" data-bs-target="#regrasModal">
-          <i class="bi bi-info-circle me-1"></i> REGRAS
-        </button>
-        <a href="https://wa.me/55SEUNUMERO?text=Oi!%20Quero%20reservar%20um%20número%20da%20rifa" 
-           class="btn btn-whatsapp text-white shadow" target="_blank">
-          <i class="bi bi-whatsapp me-2"></i> Falar no WhatsApp
-        </a>
-      </div>
-    </div>
-  </div>
+<!-- Top Bar -->
+<div class="top-bar">
+  <div class="container d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <h2 class="mb-0 fw-bold text-primary">Rifa da Tatuagem</h2>
 
-  <div class="container py-5">
+    <div class="d-flex gap-3">
+      <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#regrasModal">
+        <i class="bi bi-info-circle"></i> Regras
+      </button>
 
-
-    <!-- Seção Beneficente -->
-<div class="row justify-content-center mb-5" data-aos="fade-up">
-  <div class="col-lg-10">
-    <div class="card shadow-lg border-0 rounded-4 p-4 p-md-5">
-
-      <h3 class="fw-bold text-center mb-4 text-primary">
-        🎟️ Rifa Beneficente
-      </h3>
-
-      <p class="lead text-center">
-        Estamos realizando essa rifa para ajudar o 
-        <strong>Projeto de Oficinas de Samba</strong>, em um Núcleo de Convivência
-        para pessoas em situação de rua.
-        <br>
-        <strong>Toda a arrecadação será destinada à compra de instrumentos de percussão.</strong>
-      </p>
-
-      <div class="row text-center mt-4 g-4">
-
-        <div class="col-md-4">
-          <div class="p-3 bg-light rounded-3 h-100">
-            <h5 class="fw-bold">🏆 Prêmio</h5>
-            <p class="mb-0">
-              Fechamento de costas<br>
-              <strong>Estúdio Cereja2</strong>
-            </p>
-          </div>
-        </div>
-
-        <div class="col-md-4">
-          <div class="p-3 bg-light rounded-3 h-100">
-            <h5 class="fw-bold">💰 Valor</h5>
-            <p class="mb-0 fs-5">R$ 10,00 por número</p>
-          </div>
-        </div>
-
-        <div class="col-md-4">
-          <div class="p-3 bg-light rounded-3 h-100">
-            <h5 class="fw-bold">📅 Sorteio</h5>
-            <p class="mb-0">
-              20 de março de 2026<br>
-              <small class="text-muted">ao vivo no Instagram</small>
-            </p>
-          </div>
-        </div>
-
-      </div>
-
-      <div class="text-center mt-4">
-        <p class="mb-2 fw-semibold">Para participar:</p>
-
-        <p class="mb-1">
-          📞 
-          <a href="https://wa.me/5511999979785?text=Oi!%20Quero%20participar%20da%20rifa%20beneficente"
-             target="_blank" class="text-decoration-none fw-bold text-success">
-             (11) 99997-9785
-          </a>
-        </p>
-
-        <p>
-          📱 
-          <a href="https://instagram.com/danielaraujotatuador"
-             target="_blank" class="text-decoration-none fw-bold">
-             @danielaraujotatuador
-          </a>
-        </p>
-
-        <p class="mt-3 text-success fw-bold">
-          Contamos com sua solidariedade ❤️
-        </p>
-      </div>
-
+      <a href="https://wa.me/5511999979785?text=Oi!%20Quero%20reservar%20um%20número%20da%20rifa"
+         class="btn btn-whatsapp text-white shadow"
+         target="_blank" rel="noopener">
+        <i class="bi bi-whatsapp"></i> WhatsApp
+      </a>
     </div>
   </div>
 </div>
 
+<div class="container py-5">
 
+<!-- Seção Beneficente -->
+<div class="row justify-content-center mb-5">
+  <div class="col-lg-10">
+    <div class="card shadow-lg border-0 rounded-4 p-5 text-center">
 
-    <!-- Grid de números -->
-    <div class="row g-3 justify-content-center" id="grid-numeros"></div>
+      <h3 class="fw-bold text-primary">🎟️ Rifa Beneficente</h3>
 
-    <!-- Call to Action final -->
-    <div class="text-center my-5 py-4" data-aos="fade-up" data-aos-delay="300">
-      <h4 class="mb-3">Quer reservar seu número da sorte?</h4>
-      <a href="https://wa.me/55SEUNUMERO?text=Oi!%20Vi%20a%20rifa%20e%20quero%20um%20número!" 
-         class="btn btn-whatsapp btn-lg text-white" target="_blank">
-         <i class="bi bi-whatsapp me-2"></i> Reservar agora pelo WhatsApp
-      </a>
-    </div>
-  </div>
+      <p class="lead mt-3">
+        Toda arrecadação ajuda o <strong>Projeto de Oficinas de Samba</strong>
+        para pessoas em situação de rua.
+      </p>
 
-  <!-- Modal Regras -->
-  <div class="modal fade" id="regrasModal" tabindex="-1" aria-labelledby="regrasModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="regrasModalLabel">Regras da Rifa</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body p-4">
-          <ol class="fs-5">
-            <li class="mb-3"><strong>Participação:</strong> A rifa é aberta a maiores de 18 anos. Para participar, pague o valor do número escolhido (R$ 10,00 cada).</li>
-            <li class="mb-3"><strong>Reserva:</strong> Números são reservados por até 24h após contato via WhatsApp. Após pagamento confirmado (Pix), o nome é cadastrado aqui no admin e o número fica marcado como vendido.</li>
-            <li class="mb-3"><strong>Sorteio:</strong> Será realizado ao vivo no Instagram quando todos os 100 números forem vendidos (ou na data limite: [insira data]). Usaremos gerador aleatório confiável (ex: random.org).</li>
-            <li class="mb-3"><strong>Prêmio:</strong> Uma sessão de tatuagem no valor de R$ 1.000,00 (estilo [seu estilo], local a combinar). Não cumulativo, não transferível, não trocável por dinheiro.</li>
-            <li class="mb-3"><strong>Pagamento:</strong> Somente via Pix. Comprovante deve ser enviado imediatamente para confirmação e cadastro do nome.</li>
-            <li class="mb-3"><strong>Transparência:</strong> Lista de números e compradores será pública nesta página. Qualquer dúvida, entre em contato.</li>
-            <li><strong>Responsabilidade:</strong> O organizador não se responsabiliza por tatuagens não realizadas por motivos de saúde ou contraindicação médica do ganhador.</li>
-          </ol>
-          <p class="text-muted mt-4 small">Regras sujeitas a alteração. Última atualização: Janeiro 2026.</p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-        </div>
+      <p><strong>Prêmio:</strong> Fechamento de costas • Estúdio Cereja2</p>
+      <p><strong>Valor:</strong> R$ 10,00 por número</p>
+      <p><strong>Sorteio:</strong> 20 de março de 2026 • ao vivo no Instagram</p>
+
+      <div class="mt-3">
+        <a href="https://instagram.com/danielaraujotatuador" target="_blank" class="fw-bold">
+          @danielaraujotatuador
+        </a>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
-  <script>
-    AOS.init({ once: true, duration: 800 });
+<!-- Grid -->
+<div class="row g-3 justify-content-center" id="grid-numeros"></div>
 
-    const URL_JSON = 'data.json?v=' + Date.now();
+<!-- CTA final -->
+<div class="text-center my-5">
+  <h4>Quer garantir seu número?</h4>
 
-    fetch(URL_JSON)
-      .then(res => res.json())
-      .then(data => {
-        const grid = document.getElementById('grid-numeros');
-        grid.innerHTML = '';
+  <a href="https://wa.me/5511999979785?text=Oi!%20Quero%20comprar%20um%20número%20da%20rifa"
+     class="btn btn-whatsapp btn-lg text-white"
+     target="_blank" rel="noopener">
+     <i class="bi bi-whatsapp"></i> Comprar pelo WhatsApp
+  </a>
+</div>
 
-        for(let i = 0; i < 100; i++) {
-          const num = String(i).padStart(2, '0');
-          const info = data.numeros?.[num] || { nome: '' };
-          const isVendido = !!info.nome?.trim();
-          const statusClass = isVendido ? 'vendido' : 'disponivel';
+</div>
 
-          const col = document.createElement('div');
-          col.className = 'col-4 col-sm-3 col-md-3 col-lg-2 mb-3';
-          col.innerHTML = `
-            <div class="card card-numero ${statusClass}" data-aos="zoom-in" data-aos-delay="${i * 5}">
-              <div class="numero">${num}</div>
-              ${isVendido 
-                ? `<div class="nome">${info.nome}</div>` 
-                : `<div class="nome text-muted mt-1">Disponível</div>`}
-            </div>
-          `;
-          grid.appendChild(col);
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        document.getElementById('grid-numeros').innerHTML = 
-          '<p class="text-danger text-center fs-4 col-12">Erro ao carregar os números. Tente recarregar a página.</p>';
-      });
-  </script>
+<!-- Modal -->
+<div class="modal fade" id="regrasModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content p-4">
+      <h5 class="mb-3">Regras</h5>
+      <p>Sorteio em 20 de março de 2026. Pagamento via Pix. Lista pública e transparente.</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+const URL_JSON = 'data.json?v=' + Date.now();
+
+fetch(URL_JSON)
+.then(res => res.json())
+.then(data => {
+  const grid = document.getElementById('grid-numeros');
+
+  for(let i=0;i<100;i++){
+    const num = String(i).padStart(2,'0');
+    const info = data.numeros?.[num] || {nome:''};
+    const vendido = !!info.nome;
+
+    grid.innerHTML += `
+      <div class="col-4 col-sm-3 col-md-2">
+        <div class="card-numero ${vendido?'vendido':'disponivel'}">
+          <div class="numero">${num}</div>
+          <div class="nome">${vendido?info.nome:'Disponível'}</div>
+        </div>
+      </div>`;
+  }
+});
+</script>
+
 </body>
 </html>
