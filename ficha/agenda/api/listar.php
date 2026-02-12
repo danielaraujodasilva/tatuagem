@@ -10,12 +10,10 @@ SELECT
     CONCAT(data_tatuagem,'T',hora_inicio) AS start,
     CONCAT(data_tatuagem,'T',hora_fim) AS end,
     status
-FROM agendamentos
+FROM tatuagens
 ";
 
 $res = $conn->query($sql);
-
-$eventos = [];
 
 $cores = [
     'agendado'=>'#3788d8',
@@ -23,6 +21,8 @@ $cores = [
     'cancelado'=>'#dc3545',
     'concluido'=>'#6c757d'
 ];
+
+$eventos = [];
 
 while($r = $res->fetch_assoc()){
     $r['color'] = $cores[$r['status']] ?? '#3788d8';
