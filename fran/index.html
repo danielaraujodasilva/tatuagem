@@ -7,6 +7,7 @@
 <title>Nomeação Oficial de Árbitros | CNJP</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet"/>
 
 <!-- META PIXEL -->
 <script>
@@ -29,7 +30,7 @@ body{
     color:#2b2f33;
 }
 
-.section{ padding:55px 20px; }
+.section{ padding:45px 20px; }
 
 .bg1{ background:#eef2f7; }
 .bg2{ background:#dde5f0; }
@@ -43,24 +44,20 @@ header{
 .btn-main{
     background:#1f2a44;
     color:#fff;
+    padding:10px 26px;
     border-radius:6px;
-    padding:12px 28px;
     font-weight:600;
 }
 
 .card-soft{
     background:#fff;
     border:1px solid #d6dbe3;
-}
-
-.number{
-    font-size:34px;
-    font-weight:700;
+    border-radius:8px;
 }
 
 .countdown{
-    font-size:22px;
     font-weight:700;
+    font-size:20px;
     color:#a11;
 }
 
@@ -68,16 +65,6 @@ header{
     background:#1f2a44;
     color:#fff;
     font-size:14px;
-}
-
-.badge-seal{
-    background:#fff;
-    color:#1f2a44;
-    border-radius:6px;
-    padding:8px 14px;
-    margin:6px;
-    display:inline-block;
-    font-size:13px;
 }
 
 .whats{
@@ -94,9 +81,19 @@ header{
     color:#fff;
     text-decoration:none;
 }
+
+/* CARDS DO CARROSSEL */
+.carousel-item{
+    padding:10px 40px;
+}
+
+.testimonial{
+    max-width:600px;
+    margin:auto;
+}
+
 </style>
 </head>
-
 
 <body>
 
@@ -105,96 +102,108 @@ header{
 </header>
 
 
-
 <!-- HERO -->
 <section class="section bg1 text-center">
-<div class="container">
+<div class="container" data-aos="fade-down">
 
-<h1>Capacitação e Nomeação Oficial de Árbitros, Conciliadores e Mediadores</h1>
+<h1>Capacitação, Certificação e Nomeação Oficial de Árbitros e Conciliadores</h1>
 
 <p class="mt-3">
-Formação jurídica com credenciamento institucional para atuação extrajudicial conforme Lei 9.307/96 e Lei 13.140/15.
+Formação jurídica com base nas Leis 9.307/96 e 13.140/15 para atuação profissional em métodos extrajudiciais de solução de conflitos.
 </p>
 
 <a href="https://wa.me/5511999999999?text=Quero informações"
-class="btn btn-main mt-3"
-onclick="fbq('track','Lead');">
-📲 Atendimento direto via WhatsApp
-</a>
+class="btn btn-main mt-2"
+onclick="fbq('track','Lead');">📲 Atendimento via WhatsApp</a>
 
 </div>
 </section>
-
 
 
 <!-- CONTAGEM -->
 <section class="section bg2 text-center">
-<div class="container">
-
-<h4>📅 Próxima turma encerra em:</h4>
+<div class="container" data-aos="zoom-in">
+<h5>Encerramento da próxima turma:</h5>
 <div id="countdown" class="countdown"></div>
-
 </div>
 </section>
 
 
 
-<!-- BENEFÍCIOS -->
+<!-- INSTITUCIONAL LONGÃO -->
 <section class="section bg3">
-<div class="container">
+<div class="container" data-aos="fade-up">
 
-<div class="row g-3">
+<h3>⚖️ Sobre a Justiça Privada</h3>
 
-<div class="col-md-4">
-<div class="card card-soft p-3">
-<h5>⚖️ Atuação Legal</h5>
-<p>Respaldo jurídico e reconhecimento institucional.</p>
-</div>
-</div>
+<p>
+A justiça privada constitui alternativa moderna ao Poder Judiciário, permitindo maior eficiência,
+celeridade e autonomia das partes envolvidas. A arbitragem e a mediação são instrumentos
+expressamente reconhecidos pela legislação brasileira e vêm sendo amplamente adotados
+por empresas, instituições e profissionais do direito.
+</p>
 
-<div class="col-md-4">
-<div class="card card-soft p-3">
-<h5>💼 Nova renda</h5>
-<p>Honorários por procedimento arbitral.</p>
-</div>
-</div>
+<p>
+A atuação do árbitro possui força de sentença judicial, conforme previsão legal,
+possibilitando execução direta do título, o que torna o procedimento altamente valorizado
+no meio empresarial e contratual.
+</p>
 
-<div class="col-md-4">
-<div class="card card-soft p-3">
-<h5>📜 Certificação</h5>
-<p>Nomeação formal junto à câmara arbitral.</p>
-</div>
-</div>
-
-</div>
 </div>
 </section>
 
 
 
-<!-- DEPOIMENTOS -->
-<section class="section bg1 text-center">
-<div class="container">
+<!-- METODOLOGIA -->
+<section class="section bg1">
+<div class="container" data-aos="fade-right">
 
-<h3 class="mb-4">Depoimentos de Profissionais</h3>
+<h3>📚 Metodologia do Curso</h3>
 
-<div id="carouselExample" class="carousel slide" data-bs-ride="carousel">
+<ul>
+<li>Fundamentos legais da arbitragem</li>
+<li>Redação de cláusulas compromissórias</li>
+<li>Prática processual arbitral</li>
+<li>Mediação e conciliação extrajudicial</li>
+<li>Ética profissional</li>
+<li>Simulações práticas</li>
+<li>Credenciamento institucional</li>
+</ul>
+
+</div>
+</section>
+
+
+
+<!-- CARROSSEL DEPOIMENTOS -->
+<section class="section bg2 text-center">
+<div class="container" data-aos="fade-left">
+
+<h3 class="mb-4">Depoimentos</h3>
+
+<div id="testimonials" class="carousel slide" data-bs-ride="carousel">
 
 <div class="carousel-inner">
 
 <div class="carousel-item active">
-<p class="lead">"Ampliei minha atuação profissional e fechei contratos em poucos meses."</p>
-<small>— Advogado Cível</small>
+<div class="card-soft testimonial p-4 shadow-sm">
+<p>"Após a nomeação, passei a atuar em contratos empresariais e ampliei significativamente minha renda."</p>
+<small>Advogado Empresarial – SP</small>
+</div>
 </div>
 
 <div class="carousel-item">
-<p class="lead">"Excelente alternativa ao contencioso tradicional."</p>
-<small>— Bacharel em Direito</small>
+<div class="card-soft testimonial p-4 shadow-sm">
+<p>"A formação me trouxe autoridade técnica e novos clientes."</p>
+<small>Conciliadora – MG</small>
+</div>
 </div>
 
 <div class="carousel-item">
-<p class="lead">"A nomeação agregou autoridade real ao meu currículo."</p>
-<small>— Mediadora</small>
+<div class="card-soft testimonial p-4 shadow-sm">
+<p>"Excelente alternativa ao contencioso judicial tradicional."</p>
+<small>Bacharel em Direito – PR</small>
+</div>
 </div>
 
 </div>
@@ -206,20 +215,23 @@ onclick="fbq('track','Lead');">
 
 
 
-<!-- SELOS -->
-<section class="section bg2 text-center">
-<div class="container">
+<!-- BASE LEGAL DETALHADA -->
+<section class="section bg3 small">
+<div class="container" data-aos="fade-up">
 
-<h4>Reconhecimentos Institucionais</h4>
+<h4>📜 Fundamentação Jurídica</h4>
 
-<div class="mt-3">
-<span class="badge-seal">Lei 9.307/96</span>
-<span class="badge-seal">Lei 13.140/15</span>
-<span class="badge-seal">Métodos Adequados de Solução de Conflitos</span>
-<span class="badge-seal">Formação Certificada</span>
-<span class="badge-seal">Credenciamento Nacional</span>
-<span class="badge-seal">Procedimentos Extrajudiciais</span>
-</div>
+<p>
+Lei nº 9.307/96 – Arbitragem |
+Lei nº 13.140/15 – Mediação |
+Código de Processo Civil – Art. 3º |
+Métodos adequados de solução de conflitos.
+</p>
+
+<p>
+As decisões arbitrais produzem os mesmos efeitos da sentença judicial,
+conforme entendimento consolidado pela jurisprudência nacional.
+</p>
 
 </div>
 </section>
@@ -227,12 +239,16 @@ onclick="fbq('track','Lead');">
 
 
 <!-- CTA FINAL -->
-<section class="section bg3 text-center">
-<a href="https://wa.me/5511999999999?text=Quero me inscrever"
+<section class="section bg1 text-center">
+<div class="container" data-aos="zoom-in">
+
+<a href="https://wa.me/5511999999999?text=Quero iniciar minha nomeação"
 class="btn btn-main btn-lg"
 onclick="fbq('track','Lead');">
 📲 Iniciar processo de nomeação
 </a>
+
+</div>
 </section>
 
 
@@ -242,13 +258,7 @@ onclick="fbq('track','Lead');">
 
 <p><strong>CNJP – Câmara Nacional de Justiça Privada</strong></p>
 
-<p>
-Capacitação, nomeação e credenciamento de profissionais para arbitragem, mediação e conciliação extrajudicial em todo o território nacional.
-</p>
-
-<p class="small">
-Fundamentação: Lei 9.307/96 • Lei 13.140/15 • CPC Art. 3º • Métodos adequados de resolução de conflitos.
-</p>
+<p>Formação, certificação e credenciamento profissional em métodos extrajudiciais de solução de conflitos.</p>
 
 <p>© 2026 – Todos os direitos reservados</p>
 
@@ -256,27 +266,26 @@ Fundamentação: Lei 9.307/96 • Lei 13.140/15 • CPC Art. 3º • Métodos ad
 
 
 
-<a class="whats"
-href="https://wa.me/5511999999999?text=Quero informações"
-onclick="fbq('track','Lead');">💬</a>
+<a class="whats" href="https://wa.me/5511999999999?text=Quero informações" onclick="fbq('track','Lead');">💬</a>
 
 
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
 
 <script>
-/* CONTAGEM ATÉ 31 MARÇO */
+AOS.init({ once:true });
+
+/* CONTAGEM */
 const end=new Date("March 31, 2026 23:59:59").getTime();
 
 setInterval(()=>{
  const now=new Date().getTime();
  const d=end-now;
-
  const days=Math.floor(d/(1000*60*60*24));
  const hours=Math.floor((d%(1000*60*60*24))/(1000*60*60));
  const mins=Math.floor((d%(1000*60*60))/(1000*60));
-
- document.getElementById("countdown").innerHTML=
+ document.getElementById("countdown").innerHTML =
  days+" dias • "+hours+"h • "+mins+"m";
 },1000);
 </script>
