@@ -1,65 +1,44 @@
 <?php
 include("../config/conexao.php");
 
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 /* =====================================================
-   CADASTRAR TATUAGEM (POST)
+   SALVAR TATUAGEM (POST AJAX)
 ===================================================== */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cliente_id'])) {
 
-    $cliente_id = intval($_POST['cliente_id']);
-    $descricao = $conn->real_escape_string($_POST['descricao']);
-    $valor = floatval($_POST['valor']);
-
-    $data_tatuagem = $_POST['data_tatuagem'] . ' ' . $_POST['hora_tatuagem'];
-
-    $sql = "
-        INSERT INTO tatuagens 
-        (cliente_id, descricao, valor, data_tatuagem)
-        VALUES
-        ($cliente_id, '$descricao', $valor, '$data_tatuagem')
-    ";
-
-    if ($conn->query($sql)) {
-        echo json_encode(['status'=>'success','message'=>'Tatuagem salva. Bora rabiscar pele.']);
-    } else {
-        echo json_encode(['status'=>'error','message'=>$conn->error]);
-    }
-
-    exit();
-}
-
-
-/* =====================================================
-   API LISTAR PARA O CALENDÁRIO (GET ?api=listar)
-===================================================== */
-if (isset($_GET['api']) && $_GET['api'] === 'listar') {
-
-    $sql = "
-        SELECT 
-            t.id,
-            t.descricao,
-            t.valor,
-            t.data_tatuagem,
-            c.nome AS cliente
-        FROM tatuagens t
-        LEFT JOIN clientes c ON c.id = t.cliente_id
-        ORDER BY t.data_tatuagem
-    ";
-
-    $res = $conn->query($sql);
-
-    $eventos = [];
-
-    while($row = $res->fetch_assoc()){
-        $eventos[] = [
-            'id' => $row['id'],
-            'title' => $row['cliente'].' - '.$row['descricao'],
-            'start' => $row['data_tatuagem']
-        ];
-    }
-
     header('Content-Type: application/json');
-    echo json_encode($eventos);
+
+    $cliente_id   = $_POST['cliente_id'];
+    $descricao    = $_POST['descricao'];
+    $valor        = $_POST['valor'];
+    $data         = $_POST['data_tatuagem'];
+    $hora         = $_POST['hora_tatuagem'];
+
+    $data_tatuagem = $data . " " . $hora . ":00";
+
+    $stmt = $conn->prepare("
+        INSERT INTO tatuagens 
+        (cliente_id, descricao, valor, data_tatuagem) 
+        VALUES (?, ?, ?, ?)
+    ");
+
+    $stmt->bind_param("isds", $cliente_id, $descricao, $valor, $data_tatuagem);
+
+    if ($stmt->execute()) {
+        echo json_encode([
+            "status" => "success",
+            "message" => "Tatuagem salva com sucesso 🔥"
+        ]);
+    } else {
+        echo json_encode([
+            "status" => "error",
+            "message" => $stmt->error
+        ]);
+    }
+
     exit();
 }
 ?>
@@ -68,75 +47,99 @@ if (isset($_GET['api']) && $_GET['api'] === 'listar') {
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Agenda Tatuagem</title>
+<title>Cadastrar Tatuagem</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <style>
-body{background:#121212;color:#eee}
+body{
+    background:#121212;
+    color:#eee;
+}
+
+.container{
+    max-width:700px;
+    margin-top:60px;
+}
+
 .autocomplete-suggestions{
     position:absolute;
     background:#222;
     border:1px solid #444;
     width:100%;
+    max-height:200px;
+    overflow-y:auto;
     z-index:999;
 }
+
 .autocomplete-suggestion{
-    padding:8px;
+    padding:10px;
     cursor:pointer;
 }
+
 .autocomplete-suggestion:hover{
     background:#333;
 }
 </style>
 </head>
+
 <body>
 
-<div class="container mt-5">
+<div class="container">
 
-<h2 class="mb-4">Cadastrar Tatuagem</h2>
+<h3 class="mb-4">Cadastrar Tatuagem</h3>
 
 <div id="alerta"></div>
 
 <form id="formTatuagem">
 
-<div class="mb-3 position-relative">
-<label>Cliente</label>
-<input type="text" id="clienteInput" class="form-control" autocomplete="off">
-<input type="hidden" name="cliente_id" id="clienteId">
-<div id="clienteSuggestions" class="autocomplete-suggestions"></div>
-</div>
+    <!-- CLIENTE -->
+    <div class="mb-3 position-relative">
+        <label>Cliente</label>
+        <input type="text" id="clienteInput" class="form-control" autocomplete="off" required>
+        <input type="hidden" name="cliente_id" id="clienteId">
+        <div id="clienteSuggestions" class="autocomplete-suggestions" style="display:none;"></div>
+    </div>
 
-<div class="mb-3">
-<label>Descrição</label>
-<input type="text" name="descricao" class="form-control" required>
-</div>
+    <!-- DESCRIÇÃO -->
+    <div class="mb-3">
+        <label>Descrição</label>
+        <input type="text" name="descricao" class="form-control" required>
+    </div>
 
-<div class="mb-3">
-<label>Valor</label>
-<input type="number" step="0.01" name="valor" class="form-control" required>
-</div>
+    <!-- VALOR -->
+    <div class="mb-3">
+        <label>Valor (R$)</label>
+        <input type="number" step="0.01" name="valor" class="form-control" required>
+    </div>
 
-<div class="row">
-<div class="col">
-<input type="date" name="data_tatuagem" class="form-control" required>
-</div>
-<div class="col">
-<input type="time" name="hora_tatuagem" class="form-control" required>
-</div>
-</div>
+    <!-- DATA -->
+    <div class="mb-3">
+        <label>Data</label>
+        <input type="date" name="data_tatuagem" class="form-control" required>
+    </div>
 
-<button class="btn btn-success mt-3">Salvar</button>
+    <!-- HORA -->
+    <div class="mb-3">
+        <label>Hora</label>
+        <input type="time" name="hora_tatuagem" class="form-control" required>
+    </div>
+
+    <button class="btn btn-success w-100">Salvar Tatuagem</button>
 
 </form>
 
 </div>
 
+
 <script>
-/* =========================
+$(function(){
+
+/* =====================================================
    AUTOCOMPLETE CLIENTE
-========================= */
+===================================================== */
+
 $('#clienteInput').on('input', function(){
 
     let valor = $(this).val();
@@ -158,34 +161,54 @@ $(document).on('click','.autocomplete-suggestion',function(){
     $('#clienteSuggestions').hide();
 });
 
+$(document).click(function(e){
+    if(!$(e.target).closest('#clienteInput').length){
+        $('#clienteSuggestions').hide();
+    }
+});
 
-/* =========================
-   SALVAR AJAX
-========================= */
+
+/* =====================================================
+   SUBMIT AJAX (AGORA FUNCIONA DE VERDADE)
+===================================================== */
+
 $('#formTatuagem').submit(function(e){
 
     e.preventDefault();
 
     if(!$('#clienteId').val()){
-        alert('Escolhe o cliente primeiro né campeão.');
+        alert('Seleciona um cliente primeiro, criatura.');
         return;
     }
 
-    $.post('agenda_tatuagem.php',$(this).serialize(),function(resp){
+    $.ajax({
+        url:'cadastrar_tatuagem.php',
+        method:'POST',
+        data:$(this).serialize(),
+        dataType:'json',
 
-        let r = JSON.parse(resp);
+        success:function(r){
 
-        $('#alerta').html(`
-            <div class="alert alert-${r.status=='success'?'success':'danger'}">
-                ${r.message}
-            </div>
-        `);
+            $('#alerta').html(`
+                <div class="alert alert-success">${r.message}</div>
+            `);
 
-        if(r.status=='success'){
             $('#formTatuagem')[0].reset();
-        }
+            $('#clienteId').val('');
+        },
 
+        error:function(xhr){
+            console.log(xhr.responseText);
+
+            $('#alerta').html(`
+                <div class="alert alert-danger">
+                    Erro no servidor. Abre o F12 e para de confiar no destino.
+                </div>
+            `);
+        }
     });
+
+});
 
 });
 </script>
