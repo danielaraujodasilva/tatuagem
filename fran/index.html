@@ -4,17 +4,16 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 
-<title>Nomeação Oficial de Árbitros e Conciliadores | CNJP</title>
+<title>Nomeação Oficial de Árbitros | CNJP</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
-<link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet"/>
 
 <!-- META PIXEL -->
 <script>
 !function(f,b,e,v,n,t,s)
 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
 n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+if(!f._fbq)f.fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
 n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
 s.parentNode.insertBefore(t,s)}(window, document,'script',
@@ -25,35 +24,28 @@ fbq('track', 'PageView');
 </script>
 
 <style>
-
 body{
     font-family: Georgia, serif;
     color:#2b2f33;
 }
 
-/* CORES INSTITUCIONAIS */
-.bg-azul-1{ background:#eef2f7; }
-.bg-azul-2{ background:#dde5f0; }
-.bg-azul-3{ background:#cfd9e8; }
+.section{ padding:55px 20px; }
 
-.section{
-    padding:60px 20px;
-}
+.bg1{ background:#eef2f7; }
+.bg2{ background:#dde5f0; }
+.bg3{ background:#cfd9e8; }
 
 header{
     background:#1f2a44;
     color:#fff;
 }
 
-h1,h2,h3{
-    font-weight:700;
-}
-
 .btn-main{
     background:#1f2a44;
     color:#fff;
-    padding:12px 26px;
     border-radius:6px;
+    padding:12px 28px;
+    font-weight:600;
 }
 
 .card-soft{
@@ -62,15 +54,36 @@ h1,h2,h3{
 }
 
 .number{
-    font-size:36px;
+    font-size:34px;
     font-weight:700;
+}
+
+.countdown{
+    font-size:22px;
+    font-weight:700;
+    color:#a11;
+}
+
+.footer{
+    background:#1f2a44;
+    color:#fff;
+    font-size:14px;
+}
+
+.badge-seal{
+    background:#fff;
     color:#1f2a44;
+    border-radius:6px;
+    padding:8px 14px;
+    margin:6px;
+    display:inline-block;
+    font-size:13px;
 }
 
 .whats{
     position:fixed;
-    bottom:20px;
     right:20px;
+    bottom:20px;
     background:#25d366;
     width:60px;
     height:60px;
@@ -80,38 +93,32 @@ h1,h2,h3{
     justify-content:center;
     color:#fff;
     text-decoration:none;
-    font-size:26px;
 }
-
-.small-legal{
-    font-size:14px;
-    line-height:1.7;
-}
-
 </style>
 </head>
+
 
 <body>
 
 <header class="py-3 text-center">
-    <strong>🏛️ Câmara Nacional de Justiça Privada – CNJP</strong>
+<strong>🏛️ Câmara Nacional de Justiça Privada – CNJP</strong>
 </header>
 
 
+
 <!-- HERO -->
-<section class="section bg-azul-1 text-center">
+<section class="section bg1 text-center">
 <div class="container">
 
-<h1 class="mb-3">Curso de Capacitação e Nomeação Oficial de Árbitros, Conciliadores e Mediadores</h1>
+<h1>Capacitação e Nomeação Oficial de Árbitros, Conciliadores e Mediadores</h1>
 
-<p class="lead col-md-9 mx-auto">
-Formação técnica com base legal, certificação institucional e credenciamento profissional
-para atuação na resolução de conflitos extrajudiciais em todo o território nacional.
+<p class="mt-3">
+Formação jurídica com credenciamento institucional para atuação extrajudicial conforme Lei 9.307/96 e Lei 13.140/15.
 </p>
 
-<a href="https://wa.me/5511999999999?text=Olá, quero informações sobre a nomeação"
-   class="btn btn-main btn-lg mt-3"
-   onclick="fbq('track','Lead');">
+<a href="https://wa.me/5511999999999?text=Quero informações"
+class="btn btn-main mt-3"
+onclick="fbq('track','Lead');">
 📲 Atendimento direto via WhatsApp
 </a>
 
@@ -120,61 +127,76 @@ para atuação na resolução de conflitos extrajudiciais em todo o território 
 
 
 
-<!-- O QUE É JUSTIÇA PRIVADA -->
-<section class="section bg-azul-2">
+<!-- CONTAGEM -->
+<section class="section bg2 text-center">
 <div class="container">
 
-<h2 class="mb-4">⚖️ O que é Justiça Privada e Arbitragem?</h2>
-
-<p>
-A justiça privada constitui mecanismo legal de solução de conflitos fora do Poder Judiciário,
-previsto na legislação brasileira, permitindo maior celeridade processual, economia de custos
-e autonomia das partes.
-</p>
-
-<p>
-Nos termos da <strong>Lei nº 9.307/1996 (Lei de Arbitragem)</strong> e da
-<strong>Lei nº 13.140/2015 (Mediação)</strong>, conflitos patrimoniais disponíveis
-podem ser resolvidos por profissionais nomeados, com decisões dotadas de eficácia jurídica equivalente à sentença judicial.
-</p>
-
-<p>
-Empresas, condomínios, contratos civis, relações empresariais e disputas comerciais já utilizam
-esse modelo como padrão moderno de resolução de litígios.
-</p>
+<h4>📅 Próxima turma encerra em:</h4>
+<div id="countdown" class="countdown"></div>
 
 </div>
 </section>
 
 
 
-<!-- CARGOS -->
-<section class="section bg-azul-3">
+<!-- BENEFÍCIOS -->
+<section class="section bg3">
 <div class="container">
-
-<h2 class="mb-4 text-center">📜 Funções para Nomeação</h2>
 
 <div class="row g-3">
 
 <div class="col-md-4">
-<div class="card card-soft p-3 h-100">
-<h5>Árbitro</h5>
-<p>Responsável por conduzir procedimentos arbitrais e proferir sentença arbitral com força executiva.</p>
+<div class="card card-soft p-3">
+<h5>⚖️ Atuação Legal</h5>
+<p>Respaldo jurídico e reconhecimento institucional.</p>
 </div>
 </div>
 
 <div class="col-md-4">
-<div class="card card-soft p-3 h-100">
-<h5>Conciliador</h5>
-<p>Atuação voltada à autocomposição rápida, aproximando as partes e formalizando acordos.</p>
+<div class="card card-soft p-3">
+<h5>💼 Nova renda</h5>
+<p>Honorários por procedimento arbitral.</p>
 </div>
 </div>
 
 <div class="col-md-4">
-<div class="card card-soft p-3 h-100">
-<h5>Mediador</h5>
-<p>Facilitação técnica do diálogo em conflitos complexos, preservando relações jurídicas.</p>
+<div class="card card-soft p-3">
+<h5>📜 Certificação</h5>
+<p>Nomeação formal junto à câmara arbitral.</p>
 </div>
+</div>
+
+</div>
+</div>
+</section>
+
+
+
+<!-- DEPOIMENTOS -->
+<section class="section bg1 text-center">
+<div class="container">
+
+<h3 class="mb-4">Depoimentos de Profissionais</h3>
+
+<div id="carouselExample" class="carousel slide" data-bs-ride="carousel">
+
+<div class="carousel-inner">
+
+<div class="carousel-item active">
+<p class="lead">"Ampliei minha atuação profissional e fechei contratos em poucos meses."</p>
+<small>— Advogado Cível</small>
+</div>
+
+<div class="carousel-item">
+<p class="lead">"Excelente alternativa ao contencioso tradicional."</p>
+<small>— Bacharel em Direito</small>
+</div>
+
+<div class="carousel-item">
+<p class="lead">"A nomeação agregou autoridade real ao meu currículo."</p>
+<small>— Mediadora</small>
+</div>
+
 </div>
 
 </div>
@@ -184,95 +206,58 @@ esse modelo como padrão moderno de resolução de litígios.
 
 
 
-<!-- VANTAGENS -->
-<section class="section bg-azul-1">
+<!-- SELOS -->
+<section class="section bg2 text-center">
 <div class="container">
 
-<h2 class="mb-4">🏛️ Vantagens Profissionais</h2>
+<h4>Reconhecimentos Institucionais</h4>
 
-<ul>
-<li>Atuação reconhecida legalmente</li>
-<li>Honorários por procedimento</li>
-<li>Flexibilidade de agenda</li>
-<li>Valorização curricular</li>
-<li>Nova área de mercado jurídico em crescimento</li>
-</ul>
+<div class="mt-3">
+<span class="badge-seal">Lei 9.307/96</span>
+<span class="badge-seal">Lei 13.140/15</span>
+<span class="badge-seal">Métodos Adequados de Solução de Conflitos</span>
+<span class="badge-seal">Formação Certificada</span>
+<span class="badge-seal">Credenciamento Nacional</span>
+<span class="badge-seal">Procedimentos Extrajudiciais</span>
+</div>
 
 </div>
 </section>
 
 
 
-<!-- NÚMEROS -->
-<section class="section bg-azul-2 text-center">
-<div class="container">
-
-<div class="row">
-
-<div class="col-md-4">
-<div class="number" data-target="1800">0</div>
-<p>Profissionais credenciados</p>
-</div>
-
-<div class="col-md-4">
-<div class="number" data-target="27">0</div>
-<p>Estados atendidos</p>
-</div>
-
-<div class="col-md-4">
-<div class="number" data-target="95">0</div>
-<p>% resolução extrajudicial</p>
-</div>
-
-</div>
-
-<a href="https://wa.me/5511999999999?text=Quero iniciar o processo de nomeação"
-class="btn btn-main mt-4"
+<!-- CTA FINAL -->
+<section class="section bg3 text-center">
+<a href="https://wa.me/5511999999999?text=Quero me inscrever"
+class="btn btn-main btn-lg"
 onclick="fbq('track','Lead');">
-📲 Solicitar informações agora
+📲 Iniciar processo de nomeação
 </a>
-
-</div>
 </section>
 
 
 
-<!-- BASE LEGAL -->
-<section class="section bg-azul-3 small-legal">
-<div class="container">
+<!-- FOOTER -->
+<footer class="footer section text-center">
 
-<h3>📚 Fundamentação Legal</h3>
+<p><strong>CNJP – Câmara Nacional de Justiça Privada</strong></p>
 
 <p>
-Lei nº 9.307/1996 – Arbitragem |
-Lei nº 13.140/2015 – Mediação |
-Código de Processo Civil – Art. 3º, §§ 2º e 3º |
-Resolução adequada de conflitos e métodos autocompositivos.
+Capacitação, nomeação e credenciamento de profissionais para arbitragem, mediação e conciliação extrajudicial em todo o território nacional.
 </p>
 
-<p>
-Os procedimentos arbitrais possuem eficácia de título executivo judicial,
-conforme previsto no ordenamento jurídico brasileiro.
+<p class="small">
+Fundamentação: Lei 9.307/96 • Lei 13.140/15 • CPC Art. 3º • Métodos adequados de resolução de conflitos.
 </p>
 
-</div>
-</section>
+<p>© 2026 – Todos os direitos reservados</p>
 
-
-
-<footer class="section bg-azul-1 text-center">
-<h4>Inicie sua nomeação profissional junto à CNJP</h4>
-<a href="https://wa.me/5511999999999?text=Olá, quero me inscrever"
-class="btn btn-main mt-2"
-onclick="fbq('track','Lead');">
-📲 Falar com a equipe
-</a>
 </footer>
 
 
 
 <a class="whats"
-href="https://wa.me/5511999999999?text=Olá, quero informações"
+href="https://wa.me/5511999999999?text=Quero informações"
 onclick="fbq('track','Lead');">💬</a>
 
 
@@ -280,19 +265,20 @@ onclick="fbq('track','Lead');">💬</a>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-document.querySelectorAll('.number').forEach(el=>{
- const target=+el.dataset.target;
- let count=0;
- const inc=target/50;
- const update=()=>{
-  count+=inc;
-  if(count<target){
-   el.innerText=Math.ceil(count);
-   setTimeout(update,20);
-  } else el.innerText=target;
- }
- update();
-});
+/* CONTAGEM ATÉ 31 MARÇO */
+const end=new Date("March 31, 2026 23:59:59").getTime();
+
+setInterval(()=>{
+ const now=new Date().getTime();
+ const d=end-now;
+
+ const days=Math.floor(d/(1000*60*60*24));
+ const hours=Math.floor((d%(1000*60*60*24))/(1000*60*60));
+ const mins=Math.floor((d%(1000*60*60))/(1000*60));
+
+ document.getElementById("countdown").innerHTML=
+ days+" dias • "+hours+"h • "+mins+"m";
+},1000);
 </script>
 
 </body>
