@@ -1,20 +1,45 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Promoção Flash Tattoo - Tatue agora por apenas R$ 249,90! Designs exclusivos, sessão rápida e higiênica. Vagas limitadas!">
+    <meta name="description"
+        content="Promoção Flash Tattoo - Tatue agora por apenas R$ 249,90! Designs exclusivos, sessão rápida e higiênica. Vagas limitadas!">
     <title>FLASH TATTOO • R$ 249,90 • [NOME DO ESTÚDIO] • Edição Limitada</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Isso suprime o warning (hack comum, não oficial, mas funciona em 2026)
+        console.warn = function () { };  // desativa todos os warns (cuidado, afeta outros warns também)
+        // Ou mais específico:
+        // const originalWarn = console.warn;
+        // console.warn = (...args) => { if (!args[0].includes('cdn.tailwindcss.com')) originalWarn(...args); };
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700&display=swap');
-        body { font-family: 'Inter', system-ui, sans-serif; }
-        .heading { font-family: 'Playfair Display', sans-serif; }
-        .hero-bg { background-image: linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.85)), url('https://picsum.photos/id/1015/2000/1200'); background-size: cover; background-position: center; }
-        .card-hover:hover { transform: scale(1.05); transition: all 0.3s; }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .heading {
+            font-family: 'Playfair Display', sans-serif;
+        }
+
+        .hero-bg {
+            background-image: linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.85)), url('https://picsum.photos/id/1015/2000/1200');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .card-hover:hover {
+            transform: scale(1.05);
+            transition: all 0.3s;
+        }
     </style>
 </head>
+
 <body class="bg-zinc-950 text-white">
 
     <!-- NAVBAR -->
@@ -27,28 +52,34 @@
                 <a href="#depoimentos" class="hover:text-violet-400 transition">Depoimentos</a>
                 <a href="#faq" class="hover:text-violet-400 transition">FAQ</a>
             </div>
-            <a href="#agendar" onclick="document.getElementById('agendar').scrollIntoView({behavior:'smooth'})" 
-               class="bg-violet-600 hover:bg-violet-700 px-6 py-3 rounded-xl font-semibold transition">AGENDAR AGORA</a>
+            <a href="#agendar" onclick="document.getElementById('agendar').scrollIntoView({behavior:'smooth'})"
+                class="bg-violet-600 hover:bg-violet-700 px-6 py-3 rounded-xl font-semibold transition">AGENDAR
+                AGORA</a>
         </div>
     </nav>
 
     <!-- HERO -->
     <section class="hero-bg h-screen flex items-center pt-16">
         <div class="max-w-4xl mx-auto px-6 text-center">
-            <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-6 py-2 rounded-full mb-6 text-sm">
+            <div
+                class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-6 py-2 rounded-full mb-6 text-sm">
                 <span class="animate-pulse">🔥</span> PROMOÇÃO RELÂMPAGO - SÓ ATÉ 10/03
             </div>
-            <h1 class="text-6xl md:text-7xl font-bold heading leading-none mb-6">FLASH TATTOO<br>por apenas <span class="text-violet-400">R$ 249,90</span></h1>
-            <p class="text-2xl md:text-3xl text-zinc-300 mb-10">Design exclusivo + sessão de 30-45 min + higiene total ANVISA</p>
-            
+            <h1 class="text-6xl md:text-7xl font-bold heading leading-none mb-6">FLASH TATTOO<br>por apenas <span
+                    class="text-violet-400">R$ 249,90</span></h1>
+            <p class="text-2xl md:text-3xl text-zinc-300 mb-10">Design exclusivo + sessão de 30-45 min + higiene total
+                ANVISA</p>
+
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="#agendar" onclick="document.getElementById('agendar').scrollIntoView({behavior:'smooth'})" 
-                   class="bg-white text-black font-bold text-xl px-10 py-5 rounded-2xl hover:bg-violet-400 hover:text-white transition flex items-center justify-center gap-3">
+                <a href="#agendar" onclick="document.getElementById('agendar').scrollIntoView({behavior:'smooth'})"
+                    class="bg-white text-black font-bold text-xl px-10 py-5 rounded-2xl hover:bg-violet-400 hover:text-white transition flex items-center justify-center gap-3">
                     <i class="fas fa-bolt"></i> QUERO A MINHA AGORA
                 </a>
-                <a href="#designs" class="border border-white/50 font-semibold text-xl px-10 py-5 rounded-2xl hover:bg-white/10 transition">VER TODOS OS DESIGNS</a>
+                <a href="#designs"
+                    class="border border-white/50 font-semibold text-xl px-10 py-5 rounded-2xl hover:bg-white/10 transition">VER
+                    TODOS OS DESIGNS</a>
             </div>
-            
+
             <!-- Timer -->
             <div class="mt-12 text-sm uppercase tracking-widest">
                 <p class="mb-3">Vagas limitadas • Promoção termina em:</p>
@@ -62,7 +93,7 @@
         <div class="max-w-6xl mx-auto px-6">
             <h2 class="text-5xl heading text-center mb-4">Escolha seu Flash</h2>
             <p class="text-center text-zinc-400 mb-12">Clique no design que mais curtiu</p>
-            
+
             <div class="grid grid-cols-2 md:grid-cols-3 gap-6" id="gallery">
                 <!-- JS vai preencher ou você pode deixar hardcoded -->
             </div>
@@ -74,10 +105,30 @@
         <div class="max-w-4xl mx-auto px-6">
             <h2 class="text-5xl heading text-center mb-12">Como funciona</h2>
             <div class="grid md:grid-cols-4 gap-8 text-center">
-                <div><div class="w-16 h-16 mx-auto bg-violet-600 rounded-2xl flex items-center justify-center text-3xl mb-4">1</div><p class="font-semibold">Escolha o design</p></div>
-                <div><div class="w-16 h-16 mx-auto bg-violet-600 rounded-2xl flex items-center justify-center text-3xl mb-4">2</div><p class="font-semibold">Preencha o formulário</p></div>
-                <div><div class="w-16 h-16 mx-auto bg-violet-600 rounded-2xl flex items-center justify-center text-3xl mb-4">3</div><p class="font-semibold">Pague via PIX</p></div>
-                <div><div class="w-16 h-16 mx-auto bg-violet-600 rounded-2xl flex items-center justify-center text-3xl mb-4">4</div><p class="font-semibold">Venha tatuar!</p></div>
+                <div>
+                    <div
+                        class="w-16 h-16 mx-auto bg-violet-600 rounded-2xl flex items-center justify-center text-3xl mb-4">
+                        1</div>
+                    <p class="font-semibold">Escolha o design</p>
+                </div>
+                <div>
+                    <div
+                        class="w-16 h-16 mx-auto bg-violet-600 rounded-2xl flex items-center justify-center text-3xl mb-4">
+                        2</div>
+                    <p class="font-semibold">Preencha o formulário</p>
+                </div>
+                <div>
+                    <div
+                        class="w-16 h-16 mx-auto bg-violet-600 rounded-2xl flex items-center justify-center text-3xl mb-4">
+                        3</div>
+                    <p class="font-semibold">Pague via PIX</p>
+                </div>
+                <div>
+                    <div
+                        class="w-16 h-16 mx-auto bg-violet-600 rounded-2xl flex items-center justify-center text-3xl mb-4">
+                        4</div>
+                    <p class="font-semibold">Venha tatuar!</p>
+                </div>
             </div>
         </div>
     </section>
@@ -88,10 +139,14 @@
             <h2 class="text-5xl heading text-center mb-12">O que o pessoal tá falando</h2>
             <div class="grid md:grid-cols-3 gap-8">
                 <div class="bg-zinc-800 p-8 rounded-3xl">
-                    <p class="italic mb-6">"Melhor experiência ever! O flash ficou perfeito e a dor foi mínima. Super recomendo!"</p>
+                    <p class="italic mb-6">"Melhor experiência ever! O flash ficou perfeito e a dor foi mínima. Super
+                        recomendo!"</p>
                     <div class="flex items-center gap-4">
                         <img src="https://picsum.photos/id/64/80" class="w-12 h-12 rounded-full object-cover" alt="">
-                        <div><p class="font-semibold">Ana Clara • SP</p><p class="text-xs text-zinc-400">Há 2 dias</p></div>
+                        <div>
+                            <p class="font-semibold">Ana Clara • SP</p>
+                            <p class="text-xs text-zinc-400">Há 2 dias</p>
+                        </div>
                     </div>
                 </div>
                 <!-- repita mais 2 depoimentos -->
@@ -106,23 +161,28 @@
             <form id="bookingForm" class="space-y-8">
                 <div>
                     <label class="block text-sm mb-2">Nome completo</label>
-                    <input type="text" id="nome" required class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-5 focus:outline-none focus:border-violet-500">
+                    <input type="text" id="nome" required
+                        class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-5 focus:outline-none focus:border-violet-500">
                 </div>
                 <div class="grid grid-cols-2 gap-6">
                     <div>
                         <label class="block text-sm mb-2">WhatsApp</label>
-                        <input type="tel" id="whatsapp" required placeholder="(11) 99999-9999" class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-5 focus:outline-none focus:border-violet-500">
+                        <input type="tel" id="whatsapp" required placeholder="(11) 99999-9999"
+                            class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-5 focus:outline-none focus:border-violet-500">
                     </div>
                     <div>
                         <label class="block text-sm mb-2">Data preferida</label>
-                        <input type="date" id="data" required class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-5 focus:outline-none focus:border-violet-500">
+                        <input type="date" id="data" required
+                            class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-5 focus:outline-none focus:border-violet-500">
                     </div>
                 </div>
                 <div>
                     <label class="block text-sm mb-2">Design escolhido (ou descreva)</label>
-                    <input type="text" id="design" readonly placeholder="Clique em um flash acima" class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-5 focus:outline-none focus:border-violet-500">
+                    <input type="text" id="design" readonly placeholder="Clique em um flash acima"
+                        class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-5 focus:outline-none focus:border-violet-500">
                 </div>
-                <button type="submit" class="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 py-6 text-xl font-bold rounded-3xl hover:brightness-110 transition">
+                <button type="submit"
+                    class="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 py-6 text-xl font-bold rounded-3xl hover:brightness-110 transition">
                     CONFIRMAR AGENDAMENTO • R$ 249,90
                 </button>
             </form>
@@ -143,9 +203,9 @@
     </footer>
 
     <!-- BOTÃO WHATSAPP FLUTUANTE -->
-    <a href="https://wa.me/55SEUNUMERO?text=Oi!%20Vi%20a%20promo%20de%20Flash%20Tattoo%20e%20quero%20agendar!" 
-       target="_blank"
-       class="fixed bottom-6 right-6 bg-green-500 w-16 h-16 rounded-3xl flex items-center justify-center shadow-2xl hover:scale-110 transition text-4xl z-50">
+    <a href="https://wa.me/55SEUNUMERO?text=Oi!%20Vi%20a%20promo%20de%20Flash%20Tattoo%20e%20quero%20agendar!"
+        target="_blank"
+        class="fixed bottom-6 right-6 bg-green-500 w-16 h-16 rounded-3xl flex items-center justify-center shadow-2xl hover:scale-110 transition text-4xl z-50">
         <i class="fab fa-whatsapp"></i>
     </a>
 
@@ -154,20 +214,21 @@
         <div class="bg-zinc-900 rounded-3xl max-w-md w-full mx-4 p-8 text-center">
             <h3 class="text-3xl font-bold mb-2">Pagamento de R$ 249,90</h3>
             <p class="text-zinc-400 mb-8">Pague via PIX e confirme sua vaga instantaneamente</p>
-            
-            <img id="qrCode" src="https://picsum.photos/id/866/300/300" class="mx-auto rounded-2xl mb-6" alt="QR Code PIX">
-            
+
+            <img id="qrCode" src="https://picsum.photos/id/866/300/300" class="mx-auto rounded-2xl mb-6"
+                alt="QR Code PIX">
+
             <div class="bg-zinc-800 p-4 rounded-2xl mb-6">
                 <p class="text-sm text-zinc-400">Chave PIX (e-mail)</p>
                 <p id="chavePix" class="font-mono text-lg">seuemail@estudio.com</p>
                 <button onclick="copiarChave()" class="mt-3 text-violet-400 text-sm underline">Copiar chave</button>
             </div>
-            
-            <button onclick="enviarComprovante()" 
-                    class="w-full bg-green-500 py-5 rounded-2xl font-bold text-xl flex items-center justify-center gap-3">
+
+            <button onclick="enviarComprovante()"
+                class="w-full bg-green-500 py-5 rounded-2xl font-bold text-xl flex items-center justify-center gap-3">
                 <i class="fab fa-whatsapp"></i> ENVIAR COMPROVANTE NO WHATSAPP
             </button>
-            
+
             <button onclick="fecharModal()" class="mt-6 text-zinc-400 text-sm">Fechar</button>
         </div>
     </div>
@@ -184,17 +245,17 @@
             const timer = setInterval(() => {
                 const now = new Date().getTime();
                 const distance = endDate - now;
-                
+
                 const days = Math.floor(distance / (1000 * 60 * 60 * 24));
                 const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                 const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                
+
                 document.getElementById("countdown").innerHTML = `
                     <div><span class="text-5xl">${days}</span><br><span class="text-xs">DIAS</span></div>
                     <div><span class="text-5xl">${hours}</span><br><span class="text-xs">HORAS</span></div>
                     <div><span class="text-5xl">${minutes}</span><br><span class="text-xs">MIN</span></div>
                 `;
-                
+
                 if (distance < 0) clearInterval(timer);
             }, 60000);
         }
@@ -202,12 +263,12 @@
 
         // Galeria exemplo (substitua pelas suas imagens)
         const flashes = [
-            {img: "https://picsum.photos/id/1015/400/400", nome: "Águia Tribal"},
-            {img: "https://picsum.photos/id/133/400/400", nome: "Rosa Negra"},
-            {img: "https://picsum.photos/id/201/400/400", nome: "Leão Minimal"},
-            {img: "https://picsum.photos/id/251/400/400", nome: "Dragão Japonês"},
-            {img: "https://picsum.photos/id/274/400/400", nome: "Caveira Neon"},
-            {img: "https://picsum.photos/id/1016/400/400", nome: "Borboleta"},
+            { img: "https://picsum.photos/id/1015/400/400", nome: "Águia Tribal" },
+            { img: "https://picsum.photos/id/133/400/400", nome: "Rosa Negra" },
+            { img: "https://picsum.photos/id/201/400/400", nome: "Leão Minimal" },
+            { img: "https://picsum.photos/id/251/400/400", nome: "Dragão Japonês" },
+            { img: "https://picsum.photos/id/274/400/400", nome: "Caveira Neon" },
+            { img: "https://picsum.photos/id/1016/400/400", nome: "Borboleta" },
         ];
 
         function criarGaleria() {
@@ -221,7 +282,7 @@
                 `;
                 card.onclick = () => {
                     document.getElementById("design").value = f.nome;
-                    document.getElementById("agendar").scrollIntoView({behavior: "smooth"});
+                    document.getElementById("agendar").scrollIntoView({ behavior: "smooth" });
                 };
                 container.appendChild(card);
             });
@@ -229,7 +290,7 @@
         criarGaleria();
 
         // Form submit → abre modal pagamento
-        document.getElementById("bookingForm").addEventListener("submit", function(e) {
+        document.getElementById("bookingForm").addEventListener("submit", function (e) {
             e.preventDefault();
             document.getElementById("modalPagamento").classList.remove("hidden");
             // Aqui você pode salvar os dados se quiser (localStorage ou enviar pra webhook)
@@ -254,4 +315,5 @@
         // FAQ exemplo (adicione quantos quiser com JS ou HTML puro)
     </script>
 </body>
-</html> 
+
+</html>
