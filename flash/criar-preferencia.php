@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
 
-// Dados enviados do frontend
 $input = json_decode(file_get_contents('php://input'), true);
 
 if (empty($input['nome']) || empty($input['whatsapp']) || empty($input['design'])) {
@@ -9,8 +9,8 @@ if (empty($input['nome']) || empty($input['whatsapp']) || empty($input['design']
     exit;
 }
 
-// SUA CHAVE SECRETA (TEST para sandbox!)
-$accessToken = 'APP_USR-7473082801071546-022611-1d7c398f7def4a230172012f2ee6457c-3228515631'; // TROQUE PELA SUA TEST
+// TROQUE pela sua chave TEST (não use a de produção aqui!)
+$accessToken = 'APP_USR-a4eb5361-7b17-4d43-9e04-8be1ca2225e6';   // ← SUA CHAVE TEST AQUI
 
 $data = [
     'items' => [[
@@ -21,18 +21,15 @@ $data = [
     ]],
     'payer' => ['name' => $input['nome']],
     'back_urls' => [
-        'success' => 'http://localhost/flash/sucesso.html',
-        'failure' => 'http://localhost/flash/falha.html',
-        'pending' => 'http://localhost/flash/pendente.html'
+        'success' => 'https://danieltatuador.com/flash/sucesso.html',
+        'failure' => 'https://danieltatuador.com/flash/falha.html',
+        'pending' => 'https://danieltatuador.com/flash/pendente.html'
     ],
     'auto_return' => 'approved'
 ];
 
 $ch = curl_init('https://api.mercadopago.com/checkout/preferences');
-curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Authorization: Bearer ' . $accessToken,
-    'Content-Type: application/json'
-]);
+curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $accessToken, 'Content-Type: application/json']);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
