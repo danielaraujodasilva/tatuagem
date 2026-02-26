@@ -1,0 +1,12 @@
+
+<IfModule mod_headers.c>
+    # Remove COEP completamente (não envie o header)
+    # Header unset Cross-Origin-Embedder-Policy
+
+    # Ou força o valor default (unsafe-none)
+    Header always set Cross-Origin-Embedder-Policy "unsafe-none"
+
+    # Se tiver COOP, remova também
+    # Header unset Cross-Origin-Opener-Policy
+</IfModule>
+
