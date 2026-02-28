@@ -1,240 +1,233 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description"
-        content="Promoção Flash Tattoo - Tatue agora por apenas R$ 249,90! Designs exclusivos, sessão rápida e higiênica. Vagas limitadas no Estúdio Cereja 2!">
-    <title>FLASH TATTOO • R$ 249,90 • ESTÚDIO CEREJA 2 • Edição Limitada</title>
+    <meta name="description" content="Flash Tattoo por apenas R$ 99,99! Designs exclusivos, sessão rápida. Vagas limitadas no Estúdio Cereja 2.">
+    <title>FLASH TATTOO • R$ 99,99 • Edição Limitada</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://sdk.mercadopago.com/js/v2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700&display=swap');
 
-        body {
-            font-family: 'Inter', system-ui, sans-serif;
-        }
-
-        .heading {
-            font-family: 'Playfair Display', serif;
-        }
-
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .heading { font-family: 'Playfair Display', serif; }
+        
         .hero-bg {
-            background-image: linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.85)), url('https://picsum.photos/id/1015/2000/1200');
+            background-image: linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1611506525579-9e13d6e23e58?w=2000&q=80');
             background-size: cover;
             background-position: center;
         }
 
-        .card-hover:hover {
-            transform: scale(1.05);
-            transition: all 0.3s;
+        /* Lightbox simples */
+        #lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        #lightbox img {
+            max-width: 90%;
+            max-height: 90vh;
+            border: 4px solid #8b5cf6;
+            border-radius: 12px;
+            box-shadow: 0 0 40px rgba(139, 92, 246, 0.4);
+        }
+        #closeLightbox {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            color: white;
+            font-size: 3rem;
+            cursor: pointer;
         }
     </style>
 </head>
 
-<body class="bg-zinc-950 text-white">
+<body class="bg-zinc-950 text-white min-h-screen">
 
-    <!-- NAVBAR + LINK INSTA -->
+    <!-- NAVBAR SIMPLES -->
     <nav class="fixed top-0 w-full bg-black/80 backdrop-blur-md z-50 border-b border-zinc-800">
         <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
             <div class="text-2xl font-bold tracking-tighter heading">ESTÚDIO CEREJA 2</div>
-            <div class="flex items-center gap-6 md:gap-8">
-                <a href="https://www.instagram.com/danielaraujotatuador" target="_blank" class="hidden md:flex items-center gap-2 text-pink-400 hover:text-pink-300 transition text-sm uppercase tracking-widest">
-                    <i class="fab fa-instagram"></i> @danielaraujotatuador
-                </a>
-                <a href="#agendar" onclick="document.getElementById('agendar').scrollIntoView({behavior:'smooth'})"
-                   class="bg-violet-600 hover:bg-violet-700 px-6 py-3 rounded-xl font-semibold transition">AGENDAR AGORA</a>
-            </div>
+            <a href="https://wa.me/5511999979785?text=Oi!%20Vi%20a%20promo%20de%20Flash%20Tattoo%20e%20quero%20saber%20mais!"
+               target="_blank"
+               class="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-xl font-semibold transition flex items-center gap-2">
+                <i class="fab fa-whatsapp text-xl"></i> FALAR AGORA
+            </a>
         </div>
     </nav>
 
-    <!-- HERO + LINK INSTA -->
-    <section class="hero-bg h-screen flex items-center pt-16">
+    <!-- HERO PRINCIPAL -->
+    <section class="hero-bg h-screen flex items-center pt-20">
         <div class="max-w-4xl mx-auto px-6 text-center">
-            <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-6 py-2 rounded-full mb-6 text-sm">
-                <span class="animate-pulse">fire</span> PROMOÇÃO RELÂMPAGO - SÓ ATÉ 10/03
+            <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-6 py-2 rounded-full mb-6 text-sm uppercase tracking-wider">
+                <span class="animate-pulse">PROMOÇÃO RELÂMPAGO</span> • SÓ ATÉ 10/03
             </div>
-            <h1 class="text-6xl md:text-7xl font-bold heading leading-none mb-6">FLASH TATTOO<br>por apenas <span class="text-violet-400">R$ 249,90</span></h1>
-            <p class="text-2xl md:text-3xl text-zinc-300 mb-6">Design exclusivo + sessão de 30-45 min + higiene total ANVISA</p>
-            <p class="text-lg text-zinc-400 mb-10">Confira mais trabalhos no Instagram: <a href="https://www.instagram.com/danielaraujotatuador" target="_blank" class="text-pink-400 underline hover:text-pink-300">@danielaraujotatuador</a></p>
-
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="#agendar" onclick="document.getElementById('agendar').scrollIntoView({behavior:'smooth'})"
-                   class="bg-white text-black font-bold text-xl px-10 py-5 rounded-2xl hover:bg-violet-400 hover:text-white transition flex items-center justify-center gap-3">
-                    <i class="fas fa-bolt"></i> QUERO A MINHA AGORA
-                </a>
-                <a href="#designs"
-                   class="border border-white/50 font-semibold text-xl px-10 py-5 rounded-2xl hover:bg-white/10 transition">VER TODOS OS DESIGNS</a>
-            </div>
-
-            <!-- Timer -->
-            <div class="mt-12 text-sm uppercase tracking-widest">
-                <p class="mb-3">Vagas limitadas • Promoção termina em:</p>
-                <div id="countdown" class="flex justify-center gap-6 text-4xl font-mono"></div>
-            </div>
-        </div>
-    </section>
-
-    <!-- DESIGNS + LINK INSTA -->
-    <section id="designs" class="py-20 bg-zinc-900">
-        <div class="max-w-6xl mx-auto px-6">
-            <h2 class="text-5xl heading text-center mb-4">Escolha seu Flash</h2>
-            <p class="text-center text-zinc-400 mb-4">Clique no design que mais curtiu</p>
-            <p class="text-center text-zinc-400 mb-12">Mais exemplos e portfólio completo no Instagram <a href="https://www.instagram.com/danielaraujotatuador" target="_blank" class="text-pink-400 underline hover:text-pink-300">@danielaraujotatuador</a></p>
-
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-6" id="gallery">
-                <!-- JS vai preencher -->
-            </div>
-        </div>
-    </section>
-
-    <!-- COMO FUNCIONA (sem mudança) -->
-    <section id="como-funciona" class="py-20 bg-black">
-        <div class="max-w-4xl mx-auto px-6">
-            <h2 class="text-5xl heading text-center mb-12">Como funciona</h2>
-            <div class="grid md:grid-cols-4 gap-8 text-center">
-                <div>
-                    <div class="w-16 h-16 mx-auto bg-violet-600 rounded-2xl flex items-center justify-center text-3xl mb-4">1</div>
-                    <p class="font-semibold">Escolha o design</p>
-                </div>
-                <div>
-                    <div class="w-16 h-16 mx-auto bg-violet-600 rounded-2xl flex items-center justify-center text-3xl mb-4">2</div>
-                    <p class="font-semibold">Preencha o formulário</p>
-                </div>
-                <div>
-                    <div class="w-16 h-16 mx-auto bg-violet-600 rounded-2xl flex items-center justify-center text-3xl mb-4">3</div>
-                    <p class="font-semibold">Pague via PIX</p>
-                </div>
-                <div>
-                    <div class="w-16 h-16 mx-auto bg-violet-600 rounded-2xl flex items-center justify-center text-3xl mb-4">4</div>
-                    <p class="font-semibold">Venha tatuar!</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- DEPOIMENTOS (sem mudança) -->
-    <section id="depoimentos" class="py-20 bg-zinc-900">
-        <div class="max-w-6xl mx-auto px-6">
-            <h2 class="text-5xl heading text-center mb-12">O que o pessoal tá falando</h2>
-            <div class="grid md:grid-cols-3 gap-8">
-                <div class="bg-zinc-800 p-8 rounded-3xl">
-                    <p class="italic mb-6">"Melhor experiência ever! O flash ficou perfeito e a dor foi mínima. Super recomendo!"</p>
-                    <div class="flex items-center gap-4">
-                        <img src="https://picsum.photos/id/64/80" class="w-12 h-12 rounded-full object-cover" alt="">
-                        <div>
-                            <p class="font-semibold">Ana Clara • SP</p>
-                            <p class="text-xs text-zinc-400">Há 2 dias</p>
-                        </div>
-                    </div>
-                </div>
-                <!-- repita mais 2 depoimentos se quiser -->
-            </div>
-        </div>
-    </section>
-
-    <!-- AGENDAR + FORM (atualizei texto do botão pra combinar) -->
-    <section id="agendar" class="py-20 bg-black">
-        <div class="max-w-2xl mx-auto px-6">
-            <h2 class="text-5xl heading text-center mb-12">Reserve sua vaga agora</h2>
-            <form id="bookingForm" class="space-y-8">
-                <div>
-                    <label class="block text-sm mb-2">Nome completo</label>
-                    <input type="text" id="nome" required class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-5 focus:outline-none focus:border-violet-500">
-                </div>
-                <div class="grid grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm mb-2">WhatsApp</label>
-                        <input type="tel" id="whatsapp" required placeholder="(11) 99999-9999" class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-5 focus:outline-none focus:border-violet-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm mb-2">Data preferida</label>
-                        <input type="date" id="data" required class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-5 focus:outline-none focus:border-violet-500">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm mb-2">Design escolhido (ou descreva)</label>
-                    <input type="text" id="design" readonly placeholder="Clique em um flash acima" class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-5 focus:outline-none focus:border-violet-500">
-                </div>
-                <button type="submit" class="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 py-6 text-xl font-bold rounded-3xl hover:brightness-110 transition">
-                    CONFIRMAR AGENDAMENTO • R$ 249,90
-                </button>
-            </form>
-        </div>
-    </section>
-
-    <!-- FOOTER + LINK INSTA -->
-    <footer class="bg-black py-12 border-t border-zinc-800">
-        <div class="max-w-6xl mx-auto px-6 text-center text-zinc-400 text-sm">
-            <p>© 2026 ESTÚDIO CEREJA 2 • Todos os direitos reservados</p>
-            <p class="mt-2">Higienização conforme ANVISA • Estúdio licenciado</p>
-            <p class="mt-4">
-                <a href="https://www.instagram.com/danielaraujotatuador" target="_blank" class="text-pink-400 hover:text-pink-300 flex items-center justify-center gap-2">
-                    <i class="fab fa-instagram text-xl"></i> Siga @danielaraujotatuador no Instagram
-                </a>
+            
+            <h1 class="text-5xl md:text-7xl font-bold heading leading-tight mb-6">
+                3 FLASH TATTOO<br>
+                <span class="text-violet-400">APENAS R$ 99,99</span>
+            </h1>
+            
+            <p class="text-xl md:text-3xl text-zinc-300 mb-10 max-w-3xl mx-auto">
+                Design exclusivo • Sessão rápida (30-45 min)  • Vagas super limitadas!
             </p>
-        </div>
-    </footer>
 
-    <!-- BOTÃO WHATSAPP FLUTUANTE - TROQUE O NÚMERO REAL -->
-    <a href="https://wa.me/55SEUNUMERO?text=Oi!%20Vi%20a%20promo%20de%20Flash%20Tattoo%20e%20quero%20agendar!" target="_blank"
-       class="fixed bottom-6 right-6 bg-green-500 w-16 h-16 rounded-3xl flex items-center justify-center shadow-2xl hover:scale-110 transition text-4xl z-50">
+            <div class="flex flex-col sm:flex-row gap-6 justify-center">
+                <a href="https://wa.me/5511999979785?text=Oi!%20Quero%20reservar%20meu%20flash%20tattoo%20por%20R$99,99!"
+                   target="_blank"
+                   class="bg-white text-black font-bold text-xl px-12 py-6 rounded-2xl hover:bg-violet-400 hover:text-white transition shadow-2xl transform hover:scale-105">
+                    QUERO O MEU AGORA
+                </a>
+                
+                <a href="#detalhes"
+                   class="border-2 border-white/40 font-semibold text-xl px-12 py-6 rounded-2xl hover:bg-white/10 transition">
+                    VER MAIS DETALHES
+                </a>
+            </div>
+
+            <div class="mt-16 text-sm uppercase tracking-widest text-zinc-400">
+                <p>Vagas acabando rápido • Não perca!</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- DETALHES / COMO FUNCIONA -->
+    <section id="detalhes" class="py-20 bg-zinc-900">
+        <div class="max-w-5xl mx-auto px-6">
+            <h2 class="text-5xl heading text-center mb-16">O que você leva no Flash</h2>
+            
+            <div class="grid md:grid-cols-3 gap-10 text-center">
+                <div class="bg-zinc-800/50 p-10 rounded-3xl border border-zinc-700">
+                    <div class="text-6xl mb-6">🎨</div>
+                    <h3 class="text-2xl font-bold mb-4">Design Exclusivo</h3>
+                    <p class="text-zinc-300">Flash criado especialmente pra essa promoção — peças únicas, tamanho médio.</p>
+                </div>
+                
+                <div class="bg-zinc-800/50 p-10 rounded-3xl border border-zinc-700">
+                    <div class="text-6xl mb-6">⚡</div>
+                    <h3 class="text-2xl font-bold mb-4">Sessão Rápida</h3>
+                    <p class="text-zinc-300">30 a 45 minutos no máximo. Ideal pra quem tem pouco tempo.</p>
+                </div>
+                
+                <div class="bg-zinc-800/50 p-10 rounded-3xl border border-zinc-700">
+                    <div class="text-6xl mb-6">🧼</div>
+                    <h3 class="text-2xl font-bold mb-4">100% Higiênico</h3>
+                    <p class="text-zinc-300">Materiais descartáveis + esterilização ANVISA. Segurança em primeiro lugar.</p>
+                </div>
+            </div>
+
+            <div class="mt-20 text-center">
+                <h3 class="text-3xl font-bold mb-8">Valor promocional:</h3>
+                <p class="text-6xl md:text-7xl font-black text-violet-400">R$ 99,99</p>
+                <p class="text-xl text-zinc-400 mt-4">(valor normal acima de R$ 450)</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- NOVA SEÇÃO: EXEMPLOS DE FLASH TATTOOS -->
+    <section id="exemplos" class="py-20 bg-black">
+        <div class="max-w-6xl mx-auto px-6">
+            <h2 class="text-5xl heading text-center mb-12">Exemplos de Flash na Promoção</h2>
+            <p class="text-xl text-zinc-400 text-center mb-16 max-w-3xl mx-auto">
+                Designs exclusivos, tamanho médio (ideal para braço, perna, costela etc.). Todos por apenas R$ 99,99 nessa edição limitada!
+            </p>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Card 1 -->
+                <div class="group cursor-pointer" onclick="openLightbox('https://images.unsplash.com/photo-1608481330888-952f255a1d8f?w=800&q=80')">
+                    <div class="overflow-hidden rounded-2xl border border-zinc-700 shadow-lg group-hover:border-violet-500 transition">
+                        <img src="https://images.unsplash.com/photo-1608481330888-952f255a1d8f?w=600" alt="Flash Tattoo Minimalista Flor" class="w-full h-64 object-cover group-hover:scale-105 transition duration-500">
+                    </div>
+                    <p class="text-center mt-4 font-semibold text-violet-300">Flor delicada fine line</p>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="group cursor-pointer" onclick="openLightbox('https://images.unsplash.com/photo-1581348834648-409d2f4d0c27?w=800&q=80')">
+                    <div class="overflow-hidden rounded-2xl border border-zinc-700 shadow-lg group-hover:border-violet-500 transition">
+                        <img src="https://images.unsplash.com/photo-1581348834648-409d2f4d0c27?w=600" alt="Flash Tattoo Estrela" class="w-full h-64 object-cover group-hover:scale-105 transition duration-500">
+                    </div>
+                    <p class="text-center mt-4 font-semibold text-violet-300">Estrelas & lua minimal</p>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="group cursor-pointer" onclick="openLightbox('https://images.unsplash.com/photo-1591951426145-2f8d4e0d3e4e?w=800&q=80')">
+                    <div class="overflow-hidden rounded-2xl border border-zinc-700 shadow-lg group-hover:border-violet-500 transition">
+                        <img src="https://images.unsplash.com/photo-1591951426145-2f8d4e0d3e4e?w=600" alt="Flash Tattoo Rosa" class="w-full h-64 object-cover group-hover:scale-105 transition duration-500">
+                    </div>
+                    <p class="text-center mt-4 font-semibold text-violet-300">Rosa blackwork</p>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="group cursor-pointer" onclick="openLightbox('https://images.unsplash.com/photo-1611506525579-9e13d6e23e58?w=800&q=80')">
+                    <div class="overflow-hidden rounded-2xl border border-zinc-700 shadow-lg group-hover:border-violet-500 transition">
+                        <img src="https://images.unsplash.com/photo-1611506525579-9e13d6e23e58?w=600" alt="Flash Tattoo Abstrato" class="w-full h-64 object-cover group-hover:scale-105 transition duration-500">
+                    </div>
+                    <p class="text-center mt-4 font-semibold text-violet-300">Linha abstrata geométrica</p>
+                </div>
+
+                <!-- Adicione mais cards conforme suas imagens reais -->
+                <!-- Exemplo extra: <div class="group cursor-pointer" onclick="openLightbox('SUA_IMAGEM_URL')"> ... </div> -->
+            </div>
+
+            <div class="text-center mt-12">
+                <p class="text-lg text-zinc-300">Gostou de algum? É só falar no WhatsApp que a gente confirma disponibilidade!</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CHAMADA FINAL -->
+    <section class="py-24 bg-gradient-to-b from-zinc-900 to-black">
+        <div class="max-w-4xl mx-auto px-6 text-center">
+            <h2 class="text-5xl md:text-6xl heading mb-10">Tá esperando o quê?</h2>
+            <p class="text-2xl text-zinc-300 mb-12">As vagas são realmente limitadas e estão voando.</p>
+            
+            <a href="https://wa.me/5511999979785?text=Oi!%20Vi%20os%20exemplos%20de%20flash%20no%20site%20e%20quero%20agendar%20o%20meu!"
+               target="_blank"
+               class="inline-flex items-center gap-4 bg-green-600 hover:bg-green-700 text-white font-bold text-2xl px-16 py-8 rounded-3xl transition transform hover:scale-105 shadow-2xl">
+                <i class="fab fa-whatsapp text-4xl"></i>
+                FALAR NO WHATSAPP AGORA
+            </a>
+        </div>
+    </section>
+
+    <!-- FLOATING WHATSAPP -->
+    <a href="https://wa.me/5511999979785?text=Oi!%20Vi%20a%20promo%20de%20Flash%20Tattoo!"
+       target="_blank"
+       class="fixed bottom-8 right-8 bg-green-500 w-20 h-20 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition z-50 text-4xl">
         <i class="fab fa-whatsapp"></i>
     </a>
 
-    <!-- MODAL PAGAMENTO (mantive R$ 249,90) -->
-    <div id="modalPagamento" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center z-[100]">
-        <div class="bg-zinc-900 rounded-3xl max-w-md w-full mx-4 p-8 text-center">
-            <h3 class="text-3xl font-bold mb-2">Pagamento de R$ 249,90</h3>
-            <p class="text-zinc-400 mb-8">Pague via PIX e confirme sua vaga instantaneamente</p>
-
-            <img id="qrCode" src="https://picsum.photos/id/866/300/300" class="mx-auto rounded-2xl mb-6" alt="QR Code PIX">
-
-            <div class="bg-zinc-800 p-4 rounded-2xl mb-6">
-                <p class="text-sm text-zinc-400">Chave PIX (e-mail)</p>
-                <p id="chavePix" class="font-mono text-lg">seuemail@estudio.com</p>
-                <button onclick="copiarChave()" class="mt-3 text-violet-400 text-sm underline">Copiar chave</button>
-            </div>
-
-            <button onclick="enviarComprovante()" class="w-full bg-green-500 py-5 rounded-2xl font-bold text-xl flex items-center justify-center gap-3">
-                <i class="fab fa-whatsapp"></i> ENVIAR COMPROVANTE NO WHATSAPP
-            </button>
-
-            <button onclick="fecharModal()" class="mt-6 text-zinc-400 text-sm">Fechar</button>
-        </div>
+    <!-- LIGHTBOX -->
+    <div id="lightbox" onclick="closeLightbox(event)">
+        <span id="closeLightbox" onclick="closeLightbox()">&times;</span>
+        <img id="lightboxImg" src="" alt="Design ampliado">
     </div>
 
-    <!-- SCRIPTS (mantidos, adicione o countdown/gallery se já tiver implementado) -->
+    <!-- JS para Lightbox -->
     <script>
-        // Seu script de countdown, gallery, form submit, modal etc. vai aqui
-        // Exemplo countdown:
-        document.addEventListener('DOMContentLoaded', () => {
-            const endDate = new Date("2026-03-10T23:59:59").getTime();
-            const countdownEl = document.getElementById('countdown');
+        function openLightbox(src) {
+            document.getElementById('lightboxImg').src = src;
+            document.getElementById('lightbox').style.display = 'flex';
+        }
 
-            function updateCountdown() {
-                const now = new Date().getTime();
-                const distance = endDate - now;
-                if (distance < 0) {
-                    countdownEl.innerHTML = "Promoção encerrada!";
-                    return;
-                }
-                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-                countdownEl.innerHTML = `${days}d ${hours}h ${minutes}m ${seconds}s`;
-            }
-            setInterval(updateCountdown, 1000);
-            updateCountdown();
-        });
-
-        function copiarChave() { navigator.clipboard.writeText(document.getElementById('chavePix').textContent); alert('Chave copiada!'); }
-        function fecharModal() { document.getElementById('modalPagamento').classList.add('hidden'); }
-        // Adicione suas funções de enviarComprovante, gallery fill etc.
+        function closeLightbox(e) {
+            if (e && e.target.id === 'lightbox') return;
+            document.getElementById('lightbox').style.display = 'none';
+        }
     </script>
+
+    <!-- FOOTER -->
+    <footer class="bg-black py-12 border-t border-zinc-800 text-center text-zinc-500 text-sm">
+        <p>© 2026 Estúdio Cereja 2 • Guarulhos/SP</p>
+        <p class="mt-2">Profissional qualificado</p>
+    </footer>
 
 </body>
 </html>
