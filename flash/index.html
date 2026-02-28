@@ -20,6 +20,32 @@
             background-size: cover;
             background-position: center;
         }
+
+        /* Lightbox simples */
+        #lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        #lightbox img {
+            max-width: 90%;
+            max-height: 90vh;
+            border: 4px solid #8b5cf6;
+            border-radius: 12px;
+            box-shadow: 0 0 40px rgba(139, 92, 246, 0.4);
+        }
+        #closeLightbox {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            color: white;
+            font-size: 3rem;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -105,13 +131,64 @@
         </div>
     </section>
 
+    <!-- NOVA SEÇÃO: EXEMPLOS DE FLASH TATTOOS -->
+    <section id="exemplos" class="py-20 bg-black">
+        <div class="max-w-6xl mx-auto px-6">
+            <h2 class="text-5xl heading text-center mb-12">Exemplos de Flash na Promoção</h2>
+            <p class="text-xl text-zinc-400 text-center mb-16 max-w-3xl mx-auto">
+                Designs exclusivos, tamanho médio (ideal para braço, perna, costela etc.). Todos por apenas R$ 249,90 nessa edição limitada!
+            </p>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Card 1 -->
+                <div class="group cursor-pointer" onclick="openLightbox('https://images.unsplash.com/photo-1608481330888-952f255a1d8f?w=800&q=80')">
+                    <div class="overflow-hidden rounded-2xl border border-zinc-700 shadow-lg group-hover:border-violet-500 transition">
+                        <img src="https://images.unsplash.com/photo-1608481330888-952f255a1d8f?w=600" alt="Flash Tattoo Minimalista Flor" class="w-full h-64 object-cover group-hover:scale-105 transition duration-500">
+                    </div>
+                    <p class="text-center mt-4 font-semibold text-violet-300">Flor delicada fine line</p>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="group cursor-pointer" onclick="openLightbox('https://images.unsplash.com/photo-1581348834648-409d2f4d0c27?w=800&q=80')">
+                    <div class="overflow-hidden rounded-2xl border border-zinc-700 shadow-lg group-hover:border-violet-500 transition">
+                        <img src="https://images.unsplash.com/photo-1581348834648-409d2f4d0c27?w=600" alt="Flash Tattoo Estrela" class="w-full h-64 object-cover group-hover:scale-105 transition duration-500">
+                    </div>
+                    <p class="text-center mt-4 font-semibold text-violet-300">Estrelas & lua minimal</p>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="group cursor-pointer" onclick="openLightbox('https://images.unsplash.com/photo-1591951426145-2f8d4e0d3e4e?w=800&q=80')">
+                    <div class="overflow-hidden rounded-2xl border border-zinc-700 shadow-lg group-hover:border-violet-500 transition">
+                        <img src="https://images.unsplash.com/photo-1591951426145-2f8d4e0d3e4e?w=600" alt="Flash Tattoo Rosa" class="w-full h-64 object-cover group-hover:scale-105 transition duration-500">
+                    </div>
+                    <p class="text-center mt-4 font-semibold text-violet-300">Rosa blackwork</p>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="group cursor-pointer" onclick="openLightbox('https://images.unsplash.com/photo-1611506525579-9e13d6e23e58?w=800&q=80')">
+                    <div class="overflow-hidden rounded-2xl border border-zinc-700 shadow-lg group-hover:border-violet-500 transition">
+                        <img src="https://images.unsplash.com/photo-1611506525579-9e13d6e23e58?w=600" alt="Flash Tattoo Abstrato" class="w-full h-64 object-cover group-hover:scale-105 transition duration-500">
+                    </div>
+                    <p class="text-center mt-4 font-semibold text-violet-300">Linha abstrata geométrica</p>
+                </div>
+
+                <!-- Adicione mais cards conforme suas imagens reais -->
+                <!-- Exemplo extra: <div class="group cursor-pointer" onclick="openLightbox('SUA_IMAGEM_URL')"> ... </div> -->
+            </div>
+
+            <div class="text-center mt-12">
+                <p class="text-lg text-zinc-300">Gostou de algum? É só falar no WhatsApp que a gente confirma disponibilidade!</p>
+            </div>
+        </div>
+    </section>
+
     <!-- CHAMADA FINAL -->
     <section class="py-24 bg-gradient-to-b from-zinc-900 to-black">
         <div class="max-w-4xl mx-auto px-6 text-center">
             <h2 class="text-5xl md:text-6xl heading mb-10">Tá esperando o quê?</h2>
             <p class="text-2xl text-zinc-300 mb-12">As vagas são realmente limitadas e estão voando.</p>
             
-            <a href="https://wa.me/5511999999999?text=Oi!%20Vi%20a%20promo%20de%20Flash%20Tattoo%20no%20site%20e%20quero%20agendar%20o%20meu!"
+            <a href="https://wa.me/5511999999999?text=Oi!%20Vi%20os%20exemplos%20de%20flash%20no%20site%20e%20quero%20agendar%20o%20meu!"
                target="_blank"
                class="inline-flex items-center gap-4 bg-green-600 hover:bg-green-700 text-white font-bold text-2xl px-16 py-8 rounded-3xl transition transform hover:scale-105 shadow-2xl">
                 <i class="fab fa-whatsapp text-4xl"></i>
@@ -126,6 +203,25 @@
        class="fixed bottom-8 right-8 bg-green-500 w-20 h-20 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition z-50 text-4xl">
         <i class="fab fa-whatsapp"></i>
     </a>
+
+    <!-- LIGHTBOX -->
+    <div id="lightbox" onclick="closeLightbox(event)">
+        <span id="closeLightbox" onclick="closeLightbox()">&times;</span>
+        <img id="lightboxImg" src="" alt="Design ampliado">
+    </div>
+
+    <!-- JS para Lightbox -->
+    <script>
+        function openLightbox(src) {
+            document.getElementById('lightboxImg').src = src;
+            document.getElementById('lightbox').style.display = 'flex';
+        }
+
+        function closeLightbox(e) {
+            if (e && e.target.id === 'lightbox') return;
+            document.getElementById('lightbox').style.display = 'none';
+        }
+    </script>
 
     <!-- FOOTER -->
     <footer class="bg-black py-12 border-t border-zinc-800 text-center text-zinc-500 text-sm">
