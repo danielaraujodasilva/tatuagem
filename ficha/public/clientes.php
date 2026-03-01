@@ -22,7 +22,7 @@ $result_clientes = $conn->query($sql_clientes);
 </head>
 <body>
 
-  <!-- Cabeçalho e Menu -->
+  <!-- Cabeçalho e Menu 
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
       <a class="navbar-brand" href="#">Sistema de Cadastro</a>
@@ -41,7 +41,7 @@ $result_clientes = $conn->query($sql_clientes);
       </div>
     </div>
   </nav>
-
+-->
   <div class="container">
     <h1 class="mb-4">Clientes e Tatuagens</h1>
 
