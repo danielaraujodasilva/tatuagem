@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="bg-dark text-light p-5">
     
     
-     <!-- Cabeçalho e Menu -->
+     <!-- Cabeçalho e Menu 
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
       <a class="navbar-brand" href="#">Sistema de Cadastro</a>
@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <br><br><hr>
   </nav>
-    
+    -->
 <div class="container bg-secondary p-4 rounded">
   <h2 class="text-center mb-4">Cadastro de Cliente</h2>
 
