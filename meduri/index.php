@@ -58,7 +58,7 @@
         
         .card:hover { transform: translateY(-12px); box-shadow: 0 20px 40px rgba(0,0,0,0.7); }
         
-        /* Hover B&W to color for promo & portfolio */
+        /* Hover B&W to color */
         .hover-container {
             position: relative;
             overflow: hidden;
@@ -93,7 +93,7 @@
         
         .hover-container:hover .overlay { opacity: 1; }
         
-        /* Team cards vertical thin */
+        /* Team cards */
         .team-card {
             height: 620px;
             background: var(--gray);
@@ -186,32 +186,35 @@
             <h2 class="text-center mb-5">Ofertas Ativas</h2>
             <div class="row g-4">
                 <div class="col-md-4">
-                    <div class="hover-container shadow" data-bs-toggle="modal" data-bs-target="#modalPromo1">
+                    <div class="hover-container shadow">
                         <img class="hover-img" src="https://cdn2.fabbon.com/uploads/image/file/36671/realism-back-tattoo.webp" alt="Fechamento costas">
                         <div class="overlay">
                             <h4>Fechamento Completo</h4>
                             <p class="fs-3 fw-bold">R$699</p>
                             <p>Costas, braço ou perna em uma sessão</p>
+                            <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Quero%20o%20fechamento%20R$699" class="btn btn-gold mt-3">Quero</a>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="hover-container shadow" data-bs-toggle="modal" data-bs-target="#modalPromo2">
+                    <div class="hover-container shadow">
                         <img class="hover-img" src="https://images.pexels.com/photos/3327153/pexels-photo-3327153.jpeg?auto=compress&cs=tinysrgb&h=627&fit=crop&w=1200" alt="Tatuador">
                         <div class="overlay">
                             <h4>Mês da Mulher</h4>
                             <p class="fs-3 fw-bold">R$499</p>
                             <p>Qualquer fechamento feminino</p>
+                            <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Quero%20fechamento%20feminino" class="btn btn-gold mt-3">Aproveitar</a>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="hover-container shadow" data-bs-toggle="modal" data-bs-target="#modalPromo3">
+                    <div class="hover-container shadow">
                         <img class="hover-img" src="https://images.pexels.com/photos/10613958/pexels-photo-10613958.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Máquina">
                         <div class="overlay">
                             <h4>Floral Especial</h4>
                             <p class="fs-3 fw-bold">R$399</p>
                             <p>Fechamento floral feminino</p>
+                            <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Quero%20o%20floral%20R$399" class="btn btn-gold mt-3">Quero!</a>
                         </div>
                     </div>
                 </div>
@@ -219,11 +222,11 @@
         </div>
     </section>
 
-    <!-- Equipe Carousel (auto 3s) -->
+    <!-- Equipe Carousel - corrigido com data-bs-ride e interval direto no HTML -->
     <section id="equipe" class="py-5">
         <div class="container" data-aos="fade-up">
             <h2 class="text-center mb-5">Nossa Equipe</h2>
-            <div id="teamCarousel" class="carousel slide" data-bs-ride="carousel">
+            <div id="teamCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3000">
                 <div class="carousel-inner">
                     <div class="carousel-item active">
                         <div class="row">
@@ -333,7 +336,7 @@
         </div>
     </section>
 
-    <!-- Portfólio -->
+    <!-- Portfólio (mantido) -->
     <section id="portfolio" class="py-5 bg-black">
         <div class="container" data-aos="fade-up">
             <h2 class="text-center mb-5">Portfólio</h2>
@@ -365,12 +368,11 @@
                         </div>
                     </div>
                 </div>
-                <!-- Adicione mais se quiser -->
             </div>
         </div>
     </section>
 
-    <!-- Modais Portfólio (exemplo para um, repita para os outros com ids diferentes) -->
+    <!-- Modais Portfólio -->
     <div class="modal fade" id="modalPort1" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content bg-dark text-light">
@@ -386,7 +388,7 @@
             </div>
         </div>
     </div>
-    <!-- Repita modais para modalPort2, modalPort3, e promo se quiser -->
+    <!-- Adicione modais para modalPort2 e modalPort3 copiando o bloco acima e mudando id/src -->
 
     <!-- FAQ -->
     <section id="faq" class="py-5">
@@ -395,25 +397,24 @@
             <div class="accordion accordion-flush" id="faqAccordion">
                 <div class="accordion-item">
                     <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseOne">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flushOne">
                             Quanto tempo leva um fechamento?
                         </button>
                     </h2>
-                    <div id="flush-collapseOne" class="accordion-collapse collapse">
-                        <div class="accordion-body">Depende do tamanho, mas muitos são feitos em uma única sessão longa.</div>
+                    <div id="flushOne" class="accordion-collapse collapse">
+                        <div class="accordion-body">Depende do tamanho, mas muitos em uma única sessão longa.</div>
                     </div>
                 </div>
                 <div class="accordion-item">
                     <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseTwo">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flushTwo">
                             Vocês aceitam ideias próprias?
                         </button>
                     </h2>
-                    <div id="flush-collapseTwo" class="accordion-collapse collapse">
+                    <div id="flushTwo" class="accordion-collapse collapse">
                         <div class="accordion-body">Sim! Personalizamos 100% conforme sua visão.</div>
                     </div>
                 </div>
-                <!-- Adicione mais -->
             </div>
         </div>
     </section>
@@ -440,10 +441,10 @@
                 <div class="col-lg-4 mb-4">
                     <h5 class="text-gold">Links Rápidos</h5>
                     <ul class="list-unstyled">
-                        <li><a href="#promo" class="footer-link text-light">Ofertas</a></li>
-                        <li><a href="#equipe" class="footer-link text-light">Equipe</a></li>
-                        <li><a href="#portfolio" class="footer-link text-light">Portfólio</a></li>
-                        <li><a href="https://www.instagram.com/ankh_tattoo/" target="_blank" class="footer-link text-light">Instagram</a></li>
+                        <li><a href="#promo" class="text-light">Ofertas</a></li>
+                        <li><a href="#equipe" class="text-light">Equipe</a></li>
+                        <li><a href="#portfolio" class="text-light">Portfólio</a></li>
+                        <li><a href="https://www.instagram.com/ankh_tattoo/" target="_blank" class="text-light">Instagram</a></li>
                     </ul>
                 </div>
                 <div class="col-lg-4 mb-4">
@@ -454,7 +455,7 @@
                 </div>
             </div>
             <hr class="border-light">
-            <p class="mb-0 py-3">&copy; 2026 Ankh Tattoo. Todos os direitos reservados. Feito com arte e paixão.</p>
+            <p class="mb-0 py-3">&copy; 2026 Ankh Tattoo. Todos os direitos reservados.</p>
         </div>
     </footer>
 
@@ -468,11 +469,7 @@
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
         AOS.init({ duration: 1000, once: true });
-        // Carousel auto 3s
-        var teamCarousel = new bootstrap.Carousel(document.getElementById('teamCarousel'), {
-            interval: 3000,
-            ride: 'carousel'
-        });
+        // Sem JS extra pro carousel - agora é só HTML attributes
     </script>
 </body>
 </html>
