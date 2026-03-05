@@ -22,18 +22,18 @@
         :root {
             --black: #000;
             --dark: #0d0d0d;
-            --gray-dark: #1a1a1a;
+            --gray-dark: #181818;
             --gray: #222;
             --text: #ddd;
-            --gold: #d4af37; /* dourado mais metálico, menos amarelo */
+            --gold: #d4af37;
             --gold-dark: #b8972e;
         }
         
         body {
             font-family: 'Roboto', sans-serif;
             color: var(--text);
-            background: var(--dark) url('https://tint.creativemarket.com/gpwWc63zLOvz34Bzj8i32NMHLZa1nCmdqbyYz-_CXuQ/width:1200/height:800/gravity:nowe/rt:fill-down/el:1/czM6Ly9maWxlcy5jcmVhdGl2ZW1hcmtldC5jb20vaW1hZ2VzL3NjcmVlbnNob3RzL3Byb2R1Y3RzLzUwOTAvNTA5MDgvNTA5MDg1MjcvcHJldi0xMS1vLmpwZyMxNzE3NTA1NTA3?1717505507') repeat;
-            background-size: 400px; /* pattern sutil repetitivo */
+            background: var(--dark) url('https://img.freepik.com/free-photo/black-texture_1160-804.jpg') repeat;
+            background-size: 600px; /* maior pra ficar bem discreto */
             background-attachment: fixed;
         }
         
@@ -83,7 +83,7 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.7);
         }
         
-        /* Promo cards com bg image B&W -> color on hover */
+        /* Promo cards */
         .promo-card {
             position: relative;
             height: 400px;
@@ -132,30 +132,33 @@
             text-align: center;
         }
         
-        /* Equipe Carousel - vertical cards */
+        /* Equipe - cards mais finos/retangulares verticais */
         .team-card {
-            height: 500px; /* mais vertical */
+            height: 580px; /* mais alto e fino */
             background: var(--gray);
             border-radius: 20px;
+            overflow: hidden;
+            position: relative;
         }
         
         .team-img {
-            height: 70%;
+            width: 100%;
+            height: 75%; /* ocupa mais espaço vertical */
             object-fit: cover;
+            object-position: center top; /* foca no rosto, preenche sem distorcer */
         }
         
         .team-overlay {
             position: absolute;
             inset: 0;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.75);
             opacity: 0;
             transition: opacity 0.4s;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
+            justify-content: flex-end;
             padding: 20px;
+            color: white;
             text-align: center;
         }
         
@@ -163,7 +166,9 @@
             opacity: 1;
         }
         
-        .carousel-item .col-md-4 { padding: 0 15px; }
+        .carousel .carousel-item .row > div {
+            padding: 0 10px;
+        }
         
         footer {
             background: #000;
@@ -222,7 +227,7 @@
         </div>
     </section>
 
-    <!-- Ofertas Ativas - com bg image fade color -->
+    <!-- Ofertas -->
     <section id="promo" class="py-5">
         <div class="container" data-aos="fade-up">
             <h2 class="text-center mb-5">Ofertas Ativas</h2>
@@ -238,6 +243,7 @@
                         </div>
                     </div>
                 </div>
+                <!-- Os outros dois promo cards iguais da versão anterior -->
                 <div class="col-md-4">
                     <div class="promo-card rounded-4 shadow">
                         <img class="bg-img" src="https://images.pexels.com/photos/3327153/pexels-photo-3327153.jpeg?auto=compress&cs=tinysrgb&h=627&fit=crop&w=1200" alt="Tatuador">
@@ -264,44 +270,108 @@
         </div>
     </section>
 
-    <!-- Equipe - Carousel vertical -->
-    <section id="equipe" class="py-5 bg-black">
+    <!-- Equipe - Carousel com mais itens, cards finos -->
+    <section id="equipe" class="py-5">
         <div class="container" data-aos="fade-up">
             <h2 class="text-center mb-5">Nossa Equipe</h2>
             <div id="teamCarousel" class="carousel slide" data-bs-ride="carousel">
                 <div class="carousel-inner">
+                    <!-- Slide 1 -->
                     <div class="carousel-item active">
                         <div class="row">
                             <div class="col-md-4">
-                                <div class="team-card position-relative overflow-hidden shadow">
-                                    <img src="https://images.pexels.com/photos/3327153/pexels-photo-3327153.jpeg?auto=compress&cs=tinysrgb&h=627&fit=crop&w=1200" class="team-img w-100" alt="Tatuador 1">
+                                <div class="team-card shadow">
+                                    <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img" alt="Tatuador 1">
                                     <div class="team-overlay">
                                         <h4>Meduri</h4>
-                                        <p>Especialista em realismo e fechamentos gigantes. +8 anos de experiência.</p>
+                                        <p>Realismo & Fechamentos Gigantes<br>+10 anos | Especialista em sessões únicas</p>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <div class="team-card position-relative overflow-hidden shadow">
-                                    <img src="https://images.pexels.com/photos/20064469/pexels-photo-20064469.jpeg?auto=compress&cs=tinysrgb&h=627&fit=crop&w=1200" class="team-img w-100" alt="Tatuador 2">
+                                <div class="team-card shadow">
+                                    <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img" alt="Tatuador 2">
                                     <div class="team-overlay">
                                         <h4>Lucas Black</h4>
-                                        <p>Blackwork e geométrico. Foco em peças impactantes e detalhadas.</p>
+                                        <p>Blackwork & Geométrico<br>Peças impactantes e minimalistas</p>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <div class="team-card position-relative overflow-hidden shadow">
-                                    <img src="https://cdn.filtergrade.com/wp-content/uploads/2023/01/09172052/kristian-angelo-xyJZvUL4_TY-unsplash-1024x577.jpg" class="team-img w-100" alt="Tatuador 3">
+                                <div class="team-card shadow">
+                                    <img src="https://thumbs.dreamstime.com/b/delicate-fine-line-tattoo-blooming-flowers-woman-back-subtle-ink-shading-creates-depth-skin-minimalist-black-white-403847740.jpg" class="team-img" alt="Tatuador 3">
                                     <div class="team-overlay">
                                         <h4>Ana Fine</h4>
-                                        <p>Fine line e floral. Especial em tatuagens femininas delicadas.</p>
+                                        <p>Fine Line & Floral<br>Especial em femininas delicadas</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <!-- Adicione mais carousel-item se tiver mais profissionais -->
+                    <!-- Slide 2 -->
+                    <div class="carousel-item">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="team-card shadow">
+                                    <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img" alt="Tatuador 4">
+                                    <div class="team-overlay">
+                                        <h4>João Old</h4>
+                                        <p>Old School & Tradicional<br>Clássicos com twist moderno</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="team-card shadow">
+                                    <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img" alt="Tatuador 5">
+                                    <div class="team-overlay">
+                                        <h4>Carla Neo</h4>
+                                        <p>Neo Tradicional & Color<br>Cores vibrantes e narrativas</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="team-card shadow">
+                                    <img src="https://thumbs.dreamstime.com/b/delicate-fine-line-tattoo-blooming-flowers-woman-back-subtle-ink-shading-creates-depth-skin-minimalist-black-white-403847740.jpg" class="team-img" alt="Tatuador 6">
+                                    <div class="team-overlay">
+                                        <h4>Rafael Dot</h4>
+                                        <p>Dotwork & Mandalas<br>Detalhes infinitos</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Slide 3 -->
+                    <div class="carousel-item">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="team-card shadow">
+                                    <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img" alt="Tatuador 7">
+                                    <div class="team-overlay">
+                                        <h4>Sofia Realism</h4>
+                                        <p>Realismo Preto e Cinza<br>Retratos e animais</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="team-card shadow">
+                                    <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img" alt="Tatuador 8">
+                                    <div class="team-overlay">
+                                        <h4>Victor Cover</h4>
+                                        <p>Cover-ups & Reworks<br>Transforma o antigo em novo</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="team-card shadow">
+                                    <img src="https://thumbs.dreamstime.com/b/delicate-fine-line-tattoo-blooming-flowers-woman-back-subtle-ink-shading-creates-depth-skin-minimalist-black-white-403847740.jpg" class="team-img" alt="Tatuador 9">
+                                    <div class="team-overlay">
+                                        <h4>Maria Script</h4>
+                                        <p>Lettering & Caligrafia<br>Frases e poemas na pele</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <button class="carousel-control-prev" type="button" data-bs-target="#teamCarousel" data-bs-slide="prev">
                     <span class="carousel-control-prev-icon" aria-hidden="true"></span>
@@ -315,16 +385,79 @@
         </div>
     </section>
 
-    <!-- Portfólio (mantido similar, mas com modais se quiser expandir) -->
-    <section id="portfolio" class="py-5">
+    <!-- Portfólio (exemplo simples, expanda se quiser) -->
+    <section id="portfolio" class="py-5 bg-black">
         <div class="container" data-aos="fade-up">
             <h2 class="text-center mb-5">Portfólio</h2>
-            <!-- ... mantenha ou expanda como antes ... -->
+            <p class="text-center lead mb-5">Peças impactantes – especialista em gigantismo e fechamentos rápidos</p>
+            <!-- Adicione a galeria aqui como nas versões anteriores -->
+            <div class="row g-4">
+                <!-- Exemplo: 3 imagens -->
+                <div class="col-md-4"><img src="https://inknationstudio.com/wp-content/uploads/2025/07/thumbnail-leg.png" class="img-fluid rounded" alt="Exemplo 1"></div>
+                <div class="col-md-4"><img src="https://primitivetattoobali.com/wp-content/uploads/2025/07/Primitive-Tattoo-Ink-Portfolio.webp" class="img-fluid rounded" alt="Exemplo 2"></div>
+                <div class="col-md-4"><img src="https://inknationstudio.com/wp-content/uploads/2025/07/thumbnail-full-sleeve.png" class="img-fluid rounded" alt="Exemplo 3"></div>
+            </div>
         </div>
     </section>
 
-    <!-- FAQ, Contato, Footer mantidos/adaptados -->
-    <!-- ... (copie das versões anteriores se quiser, ou ajuste) ... -->
+    <!-- FAQ (exemplo curto) -->
+    <section id="faq" class="py-5">
+        <div class="container" data-aos="fade-up">
+            <h2 class="text-center mb-5">Perguntas Frequentes</h2>
+            <div class="accordion" id="faqAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#q1">
+                            Quanto tempo leva um fechamento?
+                        </button>
+                    </h2>
+                    <div id="q1" class="accordion-collapse collapse show">
+                        <div class="accordion-body">Depende do tamanho, mas muitos em uma única sessão longa.</div>
+                    </div>
+                </div>
+                <!-- Adicione mais -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Contato -->
+    <section id="contato" class="py-5 text-center" data-aos="fade-up">
+        <div class="container">
+            <h2 class="mb-4">Pronto pra sua próxima peça?</h2>
+            <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Oi!%20Quero%20agendar" class="btn btn-gold btn-lg px-5 py-3">
+                <i class="fab fa-whatsapp me-2"></i> Falar Agora
+            </a>
+            <p class="mt-4">Av. do Taboão, 3802 - São Bernardo do Campo</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="text-center text-lg-start">
+        <div class="container">
+            <div class="row py-4">
+                <div class="col-lg-4 mb-4">
+                    <h5 class="text-gold">Ankh Tattoo</h5>
+                    <p>Arte na pele com qualidade e higiene. Especialista em grandes peças.</p>
+                </div>
+                <div class="col-lg-4 mb-4">
+                    <h5 class="text-gold">Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#promo" class="text-light">Ofertas</a></li>
+                        <li><a href="#equipe" class="text-light">Equipe</a></li>
+                        <li><a href="#portfolio" class="text-light">Portfólio</a></li>
+                        <li><a href="https://www.instagram.com/ankh_tattoo/" class="text-light">Instagram</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-4 mb-4">
+                    <h5 class="text-gold">Contato</h5>
+                    <p>Av. do Taboão, 3802<br>São Bernardo do Campo - SP</p>
+                    <p>WhatsApp: <a href="https://api.whatsapp.com/send?phone=5511968699109" class="text-light">11 96869-9109</a></p>
+                </div>
+            </div>
+            <hr class="border-light">
+            <p class="mb-0 py-3">&copy; 2026 Ankh Tattoo. Todos os direitos reservados.</p>
+        </div>
+    </footer>
 
     <!-- WhatsApp Float -->
     <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Oi!%20Quero%20agendar" class="whatsapp-float">
