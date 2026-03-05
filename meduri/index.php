@@ -222,11 +222,11 @@
         </div>
     </section>
 
-    <!-- Equipe Carousel - com data-bs-ride e interval direto -->
+    <!-- Equipe Carousel -->
     <section id="equipe" class="py-5">
         <div class="container" data-aos="fade-up">
             <h2 class="text-center mb-5">Nossa Equipe</h2>
-            <div id="teamCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3000">
+            <div id="teamCarousel" class="carousel slide">
                 <div class="carousel-inner">
                     <div class="carousel-item active">
                         <div class="row">
@@ -469,16 +469,16 @@
     <script>
         AOS.init({ duration: 1000, once: true });
 
-        // Inicializa manualmente o carousel para garantir autoplay (resolve conflitos comuns)
+        // Inicialização manual do carousel para garantir autoplay
         document.addEventListener('DOMContentLoaded', function () {
             var teamCarouselEl = document.getElementById('teamCarousel');
             if (teamCarouselEl) {
-                var carousel = new bootstrap.Carousel(teamCarouselEl, {
+                var carouselInstance = new bootstrap.Carousel(teamCarouselEl, {
                     interval: 3000,  // 3 segundos
                     ride: 'carousel',
-                    pause: false     // não pausa no hover, roda nonstop
+                    pause: false     // não pausa no hover
                 });
-                carousel.cycle();  // força o start
+                carouselInstance.cycle();  // força o início do ciclo automático
             }
         });
     </script>
