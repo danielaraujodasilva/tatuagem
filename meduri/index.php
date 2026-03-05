@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ankh Tattoo - Tatuagens Gigantes & Fechamentos em Uma Sessão | São Bernardo do Campo</title>
-    <meta name="description" content="Especialista em fechamentos em uma única sessão e tatuagens gigantes. Promoções Mês da Mulher: fechamento floral por R$399! Agende agora.">
+    <meta name="description" content="Especialista em fechamentos em uma única sessão e tatuagens gigantes. Promoções Mês da Mulher: floral por R$399! Agende agora.">
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -20,19 +20,20 @@
     
     <style>
         :root {
-            --purple-dark: #4A148C;
-            --purple: #6A1B9A;
-            --purple-light: #9C27B0;
+            --black: #000;
+            --dark: #111;
+            --dark-gray: #1a1a1a;
+            --gray: #222;
+            --light-gray: #aaa;
             --gold: #FFD700;
-            --gold-dark: #E6C200;
-            --text: #222;
-            --bg: #111;
+            --gold-dark: #D4AF37;
+            --text: #e0e0e0;
         }
         
         body {
             font-family: 'Roboto', sans-serif;
-            color: #eee;
-            background: linear-gradient(to bottom, #0f001a, #1a0033);
+            color: var(--text);
+            background: linear-gradient(to bottom, #000, #111);
             background-attachment: fixed;
         }
         
@@ -42,75 +43,151 @@
         }
         
         .navbar {
-            background: rgba(74, 20, 140, 0.85) !important;
+            background: rgba(0,0,0,0.9) !important;
             backdrop-filter: blur(10px);
         }
         
         .hero {
-            background: linear-gradient(rgba(106, 27, 154, 0.7), rgba(74, 20, 140, 0.8)), url('https://images.stockcake.com/public/0/0/d/00dcdec4-d941-458f-8128-638c8191196c/sacred-golden-ankh-stockcake.jpg') center/cover no-repeat;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.8)), url('https://thumbs.dreamstime.com/b/intricate-floral-tattoo-design-covers-back-man-indoor-setting-soft-evening-light-s-bare-showcases-vibrant-386266844.jpg') center/cover no-repeat fixed;
             min-height: 100vh;
             display: flex;
             align-items: center;
             text-align: center;
             color: white;
+            position: relative;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(26,26,26,0.6));
         }
         
         .btn-gold {
             background: var(--gold);
-            color: #111;
+            color: #000;
             border: none;
             font-weight: bold;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
+            border-radius: 50px;
         }
         
         .btn-gold:hover {
             background: var(--gold-dark);
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(255,215,0,0.4);
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(255,215,0,0.3);
         }
         
         .card {
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,215,0,0.2);
-            backdrop-filter: blur(10px);
+            background: var(--dark-gray);
+            border: none;
+            border-radius: 15px;
+            overflow: hidden;
             transition: transform 0.4s, box-shadow 0.4s;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
         }
         
         .card:hover {
             transform: translateY(-15px);
-            box-shadow: 0 20px 40px rgba(106,27,154,0.5);
+            box-shadow: 0 25px 50px rgba(255,215,0,0.15);
         }
         
         .promo-card {
-            background: linear-gradient(135deg, var(--purple), var(--purple-dark));
-            color: white;
+            background: linear-gradient(135deg, #111, #222);
+        }
+        
+        .gallery-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: 15px;
+            cursor: pointer;
         }
         
         .gallery-img {
-            height: 300px;
+            width: 100%;
+            height: 350px;
             object-fit: cover;
-            border-radius: 10px;
-            transition: transform 0.5s;
+            transition: transform 0.6s ease;
         }
         
-        .gallery-img:hover {
-            transform: scale(1.08);
+        .gallery-item:hover .gallery-img {
+            transform: scale(1.12);
+        }
+        
+        .gallery-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            color: white;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+        
+        .gallery-item:hover .gallery-overlay {
+            opacity: 1;
+        }
+        
+        .modal-content {
+            background: #111;
+            color: #eee;
+            border: 1px solid var(--gold);
+            border-radius: 15px;
+        }
+        
+        .accordion-button {
+            background: var(--gray) !important;
+            color: var(--gold) !important;
+        }
+        
+        .accordion-body {
+            background: var(--dark-gray);
+            color: #eee;
         }
         
         footer {
             background: #000;
-            padding: 40px 0;
+            padding: 60px 0 30px;
+            border-top: 1px solid #222;
         }
         
-        .social-icon {
-            font-size: 2rem;
-            color: var(--gold);
-            margin: 0 15px;
+        .footer-link {
+            color: var(--light-gray);
             transition: color 0.3s;
         }
         
-        .social-icon:hover {
-            color: var(--purple-light);
+        .footer-link:hover {
+            color: var(--gold);
+        }
+        
+        .whatsapp-float {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #25D366;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            text-align: center;
+            font-size: 30px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s;
+        }
+        
+        .whatsapp-float:hover {
+            transform: scale(1.1);
+        }
+        
+        @media (max-width: 768px) {
+            .gallery-img { height: 250px; }
         }
     </style>
 </head>
@@ -137,24 +214,24 @@
 
     <!-- Hero -->
     <section class="hero" data-aos="fade-up">
-        <div class="container">
+        <div class="container position-relative z-1">
             <h1 class="display-3 fw-bold mb-4">Ankh Tattoo</h1>
-            <p class="lead fs-4 mb-5">Fechamentos em uma única sessão • Tatuagens gigantes • Arte que marca a vida</p>
-            <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Oi!%20Quero%20agendar%20minha%20tatuagem" class="btn btn-gold btn-lg px-5 py-3">Agende Agora no WhatsApp</a>
+            <p class="lead fs-4 mb-5">Fechamentos em uma sessão • Peças gigantes • Arte eterna na pele</p>
+            <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Oi!%20Quero%20agendar%20minha%20tatuagem" class="btn btn-gold btn-lg px-5 py-3">Agende Agora</a>
         </div>
     </section>
 
     <!-- Promoções -->
     <section id="promo" class="py-5">
         <div class="container" data-aos="fade-up">
-            <h2 class="text-center mb-5">Promoções Imperdíveis</h2>
+            <h2 class="text-center mb-5">Ofertas Ativas</h2>
             <div class="row g-4">
                 <div class="col-md-4">
                     <div class="card promo-card text-center p-4">
                         <h3>Fechamento Completo</h3>
                         <p class="fs-1 fw-bold">R$699</p>
-                        <p>Costas, braço ou perna em uma única sessão</p>
-                        <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Quero%20o%20fechamento%20por%20R$699" class="btn btn-gold">Quero!</a>
+                        <p>Costas, braço ou perna – uma sessão só</p>
+                        <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Quero%20o%20fechamento%20por%20R$699" class="btn btn-gold mt-3">Quero</a>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -162,15 +239,15 @@
                         <h3>Mês da Mulher</h3>
                         <p class="fs-1 fw-bold">R$499</p>
                         <p>Qualquer fechamento feminino</p>
-                        <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Quero%20o%20fechamento%20feminino%20por%20R$499" class="btn btn-gold">Aproveitar</a>
+                        <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Quero%20o%20fechamento%20feminino" class="btn btn-gold mt-3">Aproveitar</a>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card promo-card text-center p-4">
                         <h3>Floral Especial</h3>
                         <p class="fs-1 fw-bold">R$399</p>
-                        <p>Fechamento floral no Mês da Mulher</p>
-                        <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Quero%20o%20fechamento%20floral%20por%20R$399" class="btn btn-gold">Quero sim!</a>
+                        <p>Fechamento floral feminino</p>
+                        <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Quero%20o%20floral%20por%20R$399" class="btn btn-gold mt-3">Quero!</a>
                     </div>
                 </div>
             </div>
@@ -178,79 +255,147 @@
     </section>
 
     <!-- Portfólio -->
-    <section id="portfolio" class="py-5 bg-dark">
+    <section id="portfolio" class="py-5 bg-black">
         <div class="container" data-aos="fade-up">
             <h2 class="text-center mb-5">Portfólio</h2>
-            <p class="text-center lead mb-5">Especialista em peças gigantes e fechamentos impactantes</p>
+            <p class="text-center lead mb-5">Peças impactantes – especialista em gigantismo e fechamentos rápidos</p>
             <div class="row g-4">
-                <div class="col-md-4"><img src="https://inknationstudio.com/wp-content/uploads/2025/06/thunmbail.png" class="gallery-img img-fluid" alt="Tatuagem gigante costas realista" data-aos="zoom-in"></div>
-                <div class="col-md-4"><img src="https://tattoos.gallery/unifytattoofl.com/images/gallery/Fairy%20Mermaid%20Forest%20Tattoo.jpg" class="gallery-img img-fluid" alt="Sleeve de perna colorido gigante" data-aos="zoom-in" data-aos-delay="100"></div>
-                <div class="col-md-4"><img src="https://tattoos.gallery/soringabor.com/images/gallery/bio%20oni%20Sorin.jpg" class="gallery-img img-fluid" alt="Fechamento de perna bio-orgânico" data-aos="zoom-in" data-aos-delay="200"></div>
-                <div class="col-md-4"><img src="https://images.surferseo.art/eef6f064-a60c-472c-aca5-be7433e96768.png" class="gallery-img img-fluid" alt="Tatuagem floral feminina delicada" data-aos="zoom-in"></div>
-                <div class="col-md-4"><img src="https://media.glamour.com/photos/687a85f86eb34ec61cd99764/16:9/w_2560,h_1440,c_limit/MixCollage-18-Jul-2025-10-35-AM-3329.jpg" class="gallery-img img-fluid" alt="Flores realistas no braço" data-aos="zoom-in" data-aos-delay="100"></div>
-                <div class="col-md-4"><img src="https://images.surferseo.art/c74da723-27fd-4c9b-a697-bb7be14fe545.png" class="gallery-img img-fluid" alt="Peônia floral preta detalhada" data-aos="zoom-in" data-aos-delay="200"></div>
+                <!-- Imagens com overlay e modal -->
+                <div class="col-md-4">
+                    <div class="gallery-item" data-bs-toggle="modal" data-bs-target="#modal1">
+                        <img src="https://inknationstudio.com/wp-content/uploads/2025/07/thumbnail-leg.png" class="gallery-img" alt="Sleeve de perna gigante">
+                        <div class="gallery-overlay">
+                            <h5>Sleeve de Perna Gigante</h5>
+                            <p>Biomecânico realista – 18h total</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="gallery-item" data-bs-toggle="modal" data-bs-target="#modal2">
+                        <img src="https://primitivetattoobali.com/wp-content/uploads/2025/07/Primitive-Tattoo-Ink-Portfolio.webp" class="gallery-img" alt="Fechamento de braço samurai">
+                        <div class="gallery-overlay">
+                            <h5>Fechamento Samurai</h5>
+                            <p>Braço completo em uma sessão – estilo japonês</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="gallery-item" data-bs-toggle="modal" data-bs-target="#modal3">
+                        <img src="https://inknationstudio.com/wp-content/uploads/2025/07/thumbnail-full-sleeve.png" class="gallery-img" alt="Sleeve realista com elementos mistos">
+                        <div class="gallery-overlay">
+                            <h5>Sleeve Realista Misto</h5>
+                            <p>Figura humana + animal – contraste alto</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- Mais itens... adicione conforme quiser -->
             </div>
         </div>
     </section>
 
+    <!-- Modals para imagens grandes -->
+    <div class="modal fade" id="modal1" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title text-gold">Sleeve de Perna Gigante</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="https://inknationstudio.com/wp-content/uploads/2025/07/thumbnail-leg.png" class="img-fluid rounded" alt="Detalhe da tatuagem">
+                    <p class="mt-3">Biomecânico com detalhes realistas. Feito em várias sessões, mas possível fechamento adaptado.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Repita modais para modal2, modal3 etc. com srcs diferentes -->
+
     <!-- Sobre -->
     <section id="sobre" class="py-5">
         <div class="container" data-aos="fade-up">
-            <h2 class="text-center mb-5">Sobre o Ankh Tattoo</h2>
+            <h2 class="text-center mb-5">Sobre Nós</h2>
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <p class="lead">Com anos de experiência, o Ankh Tattoo é especializado em <strong>fechamentos em uma única sessão</strong> e <strong>tatuagens gigantes</strong>. Usamos técnicas avançadas para entregar peças impactantes, com higiene impecável e dedicação total ao seu projeto.</p>
-                    <p>Ambiente acolhedor, roxo e dourado, inspirado na força e eternidade do símbolo Ankh.</p>
+                    <p class="lead">Anos de experiência em tatuagens grandes e fechamentos eficientes. Higiene rigorosa, ambiente dark e foco total no seu projeto.</p>
+                    <p>Estúdio em São Bernardo do Campo – arte que dura pra sempre.</p>
                 </div>
                 <div class="col-md-6">
-                    <img src="https://thumbs.dreamstime.com/b/modern-tattoo-studio-background-pink-lights-underground-style-360511234.jpg" class="img-fluid rounded shadow" alt="Interior estúdio tatuagem moderno roxo">
+                    <img src="https://thumbs.dreamstime.com/b/modern-tattoo-studio-background-pink-lights-underground-style-360511234.jpg" class="img-fluid rounded shadow" alt="Interior do estúdio">
                 </div>
             </div>
         </div>
     </section>
 
     <!-- FAQ -->
-    <section id="faq" class="py-5 bg-dark">
+    <section id="faq" class="py-5">
         <div class="container" data-aos="fade-up">
             <h2 class="text-center mb-5">Perguntas Frequentes</h2>
             <div class="accordion" id="faqAccordion">
-                <div class="accordion-item bg-transparent border-gold">
-                    <h2 class="accordion-header"><button class="accordion-button collapsed text-gold" type="button" data-bs-toggle="collapse" data-bs-target="#q1">Quanto tempo leva um fechamento?</button></h2>
-                    <div id="q1" class="accordion-collapse collapse"><div class="accordion-body">Fechamentos podem ser feitos em uma única sessão, dependendo do tamanho e complexidade.</div></div>
+                <div class="accordion-item bg-transparent border-0 mb-3">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q1">
+                            Quanto tempo leva um fechamento?
+                        </button>
+                    </h2>
+                    <div id="q1" class="accordion-collapse collapse">
+                        <div class="accordion-body">Depende do tamanho, mas muitos são feitos em uma única sessão longa.</div>
+                    </div>
                 </div>
-                <!-- Adicione mais itens conforme quiser -->
-                <div class="accordion-item bg-transparent border-gold">
-                    <h2 class="accordion-header"><button class="accordion-button collapsed text-gold" type="button" data-bs-toggle="collapse" data-bs-target="#q2">Vocês aceitam ideias próprias?</button></h2>
-                    <div id="q2" class="accordion-collapse collapse"><div class="accordion-body">Sim! Personalizamos 100% conforme sua visão.</div></div>
-                </div>
+                <!-- Adicione mais -->
             </div>
         </div>
     </section>
 
-    <!-- Contato / CTA -->
+    <!-- Contato -->
     <section id="contato" class="py-5 text-center" data-aos="fade-up">
         <div class="container">
-            <h2 class="mb-4">Pronto pra transformar sua pele em arte?</h2>
+            <h2 class="mb-4">Pronto pra sua próxima peça?</h2>
             <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Oi!%20Quero%20agendar" class="btn btn-gold btn-lg px-5 py-3">
-                <i class="fab fa-whatsapp me-2"></i> Falar no WhatsApp
+                <i class="fab fa-whatsapp me-2"></i> Falar Agora
             </a>
             <p class="mt-4">Av. do Taboão, 3802 - São Bernardo do Campo</p>
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="text-center">
+    <!-- Footer bonito -->
+    <footer class="text-center text-lg-start">
         <div class="container">
-            <a href="https://www.instagram.com/ankh_tattoo/" target="_blank"><i class="fab fa-instagram social-icon"></i></a>
-            <p class="mt-3 mb-0">&copy; 2026 Ankh Tattoo. Feito com arte e paixão.</p>
+            <div class="row py-4">
+                <div class="col-lg-4 mb-4">
+                    <h5 class="text-gold">Ankh Tattoo</h5>
+                    <p>Especialista em tatuagens gigantes e fechamentos em uma sessão. Arte com qualidade e higiene.</p>
+                </div>
+                <div class="col-lg-4 mb-4">
+                    <h5 class="text-gold">Links Rápidos</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#promo" class="footer-link">Promoções</a></li>
+                        <li><a href="#portfolio" class="footer-link">Portfólio</a></li>
+                        <li><a href="#faq" class="footer-link">FAQ</a></li>
+                        <li><a href="https://www.instagram.com/ankh_tattoo/" target="_blank" class="footer-link">Instagram</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-4 mb-4">
+                    <h5 class="text-gold">Contato</h5>
+                    <p>Av. do Taboão, 3802<br>São Bernardo do Campo - SP</p>
+                    <p>WhatsApp: <a href="https://api.whatsapp.com/send?phone=5511968699109" class="footer-link">11 96869-9109</a></p>
+                    <p>Seg-Sex: 10h às 20h | Sáb: 10h às 18h</p>
+                </div>
+            </div>
+            <hr class="border-light-gray">
+            <p class="mb-0 py-3">&copy; 2026 Ankh Tattoo. Todos os direitos reservados. Feito com arte e respeito à pele.</p>
         </div>
     </footer>
+
+    <!-- WhatsApp Float -->
+    <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Oi!%20Quero%20agendar%20uma%20tatuagem" class="whatsapp-float">
+        <i class="fab fa-whatsapp"></i>
+    </a>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
-        AOS.init({ duration: 1200, once: true });
+        AOS.init({ duration: 1000, once: true });
     </script>
 </body>
 </html>
