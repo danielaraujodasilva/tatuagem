@@ -222,7 +222,7 @@
         </div>
     </section>
 
-    <!-- Equipe Carousel - corrigido com data-bs-ride e interval direto no HTML -->
+    <!-- Equipe Carousel - com data-bs-ride e interval direto -->
     <section id="equipe" class="py-5">
         <div class="container" data-aos="fade-up">
             <h2 class="text-center mb-5">Nossa Equipe</h2>
@@ -336,7 +336,7 @@
         </div>
     </section>
 
-    <!-- Portfólio (mantido) -->
+    <!-- Portfólio -->
     <section id="portfolio" class="py-5 bg-black">
         <div class="container" data-aos="fade-up">
             <h2 class="text-center mb-5">Portfólio</h2>
@@ -372,7 +372,7 @@
         </div>
     </section>
 
-    <!-- Modais Portfólio -->
+    <!-- Modais Portfólio (exemplo, copie para os outros) -->
     <div class="modal fade" id="modalPort1" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content bg-dark text-light">
@@ -388,7 +388,6 @@
             </div>
         </div>
     </div>
-    <!-- Adicione modais para modalPort2 e modalPort3 copiando o bloco acima e mudando id/src -->
 
     <!-- FAQ -->
     <section id="faq" class="py-5">
@@ -469,7 +468,19 @@
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
         AOS.init({ duration: 1000, once: true });
-        // Sem JS extra pro carousel - agora é só HTML attributes
+
+        // Inicializa manualmente o carousel para garantir autoplay (resolve conflitos comuns)
+        document.addEventListener('DOMContentLoaded', function () {
+            var teamCarouselEl = document.getElementById('teamCarousel');
+            if (teamCarouselEl) {
+                var carousel = new bootstrap.Carousel(teamCarouselEl, {
+                    interval: 3000,  // 3 segundos
+                    ride: 'carousel',
+                    pause: false     // não pausa no hover, roda nonstop
+                });
+                carousel.cycle();  // força o start
+            }
+        });
     </script>
 </body>
 </html>
