@@ -6,9 +6,19 @@
     <title>Ankh Tattoo - Tatuagens Gigantes & Fechamentos em Uma Sessão | São Bernardo do Campo</title>
     <meta name="description" content="Especialista em fechamentos em uma única sessão e tatuagens gigantes. Promoções Mês da Mulher: floral por R$399! Agende agora.">
     
+    <!-- Bootstrap CSS (mantido para o resto da página) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Swiper CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@12/swiper-bundle.min.css">
+    
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- AOS -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     
     <style>
@@ -93,13 +103,14 @@
         
         .hover-container:hover .overlay { opacity: 1; }
         
-        /* Team cards */
+        /* Team cards (vertical thin for Swiper) */
         .team-card {
             height: 620px;
             background: var(--gray);
             border-radius: 20px;
             overflow: hidden;
             position: relative;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
         }
         
         .team-img {
@@ -125,7 +136,28 @@
         
         .team-card:hover .team-overlay { opacity: 1; }
         
-        .carousel .carousel-item .row > div { padding: 0 12px; }
+        /* Swiper custom styling */
+        .swiper {
+            width: 100%;
+            padding: 20px 0;
+        }
+        
+        .swiper-slide {
+            display: flex;
+            justify-content: center;
+        }
+        
+        .swiper-button-next, .swiper-button-prev {
+            color: var(--gold) !important;
+            background: rgba(0,0,0,0.5);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+        }
+        
+        .swiper-button-next:after, .swiper-button-prev:after {
+            font-size: 20px;
+        }
         
         footer { background: #000; padding: 60px 0 30px; border-top: 1px solid #222; }
         
@@ -222,116 +254,100 @@
         </div>
     </section>
 
-    <!-- Equipe Carousel -->
+    <!-- Equipe - Swiper.js Carousel -->
     <section id="equipe" class="py-5">
         <div class="container" data-aos="fade-up">
             <h2 class="text-center mb-5">Nossa Equipe</h2>
-            <div id="teamCarousel" class="carousel slide">
-                <div class="carousel-inner">
-                    <div class="carousel-item active">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="team-card shadow">
-                                    <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img" alt="Meduri">
-                                    <div class="team-overlay">
-                                        <h4>Meduri</h4>
-                                        <p>Realismo & Fechamentos Gigantes<br>+10 anos | Sessões únicas</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="team-card shadow">
-                                    <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img" alt="Lucas">
-                                    <div class="team-overlay">
-                                        <h4>Lucas Black</h4>
-                                        <p>Blackwork & Geométrico<br>Peças impactantes</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="team-card shadow">
-                                    <img src="https://thumbs.dreamstime.com/b/delicate-fine-line-tattoo-blooming-flowers-woman-back-subtle-ink-shading-creates-depth-skin-minimalist-black-white-403847740.jpg" class="team-img" alt="Ana">
-                                    <div class="team-overlay">
-                                        <h4>Ana Fine</h4>
-                                        <p>Fine Line & Floral<br>Tatuagens femininas delicadas</p>
-                                    </div>
-                                </div>
+            <div class="swiper equipe-swiper">
+                <div class="swiper-wrapper">
+                    <!-- Slide 1 -->
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img" alt="Meduri">
+                            <div class="team-overlay">
+                                <h4>Meduri</h4>
+                                <p>Realismo & Fechamentos Gigantes<br>+10 anos | Sessões únicas</p>
                             </div>
                         </div>
                     </div>
-                    <!-- Slide 2 -->
-                    <div class="carousel-item">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="team-card shadow">
-                                    <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img" alt="João">
-                                    <div class="team-overlay">
-                                        <h4>João Old</h4>
-                                        <p>Old School & Tradicional<br>Clássicos com twist</p>
-                                    </div>
-                                </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img" alt="Lucas">
+                            <div class="team-overlay">
+                                <h4>Lucas Black</h4>
+                                <p>Blackwork & Geométrico<br>Peças impactantes</p>
                             </div>
-                            <div class="col-md-4">
-                                <div class="team-card shadow">
-                                    <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img" alt="Carla">
-                                    <div class="team-overlay">
-                                        <h4>Carla Neo</h4>
-                                        <p>Neo Tradicional & Color<br>Cores vibrantes</p>
-                                    </div>
-                                </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://thumbs.dreamstime.com/b/delicate-fine-line-tattoo-blooming-flowers-woman-back-subtle-ink-shading-creates-depth-skin-minimalist-black-white-403847740.jpg" class="team-img" alt="Ana">
+                            <div class="team-overlay">
+                                <h4>Ana Fine</h4>
+                                <p>Fine Line & Floral<br>Tatuagens femininas delicadas</p>
                             </div>
-                            <div class="col-md-4">
-                                <div class="team-card shadow">
-                                    <img src="https://thumbs.dreamstime.com/b/delicate-fine-line-tattoo-blooming-flowers-woman-back-subtle-ink-shading-creates-depth-skin-minimalist-black-white-403847740.jpg" class="team-img" alt="Rafael">
-                                    <div class="team-overlay">
-                                        <h4>Rafael Dot</h4>
-                                        <p>Dotwork & Mandalas<br>Detalhes infinitos</p>
-                                    </div>
-                                </div>
+                        </div>
+                    </div>
+                    <!-- Slide 2 - mais profissionais -->
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img" alt="João">
+                            <div class="team-overlay">
+                                <h4>João Old</h4>
+                                <p>Old School & Tradicional<br>Clássicos com twist</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img" alt="Carla">
+                            <div class="team-overlay">
+                                <h4>Carla Neo</h4>
+                                <p>Neo Tradicional & Color<br>Cores vibrantes</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://thumbs.dreamstime.com/b/delicate-fine-line-tattoo-blooming-flowers-woman-back-subtle-ink-shading-creates-depth-skin-minimalist-black-white-403847740.jpg" class="team-img" alt="Rafael">
+                            <div class="team-overlay">
+                                <h4>Rafael Dot</h4>
+                                <p>Dotwork & Mandalas<br>Detalhes infinitos</p>
                             </div>
                         </div>
                     </div>
                     <!-- Slide 3 -->
-                    <div class="carousel-item">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="team-card shadow">
-                                    <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img" alt="Sofia">
-                                    <div class="team-overlay">
-                                        <h4>Sofia Realism</h4>
-                                        <p>Realismo Preto e Cinza<br>Retratos e animais</p>
-                                    </div>
-                                </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img" alt="Sofia">
+                            <div class="team-overlay">
+                                <h4>Sofia Realism</h4>
+                                <p>Realismo Preto e Cinza<br>Retratos e animais</p>
                             </div>
-                            <div class="col-md-4">
-                                <div class="team-card shadow">
-                                    <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img" alt="Victor">
-                                    <div class="team-overlay">
-                                        <h4>Victor Cover</h4>
-                                        <p>Cover-ups & Reworks<br>Transforma o antigo</p>
-                                    </div>
-                                </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img" alt="Victor">
+                            <div class="team-overlay">
+                                <h4>Victor Cover</h4>
+                                <p>Cover-ups & Reworks<br>Transforma o antigo</p>
                             </div>
-                            <div class="col-md-4">
-                                <div class="team-card shadow">
-                                    <img src="https://thumbs.dreamstime.com/b/delicate-fine-line-tattoo-blooming-flowers-woman-back-subtle-ink-shading-creates-depth-skin-minimalist-black-white-403847740.jpg" class="team-img" alt="Maria">
-                                    <div class="team-overlay">
-                                        <h4>Maria Script</h4>
-                                        <p>Lettering & Caligrafia<br>Frases e poemas</p>
-                                    </div>
-                                </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://thumbs.dreamstime.com/b/delicate-fine-line-tattoo-blooming-flowers-woman-back-subtle-ink-shading-creates-depth-skin-minimalist-black-white-403847740.jpg" class="team-img" alt="Maria">
+                            <div class="team-overlay">
+                                <h4>Maria Script</h4>
+                                <p>Lettering & Caligrafia<br>Frases e poemas</p>
                             </div>
                         </div>
                     </div>
                 </div>
-                <button class="carousel-control-prev" type="button" data-bs-target="#teamCarousel" data-bs-slide="prev">
-                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Previous</span>
-                </button>
-                <button class="carousel-control-next" type="button" data-bs-target="#teamCarousel" data-bs-slide="next">
-                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Next</span>
-                </button>
+                <!-- Navigation arrows -->
+                <div class="swiper-button-prev"></div>
+                <div class="swiper-button-next"></div>
             </div>
         </div>
     </section>
@@ -372,7 +388,7 @@
         </div>
     </section>
 
-    <!-- Modais Portfólio (exemplo, copie para os outros) -->
+    <!-- Modais Portfólio -->
     <div class="modal fade" id="modalPort1" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content bg-dark text-light">
@@ -466,20 +482,29 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swiper@12/swiper-bundle.min.js"></script>
     <script>
         AOS.init({ duration: 1000, once: true });
 
-        // Inicialização manual do carousel para garantir autoplay
-        document.addEventListener('DOMContentLoaded', function () {
-            var teamCarouselEl = document.getElementById('teamCarousel');
-            if (teamCarouselEl) {
-                var carouselInstance = new bootstrap.Carousel(teamCarouselEl, {
-                    interval: 3000,  // 3 segundos
-                    ride: 'carousel',
-                    pause: false     // não pausa no hover
-                });
-                carouselInstance.cycle();  // força o início do ciclo automático
-            }
+        // Inicializa Swiper com autoplay 3s, loop, 3 slides visíveis em desktop, 1 em mobile
+        const equipeSwiper = new Swiper('.equipe-swiper', {
+            loop: true,
+            autoplay: {
+                delay: 3000,
+                disableOnInteraction: false, // continua autoplay mesmo após interação
+            },
+            slidesPerView: 1,
+            spaceBetween: 20,
+            navigation: {
+                nextEl: '.swiper-button-next',
+                prevEl: '.swiper-button-prev',
+            },
+            breakpoints: {
+                768: {
+                    slidesPerView: 3,
+                    spaceBetween: 30,
+                },
+            },
         });
     </script>
 </body>
