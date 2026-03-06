@@ -5,52 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ankh Tattoo - Tatuagens Gigantes & Fechamentos em Uma Sessão | São Bernardo do Campo</title>
     <meta name="description" content="Especialista em fechamentos em uma única sessão e tatuagens gigantes. Promoções exclusivas para o mês da mulher: qualquer fechamento feminino por R$499, floral por R$399! Agende agora via WhatsApp.">
-    <meta name="keywords" content="tatuagem, estúdio de tatuagem, fechamento de tatuagem, tatuagens gigantes, São Bernardo do Campo, promoções tatuagem, mês da mulher, ankh tattoo">
-    <meta property="og:title" content="Ankh Tattoo - Estúdio de Tatuagem Especializado">
-    <meta property="og:description" content="Fechamentos rápidos e tatuagens impactantes. Promoções limitadas!">
-    <meta property="og:image" content="https://example.com/logo-ankh.jpg"> <!-- Substitua por imagem real -->
-    <meta property="og:url" content="https://danieltatuador.com/meduri/">
-    <meta property="og:type" content="website">
     
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Swiper CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@12/swiper-bundle.min.css">
-    
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    
-    <!-- AOS -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-    
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    
-    <!-- Schema JSON-LD -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "LocalBusiness",
-      "name": "Ankh Tattoo",
-      "image": "https://example.com/logo-ankh.jpg",
-      "telephone": "+5511968699109",
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "Av. do Taboão, 3802",
-        "addressLocality": "São Bernardo do Campo",
-        "addressRegion": "SP",
-        "addressCountry": "BR"
-      },
-      "openingHoursSpecification": {
-        "@type": "OpeningHoursSpecification",
-        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-        "opens": "10:00",
-        "closes": "20:00"
-      },
-      "sameAs": "https://www.instagram.com/ankh_tattoo"
-    }
-    </script>
     
     <style>
         :root {
@@ -59,15 +19,15 @@
             --gray-dark: #181818;
             --gray: #222;
             --text: #ddd;
-            --gold: #c9a96e; /* Dourado mais metálico */
+            --gold: #c9a96e;
             --gold-dark: #a07d3f;
         }
         
         body {
             font-family: 'Roboto', sans-serif;
             color: var(--text);
-            background: var(--dark) url('https://img.freepik.com/free-photo/black-leather-texture_1194-7543.jpg') repeat; /* Pattern leather sutil */
-            background-size: 800px; /* Aumentado para menos repetição */
+            background: var(--dark) url('https://img.freepik.com/free-vector/abstract-background-with-dark-square-pattern_848876.jpg') repeat;
+            background-size: 600px;
             background-attachment: fixed;
         }
         
@@ -84,10 +44,6 @@
             color: white;
         }
         
-        .hero h1 { font-size: 4.5rem; text-shadow: 0 4px 8px rgba(0,0,0,0.8); }
-        
-        .hero p { font-size: 1.8rem; margin-bottom: 40px; }
-        
         .btn-gold {
             background: linear-gradient(145deg, var(--gold), var(--gold-dark));
             color: #000;
@@ -97,13 +53,12 @@
             transition: all 0.4s ease;
         }
         
-        .btn-gold:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(212,175,55,0.25); }
+        .btn-gold:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(201,169,110,0.3); }
         
         .card { background: var(--gray-dark); border: none; border-radius: 20px; overflow: hidden; transition: transform 0.4s, box-shadow 0.4s; box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
         
         .card:hover { transform: translateY(-12px); box-shadow: 0 20px 40px rgba(0,0,0,0.7); }
         
-        /* Hover B&W to color */
         .hover-container {
             position: relative;
             overflow: hidden;
@@ -138,7 +93,6 @@
         
         .hover-container:hover .overlay { opacity: 1; }
         
-        /* Team cards */
         .team-card {
             height: 620px;
             background: var(--gray);
@@ -170,7 +124,6 @@
         
         .team-card:hover .team-overlay { opacity: 1; }
         
-        /* Swiper custom */
         .swiper {
             width: 100%;
             padding: 20px 0;
@@ -193,27 +146,11 @@
             font-size: 20px;
         }
         
-        /* Form contato */
-        #contact-form {
-            background: var(--gray-dark);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
-        }
-        
-        /* Depoimentos */
         .testimonial-card {
             background: var(--gray-dark);
             padding: 20px;
             border-radius: 15px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
-        
-        /* Instagram embed placeholder */
-        .instagram-feed {
-            background: var(--gray-dark);
-            padding: 30px;
-            border-radius: 20px;
         }
         
         footer { background: #000; padding: 60px 0 30px; border-top: 1px solid #222; }
@@ -224,7 +161,7 @@
             right: 30px;
             background: #25D366;
             color: white;
-            width: 70px; /* Maior */
+            width: 70px;
             height: 70px;
             border-radius: 50%;
             font-size: 36px;
@@ -233,20 +170,16 @@
             justify-content: center;
             box-shadow: 0 10px 25px rgba(0,0,0,0.6);
             z-index: 1000;
-            transition: transform 0.3s, box-shadow 0.3s;
+            transition: transform 0.3s;
             animation: pulse 1.5s infinite;
         }
         
-        .whatsapp-float:hover { transform: scale(1.15); box-shadow: 0 15px 30px rgba(37,211,102,0.5); }
+        .whatsapp-float:hover { transform: scale(1.15); }
         
         @keyframes pulse {
             0% { box-shadow: 0 0 0 0 rgba(37,211,102,0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(37,211,102,0); }
+            70% { box-shadow: 0 0 0 15px rgba(37,211,102,0); }
             100% { box-shadow: 0 0 0 0 rgba(37,211,102,0); }
-        }
-        
-        @media (min-width: 768px) {
-            section { padding: 80px 0; } /* Maior espaçamento */
         }
     </style>
 </head>
@@ -276,7 +209,7 @@
     <section class="hero" data-aos="fade-up">
         <div class="container">
             <h1 class="display-3 fw-bold mb-4">Ankh Tattoo</h1>
-            <p class="lead fs-3 mb-5">Fechamentos em uma única sessão e tatuagens gigantes que marcam a vida. Promoções limitadas – aproveite agora!</p>
+            <p class="lead fs-4 mb-5">Fechamentos em uma única sessão e tatuagens gigantes. Promoções limitadas – agende agora!</p>
             <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Oi!%20Quero%20agendar" class="btn btn-gold btn-lg px-5 py-3">Agende Agora <i class="fab fa-whatsapp ms-2"></i></a>
         </div>
     </section>
@@ -288,36 +221,33 @@
             <div class="row g-4">
                 <div class="col-md-4">
                     <div class="hover-container shadow">
-                        <img class="hover-img" src="https://cdn2.fabbon.com/uploads/image/file/36671/realism-back-tattoo.webp" alt="Fechamento costas" loading="lazy">
+                        <img class="hover-img" src="https://cdn2.fabbon.com/uploads/image/file/36671/realism-back-tattoo.webp" alt="Fechamento de costas realista" loading="lazy">
                         <div class="overlay">
-                            <i class="fas fa-backward mb-2 fs-3"></i> <!-- Ícone exemplo -->
                             <h4>Fechamento Completo</h4>
                             <p class="fs-3 fw-bold">R$699</p>
-                            <p>Costas, braço ou perna em uma sessão – Não perca!</p>
+                            <p>Costas, braço ou perna em uma sessão</p>
                             <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Quero%20o%20fechamento%20R$699" class="btn btn-gold mt-3">Quero</a>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="hover-container shadow">
-                        <img class="hover-img" src="https://images.pexels.com/photos/3327153/pexels-photo-3327153.jpeg?auto=compress&cs=tinysrgb&h=627&fit=crop&w=1200" alt="Tatuador" loading="lazy">
+                        <img class="hover-img" src="https://images.pexels.com/photos/3327153/pexels-photo-3327153.jpeg?auto=compress&cs=tinysrgb&h=627&fit=crop&w=1200" alt="Tatuagem feminina" loading="lazy">
                         <div class="overlay">
-                            <i class="fas fa-female mb-2 fs-3"></i>
                             <h4>Mês da Mulher</h4>
                             <p class="fs-3 fw-bold">R$499</p>
-                            <p>Qualquer fechamento feminino – Oferta exclusiva!</p>
+                            <p>Qualquer fechamento feminino</p>
                             <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Quero%20fechamento%20feminino" class="btn btn-gold mt-3">Aproveitar</a>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="hover-container shadow">
-                        <img class="hover-img" src="https://images.pexels.com/photos/10613958/pexels-photo-10613958.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Máquina" loading="lazy">
+                        <img class="hover-img" src="https://images.pexels.com/photos/10613958/pexels-photo-10613958.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Tatuagem floral" loading="lazy">
                         <div class="overlay">
-                            <i class="fas fa-flower-classic mb-2 fs-3"></i>
                             <h4>Floral Especial</h4>
                             <p class="fs-3 fw-bold">R$399</p>
-                            <p>Fechamento floral feminino – Últimas vagas!</p>
+                            <p>Fechamento floral feminino</p>
                             <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Quero%20o%20floral%20R$399" class="btn btn-gold mt-3">Quero!</a>
                         </div>
                     </div>
@@ -326,7 +256,7 @@
         </div>
     </section>
 
-    <!-- Equipe -->
+    <!-- Equipe - Swiper com 9 cards -->
     <section id="equipe" class="py-5">
         <div class="container" data-aos="fade-up">
             <h2 class="text-center mb-5">Nossa Equipe</h2>
@@ -334,25 +264,85 @@
                 <div class="swiper-wrapper">
                     <div class="swiper-slide">
                         <div class="team-card">
-                            <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img" alt="Meduri" loading="lazy">
+                            <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img" alt="Meduri tatuador" loading="lazy">
                             <div class="team-overlay">
                                 <h4>Meduri</h4>
-                                <p>Com 12 anos de experiência, especialista em realismo e fechamentos gigantes. Apaixonado por arte que conta histórias.</p>
+                                <p>Especialista em realismo e fechamentos gigantes. +12 anos de experiência, apaixonado por peças que contam histórias.</p>
                             </div>
                         </div>
                     </div>
-                    <!-- Adicione os outros slides como antes, com bios melhoradas -->
-                    <!-- Exemplo: -->
                     <div class="swiper-slide">
                         <div class="team-card">
-                            <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img" alt="Lucas" loading="lazy">
+                            <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img" alt="Lucas tatuador" loading="lazy">
                             <div class="team-overlay">
                                 <h4>Lucas Black</h4>
-                                <p>Expert em blackwork, com foco em peças minimalistas e impactantes. Mais de 8 anos transformando ideias em realidade.</p>
+                                <p>Expert em blackwork e geométrico. Foco em peças minimalistas e impactantes. +8 anos no ramo.</p>
                             </div>
                         </div>
                     </div>
-                    <!-- ... complete com os 9 placeholders, mas com bios mais pessoais ... -->
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://thumbs.dreamstime.com/b/delicate-fine-line-tattoo-blooming-flowers-woman-back-subtle-ink-shading-creates-depth-skin-minimalist-black-white-403847740.jpg" class="team-img" alt="Ana tatuadora" loading="lazy">
+                            <div class="team-overlay">
+                                <h4>Ana Fine</h4>
+                                <p>Especialista em fine line e floral. Perfeita para tatuagens femininas delicadas e elegantes.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img" alt="João tatuador" loading="lazy">
+                            <div class="team-overlay">
+                                <h4>João Old</h4>
+                                <p>Old school e tradicional com twist moderno. Clássicos que nunca saem de moda.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img" alt="Carla tatuadora" loading="lazy">
+                            <div class="team-overlay">
+                                <h4>Carla Neo</h4>
+                                <p>Neo tradicional e colorido. Cores vibrantes e narrativas fortes na pele.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://thumbs.dreamstime.com/b/delicate-fine-line-tattoo-blooming-flowers-woman-back-subtle-ink-shading-creates-depth-skin-minimalist-black-white-403847740.jpg" class="team-img" alt="Rafael tatuador" loading="lazy">
+                            <div class="team-overlay">
+                                <h4>Rafael Dot</h4>
+                                <p>Dotwork e mandalas. Detalhes infinitos e precisão milimétrica.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img" alt="Sofia tatuadora" loading="lazy">
+                            <div class="team-overlay">
+                                <h4>Sofia Realism</h4>
+                                <p>Realismo preto e cinza. Retratos e animais com emoção real.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img" alt="Victor tatuador" loading="lazy">
+                            <div class="team-overlay">
+                                <h4>Victor Cover</h4>
+                                <p>Cover-ups e reworks. Transforma tatuagens antigas em obras-primas.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://thumbs.dreamstime.com/b/delicate-fine-line-tattoo-blooming-flowers-woman-back-subtle-ink-shading-creates-depth-skin-minimalist-black-white-403847740.jpg" class="team-img" alt="Maria tatuadora" loading="lazy">
+                            <div class="team-overlay">
+                                <h4>Maria Script</h4>
+                                <p>Lettering e caligrafia. Frases, poemas e textos com estilo único.</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="swiper-button-prev"></div>
                 <div class="swiper-button-next"></div>
@@ -360,26 +350,70 @@
         </div>
     </section>
 
-    <!-- Portfólio -->
+    <!-- Portfólio com 6 imagens -->
     <section id="portfolio" class="py-5 bg-black">
         <div class="container" data-aos="fade-up">
             <h2 class="text-center mb-5">Portfólio</h2>
             <div class="row g-4">
                 <div class="col-md-4">
                     <div class="hover-container shadow" data-bs-toggle="modal" data-bs-target="#modalPort1">
-                        <img class="hover-img" src="https://inknationstudio.com/wp-content/uploads/2025/07/thumbnail-leg.png" alt="Sleeve de perna biomecânico" loading="lazy">
+                        <img class="hover-img" src="https://inknationstudio.com/wp-content/uploads/2025/07/thumbnail-leg.png" alt="Sleeve de perna biomecânico realista" loading="lazy">
                         <div class="overlay">
                             <h5>Sleeve Biomecânico</h5>
-                            <p>Realismo futurista | ~18h | R$1200 estimado</p>
+                            <p>Realismo futurista | ~18h</p>
                         </div>
                     </div>
                 </div>
-                <!-- Adicione mais com modais expandidos -->
+                <div class="col-md-4">
+                    <div class="hover-container shadow" data-bs-toggle="modal" data-bs-target="#modalPort2">
+                        <img class="hover-img" src="https://primitivetattoobali.com/wp-content/uploads/2025/07/Primitive-Tattoo-Ink-Portfolio.webp" alt="Fechamento de braço samurai" loading="lazy">
+                        <div class="overlay">
+                            <h5>Fechamento Samurai</h5>
+                            <p>Estilo japonês | Uma sessão</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="hover-container shadow" data-bs-toggle="modal" data-bs-target="#modalPort3">
+                        <img class="hover-img" src="https://inknationstudio.com/wp-content/uploads/2025/07/thumbnail-full-sleeve.png" alt="Sleeve realista misto" loading="lazy">
+                        <div class="overlay">
+                            <h5>Sleeve Realista Misto</h5>
+                            <p>Figura + animal | Contraste alto</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="hover-container shadow" data-bs-toggle="modal" data-bs-target="#modalPort4">
+                        <img class="hover-img" src="https://tattoos.gallery/unifytattoofl.com/images/gallery/Fairy%20Mermaid%20Forest%20Tattoo.jpg" alt="Tatuagem de floresta mágica" loading="lazy">
+                        <div class="overlay">
+                            <h5>Floresta Mágica</h5>
+                            <p>Colorido detalhado | ~15h</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="hover-container shadow" data-bs-toggle="modal" data-bs-target="#modalPort5">
+                        <img class="hover-img" src="https://tattoos.gallery/soringabor.com/images/gallery/bio%20oni%20Sorin.jpg" alt="Fechamento bio orgânico" loading="lazy">
+                        <div class="overlay">
+                            <h5>Bio Orgânico</h5>
+                            <p>Estilo orgânico | Uma sessão</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="hover-container shadow" data-bs-toggle="modal" data-bs-target="#modalPort6">
+                        <img class="hover-img" src="https://images.stockcake.com/public/0/0/d/00dcdec4-d941-458f-8128-638c8191196c/sacred-golden-ankh-stockcake.jpg" alt="Tatuagem simbólica Ankh" loading="lazy">
+                        <div class="overlay">
+                            <h5>Ankh Sagrado</h5>
+                            <p>Simbolismo dourado | ~10h</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- Modais Portfólio -->
+    <!-- Modais Portfólio (exemplo para o primeiro, copie e mude id/src para os outros) -->
     <div class="modal fade" id="modalPort1" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content bg-dark text-light">
@@ -389,34 +423,34 @@
                 </div>
                 <div class="modal-body text-center">
                     <img src="https://inknationstudio.com/wp-content/uploads/2025/07/thumbnail-leg.png" class="img-fluid rounded mb-3" alt="Detalhe sleeve biomecânico" loading="lazy">
-                    <p>Estilo biomecânico com detalhes metálicos e orgânicos. Adaptável para fechamento em sessão única. Antes/depois disponível sob consulta.</p>
-                    <p><strong>Estilo:</strong> Realismo futurista | <strong>Tempo:</strong> ~18 horas | <strong>Preço estimado:</strong> R$1200 | <strong>Cliente:</strong> Anônimo – Satisfeito!</p>
+                    <p>Estilo biomecânico com detalhes metálicos e orgânicos. Adaptável para fechamento em sessão única.</p>
+                    <p><strong>Estilo:</strong> Realismo futurista | <strong>Tempo:</strong> ~18 horas | <strong>Preço estimado:</strong> R$1200</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Depoimentos -->
+    <!-- Depoimentos com link Instagram -->
     <section id="depoimentos" class="py-5">
         <div class="container" data-aos="fade-up">
-            <h2 class="text-center mb-5">Depoimentos</h2>
+            <h2 class="text-center mb-5">O que nossos clientes dizem</h2>
             <div class="row g-4">
                 <div class="col-md-4">
                     <div class="testimonial-card">
-                        <p>"Fechamento incrível em uma sessão! Meduri é o melhor."</p>
-                        <p class="text-end">- Cliente X</p>
+                        <p>"Fechamento incrível em uma sessão só! Meduri é gênio."</p>
+                        <p class="text-end mb-0"><a href="https://www.instagram.com/clienteexemplo1/" target="_blank">@clienteexemplo1</a></p>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="testimonial-card">
-                        <p>"Promo do mês da mulher foi perfeita para minha floral."</p>
-                        <p class="text-end">- Cliente Y</p>
+                        <p>"A promo do mês da mulher foi perfeita pra minha floral. Recomendo demais!"</p>
+                        <p class="text-end mb-0"><a href="https://www.instagram.com/clienteexemplo2/" target="_blank">@clienteexemplo2</a></p>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="testimonial-card">
-                        <p>"Equipe top, higiene impecável. Recomendo!"</p>
-                        <p class="text-end">- Cliente Z</p>
+                        <p>"Equipe profissional, higiene top e resultado absurdo. Volto com certeza."</p>
+                        <p class="text-end mb-0"><a href="https://www.instagram.com/clienteexemplo3/" target="_blank">@clienteexemplo3</a></p>
                     </div>
                 </div>
             </div>
@@ -435,7 +469,7 @@
                         </button>
                     </h2>
                     <div id="flushOne" class="accordion-collapse collapse">
-                        <div class="accordion-body">Depende do tamanho, mas muitos em uma única sessão longa.</div>
+                        <div class="accordion-body">Depende do tamanho e complexidade, mas muitos são feitos em uma única sessão longa.</div>
                     </div>
                 </div>
                 <div class="accordion-item">
@@ -445,7 +479,7 @@
                         </button>
                     </h2>
                     <div id="flushTwo" class="accordion-collapse collapse">
-                        <div class="accordion-body">Sim! Personalizamos 100% conforme sua visão.</div>
+                        <div class="accordion-body">Sim! Personalizamos 100% conforme sua visão ou referência.</div>
                     </div>
                 </div>
                 <div class="accordion-item">
@@ -455,7 +489,7 @@
                         </button>
                     </h2>
                     <div id="flushThree" class="accordion-collapse collapse">
-                        <div class="accordion-body">Varia por pessoa, mas usamos técnicas para minimizar desconforto.</div>
+                        <div class="accordion-body">Varia de pessoa para pessoa, mas usamos técnicas para minimizar o desconforto.</div>
                     </div>
                 </div>
                 <div class="accordion-item">
@@ -465,64 +499,41 @@
                         </button>
                     </h2>
                     <div id="flushFour" class="accordion-collapse collapse">
-                        <div class="accordion-body">Sim, desde que siga as normas de higiene.</div>
+                        <div class="accordion-body">Sim, desde que siga as normas de higiene do estúdio.</div>
                     </div>
                 </div>
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flushFive">
-                            Aceitam cartão/parcelado?
+                            Aceitam cartão ou parcelado?
                         </button>
                     </h2>
                     <div id="flushFive" class="accordion-collapse collapse">
-                        <div class="accordion-body">Sim, consulte opções no WhatsApp.</div>
+                        <div class="accordion-body">Sim, consulte as opções diretamente no WhatsApp.</div>
                     </div>
                 </div>
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flushSix">
-                            Como cuidar depois?
+                            Como cuidar da tatuagem depois?
                         </button>
                     </h2>
                     <div id="flushSix" class="accordion-collapse collapse">
-                        <div class="accordion-body">Mantenha limpa, use pomada e evite sol. Instruções completas no agendamento.</div>
+                        <div class="accordion-body">Mantenha limpa, use pomada recomendada e evite sol. Damos instruções completas no agendamento.</div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Contato com form -->
-    <section id="contato" class="py-5 text-center">
-        <div class="container" data-aos="fade-up">
+    <!-- Contato -->
+    <section id="contato" class="py-5 text-center" data-aos="fade-up">
+        <div class="container">
             <h2 class="mb-4">Pronto pra sua próxima peça?</h2>
-            <div id="contact-form" class="mx-auto" style="max-width: 600px;">
-                <form onsubmit="sendToWhatsApp(event)">
-                    <div class="mb-3">
-                        <input type="text" class="form-control" id="nome" placeholder="Seu nome" required>
-                    </div>
-                    <div class="mb-3">
-                        <input type="tel" class="form-control" id="whatsapp" placeholder="Seu WhatsApp" required>
-                    </div>
-                    <div class="mb-3">
-                        <textarea class="form-control" id="mensagem" rows="3" placeholder="Ideia da tatuagem"></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-gold btn-lg w-100">Enviar para WhatsApp</button>
-                </form>
-            </div>
+            <a href="https://api.whatsapp.com/send?phone=5511968699109&text=Oi!%20Quero%20agendar" class="btn btn-gold btn-lg px-5 py-3">
+                <i class="fab fa-whatsapp me-2"></i> Falar Agora
+            </a>
             <p class="mt-4">Av. do Taboão, 3802 - São Bernardo do Campo</p>
-        </div>
-    </section>
-
-    <!-- Instagram Feed Placeholder -->
-    <section id="instagram" class="py-5 bg-black">
-        <div class="container" data-aos="fade-up">
-            <h2 class="text-center mb-5">Siga no Instagram</h2>
-            <div class="instagram-feed text-center">
-                <p>Veja mais trabalhos em tempo real!</p>
-                <a href="https://www.instagram.com/ankh_tattoo/" target="_blank" class="btn btn-gold">Ver @ankh_tattoo</a>
-                <!-- Embed real: use lightwidget.com or similar para iframe dinâmico -->
-            </div>
         </div>
     </section>
 
@@ -567,7 +578,6 @@
     <script>
         AOS.init({ duration: 1000, once: true });
 
-        // Swiper equipe
         const equipeSwiper = new Swiper('.equipe-swiper', {
             loop: true,
             autoplay: {
@@ -586,26 +596,6 @@
                     spaceBetween: 30,
                 },
             },
-        });
-
-        // Form para WhatsApp
-        function sendToWhatsApp(event) {
-            event.preventDefault();
-            const nome = document.getElementById('nome').value;
-            const whatsapp = document.getElementById('whatsapp').value;
-            const mensagem = document.getElementById('mensagem').value;
-            const text = `Oi! Meu nome é ${nome}, meu WhatsApp é ${whatsapp}, e quero falar sobre: ${mensagem}`;
-            window.location.href = `https://api.whatsapp.com/send?phone=5511968699109&text=${encodeURIComponent(text)}`;
-        }
-
-        // Scroll suave para âncoras
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                document.querySelector(this.getAttribute('href')).scrollIntoView({
-                    behavior: 'smooth'
-                });
-            });
         });
     </script>
 </body>
