@@ -237,7 +237,7 @@
                         'Authorization': `Bearer ${window.GROQ_API_KEY}`
                     },
                     body: JSON.stringify({
-                        model: 'llama3-70b-8192',
+                        model: 'llama-3.3-70b-versatile',
                         messages: [
                             { role: 'system', content: 'Você é um analista de vendas especializado em atendimento por WhatsApp. Analise a conversa, dê estatísticas numéricas (tempo de resposta, volume de mensagens, taxa de engajamento), pontos fortes, pontos de melhoria e sugestões práticas para aumentar conversões.' },
                             { role: 'user', content: textoCompleto }
