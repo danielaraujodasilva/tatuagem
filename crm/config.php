@@ -12,13 +12,13 @@ try {
     die("Erro de conexão: " . $e->getMessage());
 }
 
-// Etapas do pipeline (você pode adicionar/remover aqui)
+// Etapas do pipeline - ajuste os valores conforme sua tabela
 $stages = [
-    'novo'              => '🆕 Novo',
-    'contato'           => '📞 Contato Inicial',
-    'reuniao'           => '🤝 Reunião',
-    'proposta'          => '📄 Proposta Enviada',
-    'negociacao'        => '💰 Negociação',
-    'ganho'             => '✅ Fechado - Ganho',
-    'perdido'           => '❌ Fechado - Perdido'
+    '1' => '🆕 Novo',
+    '2' => '📞 Contato Inicial',
+    '3' => '🤝 Reunião',
+    '4' => '📄 Proposta Enviada',
+    '5' => '💰 Negociação',
+    '6' => '✅ Fechado - Ganho',
+    '7' => '❌ Fechado - Perdido'
 ];
