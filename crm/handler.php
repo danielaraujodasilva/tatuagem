@@ -5,53 +5,50 @@ header('Content-Type: application/json');
 $action = $_REQUEST['action'] ?? $_POST['action'] ?? '';
 
 try {
-    // ====================== GET ALL LEADS ======================
+    // ====================== GET ALL ======================
     if ($action === 'getAll') {
         $stmt = $conn->query("SELECT *, etapa_funil AS etapa FROM leads ORDER BY id DESC");
         echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
         exit;
     }
 
-    // ====================== CREATE or UPDATE ======================
-    if ($action === 'create' || $action === 'update') {
-        // Tenta pegar dos $_POST (mais comum com FormData)
-        $nome   = $_POST['nome'] ?? '';
-        $tel    = $_POST['telefone'] ?? '';
-        $email  = $_POST['email'] ?? '';
-        $valor  = $_POST['valor'] ?? 0;
-        $etapa  = $_POST['etapa'] ?? '1';
-        $obs    = $_POST['observacao'] ?? '';
+    // ====================== CREATE ======================
+    if ($action === 'create') {
+        $nome     = $_POST['nome'] ?? '';
+        $telefone = $_POST['telefone'] ?? '';
+        $valor    = $_POST['valor'] ?? 0;
+        $etapa    = $_POST['etapa'] ?? '1';
+        $obs      = $_POST['observacao'] ?? null;
 
-        // Se ainda estiver vazio, tenta ler raw input (backup)
-        if (empty($nome) && empty($tel)) {
-            $raw = file_get_contents('php://input');
-            parse_str($raw, $rawData);
-            $nome   = $rawData['nome'] ?? '';
-            $tel    = $rawData['telefone'] ?? '';
-            $email  = $rawData['email'] ?? '';
-            $valor  = $rawData['valor'] ?? 0;
-            $etapa  = $rawData['etapa'] ?? '1';
-            $obs    = $rawData['observacao'] ?? '';
-        }
-
-        if (empty($nome) || empty($tel)) {
+        if (empty($nome) || empty($telefone)) {
             echo json_encode(['error' => 'Nome e telefone são obrigatórios']);
             exit;
         }
 
-        if ($action === 'create') {
-            $sql = "INSERT INTO leads (nome, telefone, email, valor, etapa_funil, observacao, created_at) 
-                    VALUES (?, ?, ?, ?, ?, ?, NOW())";
-            $stmt = $conn->prepare($sql);
-            $stmt->execute([$nome, $tel, $email, $valor, $etapa, $obs]);
-            echo json_encode(['status' => 'ok', 'id' => $conn->lastInsertId()]);
-        } else {
-            $id = (int)($_POST['id'] ?? 0);
-            $sql = "UPDATE leads SET nome=?, telefone=?, email=?, valor=?, etapa_funil=?, observacao=? WHERE id=?";
-            $stmt = $conn->prepare($sql);
-            $stmt->execute([$nome, $tel, $email, $valor, $etapa, $obs, $id]);
-            echo json_encode(['status' => 'ok']);
-        }
+        $sql = "INSERT INTO leads 
+                (nome, telefone, valor, etapa_funil, observacao, created_at) 
+                VALUES (?, ?, ?, ?, ?, NOW())";
+
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([$nome, $telefone, $valor, $etapa, $obs]);
+
+        echo json_encode(['status' => 'ok', 'id' => $conn->lastInsertId()]);
+        exit;
+    }
+
+    // ====================== UPDATE (para futuro) ======================
+    if ($action === 'update') {
+        $id       = (int)($_POST['id'] ?? 0);
+        $nome     = $_POST['nome'] ?? '';
+        $telefone = $_POST['telefone'] ?? '';
+        $valor    = $_POST['valor'] ?? 0;
+        $etapa    = $_POST['etapa'] ?? '1';
+        $obs      = $_POST['observacao'] ?? null;
+
+        $sql = "UPDATE leads SET nome=?, telefone=?, valor=?, etapa_funil=?, observacao=? WHERE id=?";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([$nome, $telefone, $valor, $etapa, $obs, $id]);
+        echo json_encode(['status' => 'ok']);
         exit;
     }
 
@@ -64,16 +61,16 @@ try {
         exit;
     }
 
-    // ====================== MOVE (drag and drop) ======================
+    // ====================== MOVE (Drag and Drop) ======================
     if ($action === 'move') {
-        $id = (int)($_POST['id'] ?? 0);
+        $id    = (int)($_POST['id'] ?? 0);
         $etapa = $_POST['etapa'] ?? '1';
         $conn->prepare("UPDATE leads SET etapa_funil=? WHERE id=?")->execute([$etapa, $id]);
         echo json_encode(['status' => 'ok']);
         exit;
     }
 
-    echo json_encode(['error' => 'Ação inválida: ' . $action]);
+    echo json_encode(['error' => 'Ação inválida']);
 
 } catch (Exception $e) {
     echo json_encode(['error' => 'Erro no servidor: ' . $e->getMessage()]);
