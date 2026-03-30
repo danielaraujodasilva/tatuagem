@@ -46,7 +46,7 @@
         </div>
     </div>
 
-    <!-- MODAL NOVO/EDITAR LEAD -->
+    <!-- MODAL NOVO LEAD -->
     <div id="modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
         <div class="bg-gray-900 rounded-3xl w-full max-w-lg mx-4 p-8">
             <h3 id="modalTitle" class="text-2xl font-bold mb-6">Novo Lead</h3>
@@ -57,15 +57,9 @@
                         <label class="block text-sm mb-1">Nome *</label>
                         <input type="text" id="nome" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm mb-1">Telefone (com DDD) *</label>
-                            <input type="tel" id="telefone" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
-                        </div>
-                        <div>
-                            <label class="block text-sm mb-1">Email</label>
-                            <input type="email" id="email" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
-                        </div>
+                    <div>
+                        <label class="block text-sm mb-1">Telefone (com DDD) *</label>
+                        <input type="tel" id="telefone" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
                     </div>
                     <div>
                         <label class="block text-sm mb-1">Valor estimado (R$)</label>
@@ -78,10 +72,6 @@
                                 <option value="<?= $k ?>"><?= $n ?></option>
                             <?php endforeach; ?>
                         </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm mb-1">Observação</label>
-                        <textarea id="observacao" rows="3" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3"></textarea>
                     </div>
                 </div>
                 <div class="flex gap-3 mt-8">
@@ -99,46 +89,69 @@
 
         function loadPipeline() {
             fetch('handler.php?action=getAll')
-                .then(r => r.json())
-                .then(leads => {
-                    // limpa todas as colunas
+                .then(r => r.text())
+                .then(text => {
+                    console.log("Resposta raw:", text);
+
+                    let leads;
+                    try {
+                        leads = JSON.parse(text);
+                    } catch (e) {
+                        console.error("Erro ao parsear JSON:", e);
+                        return;
+                    }
+
+                    if (leads.error) {
+                        console.error(leads.error);
+                        return;
+                    }
+
+                    // Limpa colunas
                     document.querySelectorAll('.kanban-column').forEach(col => col.innerHTML = '');
 
                     const counts = {};
                     Object.keys(<?= json_encode(array_keys($stages)) ?>).forEach(k => counts[k] = 0);
 
                     leads.forEach(lead => {
+                        const etapa = lead.etapa || '1';
+
                         const cardHTML = `
                             <div onclick="openLead(${lead.id})" class="card bg-gray-800 hover:bg-gray-700 rounded-2xl p-5 cursor-pointer border border-gray-700" data-id="${lead.id}">
-                                <div class="flex justify-between">
-                                    <h4 class="font-semibold text-lg">${lead.nome}</h4>
-                                    <a href="https://wa.me/55${lead.telefone.replace(/\D/g,'')}" target="_blank" 
-                                       class="text-emerald-400 hover:text-emerald-300">
+                                <div class="flex justify-between items-start">
+                                    <h4 class="font-semibold text-lg">${lead.nome || 'Sem nome'}</h4>
+                                    ${lead.telefone ? `
+                                    <a href="https://wa.me/55${(lead.telefone+'').replace(/\D/g,'')}" target="_blank" 
+                                       onclick="event.stopImmediatePropagation()" 
+                                       class="text-emerald-400 hover:text-emerald-300 text-xl">
                                         <i class="fab fa-whatsapp"></i>
-                                    </a>
+                                    </a>` : ''}
                                 </div>
-                                <p class="text-gray-400">${lead.telefone}</p>
-                                ${lead.valor ? `<p class="text-emerald-400 font-medium mt-2">R$ ${parseFloat(lead.valor).toLocaleString('pt-BR')}</p>` : ''}
+                                <p class="text-gray-400 mt-1">${lead.telefone || '—'}</p>
+                                ${lead.valor && parseFloat(lead.valor) > 0 ? 
+                                    `<p class="text-emerald-400 font-medium mt-3">R$ ${parseFloat(lead.valor).toLocaleString('pt-BR')}</p>` : ''}
+                                
                                 <button onclick="event.stopImmediatePropagation(); deleteLead(${lead.id});" 
-                                        class="text-red-400 hover:text-red-300 text-xs mt-4">
+                                        class="text-red-400 hover:text-red-300 text-xs mt-5 flex items-center gap-1">
                                     <i class="fas fa-trash"></i> Excluir
                                 </button>
                             </div>`;
 
-                        const col = document.getElementById(`column-${lead.etapa}`);
-                        if (col) col.innerHTML += cardHTML;
-                        counts[lead.etapa]++;
+                        const col = document.getElementById(`column-${etapa}`);
+                        if (col) {
+                            col.innerHTML += cardHTML;
+                            counts[etapa] = (counts[etapa] || 0) + 1;
+                        }
                     });
 
-                    // atualiza contadores
+                    // Atualiza contadores
                     Object.keys(counts).forEach(k => {
                         const el = document.getElementById(`count-${k}`);
-                        if (el) el.textContent = counts[k];
+                        if (el) el.textContent = counts[k] || 0;
                     });
 
-                    // ativa drag and drop
                     enableDragAndDrop();
-                });
+                })
+                .catch(err => console.error("Erro na requisição:", err));
         }
 
         function enableDragAndDrop() {
@@ -154,7 +167,7 @@
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                                 body: `action=move&id=${leadId}&etapa=${newStage}`
-                            });
+                            }).then(() => loadPipeline());
                         }
                     }
                 });
@@ -170,22 +183,30 @@
 
         function saveLead(e) {
             e.preventDefault();
+            
             const formData = new FormData();
-            formData.append('action', currentEditId ? 'update' : 'create');
-            if (currentEditId) formData.append('id', currentEditId);
-            formData.append('nome', document.getElementById('nome').value);
-            formData.append('telefone', document.getElementById('telefone').value);
-            formData.append('email', document.getElementById('email').value);
-            formData.append('valor', document.getElementById('valor').value);
+            formData.append('action', 'create');
+            formData.append('nome', document.getElementById('nome').value.trim());
+            formData.append('telefone', document.getElementById('telefone').value.trim());
+            formData.append('valor', document.getElementById('valor').value || 0);
             formData.append('etapa', document.getElementById('etapa').value);
-            formData.append('observacao', document.getElementById('observacao').value);
 
             fetch('handler.php', {
                 method: 'POST',
                 body: formData
-            }).then(() => {
-                closeModal();
-                loadPipeline();
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    alert("Erro: " + data.error);
+                } else {
+                    closeModal();
+                    loadPipeline();
+                    alert("✅ Lead cadastrado com sucesso!");
+                }
+            })
+            .catch(() => {
+                alert("Erro ao salvar o lead. Verifique o console (F12).");
             });
         }
 
@@ -209,14 +230,14 @@
 
         // Busca em tempo real
         document.getElementById('search').addEventListener('input', function() {
-            const term = this.value.toLowerCase();
+            const term = this.value.toLowerCase().trim();
             document.querySelectorAll('.card').forEach(card => {
                 const text = card.textContent.toLowerCase();
                 card.style.display = text.includes(term) ? '' : 'none';
             });
         });
 
-        // Carrega tudo ao abrir
+        // Carrega ao abrir
         window.onload = loadPipeline;
     </script>
 </body>
