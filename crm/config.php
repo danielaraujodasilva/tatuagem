@@ -1,9 +1,9 @@
+
 <?php
-// ==================== CONFIGURAÇÃO ====================
 $host = 'localhost';
-$db   = 'crm_simples';           // ← mude pro nome do seu banco
-$user = 'root';                // ← usuário do MySQL
-$pass = '';                    // ← senha (deixe vazio se for local)
+$db   = 'crm_simples';   // ← altere
+$user = 'root';
+$pass = '';
 
 try {
     $conn = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);
@@ -12,7 +12,6 @@ try {
     die("Erro de conexão: " . $e->getMessage());
 }
 
-// Etapas do pipeline - ajuste os valores conforme sua tabela
 $stages = [
     '1' => '🆕 Novo',
     '2' => '📞 Contato Inicial',
@@ -22,4 +21,3 @@ $stages = [
     '6' => '✅ Fechado - Ganho',
     '7' => '❌ Fechado - Perdido'
 ];
-
