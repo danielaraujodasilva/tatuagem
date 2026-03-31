@@ -5,12 +5,14 @@ header('Content-Type: application/json');
 $action = $_REQUEST['action'] ?? $_POST['action'] ?? '';
 
 try {
+    // ====================== GET ALL LEADS ======================
     if ($action === 'getAll') {
         $stmt = $conn->query("SELECT *, etapa_funil AS etapa FROM leads ORDER BY id DESC");
         echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
         exit;
     }
 
+    // ====================== CREATE / UPDATE LEAD ======================
     if ($action === 'create' || $action === 'update') {
         $id        = (int)($_POST['id'] ?? 0);
         $nome      = trim($_POST['nome'] ?? '');
@@ -40,6 +42,7 @@ try {
         exit;
     }
 
+    // ====================== DELETE ======================
     if ($action === 'delete') {
         $id = (int)($_POST['id'] ?? 0);
         $conn->prepare("DELETE FROM leads WHERE id=?")->execute([$id]);
@@ -47,6 +50,7 @@ try {
         exit;
     }
 
+    // ====================== MOVE ======================
     if ($action === 'move') {
         $id = (int)($_POST['id'] ?? 0);
         $etapa = $_POST['etapa'] ?? '1';
@@ -55,7 +59,31 @@ try {
         exit;
     }
 
-    echo json_encode(['error' => 'Ação inválida']);
+    // ====================== INTERAÇÕES ======================
+    if ($action === 'addInteraction') {
+        $id  = (int)($_POST['id'] ?? 0);
+        $msg = trim($_POST['msg'] ?? '');
+
+        if ($id && $msg) {
+            $sql = "INSERT INTO interacoes (lead_id, mensagem, data) VALUES (?, ?, NOW())";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$id, $msg]);
+            echo json_encode(['status' => 'ok']);
+        } else {
+            echo json_encode(['error' => 'Mensagem vazia ou lead inválido']);
+        }
+        exit;
+    }
+
+    if ($action === 'getHistory') {
+        $id = (int)($_GET['id'] ?? 0);
+        $stmt = $conn->prepare("SELECT * FROM interacoes WHERE lead_id = ? ORDER BY data DESC");
+        $stmt->execute([$id]);
+        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+        exit;
+    }
+
+    echo json_encode(['error' => 'Ação inválida: ' . $action]);
 
 } catch (Exception $e) {
     echo json_encode(['error' => 'Erro no servidor: ' . $e->getMessage()]);
