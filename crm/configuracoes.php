@@ -5,6 +5,7 @@
 <head>
     <title>Configurações</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
 <body class="bg-gray-950 text-gray-100 p-10">
 
@@ -17,13 +18,14 @@
     <button class="bg-emerald-600 px-4 py-2 rounded">Adicionar</button>
 </form>
 
+<div id="pipelineList">
 <?php
 $res = $conn->query("SELECT * FROM pipelines ORDER BY ordem");
 
 while($p = $res->fetch(PDO::FETCH_ASSOC)):
 ?>
 
-<div class="bg-gray-800 p-4 mb-2 rounded flex justify-between items-center">
+<div data-id="<?= $p['id'] ?>" class="bg-gray-800 p-4 mb-2 rounded flex justify-between items-center cursor-move">
     <div>
         <span style="color: <?= $p['cor'] ?>">⬤</span>
         <?= $p['nome'] ?>
@@ -36,6 +38,29 @@ while($p = $res->fetch(PDO::FETCH_ASSOC)):
 </div>
 
 <?php endwhile; ?>
+</div>
+
+<script>
+Sortable.create(document.getElementById('pipelineList'), {
+    animation: 150,
+    onEnd: function () {
+
+        let ordem = [];
+        document.querySelectorAll('#pipelineList > div').forEach((el, index) => {
+            ordem.push({
+                id: el.dataset.id,
+                ordem: index + 1
+            });
+        });
+
+        fetch('pipeline_ordem.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(ordem)
+        });
+    }
+});
+</script>
 
 </body>
 </html>
