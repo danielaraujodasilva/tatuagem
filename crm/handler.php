@@ -56,14 +56,12 @@ try {
         exit;
     }
 
-    // Interações com tipo
     if ($action === 'addInteraction') {
-        $id     = (int)($_POST['id'] ?? 0);
-        $tipo   = $_POST['tipo'] ?? 'Outros';
-        $msg    = trim($_POST['msg'] ?? '');
+        $id  = (int)($_POST['id'] ?? 0);
+        $tipo = $_POST['tipo'] ?? 'Outros';
+        $msg = trim($_POST['msg'] ?? '');
         if ($id && $msg) {
-            $sql = "INSERT INTO interacoes (lead_id, tipo, mensagem, data) VALUES (?, ?, ?, NOW())";
-            $stmt = $conn->prepare($sql);
+            $stmt = $conn->prepare("INSERT INTO interacoes (lead_id, tipo, mensagem, data) VALUES (?, ?, ?, NOW())");
             $stmt->execute([$id, $tipo, $msg]);
             echo json_encode(['status' => 'ok']);
         }
