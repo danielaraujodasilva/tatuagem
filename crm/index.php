@@ -4,7 +4,7 @@ $stages = [];
 
 $result = $conn->query("SELECT * FROM pipelines ORDER BY ordem");
 
-while($row = $result->fetch_assoc()){
+while($row = $result->fetch(PDO::FETCH_ASSOC)){
     $stages[$row['id']] = $row['nome'];
 }
 ?>
