@@ -1,13 +1,35 @@
 <?php
 require 'config.php';
 
-$id = $_POST['id'];
-$nome = $_POST['nome'];
-$ordem = $_POST['ordem'];
-$cor = $_POST['cor'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-$stmt = $conn->prepare("UPDATE pipelines SET nome=?, ordem=?, cor=? WHERE id=?");
-$stmt->bind_param("sisi", $nome, $ordem, $cor, $id);
-$stmt->execute();
+    $id = $_POST['id'] ?? 0;
+    $nome = $_POST['nome'] ?? '';
+    $ordem = $_POST['ordem'] ?? 0;
+    $cor = $_POST['cor'] ?? '#ffffff';
 
-header("Location: configuracoes.php");
+    if (!$id || !$nome) {
+        die("Dados inválidos");
+    }
+
+    try {
+        $stmt = $conn->prepare("
+            UPDATE pipelines 
+            SET nome = :nome, ordem = :ordem, cor = :cor 
+            WHERE id = :id
+        ");
+
+        $stmt->bindParam(':nome', $nome);
+        $stmt->bindParam(':ordem', $ordem);
+        $stmt->bindParam(':cor', $cor);
+        $stmt->bindParam(':id', $id);
+
+        $stmt->execute();
+
+        header('Location: configuracoes.php');
+        exit;
+
+    } catch (PDOException $e) {
+        die("Erro ao atualizar: " . $e->getMessage());
+    }
+}
