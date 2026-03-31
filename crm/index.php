@@ -89,7 +89,7 @@
         <!-- PIPELINE -->
         <div class="pipeline-container" id="pipeline">
             <?php foreach($stages as $key => $name): ?>
-                <div class="bg-gray-900 rounded-3xl p-5 border border-gray-800" data-stage="<?= $key ?>">
+                <div class="bg-gray-900 rounded-3xl p-4 border border-gray-800" data-stage="<?= $key ?>">
                     <div class="flex justify-between items-center mb-5">
                         <h2 class="font-bold text-lg"><?= $name ?></h2>
                         <span id="count-<?= $key ?>" class="bg-gray-800 px-4 py-1 rounded-full text-sm">0</span>
