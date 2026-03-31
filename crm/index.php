@@ -1,4 +1,13 @@
 <?php require 'config.php'; ?>
+<?php
+$stages = [];
+
+$result = $conn->query("SELECT * FROM pipelines ORDER BY ordem");
+
+while($row = $result->fetch_assoc()){
+    $stages[$row['id']] = $row['nome'];
+}
+?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -11,7 +20,7 @@
     <style>
         .pipeline-container {
             display: grid;
-            grid-template-columns: repeat(7, minmax(265px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(265px, 1fr));
             gap: 1.25rem;
             padding: 1.5rem;
             overflow-x: auto;
@@ -203,7 +212,7 @@
             });
 
             leads.forEach(lead => {
-                const etapa = String(lead.etapa || '1');
+                const etapa = String(lead.etapa || Object.keys(<?= json_encode($stages) ?>)[0]);
                 const valor = parseFloat(lead.valor) || 0;
                 const dias = diasSemContato(lead.data_ultimo_contato);
 
@@ -216,7 +225,7 @@
                 else if (dias > 10) classeFrio = 'lead-frio';
 
                 const html = `
-                    <div onclick="viewLead(${lead.id})" class="card bg-gray-800 rounded-3xl p-5 cursor-pointer border border-gray-700 ${classeFrio}">
+                    <div data-id="${lead.id}" onclick="viewLead(${lead.id})" class="card bg-gray-800 rounded-3xl p-5 cursor-pointer border border-gray-700 ${classeFrio}">
                         <div class="flex justify-between items-start">
                             <h4 class="font-semibold text-base">${lead.nome}</h4>
                         </div>
@@ -296,7 +305,8 @@
         }
 
         function verTodosNaEtapa(etapa) {
-            const stageName = Object.values(<?= json_encode($stages) ?>)[parseInt(etapa)-1] || 'Etapa ' + etapa;
+            const stages = <?= json_encode($stages) ?>;
+const stageName = stages[etapa] || 'Etapa ' + etapa;
             document.getElementById('modalVerTitulo').textContent = `Leads - ${stageName}`;
             document.getElementById('modalVerTodos').classList.remove('hidden');
 
