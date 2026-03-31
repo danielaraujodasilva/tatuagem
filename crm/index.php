@@ -9,23 +9,38 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
+        .pipeline-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.5rem;
+            padding: 1.5rem;
+        }
+        
         .kanban-column { 
             min-height: 520px; 
             max-height: 650px; 
             overflow-y: auto; 
         }
+        
         .card { 
             transition: all 0.2s; 
+            min-height: 145px;
         }
+        
         .card:hover { 
             transform: translateY(-3px); 
             box-shadow: 0 8px 12px -3px rgb(0 0 0 / 0.2); 
         }
+
         .lead-frio { border-left: 4px solid #eab308; }
         .lead-muito-frio { border-left: 4px solid #ef4444; }
 
         @media (max-width: 1024px) {
-            .pipeline-container { overflow-x: auto; padding-bottom: 20px; }
+            .pipeline-container {
+                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                overflow-x: auto;
+                padding-bottom: 30px;
+            }
         }
     </style>
 </head>
@@ -68,14 +83,13 @@
             <!-- Dashboard -->
             <div id="dashboard" onclick="showDashboardModal()" 
                  class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 mt-10 cursor-pointer hover:opacity-90 transition">
-                <!-- JS preenche -->
             </div>
         </div>
 
         <!-- PIPELINE -->
-        <div class="pipeline-container p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-6" id="pipeline">
+        <div class="pipeline-container" id="pipeline">
             <?php foreach($stages as $key => $name): ?>
-                <div class="bg-gray-900 rounded-3xl p-5 border border-gray-800 min-w-[285px]" data-stage="<?= $key ?>">
+                <div class="bg-gray-900 rounded-3xl p-5 border border-gray-800" data-stage="<?= $key ?>">
                     <div class="flex justify-between items-center mb-5">
                         <h2 class="font-bold text-lg"><?= $name ?></h2>
                         <span id="count-<?= $key ?>" class="bg-gray-800 px-4 py-1 rounded-full text-sm">0</span>
@@ -104,7 +118,7 @@
         </div>
     </div>
 
-    <!-- Modal Novo/Editar Lead -->
+    <!-- Modal Novo/Editar -->
     <div id="modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
         <div class="bg-gray-900 rounded-3xl w-full max-w-2xl mx-4 p-8">
             <h3 id="modalTitle" class="text-2xl font-bold mb-6">Novo Lead</h3>
@@ -203,14 +217,11 @@
                         ${dias < 999 ? `<p class="text-xs mt-3 ${dias > 20 ? 'text-red-400' : 'text-amber-400'}">Sem contato há ${dias} dias</p>` : ''}
                         ${valor > 0 ? `<p class="text-emerald-400 font-medium mt-4">R$ ${valor.toLocaleString('pt-BR')}</p>` : ''}
 
-                        <!-- Botões na última linha -->
-                        <div class="flex justify-start gap-4 mt-5 pt-4 border-t border-gray-700">
-                            <button onclick="editLead(${lead.id}); event.stopImmediatePropagation()" 
-                                    class="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1">
+                        <div class="flex justify-start gap-5 mt-5 pt-4 border-t border-gray-700 text-sm">
+                            <button onclick="editLead(${lead.id}); event.stopImmediatePropagation()" class="text-blue-400 hover:text-blue-300 flex items-center gap-1">
                                 <i class="fas fa-edit"></i> Editar
                             </button>
-                            <button onclick="deleteLead(${lead.id}); event.stopImmediatePropagation()" 
-                                    class="text-red-400 hover:text-red-300 text-sm flex items-center gap-1">
+                            <button onclick="deleteLead(${lead.id}); event.stopImmediatePropagation()" class="text-red-400 hover:text-red-300 flex items-center gap-1">
                                 <i class="fas fa-trash"></i> Excluir
                             </button>
                         </div>
@@ -240,7 +251,7 @@
 
             document.getElementById('dashboard').innerHTML = `
                 <div class="bg-gray-800 rounded-3xl p-6 text-center">
-                    <p class="text-gray-400 text-sm">Total de Leads</p>
+                    <p class="text-gray-400 text-sm">Total Leads</p>
                     <p class="text-4xl font-bold">${totalL}</p>
                 </div>
                 <div class="bg-gray-800 rounded-3xl p-6 text-center">
@@ -253,7 +264,7 @@
         function showDashboardModal() {
             const totalL = allLeads.length;
             const totalV = allLeads.reduce((sum, l) => sum + (parseFloat(l.valor) || 0), 0);
-            alert(`📊 Dashboard Detalhado\n\nTotal de Leads: ${totalL}\nValor Total: R$ ${totalV.toLocaleString('pt-BR')}\n\nGráficos completos em breve.`);
+            alert(`📊 Dashboard Detalhado\n\nTotal de Leads: ${totalL}\nValor Total no Pipeline: R$ ${totalV.toLocaleString('pt-BR')}\n\nGráficos completos em breve.`);
         }
 
         function enableDragAndDrop() {
