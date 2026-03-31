@@ -16,16 +16,22 @@
 </head>
 <body class="bg-gray-950 text-gray-100">
     <div class="max-w-screen-2xl mx-auto">
-        <!-- HEADER + DASHBOARD -->
-        <div class="bg-gray-900 border-b border-gray-800 px-8 py-6">
-            <div class="flex justify-between items-center">
+        <!-- HEADER -->
+        <div class="bg-gray-900 border-b border-gray-800 px-8 py-5">
+            <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <i class="fas fa-chart-simple text-3xl text-emerald-500"></i>
                     <h1 class="text-3xl font-bold">CRM Pipeline</h1>
                 </div>
-                <button onclick="newLead()" class="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-2xl font-semibold flex items-center gap-2">
-                    <i class="fas fa-plus"></i> Novo Lead
-                </button>
+                
+                <div class="flex items-center gap-4">
+                    <input id="search" type="text" placeholder="🔎 Buscar por nome, telefone ou interesse..." 
+                           class="bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3 w-96 focus:outline-none focus:border-emerald-500">
+                    <button onclick="newLead()" 
+                            class="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-2xl font-semibold flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Novo Lead
+                    </button>
+                </div>
             </div>
 
             <!-- Dashboard -->
@@ -36,7 +42,7 @@
         <div class="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-6">
             <?php foreach($stages as $key => $name): ?>
                 <div class="bg-gray-900 rounded-3xl p-5 border border-gray-800" data-stage="<?= $key ?>">
-                    <div class="flex justify-between mb-5">
+                    <div class="flex justify-between items-center mb-5">
                         <h2 class="font-bold text-lg"><?= $name ?></h2>
                         <span id="count-<?= $key ?>" class="bg-gray-800 px-4 py-1 rounded-full text-sm">0</span>
                     </div>
@@ -92,7 +98,7 @@
 
                 <div class="flex gap-4 mt-10">
                     <button type="button" onclick="closeModal()" class="flex-1 py-4 text-gray-400 hover:text-white font-medium rounded-2xl">Cancelar</button>
-                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 py-4 rounded-2xl font-semibold">Salvar</button>
+                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 py-4 rounded-2xl font-semibold">Salvar Lead</button>
                 </div>
             </form>
         </div>
@@ -106,6 +112,7 @@
                 .then(r => r.json())
                 .then(leads => {
                     document.querySelectorAll('.kanban-column').forEach(col => col.innerHTML = '');
+
                     let totalPipeline = 0;
                     const counts = {};
                     const columnTotals = {};
@@ -118,6 +125,7 @@
                     leads.forEach(lead => {
                         const etapa = String(lead.etapa || '1');
                         const valor = parseFloat(lead.valor) || 0;
+
                         totalPipeline += valor;
                         counts[etapa]++;
                         columnTotals[etapa] += valor;
@@ -125,14 +133,14 @@
                         const cardHTML = `
                             <div onclick="viewLead(${lead.id})" class="card bg-gray-800 rounded-3xl p-5 cursor-pointer border border-gray-700">
                                 <div class="flex justify-between items-start">
-                                    <h4 class="font-semibold text-lg">${lead.nome}</h4>
+                                    <h4 class="font-semibold">${lead.nome}</h4>
                                     <div class="flex gap-3">
                                         <button onclick="editLead(${lead.id}); event.stopImmediatePropagation();" class="text-blue-400 hover:text-blue-300"><i class="fas fa-edit"></i></button>
                                         <button onclick="deleteLead(${lead.id}); event.stopImmediatePropagation();" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>
                                     </div>
                                 </div>
-                                <p class="text-gray-400">${lead.telefone}</p>
-                                ${lead.interesse ? `<p class="text-xs text-gray-500 mt-2">${lead.interesse}</p>` : ''}
+                                <p class="text-gray-400 text-sm">${lead.telefone || ''}</p>
+                                ${lead.interesse ? `<p class="text-xs text-gray-500 mt-1">${lead.interesse}</p>` : ''}
                                 ${valor > 0 ? `<p class="text-emerald-400 font-medium mt-3">R$ ${valor.toLocaleString('pt-BR')}</p>` : ''}
                             </div>`;
 
@@ -140,26 +148,33 @@
                         if (col) col.innerHTML += cardHTML;
                     });
 
-                    // Atualiza contadores e totais por coluna
+                    // Atualiza contadores e totais (com proteção)
                     Object.keys(counts).forEach(k => {
-                        document.getElementById(`count-${k}`).textContent = counts[k];
+                        const countEl = document.getElementById(`count-${k}`);
+                        if (countEl) countEl.textContent = counts[k];
+
                         const totalEl = document.getElementById(`total-${k}`);
-                        if (totalEl) totalEl.textContent = columnTotals[k] > 0 ? `Total: R$ ${columnTotals[k].toLocaleString('pt-BR')}` : '';
+                        if (totalEl) {
+                            totalEl.textContent = columnTotals[k] > 0 ? `Total: R$ ${columnTotals[k].toLocaleString('pt-BR')}` : '';
+                        }
                     });
 
                     updateDashboard(leads.length, totalPipeline);
                     enableDragAndDrop();
-                });
+                })
+                .catch(err => console.error("Erro ao carregar pipeline:", err));
         }
 
         function updateDashboard(totalLeads, totalValor) {
-            document.getElementById('dashboard').innerHTML = `
+            const dash = document.getElementById('dashboard');
+            if (!dash) return;
+            dash.innerHTML = `
                 <div class="bg-gray-800 rounded-3xl p-6">
-                    <p class="text-gray-400">Total de Leads</p>
+                    <p class="text-gray-400 text-sm">Total de Leads</p>
                     <p class="text-4xl font-bold">${totalLeads}</p>
                 </div>
                 <div class="bg-gray-800 rounded-3xl p-6">
-                    <p class="text-gray-400">Valor Total no Pipeline</p>
+                    <p class="text-gray-400 text-sm">Valor no Pipeline</p>
                     <p class="text-4xl font-bold text-emerald-400">R$ ${totalValor.toLocaleString('pt-BR')}</p>
                 </div>
             `;
@@ -171,7 +186,7 @@
                     group: 'kanban',
                     animation: 180,
                     onEnd: function(evt) {
-                        const id = evt.item.dataset.id || evt.item.querySelector('[data-id]').dataset.id;
+                        const id = evt.item.dataset.id;
                         const newEtapa = evt.to.parentElement.dataset.stage;
                         if (id && newEtapa) {
                             fetch('handler.php', {
@@ -196,7 +211,7 @@
             fetch('handler.php?action=getAll')
                 .then(r => r.json())
                 .then(leads => {
-                    const lead = leads.find(l => parseInt(l.id) === parseInt(id));
+                    const lead = leads.find(l => Number(l.id) === Number(id));
                     if (!lead) return;
                     currentEditId = id;
                     document.getElementById('modalTitle').textContent = 'Editar Lead';
@@ -231,19 +246,18 @@
             fetch('handler.php', { method: 'POST', body: formData })
                 .then(r => r.json())
                 .then(data => {
-                    if (data.error) {
-                        alert(data.error);
-                    } else {
+                    if (data.error) alert(data.error);
+                    else {
                         closeModal();
                         loadPipeline();
-                        alert(currentEditId ? "Lead atualizado com sucesso!" : "Lead cadastrado com sucesso!");
+                        alert(currentEditId ? "Lead atualizado!" : "Lead cadastrado com sucesso!");
                     }
                 })
-                .catch(() => alert("Erro ao salvar. Tente novamente."));
+                .catch(() => alert("Erro ao salvar lead"));
         }
 
         function deleteLead(id) {
-            if (confirm("Excluir este lead permanentemente?")) {
+            if (confirm("Excluir este lead?")) {
                 fetch('handler.php', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -255,6 +269,14 @@
         function closeModal() {
             document.getElementById('modal').classList.add('hidden');
         }
+
+        // Busca em tempo real
+        document.getElementById('search').addEventListener('input', function() {
+            const term = this.value.toLowerCase().trim();
+            document.querySelectorAll('.card').forEach(card => {
+                card.style.display = card.textContent.toLowerCase().includes(term) ? '' : 'none';
+            });
+        });
 
         window.onload = loadPipeline;
     </script>
