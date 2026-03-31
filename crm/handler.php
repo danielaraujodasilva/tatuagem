@@ -5,23 +5,22 @@ header('Content-Type: application/json');
 $action = $_REQUEST['action'] ?? $_POST['action'] ?? '';
 
 try {
-    // ====================== GET ALL LEADS ======================
     if ($action === 'getAll') {
         $stmt = $conn->query("SELECT *, etapa_funil AS etapa FROM leads ORDER BY id DESC");
         echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
         exit;
     }
 
-    // ====================== CREATE / UPDATE LEAD ======================
     if ($action === 'create' || $action === 'update') {
-        $id        = (int)($_POST['id'] ?? 0);
-        $nome      = trim($_POST['nome'] ?? '');
-        $telefone  = trim($_POST['telefone'] ?? '');
-        $interesse = trim($_POST['interesse'] ?? '');
-        $valor     = $_POST['valor'] ?? 0;
-        $origem    = trim($_POST['origem'] ?? '');
-        $status    = trim($_POST['status'] ?? '');
-        $etapa     = $_POST['etapa'] ?? '1';
+        $id                  = (int)($_POST['id'] ?? 0);
+        $nome                = trim($_POST['nome'] ?? '');
+        $telefone            = trim($_POST['telefone'] ?? '');
+        $interesse           = trim($_POST['interesse'] ?? '');
+        $valor               = $_POST['valor'] ?? 0;
+        $origem              = trim($_POST['origem'] ?? '');
+        $status              = trim($_POST['status'] ?? '');
+        $etapa               = $_POST['etapa'] ?? '1';
+        $data_ultimo_contato = $_POST['data_ultimo_contato'] ?? null;
 
         if (empty($nome) || empty($telefone)) {
             echo json_encode(['error' => 'Nome e telefone são obrigatórios']);
@@ -29,20 +28,19 @@ try {
         }
 
         if ($action === 'create') {
-            $sql = "INSERT INTO leads (nome, telefone, interesse, valor, origem, status, etapa_funil, created_at) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+            $sql = "INSERT INTO leads (nome, telefone, interesse, valor, origem, status, etapa_funil, data_ultimo_contato, created_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
             $stmt = $conn->prepare($sql);
-            $stmt->execute([$nome, $telefone, $interesse, $valor, $origem, $status, $etapa]);
+            $stmt->execute([$nome, $telefone, $interesse, $valor, $origem, $status, $etapa, $data_ultimo_contato]);
         } else {
-            $sql = "UPDATE leads SET nome=?, telefone=?, interesse=?, valor=?, origem=?, status=?, etapa_funil=? WHERE id=?";
+            $sql = "UPDATE leads SET nome=?, telefone=?, interesse=?, valor=?, origem=?, status=?, etapa_funil=?, data_ultimo_contato=? WHERE id=?";
             $stmt = $conn->prepare($sql);
-            $stmt->execute([$nome, $telefone, $interesse, $valor, $origem, $status, $etapa, $id]);
+            $stmt->execute([$nome, $telefone, $interesse, $valor, $origem, $status, $etapa, $data_ultimo_contato, $id]);
         }
-        echo json_encode(['status' => 'ok', 'id' => $id ?: $conn->lastInsertId()]);
+        echo json_encode(['status' => 'ok']);
         exit;
     }
 
-    // ====================== DELETE ======================
     if ($action === 'delete') {
         $id = (int)($_POST['id'] ?? 0);
         $conn->prepare("DELETE FROM leads WHERE id=?")->execute([$id]);
@@ -50,7 +48,6 @@ try {
         exit;
     }
 
-    // ====================== MOVE ======================
     if ($action === 'move') {
         $id = (int)($_POST['id'] ?? 0);
         $etapa = $_POST['etapa'] ?? '1';
@@ -59,18 +56,16 @@ try {
         exit;
     }
 
-    // ====================== INTERAÇÕES ======================
+    // Interações com tipo
     if ($action === 'addInteraction') {
-        $id  = (int)($_POST['id'] ?? 0);
-        $msg = trim($_POST['msg'] ?? '');
-
+        $id     = (int)($_POST['id'] ?? 0);
+        $tipo   = $_POST['tipo'] ?? 'Outros';
+        $msg    = trim($_POST['msg'] ?? '');
         if ($id && $msg) {
-            $sql = "INSERT INTO interacoes (lead_id, mensagem, data) VALUES (?, ?, NOW())";
+            $sql = "INSERT INTO interacoes (lead_id, tipo, mensagem, data) VALUES (?, ?, ?, NOW())";
             $stmt = $conn->prepare($sql);
-            $stmt->execute([$id, $msg]);
+            $stmt->execute([$id, $tipo, $msg]);
             echo json_encode(['status' => 'ok']);
-        } else {
-            echo json_encode(['error' => 'Mensagem vazia ou lead inválido']);
         }
         exit;
     }
@@ -83,7 +78,7 @@ try {
         exit;
     }
 
-    echo json_encode(['error' => 'Ação inválida: ' . $action]);
+    echo json_encode(['error' => 'Ação inválida']);
 
 } catch (Exception $e) {
     echo json_encode(['error' => 'Erro no servidor: ' . $e->getMessage()]);
