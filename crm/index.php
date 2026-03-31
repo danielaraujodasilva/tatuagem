@@ -16,7 +16,7 @@
         }
         .card { 
             transition: all 0.2s; 
-            min-height: 140px;
+            min-height: 145px;
         }
         .card:hover { 
             transform: translateY(-4px); 
@@ -24,12 +24,9 @@
         }
         .lead-frio { border-left: 4px solid #eab308; }
         .lead-muito-frio { border-left: 4px solid #ef4444; }
-        
+
         @media (max-width: 1024px) {
-            .pipeline-container { 
-                overflow-x: auto; 
-                padding-bottom: 30px; 
-            }
+            .pipeline-container { overflow-x: auto; padding-bottom: 30px; }
             .kanban-column { max-height: 480px; }
         }
     </style>
@@ -70,15 +67,18 @@
                 </div>
             </div>
 
-            <!-- Dashboard -->
-            <div id="dashboard" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 mt-10"></div>
+            <!-- Dashboard Clicável -->
+            <div id="dashboard" onclick="showDashboardModal()" 
+                 class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 mt-10 cursor-pointer hover:opacity-90 transition-all">
+                <!-- JS preenche aqui -->
+            </div>
         </div>
 
         <!-- PIPELINE -->
         <div class="pipeline-container p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-6" id="pipeline">
             <?php foreach($stages as $key => $name): ?>
-                <div class="bg-gray-900 rounded-3xl p-6 border border-gray-800 min-w-[300px]" data-stage="<?= $key ?>">
-                    <div class="flex justify-between items-center mb-6">
+                <div class="bg-gray-900 rounded-3xl p-5 border border-gray-800 min-w-[290px]" data-stage="<?= $key ?>">
+                    <div class="flex justify-between items-center mb-5">
                         <h2 class="font-bold text-lg"><?= $name ?></h2>
                         <span id="count-<?= $key ?>" class="bg-gray-800 px-4 py-1 rounded-full text-sm">0</span>
                     </div>
@@ -93,20 +93,41 @@
         </div>
     </div>
 
+    <!-- Modal Dashboard -->
+    <div id="modalDashboard" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+        <div class="bg-gray-900 rounded-3xl w-full max-w-4xl mx-4 p-8">
+            <div class="flex justify-between mb-6">
+                <h3 class="text-2xl font-bold">Dashboard Detalhado</h3>
+                <button onclick="closeDashboardModal()" class="text-gray-400 hover:text-white text-3xl">×</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
+                <div class="bg-gray-800 rounded-3xl p-8">
+                    <p class="text-gray-400">Total de Leads</p>
+                    <p id="modalTotalLeads" class="text-6xl font-bold mt-4"></p>
+                </div>
+                <div class="bg-gray-800 rounded-3xl p-8">
+                    <p class="text-gray-400">Valor Total no Pipeline</p>
+                    <p id="modalTotalValor" class="text-6xl font-bold text-emerald-400 mt-4"></p>
+                </div>
+            </div>
+            <p class="text-center text-gray-500 mt-8">Gráficos completos serão adicionados em breve.</p>
+        </div>
+    </div>
+
     <!-- Modal Ver Todos -->
     <div id="modalVerTodos" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
         <div class="bg-gray-900 rounded-3xl w-full max-w-3xl mx-4 p-8 flex flex-col max-h-[90vh]">
             <div class="flex justify-between mb-6">
                 <h3 id="modalVerTitulo" class="text-2xl font-bold"></h3>
-                <button onclick="closeVerTodos()" class="text-gray-400 hover:text-white text-3xl leading-none">×</button>
+                <button onclick="closeVerTodos()" class="text-gray-400 hover:text-white text-3xl">×</button>
             </div>
             <input id="searchVerTodos" type="text" placeholder="Buscar dentro desta etapa..." 
                    class="bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3 mb-6">
-            <div id="listaVerTodos" class="flex-1 overflow-y-auto space-y-3 pr-2"></div>
+            <div id="listaVerTodos" class="flex-1 overflow-y-auto space-y-3"></div>
         </div>
     </div>
 
-    <!-- Modal Novo/Editar -->
+    <!-- Modal Novo/Editar Lead -->
     <div id="modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
         <div class="bg-gray-900 rounded-3xl w-full max-w-2xl mx-4 p-8">
             <h3 id="modalTitle" class="text-2xl font-bold mb-6">Novo Lead</h3>
@@ -162,7 +183,6 @@
 
     <script>
         let allLeads = [];
-        let currentFilters = {};
 
         function diasSemContato(data) {
             if (!data) return 999;
@@ -172,8 +192,6 @@
 
         function loadPipeline(filteredLeads = null) {
             const leads = filteredLeads || allLeads;
-
-            // Limpa colunas
             document.querySelectorAll('.kanban-column').forEach(col => col.innerHTML = '');
 
             let totalValor = 0;
@@ -201,14 +219,14 @@
                 const html = `
                     <div onclick="viewLead(${lead.id})" class="card bg-gray-800 rounded-3xl p-5 cursor-pointer border border-gray-700 ${classeFrio}">
                         <div class="flex justify-between items-start">
-                            <h4 class="font-semibold text-base">${lead.nome}</h4>
+                            <h4 class="font-semibold text-base leading-tight">${lead.nome}</h4>
                             <div class="flex gap-2">
                                 <button onclick="editLead(${lead.id}); event.stopImmediatePropagation()" class="text-blue-400 hover:text-blue-300"><i class="fas fa-edit"></i></button>
                                 <button onclick="deleteLead(${lead.id}); event.stopImmediatePropagation()" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>
                             </div>
                         </div>
                         <p class="text-gray-400 text-sm mt-1">${lead.telefone}</p>
-                        ${lead.interesse ? `<p class="text-xs text-gray-500 mt-2">${lead.interesse}</p>` : ''}
+                        ${lead.interesse ? `<p class="text-xs text-gray-500 mt-2 line-clamp-2">${lead.interesse}</p>` : ''}
                         ${dias < 999 ? `<p class="text-xs mt-2 ${dias > 20 ? 'text-red-400' : 'text-amber-400'}">Sem contato há ${dias} dias</p>` : ''}
                         ${valor > 0 ? `<p class="text-emerald-400 font-medium mt-3">R$ ${valor.toLocaleString('pt-BR')}</p>` : ''}
                     </div>`;
@@ -219,15 +237,12 @@
                 }
             });
 
-            // Atualiza contadores e totais com proteção
             Object.keys(counts).forEach(k => {
                 const countEl = document.getElementById(`count-${k}`);
                 if (countEl) countEl.textContent = counts[k];
 
                 const totalEl = document.getElementById(`total-${k}`);
-                if (totalEl) {
-                    totalEl.textContent = columnTotals[k] > 0 ? `R$ ${columnTotals[k].toLocaleString('pt-BR')}` : '';
-                }
+                if (totalEl) totalEl.textContent = columnTotals[k] > 0 ? `R$ ${columnTotals[k].toLocaleString('pt-BR')}` : '';
             });
 
             updateDashboard(leads);
@@ -239,15 +254,22 @@
             const totalV = leads.reduce((sum, l) => sum + (parseFloat(l.valor) || 0), 0);
 
             document.getElementById('dashboard').innerHTML = `
-                <div class="bg-gray-800 rounded-3xl p-6">
-                    <p class="text-gray-400 text-sm">Total de Leads</p>
-                    <p class="text-4xl font-bold text-white">${totalL}</p>
+                <div class="bg-gray-800 rounded-3xl p-6 text-center">
+                    <p class="text-gray-400 text-sm">Total Leads</p>
+                    <p class="text-4xl font-bold">${totalL}</p>
                 </div>
-                <div class="bg-gray-800 rounded-3xl p-6">
-                    <p class="text-gray-400 text-sm">Valor Total no Pipeline</p>
+                <div class="bg-gray-800 rounded-3xl p-6 text-center">
+                    <p class="text-gray-400 text-sm">Valor Total</p>
                     <p class="text-4xl font-bold text-emerald-400">R$ ${totalV.toLocaleString('pt-BR')}</p>
                 </div>
             `;
+        }
+
+        function showDashboardModal() {
+            const totalL = allLeads.length;
+            const totalV = allLeads.reduce((sum, l) => sum + (parseFloat(l.valor) || 0), 0);
+
+            alert(`📊 Dashboard Detalhado\n\nTotal de Leads: ${totalL}\nValor Total no Pipeline: R$ ${totalV.toLocaleString('pt-BR')}\n\nEm breve teremos gráficos completos aqui.`);
         }
 
         function enableDragAndDrop() {
@@ -287,7 +309,7 @@
                         <strong>${lead.nome}</strong>
                         <span class="text-emerald-400">R$ ${(parseFloat(lead.valor)||0).toLocaleString('pt-BR')}</span>
                     </div>
-                    <p class="text-gray-400">${lead.telefone}</p>
+                    <p class="text-gray-400 text-sm">${lead.telefone}</p>
                 </div>
             `).join('');
         }
@@ -297,12 +319,10 @@
         }
 
         function exportToCSV() {
-            const leadsToExport = allLeads; // Por enquanto exporta todos (pode mudar para filtered depois)
-            if (!leadsToExport.length) return alert("Não há leads para exportar");
+            if (!allLeads.length) return alert("Não há leads para exportar");
 
             let csv = "ID,Nome,Telefone,Interesse,Valor,Origem,Status,Etapa,Último Contato,Data Cadastro\n";
-            
-            leadsToExport.forEach(l => {
+            allLeads.forEach(l => {
                 csv += `"${l.id}","${l.nome.replace(/"/g, '""')}","${l.telefone}","${(l.interesse||'').replace(/"/g, '""')}",${l.valor||0},"${(l.origem||'').replace(/"/g, '""')}","${(l.status||'').replace(/"/g, '""')}","${l.etapa}","${l.data_ultimo_contato||''}","${l.created_at}"\n`;
             });
 
@@ -347,33 +367,28 @@
             fetch('handler.php', { method: 'POST', body: formData })
                 .then(r => r.json())
                 .then(data => {
-                    if (data.error) {
-                        alert(data.error);
-                    } else {
+                    if (data.error) alert(data.error);
+                    else {
                         closeModal();
-                        fetch('handler.php?action=getAll')
-                            .then(r => r.json())
-                            .then(leads => {
-                                allLeads = leads;
-                                loadPipeline();
-                            });
+                        fetch('handler.php?action=getAll').then(r => r.json()).then(leads => {
+                            allLeads = leads;
+                            loadPipeline();
+                        });
                     }
                 });
         }
 
         function deleteLead(id) {
-            if (!confirm('Excluir este lead permanentemente?')) return;
+            if (!confirm('Excluir este lead?')) return;
             fetch('handler.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                 body: `action=delete&id=${id}`
             }).then(() => {
-                fetch('handler.php?action=getAll')
-                    .then(r => r.json())
-                    .then(leads => {
-                        allLeads = leads;
-                        loadPipeline();
-                    });
+                fetch('handler.php?action=getAll').then(r => r.json()).then(leads => {
+                    allLeads = leads;
+                    loadPipeline();
+                });
             });
         }
 
@@ -403,7 +418,6 @@
             loadPipeline(filtered);
         }
 
-        // Inicialização
         window.onload = () => {
             fetch('handler.php?action=getAll')
                 .then(r => r.json())
@@ -412,7 +426,6 @@
                     loadPipeline(leads);
                 });
 
-            // Filtros em tempo real
             document.getElementById('search').addEventListener('input', applyFilters);
             document.getElementById('filterEtapa').addEventListener('change', applyFilters);
             document.getElementById('filterValorMin').addEventListener('input', applyFilters);
