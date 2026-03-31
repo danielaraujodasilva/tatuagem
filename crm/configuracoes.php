@@ -19,7 +19,8 @@
 
 <?php
 $res = $conn->query("SELECT * FROM pipelines ORDER BY ordem");
-while($p = $res->fetch_assoc()):
+
+while($p = $res->fetch(PDO::FETCH_ASSOC)):
 ?>
 
 <div class="bg-gray-800 p-4 mb-2 rounded flex justify-between items-center">
