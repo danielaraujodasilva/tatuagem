@@ -11,35 +11,43 @@
     <style>
         .pipeline-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(7, minmax(265px, 1fr));
+            gap: 1.25rem;
             padding: 1.5rem;
+            overflow-x: auto;
+            scroll-behavior: smooth;
         }
-        
+
         .kanban-column { 
-            min-height: 520px; 
-            max-height: 650px; 
+            min-height: 540px; 
+            max-height: 680px; 
             overflow-y: auto; 
+            padding-right: 8px;
         }
-        
+
         .card { 
             transition: all 0.2s; 
-            min-height: 145px;
+            min-height: 148px;
         }
-        
+
         .card:hover { 
             transform: translateY(-3px); 
-            box-shadow: 0 8px 12px -3px rgb(0 0 0 / 0.2); 
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.25); 
         }
 
         .lead-frio { border-left: 4px solid #eab308; }
         .lead-muito-frio { border-left: 4px solid #ef4444; }
 
-        @media (max-width: 1024px) {
+        /* Mobile - scroll horizontal */
+        @media (max-width: 1280px) {
+            .pipeline-container {
+                grid-template-columns: repeat(7, minmax(255px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
             .pipeline-container {
                 grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-                overflow-x: auto;
-                padding-bottom: 30px;
             }
         }
     </style>
@@ -86,10 +94,10 @@
             </div>
         </div>
 
-        <!-- PIPELINE -->
+        <!-- PIPELINE - 7 colunas fixas -->
         <div class="pipeline-container" id="pipeline">
             <?php foreach($stages as $key => $name): ?>
-                <div class="bg-gray-900 rounded-3xl p-4 border border-gray-800" data-stage="<?= $key ?>">
+                <div class="bg-gray-900 rounded-3xl p-5 border border-gray-800" data-stage="<?= $key ?>">
                     <div class="flex justify-between items-center mb-5">
                         <h2 class="font-bold text-lg"><?= $name ?></h2>
                         <span id="count-<?= $key ?>" class="bg-gray-800 px-4 py-1 rounded-full text-sm">0</span>
@@ -413,6 +421,7 @@
             loadPipeline(filtered);
         }
 
+        // Inicialização
         window.onload = () => {
             fetch('handler.php?action=getAll')
                 .then(r => r.json())
