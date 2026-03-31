@@ -23,27 +23,3 @@ $stages = [
     '7' => '❌ Fechado - Perdido'
 ];
 
-<?php
-// ==================== CONFIGURAÇÃO ====================
-$host = 'localhost';
-$db   = 'crm_simples';      // ← mude
-$user = 'root';
-$pass = '';
-
-try {
-    $conn = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Erro de conexão: " . $e->getMessage());
-}
-
-// Etapas do funil (use os números que você já tem)
-$stages = [
-    '1' => '🆕 Novo',
-    '2' => '📞 Contato Inicial',
-    '3' => '🤝 Reunião',
-    '4' => '📄 Proposta Enviada',
-    '5' => '💰 Negociação',
-    '6' => '✅ Fechado - Ganho',
-    '7' => '❌ Fechado - Perdido'
-];
