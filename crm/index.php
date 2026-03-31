@@ -72,6 +72,10 @@ while($row = $result->fetch(PDO::FETCH_ASSOC)){
                 </div>
 
                 <div class="flex flex-wrap gap-3 w-full lg:w-auto">
+                    <a href="configuracoes.php" 
+   class="bg-gray-800 hover:bg-gray-700 px-4 py-3 rounded-2xl flex items-center">
+    <i class="fas fa-gear"></i>
+</a>
                     <input id="search" type="text" placeholder="Buscar nome, telefone ou interesse..." 
                            class="bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3 flex-1 lg:w-80">
 
