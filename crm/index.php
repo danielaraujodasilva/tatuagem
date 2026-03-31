@@ -285,24 +285,42 @@ while($row = $result->fetch(PDO::FETCH_ASSOC)){
         }
 
         function enableDragAndDrop() {
-            document.querySelectorAll('.kanban-column').forEach(column => {
-                Sortable.create(column, {
-                    group: 'kanban',
-                    animation: 180,
-                    onEnd: function(evt) {
-                        const id = evt.item.dataset.id;
-                        const newEtapa = evt.to.parentElement.dataset.stage;
-                        if (id && newEtapa) {
-                            fetch('handler.php', {
-                                method: 'POST',
-                                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                                body: `action=move&id=${id}&etapa=${newEtapa}`
-                            }).then(() => loadPipeline());
-                        }
-                    }
-                });
-            });
+    document.querySelectorAll('.kanban-column').forEach(column => {
+
+        // evita duplicar sortable (isso buga tudo)
+        if (column.sortableInstance) {
+            column.sortableInstance.destroy();
         }
+
+        column.sortableInstance = Sortable.create(column, {
+            group: 'kanban',
+            animation: 180,
+            ghostClass: 'opacity-50',
+
+            onEnd: function(evt) {
+                const id = evt.item.getAttribute('data-id');
+                const newEtapa = evt.to.closest('[data-stage]').getAttribute('data-stage');
+
+                if (id && newEtapa) {
+                    fetch('handler.php', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: `action=move&id=${id}&etapa=${newEtapa}`
+                    })
+                    .then(() => {
+                        // recarrega sem quebrar UI
+                        fetch('handler.php?action=getAll')
+                            .then(r => r.json())
+                            .then(leads => {
+                                allLeads = leads;
+                                loadPipeline();
+                            });
+                    });
+                }
+            }
+        });
+    });
+}
 
         function verTodosNaEtapa(etapa) {
             const stages = <?= json_encode($stages) ?>;
