@@ -3,50 +3,70 @@
 $username = "meduritattoo";
 $maxPosts = 9;
 
-$url = "https://www.instagram.com/meduritattoo/";
-$html = @file_get_contents($url);
+// cria contexto com user-agent (fundamental)
+$options = [
+    "http" => [
+        "header" => "User-Agent: Mozilla/5.0"
+    ]
+];
 
-if(!$html){
+$context = stream_context_create($options);
+
+$url = "https://www.instagram.com/$username/";
+$html = file_get_contents($url, false, $context);
+
+if (!$html) {
     die("Erro ao acessar Instagram");
 }
 
-preg_match('/window\._sharedData = (.*);<\/script>/', $html, $matches);
+// pega JSON moderno
+preg_match('/<script type="application\/json" data-sjs>(.*?)<\/script>/', $html, $matches);
 
 if (!isset($matches[1])) {
-    die("Erro ao pegar dados do Instagram");
+    die("Instagram mudou tudo de novo (sim, já começou...)");
 }
 
 $data = json_decode($matches[1], true);
 
-$posts = $data['entry_data']['ProfilePage'][0]['graphql']['user']['edge_owner_to_timeline_media']['edges'];
-
+// tenta encontrar imagens
 $result = [];
 $count = 0;
 
-foreach ($posts as $post) {
+function findImages($array, &$result, &$count, $maxPosts) {
+    foreach ($array as $key => $value) {
 
-    if ($count >= $maxPosts) break;
+        if ($count >= $maxPosts) return;
 
-    $img = $post['node']['display_url'];
-    $id = $post['node']['id'];
+        if ($key === "display_url" && is_string($value)) {
+            $id = md5($value);
+            $fileName = "imagens/$id.jpg";
 
-    $imgData = file_get_contents($img);
+            $imgData = @file_get_contents($value);
 
-    $fileName = "imagens/$id.jpg";
+            if ($imgData) {
+                file_put_contents(__DIR__ . "/" . $fileName, $imgData);
 
-    file_put_contents(__DIR__ . "/" . $fileName, $imgData);
+                $image = @imagecreatefromjpeg(__DIR__ . "/" . $fileName);
+                if ($image) {
+                    imagejpeg($image, __DIR__ . "/" . $fileName, 75);
+                    imagedestroy($image);
+                }
 
-    $image = @imagecreatefromjpeg(__DIR__ . "/" . $fileName);
-    if($image){
-        imagejpeg($image, __DIR__ . "/" . $fileName, 75);
-        imagedestroy($image);
+                $result[] = ["img" => $fileName];
+                $count++;
+            }
+        }
+
+        if (is_array($value)) {
+            findImages($value, $result, $count, $maxPosts);
+        }
     }
+}
 
-    $result[] = [
-        "img" => "imagens/$id.jpg"
-    ];
+findImages($data, $result, $count, $maxPosts);
 
-    $count++;
+if (empty($result)) {
+    die("Não achou nenhuma imagem. Instagram tá te bloqueando bonito.");
 }
 
 file_put_contents(__DIR__ . "/instagram.json", json_encode($result));
