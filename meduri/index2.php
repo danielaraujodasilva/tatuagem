@@ -295,60 +295,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="swiper-slide">
-                        <div class="team-card">
-                            <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img" alt="João tatuador" loading="lazy">
-                            <div class="team-overlay">
-                                <h4>João Old</h4>
-                                <p>Old school e tradicional com twist moderno. Clássicos que nunca saem de moda.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="swiper-slide">
-                        <div class="team-card">
-                            <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img" alt="Carla tatuadora" loading="lazy">
-                            <div class="team-overlay">
-                                <h4>Carla Neo</h4>
-                                <p>Neo tradicional e colorido. Cores vibrantes e narrativas fortes na pele.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="swiper-slide">
-                        <div class="team-card">
-                            <img src="https://thumbs.dreamstime.com/b/delicate-fine-line-tattoo-blooming-flowers-woman-back-subtle-ink-shading-creates-depth-skin-minimalist-black-white-403847740.jpg" class="team-img" alt="Rafael tatuador" loading="lazy">
-                            <div class="team-overlay">
-                                <h4>Rafael Dot</h4>
-                                <p>Dotwork e mandalas. Detalhes infinitos e precisão milimétrica.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="swiper-slide">
-                        <div class="team-card">
-                            <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img" alt="Sofia tatuadora" loading="lazy">
-                            <div class="team-overlay">
-                                <h4>Sofia Realism</h4>
-                                <p>Realismo preto e cinza. Retratos e animais com emoção real.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="swiper-slide">
-                        <div class="team-card">
-                            <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img" alt="Victor tatuador" loading="lazy">
-                            <div class="team-overlay">
-                                <h4>Victor Cover</h4>
-                                <p>Cover-ups e reworks. Transforma tatuagens antigas em obras-primas.</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="swiper-slide">
-                        <div class="team-card">
-                            <img src="https://thumbs.dreamstime.com/b/delicate-fine-line-tattoo-blooming-flowers-woman-back-subtle-ink-shading-creates-depth-skin-minimalist-black-white-403847740.jpg" class="team-img" alt="Maria tatuadora" loading="lazy">
-                            <div class="team-overlay">
-                                <h4>Maria Script</h4>
-                                <p>Lettering e caligrafia. Frases, poemas e textos com estilo único.</p>
-                            </div>
-                        </div>
-                    </div>
+                    
                 </div>
                 <div class="swiper-button-prev"></div>
                 <div class="swiper-button-next"></div>
