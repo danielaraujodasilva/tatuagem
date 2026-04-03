@@ -264,7 +264,7 @@
                 <div class="swiper-wrapper">
                     <div class="swiper-slide">
                         <div class="team-card">
-                            <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img" alt="Meduri tatuador" loading="lazy">
+                            <img src="img/meduri.png" class="team-img" alt="Meduri tatuador" loading="lazy">
                             <div class="team-overlay">
                                 <h4>Meduri</h4>
                                 <p>Gustavo Meduri, mais conhecido como Meduri, é tatuador especializado nos estilos Realismo e Black and Gray, reconhecido pela extrema atenção aos detalhes, precisão técnica e acabamento refinado em cada peça. Seu trabalho se destaca pela profundidade, contraste e fidelidade às referências, buscando sempre um resultado marcante e duradouro.</p>
