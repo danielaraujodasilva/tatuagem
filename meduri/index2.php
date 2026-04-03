@@ -275,19 +275,23 @@
                     </div>
                     <div class="swiper-slide">
                         <div class="team-card">
-                            <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img" alt="Lucas tatuador" loading="lazy">
+                            <img src="img/vinicius.png" class="team-img" alt="Lucas tatuador" loading="lazy">
                             <div class="team-overlay">
-                                <h4>Lucas Black</h4>
-                                <p>Expert em blackwork e geométrico. Foco em peças minimalistas e impactantes. +8 anos no ramo.</p>
+                                <h4>Vinícios</h4>
+                                <p>Vinícios, mais conhecido como Vini, é tatuador de estilo versátil, atuando com diferentes propostas e técnicas, o que permite desenvolver projetos únicos e personalizados para cada cliente. Seu trabalho é marcado pela adaptabilidade, criatividade e atenção aos detalhes, sempre buscando harmonia, boa aplicação e um resultado final consistente, independentemente do estilo escolhido.</p>
+
+<p>No atendimento, Vini se destaca pela proximidade e cuidado em entender a ideia de cada pessoa, oferecendo orientação durante todo o processo criativo e de execução. Seu foco vai além da tatuagem em si, priorizando uma experiência leve, segura e bem acompanhada, garantindo que cada cliente se sinta confiante e satisfeito do início ao fim.</p>
                             </div>
                         </div>
                     </div>
                     <div class="swiper-slide">
                         <div class="team-card">
-                            <img src="https://thumbs.dreamstime.com/b/delicate-fine-line-tattoo-blooming-flowers-woman-back-subtle-ink-shading-creates-depth-skin-minimalist-black-white-403847740.jpg" class="team-img" alt="Ana tatuadora" loading="lazy">
+                            <img src="img/veronica.png" class="team-img" alt="Ana tatuadora" loading="lazy">
                             <div class="team-overlay">
-                                <h4>Ana Fine</h4>
-                                <p>Especialista em fine line e floral. Perfeita para tatuagens femininas delicadas e elegantes.</p>
+                                <h4>Verônica</h4>
+                                <p>Veronica é tatuadora especializada nos estilos geek e artes conceituais, destacando-se pela criatividade, originalidade e riqueza de detalhes em cada projeto. Seu trabalho traz composições únicas, com forte influência de universos fictícios e ideias autorais, sempre buscando equilíbrio, identidade visual e acabamento de alto nível.</p>
+
+<p>No contato com os clientes, Veronica valoriza uma abordagem atenciosa e individualizada, dedicando tempo para compreender cada proposta e transformar conceitos em tatuagens exclusivas. Seu compromisso é oferecer não apenas um resultado artístico marcante, mas também uma experiência acolhedora, segura e pensada em cada etapa do processo.</p>
                             </div>
                         </div>
                     </div>
