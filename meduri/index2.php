@@ -181,67 +181,6 @@
             70% { box-shadow: 0 0 0 15px rgba(37,211,102,0); }
             100% { box-shadow: 0 0 0 0 rgba(37,211,102,0); }
         }
-        /* ===== CARROSSEL EQUIPE ===== */
-.promo-col {
-  min-width: 260px;
-  margin: 10px;
-  cursor: pointer;
-}
-
-.team-img {
-  width: 100%;
-  height: 350px;
-  object-fit: cover;
-  filter: grayscale(100%);
-  transition: 0.3s;
-  border-radius: 15px;
-}
-
-.promo-col:hover .team-img {
-  filter: grayscale(0%);
-}
-
-/* BOTÕES */
-.carousel-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(0,0,0,0.7);
-  border: none;
-  color: #fff;
-  padding: 10px 15px;
-  cursor: pointer;
-  z-index: 2;
-}
-
-.carousel-btn.prev { left: 0; }
-.carousel-btn.next { right: 0; }
-
-/* MODAL */
-.modal-equipe {
-  display: none;
-  position: fixed;
-  z-index: 999;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.85);
-  padding-top: 100px;
-}
-
-.modal-content-equipe {
-  background: #111;
-  margin: auto;
-  padding: 20px;
-  max-width: 500px;
-  border-radius: 10px;
-  color: #fff;
-}
-
-.fechar {
-  float: right;
-  font-size: 28px;
-  cursor: pointer;
-}
     </style>
 </head>
 <body data-bs-spy="scroll" data-bs-target="#navbar" data-bs-offset="70">
@@ -317,63 +256,101 @@
         </div>
     </section>
 
+    <!-- Equipe - Swiper com 9 cards -->
+    <section id="equipe" class="py-5">
+        <div class="container" data-aos="fade-up">
+            <h2 class="text-center mb-5">Nossa Equipe</h2>
+            <div class="swiper equipe-swiper">
+                <div class="swiper-wrapper">
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img" alt="Meduri tatuador" loading="lazy">
+                            <div class="team-overlay">
+                                <h4>Meduri</h4>
+                                <p>Gustavo Meduri, mais conhecido como Meduri, é tatuador especializado nos estilos Realismo e Black and Gray, reconhecido pela extrema atenção aos detalhes, precisão técnica e acabamento refinado em cada peça. Seu trabalho se destaca pela profundidade, contraste e fidelidade às referências, buscando sempre um resultado marcante e duradouro.</p>
 
-  <!-- Equipe com carrossel estilo promo -->
-<section id="equipe" class="py-5">
-  <div class="container" data-aos="fade-up">
-    
-    <h2 class="text-center mb-5">Nossa Equipe</h2>
-
-    <div class="promo-carousel-wrapper position-relative">
-      <button class="carousel-btn prev">&lt;</button>
-
-      <div class="promo-carousel overflow-hidden">
-        <div class="promo-track d-flex">
-
-          <!-- CARD -->
-          <div class="promo-col team-card" data-title="Meduri" data-content="<p>Especialista em realismo e fechamentos gigantes. +12 anos de experiência.</p>">
-            <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img">
-            <span>Meduri</span>
-          </div>
-
-          <div class="promo-col team-card" data-title="Lucas Black" data-content="<p>Blackwork e geométrico. Minimalista e impactante.</p>">
-            <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img">
-            <span>Lucas</span>
-          </div>
-
-          <div class="promo-col team-card" data-title="Ana Fine" data-content="<p>Fine line e floral. Delicadeza absurda.</p>">
-            <img src="https://thumbs.dreamstime.com/b/delicate-fine-line-tattoo-blooming-flowers-woman-back-subtle-ink-shading-creates-depth-skin-minimalist-black-white-403847740.jpg" class="team-img">
-            <span>Ana</span>
-          </div>
-
-          <!-- DUPLICAÇÃO PRA LOOP -->
-          <div class="promo-col team-card" data-title="Meduri" data-content="<p>Especialista em realismo e fechamentos gigantes.</p>">
-            <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img">
-            <span>Meduri</span>
-          </div>
-
-          <div class="promo-col team-card" data-title="Lucas Black" data-content="<p>Blackwork e geométrico.</p>">
-            <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img">
-            <span>Lucas</span>
-          </div>
-
+<p>Além da qualidade artística, Meduri preza por um atendimento cuidadoso e personalizado, entendendo a ideia de cada cliente e acompanhando todo o processo com atenção, desde a criação até a finalização da tatuagem. Seu compromisso é proporcionar não apenas um excelente resultado estético, mas também uma experiência segura, confortável e profissional.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img" alt="Lucas tatuador" loading="lazy">
+                            <div class="team-overlay">
+                                <h4>Lucas Black</h4>
+                                <p>Expert em blackwork e geométrico. Foco em peças minimalistas e impactantes. +8 anos no ramo.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://thumbs.dreamstime.com/b/delicate-fine-line-tattoo-blooming-flowers-woman-back-subtle-ink-shading-creates-depth-skin-minimalist-black-white-403847740.jpg" class="team-img" alt="Ana tatuadora" loading="lazy">
+                            <div class="team-overlay">
+                                <h4>Ana Fine</h4>
+                                <p>Especialista em fine line e floral. Perfeita para tatuagens femininas delicadas e elegantes.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img" alt="João tatuador" loading="lazy">
+                            <div class="team-overlay">
+                                <h4>João Old</h4>
+                                <p>Old school e tradicional com twist moderno. Clássicos que nunca saem de moda.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img" alt="Carla tatuadora" loading="lazy">
+                            <div class="team-overlay">
+                                <h4>Carla Neo</h4>
+                                <p>Neo tradicional e colorido. Cores vibrantes e narrativas fortes na pele.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://thumbs.dreamstime.com/b/delicate-fine-line-tattoo-blooming-flowers-woman-back-subtle-ink-shading-creates-depth-skin-minimalist-black-white-403847740.jpg" class="team-img" alt="Rafael tatuador" loading="lazy">
+                            <div class="team-overlay">
+                                <h4>Rafael Dot</h4>
+                                <p>Dotwork e mandalas. Detalhes infinitos e precisão milimétrica.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://assets.lummi.ai/assets/QmbwsRrUcUVDuoLeVqp4iDNgLQGtAxyBA1yEpNqSTR3gBd" class="team-img" alt="Sofia tatuadora" loading="lazy">
+                            <div class="team-overlay">
+                                <h4>Sofia Realism</h4>
+                                <p>Realismo preto e cinza. Retratos e animais com emoção real.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://images.squarespace-cdn.com/content/v1/5c7ca27a01232c45a11a3f4f/f854edd9-6d94-469d-9275-a22777ea7b63/0C9A5611.jpg" class="team-img" alt="Victor tatuador" loading="lazy">
+                            <div class="team-overlay">
+                                <h4>Victor Cover</h4>
+                                <p>Cover-ups e reworks. Transforma tatuagens antigas em obras-primas.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="team-card">
+                            <img src="https://thumbs.dreamstime.com/b/delicate-fine-line-tattoo-blooming-flowers-woman-back-subtle-ink-shading-creates-depth-skin-minimalist-black-white-403847740.jpg" class="team-img" alt="Maria tatuadora" loading="lazy">
+                            <div class="team-overlay">
+                                <h4>Maria Script</h4>
+                                <p>Lettering e caligrafia. Frases, poemas e textos com estilo único.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="swiper-button-prev"></div>
+                <div class="swiper-button-next"></div>
+            </div>
         </div>
-      </div>
-
-      <button class="carousel-btn next">&gt;</button>
-    </div>
-
-  </div>
-</section>
-
-<!-- MODAL -->
-<div id="modalEquipe" class="modal-equipe">
-  <div class="modal-content-equipe">
-    <span class="fechar">&times;</span>
-    <h3 id="modalTitulo"></h3>
-    <div id="modalTexto"></div>
-  </div>
-</div>
+    </section>
 
     <!-- Portfólio com 6 imagens -->
     <section id="portfolio" class="py-5 bg-black">
@@ -623,43 +600,5 @@
             },
         });
     </script>
-    <script>
-// CARROSSEL
-const track = document.querySelector('.promo-track');
-const prev = document.querySelector('.prev');
-const next = document.querySelector('.next');
-
-let position = 0;
-
-next.onclick = () => {
-  position -= 280;
-  track.style.transform = `translateX(${position}px)`;
-};
-
-prev.onclick = () => {
-  position += 280;
-  track.style.transform = `translateX(${position}px)`;
-};
-
-// MODAL
-const modal = document.getElementById("modalEquipe");
-const titulo = document.getElementById("modalTitulo");
-const texto = document.getElementById("modalTexto");
-const fechar = document.querySelector(".fechar");
-
-document.querySelectorAll(".promo-col").forEach(card => {
-  card.onclick = () => {
-    modal.style.display = "block";
-    titulo.innerText = card.dataset.title;
-    texto.innerHTML = card.dataset.content;
-  };
-});
-
-fechar.onclick = () => modal.style.display = "none";
-
-window.onclick = (e) => {
-  if (e.target == modal) modal.style.display = "none";
-};
-</script>
 </body>
 </html>
