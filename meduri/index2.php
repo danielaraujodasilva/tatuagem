@@ -181,6 +181,18 @@
             70% { box-shadow: 0 0 0 15px rgba(37,211,102,0); }
             100% { box-shadow: 0 0 0 0 rgba(37,211,102,0); }
         }
+
+        .insta-item {
+  background: #111;
+  padding: 10px;
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+.instagram-media {
+  width: 100% !important;
+  min-width: 100% !important;
+}
     </style>
 </head>
 <body data-bs-spy="scroll" data-bs-target="#navbar" data-bs-offset="70">
@@ -303,85 +315,24 @@
         </div>
     </section>
 
-    <!-- Portfólio com 6 imagens -->
-    <section id="portfolio" class="py-5 bg-black">
-        <div class="container" data-aos="fade-up">
-            <h2 class="text-center mb-5">Portfólio</h2>
-            <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="hover-container shadow" data-bs-toggle="modal" data-bs-target="#modalPort1">
-                        <img class="hover-img" src="https://inknationstudio.com/wp-content/uploads/2025/07/thumbnail-leg.png" alt="Sleeve de perna biomecânico realista" loading="lazy">
-                        <div class="overlay">
-                            <h5>Sleeve Biomecânico</h5>
-                            <p>Realismo futurista | ~18h</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="hover-container shadow" data-bs-toggle="modal" data-bs-target="#modalPort2">
-                        <img class="hover-img" src="https://primitivetattoobali.com/wp-content/uploads/2025/07/Primitive-Tattoo-Ink-Portfolio.webp" alt="Fechamento de braço samurai" loading="lazy">
-                        <div class="overlay">
-                            <h5>Fechamento Samurai</h5>
-                            <p>Estilo japonês | Uma sessão</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="hover-container shadow" data-bs-toggle="modal" data-bs-target="#modalPort3">
-                        <img class="hover-img" src="https://inknationstudio.com/wp-content/uploads/2025/07/thumbnail-full-sleeve.png" alt="Sleeve realista misto" loading="lazy">
-                        <div class="overlay">
-                            <h5>Sleeve Realista Misto</h5>
-                            <p>Figura + animal | Contraste alto</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="hover-container shadow" data-bs-toggle="modal" data-bs-target="#modalPort4">
-                        <img class="hover-img" src="https://tattoos.gallery/unifytattoofl.com/images/gallery/Fairy%20Mermaid%20Forest%20Tattoo.jpg" alt="Tatuagem de floresta mágica" loading="lazy">
-                        <div class="overlay">
-                            <h5>Floresta Mágica</h5>
-                            <p>Colorido detalhado | ~15h</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="hover-container shadow" data-bs-toggle="modal" data-bs-target="#modalPort5">
-                        <img class="hover-img" src="https://tattoos.gallery/soringabor.com/images/gallery/bio%20oni%20Sorin.jpg" alt="Fechamento bio orgânico" loading="lazy">
-                        <div class="overlay">
-                            <h5>Bio Orgânico</h5>
-                            <p>Estilo orgânico | Uma sessão</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="hover-container shadow" data-bs-toggle="modal" data-bs-target="#modalPort6">
-                        <img class="hover-img" src="https://images.stockcake.com/public/0/0/d/00dcdec4-d941-458f-8128-638c8191196c/sacred-golden-ankh-stockcake.jpg" alt="Tatuagem simbólica Ankh" loading="lazy">
-                        <div class="overlay">
-                            <h5>Ankh Sagrado</h5>
-                            <p>Simbolismo dourado | ~10h</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+    
 
-    <!-- Modais Portfólio (exemplo para o primeiro, copie e mude id/src para os outros) -->
-    <div class="modal fade" id="modalPort1" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content bg-dark text-light">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title text-gold">Sleeve Biomecânico de Perna</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body text-center">
-                    <img src="https://inknationstudio.com/wp-content/uploads/2025/07/thumbnail-leg.png" class="img-fluid rounded mb-3" alt="Detalhe sleeve biomecânico" loading="lazy">
-                    <p>Estilo biomecânico com detalhes metálicos e orgânicos. Adaptável para fechamento em sessão única.</p>
-                    <p><strong>Estilo:</strong> Realismo futurista | <strong>Tempo:</strong> ~18 horas | <strong>Preço estimado:</strong> R$1200</p>
-                </div>
-            </div>
-        </div>
+<section id="galeria" class="py-5">
+  <div class="container">
+    
+    <div class="text-center mb-5">
+      <h2>Galeria</h2>
+      <p>Alguns dos nossos trabalhos mais recentes</p>
     </div>
+
+    <div class="row g-4" id="instaGallery"></div>
+
+  </div>
+</section>
+
+
+
+
 
     <!-- Depoimentos com link Instagram -->
     <section id="depoimentos" class="py-5">
@@ -551,5 +502,30 @@
             },
         });
     </script>
+    <script>
+const posts = [
+  "https://www.instagram.com/p/DWEfEtstY5J/",
+  "https://www.instagram.com/p/DWBi7icO2an/",
+  "https://www.instagram.com/p/DUgrU4KEQl2/",
+  "https://www.instagram.com/p/DPMIi3xDZJE/"
+];
+
+const container = document.getElementById("instaGallery");
+
+posts.forEach(link => {
+  const col = document.createElement("div");
+  col.className = "col-12 col-md-6 col-lg-4";
+
+  col.innerHTML = `
+    <div class="insta-item">
+      <blockquote class="instagram-media" data-instgrm-permalink="${link}" data-instgrm-version="14"></blockquote>
+    </div>
+  `;
+
+  container.appendChild(col);
+});
+</script>
+
+<script async src="//www.instagram.com/embed.js"></script>
 </body>
 </html>
