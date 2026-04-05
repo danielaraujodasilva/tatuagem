@@ -11,46 +11,61 @@ const qrcode = require("qrcode-terminal");
 
 async function startBot() {
 
-    const { state, saveCreds } = await useMultiFileAuthState("./auth_info");
+    const { state, saveCreds } = await useMultiFileAuthState("./whatsapp/auth_info");
     const { version } = await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
         version,
         auth: state,
-        printQRInTerminal: false // vamos gerar manual
+        printQRInTerminal: false
     });
 
+    // salva sessão
     sock.ev.on("creds.update", saveCreds);
 
-    // 🔥 MOSTRAR QR CODE
+    // conexão / QR / reconexão
     sock.ev.on("connection.update", (update) => {
-        const { connection, qr } = update;
+        const { connection, qr, lastDisconnect } = update;
 
         if (qr) {
-            console.log("📱 Escaneia esse QR aí:");
+            console.log("\n📱 Escaneia esse QR aí:\n");
             qrcode.generate(qr, { small: true });
         }
 
         if (connection === "open") {
-            console.log("✅ WhatsApp conectado!");
+            console.log("✅ WhatsApp conectado com sucesso!");
         }
 
         if (connection === "close") {
-            console.log("❌ Conexão fechada");
+            const shouldReconnect =
+                lastDisconnect?.error?.output?.statusCode !== 401;
+
+            console.log("❌ Conexão fechada.");
+
+            if (shouldReconnect) {
+                console.log("🔄 Tentando reconectar...");
+                startBot();
+            } else {
+                console.log("🚫 Sessão expirada. Apague auth_info e escaneie novamente.");
+            }
         }
     });
 
+    // recebimento de mensagens
     sock.ev.on("messages.upsert", async ({ messages }) => {
         const msg = messages[0];
 
         if (!msg.message) return;
 
-        const texto = msg.message.conversation || msg.message.extendedTextMessage?.text;
+        const texto =
+            msg.message.conversation ||
+            msg.message.extendedTextMessage?.text;
+
         if (!texto) return;
 
         const numero = msg.key.remoteJid.replace("@s.whatsapp.net", "");
 
-        console.log("Mensagem recebida:", numero, texto);
+        console.log("📩 Mensagem recebida:", numero, "-", texto);
 
         try {
             await axios.post("http://localhost/crm/webhook.php", {
@@ -58,7 +73,7 @@ async function startBot() {
                 mensagem: texto
             });
         } catch (err) {
-            console.log("Erro ao enviar pro CRM:", err.message);
+            console.log("❌ Erro ao enviar pro CRM:", err.message);
         }
     });
 }
