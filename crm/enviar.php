@@ -74,4 +74,5 @@ if (!empty($res['ok'])) {
     file_put_contents($arquivo, json_encode($clientes, JSON_PRETTY_PRINT));
 }
 
-echo json_encode($res);
+var_dump($response);
+exit;
