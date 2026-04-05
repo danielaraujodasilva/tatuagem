@@ -1,4 +1,5 @@
 <?php
+
 file_put_contents("debug.txt", "bateu\n", FILE_APPEND);
 
 $data = json_decode(file_get_contents("php://input"), true);
@@ -10,7 +11,16 @@ function normalizarNumero($num) {
     return preg_replace('/[^0-9]/', '', $num);
 }
 
-$numeroLimpo = normalizarNumero($numero);
+// =====================
+// DEFINE O QUE ENVIAR
+// =====================
+if (strpos($numero, '@') !== false) {
+    // é JID (tipo @lid)
+    $numeroEnvio = $numero;
+} else {
+    // número normal
+    $numeroEnvio = normalizarNumero($numero);
+}
 
 // =====================
 // ENVIA PRO NODE
@@ -19,7 +29,7 @@ $ch = curl_init("http://localhost:3001/enviar");
 
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-    "numero" => $numeroLimpo,
+    "numero" => $numeroEnvio,
     "mensagem" => $mensagem
 ]));
 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
@@ -31,12 +41,13 @@ if ($response === false) {
     echo "ERRO CURL: " . curl_error($ch);
     exit;
 }
+
 curl_close($ch);
 
 $res = json_decode($response, true);
 
 // =====================
-// SE ENVIO OK → SALVA
+// SALVA NO JSON
 // =====================
 if (!empty($res['ok'])) {
 
@@ -46,34 +57,19 @@ if (!empty($res['ok'])) {
         ? json_decode(file_get_contents($arquivo), true)
         : [];
 
-    $achou = false;
-
     foreach ($clientes as &$c) {
 
-        $numeroCliente = normalizarNumero($c['numero']);
-
-        // tenta bater pelo número
-        if ($numeroCliente == $numeroLimpo) {
+        // 👉 comparação inteligente
+        if ($c['numero'] == $numero) {
 
             $c['mensagens'][] = [
+                "de" => "atendente",
                 "texto" => $mensagem,
-                "data" => date('Y-m-d H:i:s'),
-                "fromMe" => true
+                "data" => date('Y-m-d H:i:s')
             ];
 
-            $achou = true;
             break;
         }
-    }
-
-    // fallback (evita perder mensagem)
-    if (!$achou && !empty($clientes)) {
-
-        $clientes[0]['mensagens'][] = [
-            "texto" => $mensagem,
-            "data" => date('Y-m-d H:i:s'),
-            "fromMe" => true
-        ];
     }
 
     file_put_contents($arquivo, json_encode($clientes, JSON_PRETTY_PRINT));
