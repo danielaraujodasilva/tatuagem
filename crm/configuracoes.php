@@ -85,8 +85,18 @@
         </div>
     </div>
 
-    <input type="text" name="mensagem_trigger" placeholder="Mensagem gatilho">
+    <form method="POST" action="salvar_config.php" class="mt-6">
+    <label class="block mb-2">Mensagem gatilho</label>
 
+    <input type="text" name="mensagem_trigger"
+           class="bg-gray-800 border border-gray-700 px-4 py-3 rounded-xl w-full"
+           placeholder="Ex: oi">
+
+    <button class="mt-4 bg-emerald-600 px-4 py-2 rounded-xl">
+        Salvar
+    </button>
+</form>
+    
 </div>
 
 <script>
