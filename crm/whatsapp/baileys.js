@@ -8,7 +8,7 @@ const {
 const axios = require("axios");
 const qrcode = require("qrcode-terminal");
 const express = require("express");
-const pino = require("pino"); // para log limpo
+const pino = require("pino");
 
 const app = express();
 app.use(express.json());
@@ -26,7 +26,8 @@ async function startBot() {
         version,
         auth: state,
         printQRInTerminal: false,
-        logger: pino({ level: "silent" }) // silent pra não poluir console
+        logger: pino({ level: "silent" }),
+        // getMessage: ... (pode adicionar depois se precisar de retries)
     });
 
     sock.ev.on("creds.update", saveCreds);
@@ -40,93 +41,133 @@ async function startBot() {
         }
 
         if (connection === "open") {
-            console.log("✅ WhatsApp conectado!");
+            console.log("✅ WhatsApp conectado com sucesso!");
         }
 
         if (connection === "close") {
             const code = lastDisconnect?.error?.output?.statusCode;
-            const reconnect = code !== DisconnectReason.loggedOut;
+            const shouldReconnect = code !== DisconnectReason.loggedOut;
 
             console.log(`❌ Conexão fechada. Código: ${code || "desconhecido"}`);
 
-            if (reconnect) {
-                console.log("🔄 Tentando reconectar em 5s...");
+            if (shouldReconnect) {
+                console.log("🔄 Tentando reconectar em 5 segundos...");
                 setTimeout(startBot, 5000);
             } else {
-                console.log("🚫 Sessão expirada. Delete 'whatsapp/auth_info' e escaneie QR.");
+                console.log("🚫 Sessão expirada. Delete a pasta 'whatsapp/auth_info' e escaneie o QR novamente.");
             }
         }
     });
 
     // ==========================
-    // RECEBE MENSAGENS DIRETAS
+    // RECEBE MENSAGENS
     // ==========================
     sock.ev.on("messages.upsert", async ({ messages }) => {
         const msg = messages[0];
-        if (!msg.message) return;
+        if (!msg.message || msg.key.fromMe) return;
 
-        const jid = msg.key.remoteJid;
+        const key = msg.key;
+        let jid = key.remoteJid;
 
-        // ignora grupos e canais
-        if (!jid.endsWith("@s.whatsapp.net")) return;
+        // Ignora grupos, canais, status e broadcast
+        if (!jid || jid.endsWith("@g.us") || jid.endsWith("@broadcast")) return;
 
-        // pega o número real do cliente corretamente
-        const numero = jid.split("@")[0];
-        if (!numero || numero.length < 10) return;
+        let numeroReal = null;
 
-        const texto = msg.message.conversation || msg.message.extendedTextMessage?.text;
-        if (!texto) return;
+        // === LÓGICA PRINCIPAL PARA PEGAR O NÚMERO REAL ===
+        if (key.senderPn) {
+            // senderPn é o mais confiável quando disponível (formato com telefone real)
+            numeroReal = key.senderPn.split("@")[0];
+        } 
+        else if (jid.endsWith("@s.whatsapp.net")) {
+            // Caso clássico
+            numeroReal = jid.split("@")[0];
+        } 
+        else if (jid.endsWith("@lid")) {
+            // Fallback quando é LID puro
+            numeroReal = jid.split("@")[0];
+            console.warn(`⚠️ Mensagem recebida via LID: ${jid}`);
+        }
 
-        console.log(`📩 Mensagem recebida de ${numero}: ${texto}`);
+        if (!numeroReal || numeroReal.length < 10) {
+            console.log(`❌ Não foi possível extrair número válido do JID: ${jid}`);
+            return;
+        }
 
+        // Limpa o número (remove tudo que não for dígito)
+        numeroReal = numeroReal.replace(/\D/g, '');
+
+        // Extrai o texto da mensagem (suporta texto simples, texto estendido, legenda de imagem/vídeo)
+        let texto = 
+            msg.message.conversation ||
+            msg.message.extendedTextMessage?.text ||
+            msg.message.imageMessage?.caption ||
+            msg.message.videoMessage?.caption ||
+            msg.message.documentMessage?.caption ||
+            "";
+
+        if (!texto.trim()) return;
+
+        console.log(`📩 Mensagem recebida de ${numeroReal} | JID: ${jid} | Texto: ${texto}`);
+
+        // Envia para o seu CRM
         try {
-            await axios.post("http://localhost/crm/webhook.php", { numero, mensagem: texto });
+            await axios.post("http://localhost/crm/webhook.php", {
+                numero: numeroReal,
+                mensagem: texto,
+                jidCompleto: jid,
+                isLid: jid.endsWith("@lid")
+            });
         } catch (err) {
             console.error("❌ Erro ao enviar pro CRM:", err.message);
         }
     });
+
+    // Evento opcional útil para debug de LIDs (pode remover depois)
+    sock.ev.on("lid-mapping.update", (mappings) => {
+        console.log("🔄 LID Mapping atualizado:", mappings);
+    });
 }
 
 // ==========================
-// ENVIO DE MENSAGEM
-// ==========================
+// ENVIO DE MENSAGEM (mantido quase igual, só melhorias)
 app.post("/enviar", async (req, res) => {
     const { numero, mensagem } = req.body;
 
     if (!numero || !mensagem) {
-        return res.json({ ok: false, erro: "Número e mensagem obrigatórios" });
+        return res.json({ ok: false, erro: "Número e mensagem são obrigatórios" });
     }
 
     if (!sock || !sock.user) {
-        return res.json({ ok: false, erro: "WhatsApp não conectado" });
+        return res.json({ ok: false, erro: "WhatsApp não está conectado" });
     }
 
     try {
         let numeroLimpo = numero.replace(/\D/g, '');
         if (!numeroLimpo.startsWith('55')) numeroLimpo = '55' + numeroLimpo;
 
-        // garante que o número existe no WhatsApp
-        const [resultado] = await sock.onWhatsApp(numeroLimpo);
+        const [resultado] = await sock.onWhatsApp(numeroLimpo + "@s.whatsapp.net");
+
         if (!resultado?.jid) {
-            console.log("⚠️ Número não encontrado:", numeroLimpo);
-            return res.json({ ok: false, erro: "Número não tem WhatsApp ou não foi encontrado" });
+            console.log("⚠️ Número não encontrado no WhatsApp:", numeroLimpo);
+            return res.json({ ok: false, erro: "Número não possui WhatsApp ou não foi encontrado" });
         }
 
         const jidCorreto = resultado.jid;
-        console.log(`📤 Enviando para: ${jidCorreto}`);
+        console.log(`📤 Enviando mensagem para: ${jidCorreto}`);
 
         const result = await sock.sendMessage(jidCorreto, { text: mensagem });
-        console.log("✅ Mensagem enviada! ID:", result?.key?.id);
 
+        console.log("✅ Mensagem enviada com sucesso! ID:", result?.key?.id);
         res.json({ ok: true, messageId: result?.key?.id });
     } catch (e) {
-        console.error("❌ Erro ao enviar:", e);
+        console.error("❌ Erro ao enviar mensagem:", e);
         res.json({ ok: false, erro: e.message || "Erro desconhecido" });
     }
 });
 
 // ==========================
-// INICIA SERVIDOR E BOT
+// INICIA SERVIDOR
 // ==========================
 app.listen(3001, () => {
     console.log("🚀 API WhatsApp rodando na porta 3001");
