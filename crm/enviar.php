@@ -1,14 +1,10 @@
 <?php
-file_put_contents("debug.txt", "====================\n", FILE_APPEND);
-file_put_contents("debug.txt", "bateu em: " . date('Y-m-d H:i:s') . "\n", FILE_APPEND);
+file_put_contents("debug.txt", "bateu\n", FILE_APPEND);
 
 $data = json_decode(file_get_contents("php://input"), true);
 
 $numero = $data['numero'] ?? '';
 $mensagem = $data['mensagem'] ?? '';
-
-file_put_contents("debug.txt", "Número recebido: $numero\n", FILE_APPEND);
-file_put_contents("debug.txt", "Mensagem recebida: $mensagem\n", FILE_APPEND);
 
 function normalizarNumero($num) {
     return preg_replace('/[^0-9]/', '', $num);
@@ -23,7 +19,7 @@ $ch = curl_init("http://localhost:3001/enviar");
 
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-    "numero" => $numeroLimpo,
+    "numero" => $numero,
     "mensagem" => $mensagem
 ]));
 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
@@ -40,9 +36,10 @@ curl_close($ch);
 $res = json_decode($response, true);
 
 // =====================
-// SE ENVIO OK → SALVA NO JSON
+// SE ENVIO OK → SALVA
 // =====================
 if (!empty($res['ok'])) {
+
     $arquivo = "data/clientes.json";
 
     $clientes = file_exists($arquivo)
@@ -52,14 +49,18 @@ if (!empty($res['ok'])) {
     $achou = false;
 
     foreach ($clientes as &$c) {
+
         $numeroCliente = normalizarNumero($c['numero']);
 
+        // tenta bater pelo número
         if ($numeroCliente == $numeroLimpo) {
+
             $c['mensagens'][] = [
-                "de" => "meu",
                 "texto" => $mensagem,
-                "data" => date('Y-m-d H:i:s')
+                "data" => date('Y-m-d H:i:s'),
+                "fromMe" => true // 👈 front entende que é mensagem sua
             ];
+
             $achou = true;
             break;
         }
@@ -68,9 +69,9 @@ if (!empty($res['ok'])) {
     // fallback (evita perder mensagem)
     if (!$achou && !empty($clientes)) {
         $clientes[0]['mensagens'][] = [
-            "de" => "meu",
             "texto" => $mensagem,
-            "data" => date('Y-m-d H:i:s')
+            "data" => date('Y-m-d H:i:s'),
+            "fromMe" => true
         ];
     }
 
