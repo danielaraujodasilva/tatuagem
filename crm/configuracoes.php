@@ -85,7 +85,8 @@
         </div>
     </div>
 
-  
+    <input type="text" name="mensagem_trigger" placeholder="Mensagem gatilho">
+
 </div>
 
 <script>
