@@ -71,14 +71,22 @@ async function startBot() {
         if (!texto) return;
 
         const jid = msg.key.remoteJid;
+        let numero = null;
 
-// só aceita número real
-if (!jid.includes("@s.whatsapp.net")) {
-    console.log("⚠️ Ignorando JID inválido:", jid);
-    return;
-}
+        // número normal
+        if (jid.includes("@s.whatsapp.net")) {
+            numero = jid.split("@")[0];
+        }
 
-const numero = jid.split("@")[0];
+        // fallback (alguns casos @lid)
+        else if (msg.key.participant) {
+            numero = msg.key.participant.replace(/\D/g, '');
+        }
+
+        if (!numero) {
+            console.log("⚠️ Não consegui extrair número:", jid);
+            return;
+        }
 
         console.log("📩 Mensagem recebida:", numero, "-", texto);
 
@@ -93,11 +101,11 @@ const numero = jid.split("@")[0];
     });
 
     // ==========================
-    // TESTE AUTOMÁTICO (REMOVE DEPOIS)
+    // TESTE AUTOMÁTICO
     // ==========================
     setTimeout(async () => {
         try {
-            const numeroTeste = "5511947573311"; // <<< COLOCA SEU NÚMERO AQUI
+            const numeroTeste = "55119SEUNUMERO"; // <<< COLOCA SEU NÚMERO
 
             console.log("🧪 Testando envio direto...");
 
@@ -151,7 +159,7 @@ app.post("/enviar", async (req, res) => {
                 text: mensagem
             });
 
-            console.log("✅ ENVIO OK:", JSON.stringify(result, null, 2));
+            console.log("✅ ENVIO OK");
 
             res.json({ ok: true });
 
