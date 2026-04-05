@@ -105,7 +105,7 @@ async function startBot() {
     // ==========================
     setTimeout(async () => {
         try {
-            const numeroTeste = "55119SEUNUMERO"; // <<< COLOCA SEU NÚMERO
+            const numeroTeste = "5511947573311"; // <<< COLOCA SEU NÚMERO
 
             console.log("🧪 Testando envio direto...");
 
