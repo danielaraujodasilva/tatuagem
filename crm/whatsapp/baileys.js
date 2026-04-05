@@ -106,11 +106,16 @@ app.post("/enviar", async (req, res) => {
 
         console.log("📤 Enviando para:", jid);
 
-        const result = await sock.sendMessage(jid, {
-            text: mensagem
-        });
+        try {
+    const result = await sock.sendMessage(jid, {
+        text: mensagem
+    });
 
-        console.log("✅ Enviado com sucesso:", result);
+    console.log("✅ ENVIO OK:", JSON.stringify(result, null, 2));
+
+} catch (err) {
+    console.log("💥 ERRO REAL DO WHATS:", err);
+}
 
         res.json({ ok: true });
 
