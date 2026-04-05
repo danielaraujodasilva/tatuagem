@@ -216,7 +216,11 @@ while($row = $result->fetch(PDO::FETCH_ASSOC)){
             });
 
             leads.forEach(lead => {
-                const etapa = String(lead.etapa || Object.keys(<?= json_encode($stages) ?>)[0]);
+                const etapa = String(
+    lead.etapa ||
+    (lead.status === 'novo' ? '1' : null) ||
+    Object.keys(<?= json_encode($stages) ?>)[0]
+);
                 const valor = parseFloat(lead.valor) || 0;
                 const dias = diasSemContato(lead.data_ultimo_contato);
 
