@@ -71,8 +71,6 @@ async function startBot() {
         if (!texto) return;
 
         const jid = msg.key.remoteJid;
-
-        // 🔥 extrai só números (IMPORTANTE)
         const numero = jid.replace(/\D/g, '');
 
         console.log("📩 Mensagem recebida:", numero, "-", texto);
@@ -86,6 +84,33 @@ async function startBot() {
             console.log("❌ Erro ao enviar pro CRM:", err.message);
         }
     });
+
+    // ==========================
+    // TESTE AUTOMÁTICO (REMOVE DEPOIS)
+    // ==========================
+    setTimeout(async () => {
+        try {
+            const numeroTeste = "5511947573311"; // <<< COLOCA SEU NÚMERO AQUI
+
+            console.log("🧪 Testando envio direto...");
+
+            const [res] = await sock.onWhatsApp(numeroTeste);
+
+            if (!res) {
+                console.log("❌ Número inválido no teste");
+                return;
+            }
+
+            await sock.sendMessage(res.jid, {
+                text: "🔥 teste direto baileys"
+            });
+
+            console.log("🚀 TESTE DIRETO FUNCIONOU");
+
+        } catch (e) {
+            console.log("💥 TESTE DIRETO FALHOU:", e);
+        }
+    }, 8000);
 }
 
 // ==========================
@@ -99,28 +124,37 @@ app.post("/enviar", async (req, res) => {
             return res.json({ ok: false, erro: "WhatsApp não conectado ainda" });
         }
 
-        // 🔥 limpa número (ESSENCIAL)
         const numeroLimpo = numero.replace(/\D/g, '');
 
-        const jid = numeroLimpo + "@s.whatsapp.net";
+        console.log("🔍 Validando número:", numeroLimpo);
+
+        const [resultNumero] = await sock.onWhatsApp(numeroLimpo);
+
+        if (!resultNumero) {
+            console.log("❌ Número não existe no WhatsApp:", numeroLimpo);
+            return res.json({ ok: false, erro: "Número inválido" });
+        }
+
+        const jid = resultNumero.jid;
 
         console.log("📤 Enviando para:", jid);
 
         try {
-    const result = await sock.sendMessage(jid, {
-        text: mensagem
-    });
+            const result = await sock.sendMessage(jid, {
+                text: mensagem
+            });
 
-    console.log("✅ ENVIO OK:", JSON.stringify(result, null, 2));
+            console.log("✅ ENVIO OK:", JSON.stringify(result, null, 2));
 
-} catch (err) {
-    console.log("💥 ERRO REAL DO WHATS:", err);
-}
+            res.json({ ok: true });
 
-        res.json({ ok: true });
+        } catch (err) {
+            console.log("💥 ERRO REAL DO WHATS:", err);
+            res.json({ ok: false, erro: err.message });
+        }
 
     } catch (e) {
-        console.log("❌ Erro ao enviar:", e);
+        console.log("❌ Erro geral:", e);
         res.json({ ok: false, erro: e.message });
     }
 });
