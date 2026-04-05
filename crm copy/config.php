@@ -21,3 +21,4 @@ $stages = [
     '6' => '✅ Fechado - Ganho',
     '7' => '❌ Fechado - Perdido'
 ];
+

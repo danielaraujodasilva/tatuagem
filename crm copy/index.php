@@ -1,4 +1,13 @@
 <?php require 'config.php'; ?>
+<?php
+$stages = [];
+
+$result = $conn->query("SELECT * FROM pipelines ORDER BY ordem");
+
+while($row = $result->fetch(PDO::FETCH_ASSOC)){
+    $stages[$row['id']] = $row['nome'];
+}
+?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -11,7 +20,7 @@
     <style>
         .pipeline-container {
             display: grid;
-            grid-template-columns: repeat(7, minmax(265px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(265px, 1fr));
             gap: 1.25rem;
             padding: 1.5rem;
             overflow-x: auto;
@@ -63,6 +72,10 @@
                 </div>
 
                 <div class="flex flex-wrap gap-3 w-full lg:w-auto">
+                    <a href="configuracoes.php" 
+   class="bg-gray-800 hover:bg-gray-700 px-4 py-3 rounded-2xl flex items-center">
+    <i class="fas fa-gear"></i>
+</a>
                     <input id="search" type="text" placeholder="Buscar nome, telefone ou interesse..." 
                            class="bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3 flex-1 lg:w-80">
 
@@ -203,7 +216,11 @@
             });
 
             leads.forEach(lead => {
-                const etapa = String(lead.etapa || '1');
+                const etapa = String(
+    lead.etapa ||
+    (lead.status === 'novo' ? '1' : null) ||
+    Object.keys(<?= json_encode($stages) ?>)[0]
+);
                 const valor = parseFloat(lead.valor) || 0;
                 const dias = diasSemContato(lead.data_ultimo_contato);
 
@@ -216,7 +233,7 @@
                 else if (dias > 10) classeFrio = 'lead-frio';
 
                 const html = `
-                    <div onclick="viewLead(${lead.id})" class="card bg-gray-800 rounded-3xl p-5 cursor-pointer border border-gray-700 ${classeFrio}">
+                    <div data-id="${lead.id}" onclick="viewLead('${lead.id}')" class="card bg-gray-800 rounded-3xl p-5 cursor-pointer border border-gray-700 ${classeFrio}">
                         <div class="flex justify-between items-start">
                             <h4 class="font-semibold text-base">${lead.nome}</h4>
                         </div>
@@ -226,10 +243,10 @@
                         ${valor > 0 ? `<p class="text-emerald-400 font-medium mt-4">R$ ${valor.toLocaleString('pt-BR')}</p>` : ''}
 
                         <div class="flex justify-start gap-5 mt-5 pt-4 border-t border-gray-700 text-sm">
-                            <button onclick="editLead(${lead.id}); event.stopImmediatePropagation()" class="text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                            <button onclick="editLead('${lead.id}'); event.stopImmediatePropagation()" class="text-blue-400 hover:text-blue-300 flex items-center gap-1">
                                 <i class="fas fa-edit"></i> Editar
                             </button>
-                            <button onclick="deleteLead(${lead.id}); event.stopImmediatePropagation()" class="text-red-400 hover:text-red-300 flex items-center gap-1">
+                            <button onclick="deleteLead('${lead.id}'); event.stopImmediatePropagation()" class="text-red-400 hover:text-red-300 flex items-center gap-1">
                                 <i class="fas fa-trash"></i> Excluir
                             </button>
                         </div>
@@ -276,27 +293,46 @@
         }
 
         function enableDragAndDrop() {
-            document.querySelectorAll('.kanban-column').forEach(column => {
-                Sortable.create(column, {
-                    group: 'kanban',
-                    animation: 180,
-                    onEnd: function(evt) {
-                        const id = evt.item.dataset.id;
-                        const newEtapa = evt.to.parentElement.dataset.stage;
-                        if (id && newEtapa) {
-                            fetch('handler.php', {
-                                method: 'POST',
-                                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                                body: `action=move&id=${id}&etapa=${newEtapa}`
-                            }).then(() => loadPipeline());
-                        }
-                    }
-                });
-            });
+    document.querySelectorAll('.kanban-column').forEach(column => {
+
+        // evita duplicar sortable (isso buga tudo)
+        if (column.sortableInstance) {
+            column.sortableInstance.destroy();
         }
 
+        column.sortableInstance = Sortable.create(column, {
+            group: 'kanban',
+            animation: 180,
+            ghostClass: 'opacity-50',
+
+            onEnd: function(evt) {
+                const id = evt.item.getAttribute('data-id');
+                const newEtapa = evt.to.closest('[data-stage]').getAttribute('data-stage');
+
+                if (id && newEtapa) {
+                    fetch('handler.php', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: `action=move&id=${id}&etapa=${newEtapa}`
+                    })
+                    .then(() => {
+    Promise.all([
+        fetch('handler.php?action=getAll').then(r => r.json()),
+        carregarClientesWhatsApp()
+    ]).then(([leadsSistema, leadsWhats]) => {
+        allLeads = [...leadsSistema, ...leadsWhats];
+        loadPipeline();
+    });
+});
+                }
+            }
+        });
+    });
+}
+
         function verTodosNaEtapa(etapa) {
-            const stageName = Object.values(<?= json_encode($stages) ?>)[parseInt(etapa)-1] || 'Etapa ' + etapa;
+            const stages = <?= json_encode($stages) ?>;
+const stageName = stages[etapa] || 'Etapa ' + etapa;
             document.getElementById('modalVerTitulo').textContent = `Leads - ${stageName}`;
             document.getElementById('modalVerTodos').classList.remove('hidden');
 
@@ -359,8 +395,16 @@
         }
 
         function viewLead(id) {
-            window.location.href = `lead.php?id=${id}`;
-        }
+
+    // se for WhatsApp
+    if (String(id).startsWith('wa_')) {
+        window.location.href = `chat.php?id=${id}`;
+        return;
+    }
+
+    // se for lead normal
+    window.location.href = `lead.php?id=${id}`;
+}
 
         function saveLead(e) {
             e.preventDefault();
@@ -373,10 +417,13 @@
                     if (data.error) alert(data.error);
                     else {
                         closeModal();
-                        fetch('handler.php?action=getAll').then(r => r.json()).then(leads => {
-                            allLeads = leads;
-                            loadPipeline();
-                        });
+                        Promise.all([
+    fetch('handler.php?action=getAll').then(r => r.json()),
+    carregarClientesWhatsApp()
+]).then(([leadsSistema, leadsWhats]) => {
+    allLeads = [...leadsSistema, ...leadsWhats];
+    loadPipeline();
+});
                     }
                 });
         }
@@ -388,10 +435,13 @@
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                 body: `action=delete&id=${id}`
             }).then(() => {
-                fetch('handler.php?action=getAll').then(r => r.json()).then(leads => {
-                    allLeads = leads;
-                    loadPipeline();
-                });
+                Promise.all([
+    fetch('handler.php?action=getAll').then(r => r.json()),
+    carregarClientesWhatsApp()
+]).then(([leadsSistema, leadsWhats]) => {
+    allLeads = [...leadsSistema, ...leadsWhats];
+    loadPipeline();
+});
             });
         }
 
@@ -421,20 +471,53 @@
             loadPipeline(filtered);
         }
 
-        // Inicialização
-        window.onload = () => {
-            fetch('handler.php?action=getAll')
-                .then(r => r.json())
-                .then(leads => {
-                    allLeads = leads;
-                    loadPipeline(leads);
-                });
 
-            document.getElementById('search').addEventListener('input', applyFilters);
-            document.getElementById('filterEtapa').addEventListener('change', applyFilters);
-            document.getElementById('filterValorMin').addEventListener('input', applyFilters);
-            document.getElementById('filterValorMax').addEventListener('input', applyFilters);
-        };
+        async function carregarClientesWhatsApp() {
+    try {
+        const res = await fetch('api_clientes.php');
+        const clientes = await res.json();
+
+        // converter clientes em leads compatíveis
+        const leadsConvertidos = clientes.map(c => ({
+            id: 'wa_' + c.id,
+            nome: c.nome || 'Cliente WhatsApp',
+            telefone: c.numero,
+            interesse: c.mensagens?.slice(-1)[0]?.texto || '',
+            valor: 0,
+            origem: 'WhatsApp',
+            status: c.status || 'novo',
+            etapa: Object.keys(<?= json_encode($stages) ?>)[0], // joga na primeira coluna
+            data_ultimo_contato: c.mensagens?.slice(-1)[0]?.data || '',
+            created_at: c.mensagens?.[0]?.data || ''
+        }));
+
+        return leadsConvertidos;
+
+    } catch (e) {
+        console.log('Erro ao carregar WhatsApp:', e);
+        return [];
+    }
+}
+
+
+        // Inicialização
+        window.onload = async () => {
+
+    const leadsSistema = await fetch('handler.php?action=getAll')
+        .then(r => r.json());
+
+    const leadsWhats = await carregarClientesWhatsApp();
+
+    // junta tudo
+    allLeads = [...leadsSistema, ...leadsWhats];
+
+    loadPipeline(allLeads);
+
+    document.getElementById('search').addEventListener('input', applyFilters);
+    document.getElementById('filterEtapa').addEventListener('change', applyFilters);
+    document.getElementById('filterValorMin').addEventListener('input', applyFilters);
+    document.getElementById('filterValorMax').addEventListener('input', applyFilters);
+};
     </script>
 </body>
 </html>
