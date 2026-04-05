@@ -15,9 +15,9 @@ app.use(express.json());
 
 let sock = null;
 
-// ==========================
-// INICIA BOT
-// ==========================
+// Mapa para armazenar LID → Número real (telefone)
+const lidToPhone = new Map();
+
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState("./whatsapp/auth_info");
     const { version } = await fetchLatestBaileysVersion();
@@ -27,7 +27,6 @@ async function startBot() {
         auth: state,
         printQRInTerminal: false,
         logger: pino({ level: "silent" }),
-        // getMessage: ... (pode adicionar depois se precisar de retries)
     });
 
     sock.ev.on("creds.update", saveCreds);
@@ -54,7 +53,7 @@ async function startBot() {
                 console.log("🔄 Tentando reconectar em 5 segundos...");
                 setTimeout(startBot, 5000);
             } else {
-                console.log("🚫 Sessão expirada. Delete a pasta 'whatsapp/auth_info' e escaneie o QR novamente.");
+                console.log("🚫 Sessão expirada. Delete a pasta 'whatsapp/auth_info' e escaneie novamente.");
             }
         }
     });
@@ -67,37 +66,51 @@ async function startBot() {
         if (!msg.message || msg.key.fromMe) return;
 
         const key = msg.key;
-        let jid = key.remoteJid;
+        const jid = key.remoteJid;
 
-        // Ignora grupos, canais, status e broadcast
+        // Ignora grupos e broadcasts
         if (!jid || jid.endsWith("@g.us") || jid.endsWith("@broadcast")) return;
+
+        // === DEBUG COMPLETO (remova depois que resolver) ===
+        console.log("🔍 DEBUG KEY:", JSON.stringify({
+            remoteJid: key.remoteJid,
+            fromMe: key.fromMe,
+            senderPn: key.senderPn,
+            senderLid: key.senderLid,
+            id: key.id
+        }, null, 2));
 
         let numeroReal = null;
 
-        // === LÓGICA PRINCIPAL PARA PEGAR O NÚMERO REAL ===
+        // 1. Tenta senderPn (melhor caso)
         if (key.senderPn) {
-            // senderPn é o mais confiável quando disponível (formato com telefone real)
-            numeroReal = key.senderPn.split("@")[0];
-        } 
+            numeroReal = key.senderPn.split("@")[0].replace(/\D/g, '');
+            // Salva no mapa
+            if (jid.endsWith("@lid")) {
+                lidToPhone.set(jid.split("@")[0], numeroReal);
+            }
+        }
+        // 2. Se for @s.whatsapp.net
         else if (jid.endsWith("@s.whatsapp.net")) {
-            // Caso clássico
-            numeroReal = jid.split("@")[0];
-        } 
+            numeroReal = jid.split("@")[0].replace(/\D/g, '');
+        }
+        // 3. Se for @lid → procura no nosso mapa
         else if (jid.endsWith("@lid")) {
-            // Fallback quando é LID puro
-            numeroReal = jid.split("@")[0];
-            console.warn(`⚠️ Mensagem recebida via LID: ${jid}`);
+            const lid = jid.split("@")[0];
+            numeroReal = lidToPhone.get(lid);
+
+            if (!numeroReal) {
+                console.warn(`⚠️ LID sem mapeamento conhecido: ${lid}@lid`);
+                numeroReal = lid; // fallback (não ideal)
+            }
         }
 
         if (!numeroReal || numeroReal.length < 10) {
-            console.log(`❌ Não foi possível extrair número válido do JID: ${jid}`);
+            console.log(`❌ Não consegui extrair número do JID: ${jid}`);
             return;
         }
 
-        // Limpa o número (remove tudo que não for dígito)
-        numeroReal = numeroReal.replace(/\D/g, '');
-
-        // Extrai o texto da mensagem (suporta texto simples, texto estendido, legenda de imagem/vídeo)
+        // Pega o texto
         let texto = 
             msg.message.conversation ||
             msg.message.extendedTextMessage?.text ||
@@ -110,7 +123,6 @@ async function startBot() {
 
         console.log(`📩 Mensagem recebida de ${numeroReal} | JID: ${jid} | Texto: ${texto}`);
 
-        // Envia para o seu CRM
         try {
             await axios.post("http://localhost/crm/webhook.php", {
                 numero: numeroReal,
@@ -123,14 +135,16 @@ async function startBot() {
         }
     });
 
-    // Evento opcional útil para debug de LIDs (pode remover depois)
-    sock.ev.on("lid-mapping.update", (mappings) => {
-        console.log("🔄 LID Mapping atualizado:", mappings);
+    // Evento para capturar novos mapeamentos (pode ajudar em alguns casos)
+    sock.ev.on("lid-mapping.update", (update) => {
+        console.log("🔄 Novo LID mapping recebido:", update);
+        // Aqui você pode popular o lidToPhone se o formato permitir
     });
 }
 
 // ==========================
-// ENVIO DE MENSAGEM (mantido quase igual, só melhorias)
+// ENVIO DE MENSAGEM
+// ==========================
 app.post("/enviar", async (req, res) => {
     const { numero, mensagem } = req.body;
 
@@ -146,22 +160,22 @@ app.post("/enviar", async (req, res) => {
         let numeroLimpo = numero.replace(/\D/g, '');
         if (!numeroLimpo.startsWith('55')) numeroLimpo = '55' + numeroLimpo;
 
-        const [resultado] = await sock.onWhatsApp(numeroLimpo + "@s.whatsapp.net");
+        const [resultado] = await sock.onWhatsApp(numeroLimpo);
 
         if (!resultado?.jid) {
-            console.log("⚠️ Número não encontrado no WhatsApp:", numeroLimpo);
-            return res.json({ ok: false, erro: "Número não possui WhatsApp ou não foi encontrado" });
+            console.log("⚠️ Número não encontrado:", numeroLimpo);
+            return res.json({ ok: false, erro: "Número não tem WhatsApp" });
         }
 
         const jidCorreto = resultado.jid;
-        console.log(`📤 Enviando mensagem para: ${jidCorreto}`);
+        console.log(`📤 Enviando para: ${jidCorreto}`);
 
         const result = await sock.sendMessage(jidCorreto, { text: mensagem });
+        console.log("✅ Mensagem enviada! ID:", result?.key?.id);
 
-        console.log("✅ Mensagem enviada com sucesso! ID:", result?.key?.id);
         res.json({ ok: true, messageId: result?.key?.id });
     } catch (e) {
-        console.error("❌ Erro ao enviar mensagem:", e);
+        console.error("❌ Erro ao enviar:", e.message || e);
         res.json({ ok: false, erro: e.message || "Erro desconhecido" });
     }
 });
