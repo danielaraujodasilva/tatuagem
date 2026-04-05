@@ -14,7 +14,7 @@ const app = express();
 app.use(express.json());
 
 let sock = null;
-const lidToPhone = new Map();   // Mapa LID → Número real (persistente enquanto o bot roda)
+const lidToPhone = new Map();   // Backup caso precise no futuro
 
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState("./whatsapp/auth_info");
@@ -71,49 +71,35 @@ async function startBot() {
 
             if (!jid || jid.endsWith("@g.us") || jid.endsWith("@broadcast")) continue;
 
-            // === DEBUG COMPLETO (muito importante agora) ===
-            console.log("🔍 DEBUG KEY COMPLETO:", JSON.stringify(key, null, 2));
-
+            // === LÓGICA PRINCIPAL PARA PEGAR O NÚMERO REAL ===
             let numeroReal = null;
 
-            // 1. Tenta senderPn (ainda o melhor quando vem)
-            if (key.senderPn) {
+            // Prioridade 1: remoteJidAlt (o que resolveu seu caso)
+            if (key.remoteJidAlt) {
+                numeroReal = key.remoteJidAlt.split("@")[0].replace(/\D/g, '');
+            }
+            // Prioridade 2: senderPn
+            else if (key.senderPn) {
                 numeroReal = key.senderPn.split("@")[0].replace(/\D/g, '');
             }
-            // 2. Tenta remoteJid se for @s.whatsapp.net
+            // Prioridade 3: remoteJid normal (@s.whatsapp.net)
             else if (jid.endsWith("@s.whatsapp.net")) {
                 numeroReal = jid.split("@")[0].replace(/\D/g, '');
             }
-            // 3. Tenta campos alternativos que aparecem em algumas versões
-            else if (key.remoteJidAlt) {
-                numeroReal = key.remoteJidAlt.split("@")[0].replace(/\D/g, '');
-            }
-            // 4. Usa o mapa interno do Baileys (signalRepository)
-            else if (sock.signalRepository?.lidMapping?.getPNForLID) {
-                try {
-                    const pn = sock.signalRepository.lidMapping.getPNForLID(jid);
-                    if (pn) numeroReal = pn.split("@")[0].replace(/\D/g, '');
-                } catch (e) {}
-            }
-
-            // 5. Fallback: usa o LID mesmo (temporário)
-            if (!numeroReal) {
+            // Prioridade 4: Fallback (LID)
+            else if (jid.endsWith("@lid")) {
                 const lid = jid.split("@")[0];
                 numeroReal = lidToPhone.get(lid) || lid;
-                console.warn(`⚠️ Usando fallback para LID: ${lid}`);
-            }
-
-            // Salva no mapa se acharmos senderPn
-            if (key.senderPn && jid.endsWith("@lid")) {
-                const lid = jid.split("@")[0];
-                const phone = key.senderPn.split("@")[0].replace(/\D/g, '');
-                lidToPhone.set(lid, phone);
-                console.log(`💾 Mapeamento salvo: ${lid} → ${phone}`);
             }
 
             if (!numeroReal || numeroReal.length < 10) continue;
 
-            // Pega o texto da mensagem
+            // Salva mapeamento para futuro
+            if (jid.endsWith("@lid") && numeroReal !== jid.split("@")[0]) {
+                lidToPhone.set(jid.split("@")[0], numeroReal);
+            }
+
+            // Extrai texto da mensagem
             let texto = 
                 msg.message.conversation ||
                 msg.message.extendedTextMessage?.text ||
@@ -126,6 +112,7 @@ async function startBot() {
 
             console.log(`📩 Mensagem recebida de ${numeroReal} | JID: ${jid} | Texto: ${texto}`);
 
+            // Envia para o CRM
             try {
                 await axios.post("http://localhost/crm/webhook.php", {
                     numero: numeroReal,
@@ -141,7 +128,8 @@ async function startBot() {
 }
 
 // ==========================
-// ENVIO DE MENSAGEM (melhorado)
+// ENVIO DE MENSAGEM
+// ==========================
 app.post("/enviar", async (req, res) => {
     const { numero, mensagem } = req.body;
 
@@ -176,7 +164,7 @@ app.post("/enviar", async (req, res) => {
     }
 });
 
-// Inicia o servidor
+// Inicia servidor
 app.listen(3001, () => {
     console.log("🚀 API WhatsApp rodando na porta 3001");
     startBot();
