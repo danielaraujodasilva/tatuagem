@@ -21,3 +21,7 @@ $stages = [
     '6' => '✅ Fechado - Ganho',
     '7' => '❌ Fechado - Perdido'
 ];
+
+file_put_contents("data/config.json", json_encode([
+    "mensagem_trigger" => $_POST['mensagem_trigger']
+]));
