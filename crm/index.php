@@ -391,8 +391,16 @@ const stageName = stages[etapa] || 'Etapa ' + etapa;
         }
 
         function viewLead(id) {
-            window.location.href = `lead.php?id=${id}`;
-        }
+
+    // se for WhatsApp
+    if (String(id).startsWith('wa_')) {
+        window.location.href = `chat.php?id=${id}`;
+        return;
+    }
+
+    // se for lead normal
+    window.location.href = `lead.php?id=${id}`;
+}
 
         function saveLead(e) {
             e.preventDefault();
