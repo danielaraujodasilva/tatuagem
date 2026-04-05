@@ -5,23 +5,35 @@ $data = json_decode(file_get_contents("php://input"), true);
 $numero = $data['numero'] ?? '';
 $mensagem = strtolower(trim($data['mensagem'] ?? ''));
 
-$config = json_decode(file_get_contents("data/config.json"), true);
+if (!$numero || !$mensagem) {
+    exit;
+}
 
+$config = json_decode(file_get_contents("data/config.json"), true);
 $mensagem_trigger = strtolower(trim($config['mensagem_trigger'] ?? 'oi'));
 
-if ($mensagem === $mensagem_trigger) {
+$clientes = [];
 
-    $clientes = [];
+if (file_exists("data/clientes.json")) {
+    $clientes = json_decode(file_get_contents("data/clientes.json"), true);
+}
 
-    if (file_exists("data/clientes.json")) {
-        $clientes = json_decode(file_get_contents("data/clientes.json"), true);
+$clienteIndex = null;
+
+// 🔍 procurar cliente existente
+foreach ($clientes as $index => $c) {
+    if ($c['numero'] === $numero) {
+        $clienteIndex = $index;
+        break;
     }
+}
 
-    // evitar duplicado
-    foreach ($clientes as $c) {
-        if ($c['numero'] === $numero) {
-            exit;
-        }
+// 🧠 se NÃO existir, cria novo
+if ($clienteIndex === null) {
+
+    // só cria se for mensagem gatilho
+    if ($mensagem !== $mensagem_trigger) {
+        exit;
     }
 
     $novo = [
@@ -29,16 +41,20 @@ if ($mensagem === $mensagem_trigger) {
         "numero" => $numero,
         "nome" => "Cliente",
         "status" => "novo",
-        "mensagens" => [
-            [
-                "de" => "cliente",
-                "texto" => $mensagem,
-                "data" => date("Y-m-d H:i:s")
-            ]
-        ]
+        "atendente" => "bot",
+        "mensagens" => []
     ];
 
     $clientes[] = $novo;
-
-    file_put_contents("data/clientes.json", json_encode($clientes, JSON_PRETTY_PRINT));
+    $clienteIndex = count($clientes) - 1;
 }
+
+// 💬 adiciona mensagem no histórico
+$clientes[$clienteIndex]['mensagens'][] = [
+    "de" => "cliente",
+    "texto" => $mensagem,
+    "data" => date("Y-m-d H:i:s")
+];
+
+// 💾 salva tudo
+file_put_contents("data/clientes.json", json_encode($clientes, JSON_PRETTY_PRINT));
