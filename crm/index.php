@@ -229,7 +229,7 @@ while($row = $result->fetch(PDO::FETCH_ASSOC)){
                 else if (dias > 10) classeFrio = 'lead-frio';
 
                 const html = `
-                    <div data-id="${lead.id}" onclick="viewLead(${lead.id})" class="card bg-gray-800 rounded-3xl p-5 cursor-pointer border border-gray-700 ${classeFrio}">
+                    <div data-id="${lead.id}" onclick="viewLead('${lead.id}')" class="card bg-gray-800 rounded-3xl p-5 cursor-pointer border border-gray-700 ${classeFrio}">
                         <div class="flex justify-between items-start">
                             <h4 class="font-semibold text-base">${lead.nome}</h4>
                         </div>
