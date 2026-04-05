@@ -1,81 +1,69 @@
-<?php
-file_put_contents("debug.txt", "bateu\n", FILE_APPEND);
+// ==========================
+// ENVIO DE MENSAGEM (versão corrigida para Brasil)
+// ==========================
+app.post("/enviar", async (req, res) => {
+    const { numero, mensagem } = req.body;
 
-$data = json_decode(file_get_contents("php://input"), true);
+    if (!numero || !mensagem) {
+        return res.json({ ok: false, erro: "Número e mensagem são obrigatórios" });
+    }
 
-$numero = $data['numero'] ?? '';
-$mensagem = $data['mensagem'] ?? '';
+    if (!sock || !sock.user) {
+        return res.json({ ok: false, erro: "WhatsApp não está conectado" });
+    }
 
-function normalizarNumero($num) {
-    return preg_replace('/[^0-9]/', '', $num);
-}
+    try {
+        let numeroLimpo = numero.replace(/\D/g, '');
 
-$numeroLimpo = normalizarNumero($numero);
-
-// =====================
-// ENVIA PRO NODE
-// =====================
-$ch = curl_init("http://localhost:3001/enviar");
-
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-    "numero" => $numero,
-    "mensagem" => $mensagem
-]));
-curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-$response = curl_exec($ch);
-
-if ($response === false) {
-    echo "ERRO CURL: " . curl_error($ch);
-    exit;
-}
-curl_close($ch);
-
-$res = json_decode($response, true);
-
-// =====================
-// SE ENVIO OK → SALVA
-// =====================
-if (!empty($res['ok'])) {
-
-    $arquivo = "data/clientes.json";
-
-    $clientes = file_exists($arquivo)
-        ? json_decode(file_get_contents($arquivo), true)
-        : [];
-
-    $achou = false;
-
-    foreach ($clientes as &$c) {
-
-        $numeroCliente = normalizarNumero($c['numero']);
-
-        // tenta bater pelo número
-        if ($numeroCliente == $numeroLimpo) {
-
-            $c['mensagens'][] = [
-                "texto" => $mensagem,
-                "data" => date('Y-m-d H:i:s'),
-                "fromMe" => true // 👈 front entende que é mensagem sua
-            ];
-
-            $achou = true;
-            break;
+        // Garante que comece com 55
+        if (!numeroLimpo.startsWith('55')) {
+            numeroLimpo = '55' + numeroLimpo;
         }
+
+        console.log(`📤 Tentando enviar para: ${numeroLimpo}`);
+
+        let jidCorreto = null;
+
+        // Tenta primeiro com o número como veio (geralmente com 9)
+        let testJid = numeroLimpo + '@s.whatsapp.net';
+        let [resultado] = await sock.onWhatsApp(testJid);
+
+        if (resultado?.exists) {
+            jidCorreto = resultado.jid;
+            console.log(`✅ Encontrado com 9: ${jidCorreto}`);
+        } 
+        else {
+            // Se não achou, tenta REMOVENDO o 9 (caso comum fora de SP/RJ)
+            if (numeroLimpo.length === 13 && numeroLimpo[4] === '9') {  // 55 + DD + 9 + 8 dígitos
+                const semNove = numeroLimpo.slice(0, 4) + numeroLimpo.slice(5); // remove o 9
+                testJid = semNove + '@s.whatsapp.net';
+                [resultado] = await sock.onWhatsApp(testJid);
+
+                if (resultado?.exists) {
+                    jidCorreto = resultado.jid;
+                    console.log(`✅ Encontrado SEM o 9: ${jidCorreto}`);
+                }
+            }
+        }
+
+        if (!jidCorreto) {
+            return res.json({ 
+                ok: false, 
+                erro: "Número não tem WhatsApp ou não foi encontrado (testamos com e sem o 9)" 
+            });
+        }
+
+        const result = await sock.sendMessage(jidCorreto, { text: mensagem });
+
+        console.log("✅ Mensagem enviada com sucesso! ID:", result?.key?.id);
+
+        res.json({ ok: true, messageId: result?.key?.id, jidUsado: jidCorreto });
+
+    } catch (e) {
+        console.error("❌ Erro ao enviar mensagem:", e);
+        res.json({ 
+            ok: false, 
+            erro: e.message || "Erro desconhecido no Baileys"
+        });
     }
-
-    // fallback (evita perder mensagem)
-    if (!$achou && !empty($clientes)) {
-        $clientes[0]['mensagens'][] = [
-            "texto" => $mensagem,
-            "data" => date('Y-m-d H:i:s'),
-            "fromMe" => true
-        ];
-    }
-
-    file_put_contents($arquivo, json_encode($clientes, JSON_PRETTY_PRINT));
-}
-
-echo json_encode($res);
+});
