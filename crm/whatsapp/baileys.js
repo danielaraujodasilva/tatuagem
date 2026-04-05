@@ -14,7 +14,7 @@ const app = express();
 app.use(express.json());
 
 let sock = null;
-const lidToPhone = new Map();   // LID → número real
+const lidToPhone = new Map();   // Mapa LID → Número real (persistente enquanto o bot roda)
 
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState("./whatsapp/auth_info");
@@ -25,8 +25,7 @@ async function startBot() {
         auth: state,
         printQRInTerminal: false,
         logger: pino({ level: "silent" }),
-        markOnlineOnConnect: true,        // ajuda em alguns casos
-        syncFullHistory: false,           // evita overload
+        markOnlineOnConnect: true,
     });
 
     sock.ev.on("creds.update", saveCreds);
@@ -59,58 +58,69 @@ async function startBot() {
     });
 
     // ==========================
-    // RECEBE MENSAGENS (versão mais robusta)
+    // RECEBE MENSAGENS
     // ==========================
     sock.ev.on("messages.upsert", async ({ messages, type }) => {
-        // type === "notify" → mensagens novas em tempo real
-        // type === "append" → mensagens antigas/histórico
-        if (type !== "notify") return;   // foca só em mensagens novas
+        if (type !== "notify") return;
 
-        for (const msg of messages) {     // importante: sempre usar loop!
+        for (const msg of messages) {
             if (!msg.message || msg.key.fromMe) continue;
 
             const key = msg.key;
-            const jid = key.remoteJid;
+            const jid = key.remoteJid || "";
 
             if (!jid || jid.endsWith("@g.us") || jid.endsWith("@broadcast")) continue;
 
-            // DEBUG (deixe ativado por enquanto)
-            console.log("🔍 DEBUG messages.upsert →", JSON.stringify({
-                remoteJid: key.remoteJid,
-                fromMe: key.fromMe,
-                senderPn: key.senderPn,
-                id: key.id,
-                type: type
-            }, null, 2));
+            // === DEBUG COMPLETO (muito importante agora) ===
+            console.log("🔍 DEBUG KEY COMPLETO:", JSON.stringify(key, null, 2));
 
             let numeroReal = null;
 
+            // 1. Tenta senderPn (ainda o melhor quando vem)
             if (key.senderPn) {
                 numeroReal = key.senderPn.split("@")[0].replace(/\D/g, '');
-                if (jid.endsWith("@lid")) {
-                    lidToPhone.set(jid.split("@")[0], numeroReal);
-                }
-            } 
+            }
+            // 2. Tenta remoteJid se for @s.whatsapp.net
             else if (jid.endsWith("@s.whatsapp.net")) {
                 numeroReal = jid.split("@")[0].replace(/\D/g, '');
-            } 
-            else if (jid.endsWith("@lid")) {
+            }
+            // 3. Tenta campos alternativos que aparecem em algumas versões
+            else if (key.remoteJidAlt) {
+                numeroReal = key.remoteJidAlt.split("@")[0].replace(/\D/g, '');
+            }
+            // 4. Usa o mapa interno do Baileys (signalRepository)
+            else if (sock.signalRepository?.lidMapping?.getPNForLID) {
+                try {
+                    const pn = sock.signalRepository.lidMapping.getPNForLID(jid);
+                    if (pn) numeroReal = pn.split("@")[0].replace(/\D/g, '');
+                } catch (e) {}
+            }
+
+            // 5. Fallback: usa o LID mesmo (temporário)
+            if (!numeroReal) {
                 const lid = jid.split("@")[0];
                 numeroReal = lidToPhone.get(lid) || lid;
-                if (!lidToPhone.has(lid)) {
-                    console.warn(`⚠️ LID sem mapeamento: ${lid}@lid`);
-                }
+                console.warn(`⚠️ Usando fallback para LID: ${lid}`);
+            }
+
+            // Salva no mapa se acharmos senderPn
+            if (key.senderPn && jid.endsWith("@lid")) {
+                const lid = jid.split("@")[0];
+                const phone = key.senderPn.split("@")[0].replace(/\D/g, '');
+                lidToPhone.set(lid, phone);
+                console.log(`💾 Mapeamento salvo: ${lid} → ${phone}`);
             }
 
             if (!numeroReal || numeroReal.length < 10) continue;
 
-            // Extrai texto (melhorado)
-            let texto = msg.message.conversation ||
-                        msg.message.extendedTextMessage?.text ||
-                        msg.message.imageMessage?.caption ||
-                        msg.message.videoMessage?.caption ||
-                        msg.message.documentMessage?.caption ||
-                        "";
+            // Pega o texto da mensagem
+            let texto = 
+                msg.message.conversation ||
+                msg.message.extendedTextMessage?.text ||
+                msg.message.imageMessage?.caption ||
+                msg.message.videoMessage?.caption ||
+                msg.message.documentMessage?.caption ||
+                "";
 
             if (!texto.trim()) continue;
 
@@ -128,17 +138,10 @@ async function startBot() {
             }
         }
     });
-
-    // Evento auxiliar para mappings (pode ajudar a preencher o mapa)
-    sock.ev.on("lid-mapping.update", (updates) => {
-        console.log("🔄 LID Mapping recebido:", updates);
-        // Você pode popular o lidToPhone aqui se o formato permitir
-    });
 }
 
 // ==========================
-// ENVIO DE MENSAGEM
-// ==========================
+// ENVIO DE MENSAGEM (melhorado)
 app.post("/enviar", async (req, res) => {
     const { numero, mensagem } = req.body;
 
@@ -164,18 +167,16 @@ app.post("/enviar", async (req, res) => {
         console.log(`📤 Enviando para: ${resultado.jid}`);
 
         const result = await sock.sendMessage(resultado.jid, { text: mensagem });
-        console.log("✅ Enviada! ID:", result?.key?.id);
+        console.log("✅ Mensagem enviada! ID:", result?.key?.id);
 
         res.json({ ok: true, messageId: result?.key?.id });
     } catch (e) {
-        console.error("❌ Erro no envio:", e.message || e);
+        console.error("❌ Erro ao enviar:", e.message || e);
         res.json({ ok: false, erro: e.message || "Erro desconhecido" });
     }
 });
 
-// ==========================
-// INICIA TUDO
-// ==========================
+// Inicia o servidor
 app.listen(3001, () => {
     console.log("🚀 API WhatsApp rodando na porta 3001");
     startBot();
