@@ -91,5 +91,12 @@ function enviarMensagem() {
 }
 </script>
 
+<script>
+window.onload = () => {
+    const container = document.querySelector('.flex-1');
+    container.scrollTop = container.scrollHeight;
+};
+</script>
+
 </body>
 </html>
