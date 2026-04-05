@@ -312,14 +312,14 @@ while($row = $result->fetch(PDO::FETCH_ASSOC)){
                         body: `action=move&id=${id}&etapa=${newEtapa}`
                     })
                     .then(() => {
-                        // recarrega sem quebrar UI
-                        fetch('handler.php?action=getAll')
-                            .then(r => r.json())
-                            .then(leads => {
-                                allLeads = leads;
-                                loadPipeline();
-                            });
-                    });
+    Promise.all([
+        fetch('handler.php?action=getAll').then(r => r.json()),
+        carregarClientesWhatsApp()
+    ]).then(([leadsSistema, leadsWhats]) => {
+        allLeads = [...leadsSistema, ...leadsWhats];
+        loadPipeline();
+    });
+});
                 }
             }
         });
@@ -405,10 +405,13 @@ const stageName = stages[etapa] || 'Etapa ' + etapa;
                     if (data.error) alert(data.error);
                     else {
                         closeModal();
-                        fetch('handler.php?action=getAll').then(r => r.json()).then(leads => {
-                            allLeads = leads;
-                            loadPipeline();
-                        });
+                        Promise.all([
+    fetch('handler.php?action=getAll').then(r => r.json()),
+    carregarClientesWhatsApp()
+]).then(([leadsSistema, leadsWhats]) => {
+    allLeads = [...leadsSistema, ...leadsWhats];
+    loadPipeline();
+});
                     }
                 });
         }
@@ -420,10 +423,13 @@ const stageName = stages[etapa] || 'Etapa ' + etapa;
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                 body: `action=delete&id=${id}`
             }).then(() => {
-                fetch('handler.php?action=getAll').then(r => r.json()).then(leads => {
-                    allLeads = leads;
-                    loadPipeline();
-                });
+                Promise.all([
+    fetch('handler.php?action=getAll').then(r => r.json()),
+    carregarClientesWhatsApp()
+]).then(([leadsSistema, leadsWhats]) => {
+    allLeads = [...leadsSistema, ...leadsWhats];
+    loadPipeline();
+});
             });
         }
 
@@ -453,20 +459,53 @@ const stageName = stages[etapa] || 'Etapa ' + etapa;
             loadPipeline(filtered);
         }
 
-        // Inicialização
-        window.onload = () => {
-            fetch('handler.php?action=getAll')
-                .then(r => r.json())
-                .then(leads => {
-                    allLeads = leads;
-                    loadPipeline(leads);
-                });
 
-            document.getElementById('search').addEventListener('input', applyFilters);
-            document.getElementById('filterEtapa').addEventListener('change', applyFilters);
-            document.getElementById('filterValorMin').addEventListener('input', applyFilters);
-            document.getElementById('filterValorMax').addEventListener('input', applyFilters);
-        };
+        async function carregarClientesWhatsApp() {
+    try {
+        const res = await fetch('api_clientes.php');
+        const clientes = await res.json();
+
+        // converter clientes em leads compatíveis
+        const leadsConvertidos = clientes.map(c => ({
+            id: 'wa_' + c.id,
+            nome: c.nome || 'Cliente WhatsApp',
+            telefone: c.numero,
+            interesse: c.mensagens?.slice(-1)[0]?.texto || '',
+            valor: 0,
+            origem: 'WhatsApp',
+            status: c.status || 'novo',
+            etapa: Object.keys(<?= json_encode($stages) ?>)[0], // joga na primeira coluna
+            data_ultimo_contato: c.mensagens?.slice(-1)[0]?.data || '',
+            created_at: c.mensagens?.[0]?.data || ''
+        }));
+
+        return leadsConvertidos;
+
+    } catch (e) {
+        console.log('Erro ao carregar WhatsApp:', e);
+        return [];
+    }
+}
+
+
+        // Inicialização
+        window.onload = async () => {
+
+    const leadsSistema = await fetch('handler.php?action=getAll')
+        .then(r => r.json());
+
+    const leadsWhats = await carregarClientesWhatsApp();
+
+    // junta tudo
+    allLeads = [...leadsSistema, ...leadsWhats];
+
+    loadPipeline(allLeads);
+
+    document.getElementById('search').addEventListener('input', applyFilters);
+    document.getElementById('filterEtapa').addEventListener('change', applyFilters);
+    document.getElementById('filterValorMin').addEventListener('input', applyFilters);
+    document.getElementById('filterValorMax').addEventListener('input', applyFilters);
+};
     </script>
 </body>
 </html>
