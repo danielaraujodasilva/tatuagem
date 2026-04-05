@@ -108,7 +108,13 @@ app.post("/enviar", async (req, res) => {
             text: mensagem
         });
 
-        console.log("📤 Mensagem enviada para:", numero);
+        const result = await sock.sendMessage(jid, {
+    text: mensagem
+});
+
+console.log("✅ Resultado envio:", result);
+
+        console.log("📤 Tentando enviar para:", jid);
 
         res.json({ ok: true });
 
