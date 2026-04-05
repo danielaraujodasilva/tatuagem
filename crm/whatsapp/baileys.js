@@ -71,7 +71,14 @@ async function startBot() {
         if (!texto) return;
 
         const jid = msg.key.remoteJid;
-        const numero = jid.replace(/\D/g, '');
+
+// só aceita número real
+if (!jid.includes("@s.whatsapp.net")) {
+    console.log("⚠️ Ignorando JID inválido:", jid);
+    return;
+}
+
+const numero = jid.split("@")[0];
 
         console.log("📩 Mensagem recebida:", numero, "-", texto);
 
