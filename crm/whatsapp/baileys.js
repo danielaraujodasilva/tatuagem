@@ -1,11 +1,9 @@
 const {
     default: makeWASocket,
     useMultiFileAuthState,
-    fetchLatestBaileysVersion,
-    DisconnectReason
+    fetchLatestBaileysVersion
 } = require("@whiskeysockets/baileys");
 
-const fs = require("fs");
 const axios = require("axios");
 const qrcode = require("qrcode-terminal");
 const express = require("express");
@@ -13,7 +11,7 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 
-let sock; // 👈 GLOBAL (ESSENCIAL)
+let sock;
 
 // ==========================
 // INICIA BOT
@@ -29,10 +27,8 @@ async function startBot() {
         printQRInTerminal: false
     });
 
-    // salva sessão
     sock.ev.on("creds.update", saveCreds);
 
-    // conexão / QR / reconexão
     sock.ev.on("connection.update", (update) => {
         const { connection, qr, lastDisconnect } = update;
 
@@ -74,7 +70,10 @@ async function startBot() {
 
         if (!texto) return;
 
-        const numero = msg.key.remoteJid.replace("@s.whatsapp.net", "");
+        const jid = msg.key.remoteJid;
+
+        // 🔥 extrai só números (IMPORTANTE)
+        const numero = jid.replace(/\D/g, '');
 
         console.log("📩 Mensagem recebida:", numero, "-", texto);
 
@@ -100,21 +99,18 @@ app.post("/enviar", async (req, res) => {
             return res.json({ ok: false, erro: "WhatsApp não conectado ainda" });
         }
 
-        const jid = numero.includes("@s.whatsapp.net")
-            ? numero
-            : numero + "@s.whatsapp.net";
+        // 🔥 limpa número (ESSENCIAL)
+        const numeroLimpo = numero.replace(/\D/g, '');
 
-        await sock.sendMessage(jid, {
+        const jid = numeroLimpo + "@s.whatsapp.net";
+
+        console.log("📤 Enviando para:", jid);
+
+        const result = await sock.sendMessage(jid, {
             text: mensagem
         });
 
-        const result = await sock.sendMessage(jid, {
-    text: mensagem
-});
-
-console.log("✅ Resultado envio:", result);
-
-        console.log("📤 Tentando enviar para:", jid);
+        console.log("✅ Enviado com sucesso:", result);
 
         res.json({ ok: true });
 
@@ -131,5 +127,4 @@ app.listen(3001, () => {
     console.log("🚀 API WhatsApp rodando na porta 3001");
 });
 
-// inicia bot
 startBot();
