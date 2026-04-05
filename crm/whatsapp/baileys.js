@@ -8,13 +8,16 @@ const {
 const axios = require("axios");
 const qrcode = require("qrcode-terminal");
 const express = require("express");
-const pino = require("pino");
+const pino = require("pino"); // para log limpo
 
 const app = express();
 app.use(express.json());
 
 let sock = null;
 
+// ==========================
+// INICIA BOT
+// ==========================
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState("./whatsapp/auth_info");
     const { version } = await fetchLatestBaileysVersion();
@@ -23,39 +26,58 @@ async function startBot() {
         version,
         auth: state,
         printQRInTerminal: false,
-        logger: pino({ level: "silent" }),
+        logger: pino({ level: "silent" }) // silent pra não poluir console
     });
 
     sock.ev.on("creds.update", saveCreds);
 
-    sock.ev.on("connection.update", ({ connection, qr, lastDisconnect }) => {
+    sock.ev.on("connection.update", (update) => {
+        const { connection, qr, lastDisconnect } = update;
+
         if (qr) {
             console.log("\n📱 Escaneia esse QR aí:\n");
             qrcode.generate(qr, { small: true });
         }
-        if (connection === "open") console.log("✅ WhatsApp conectado com sucesso!");
-        if (connection === "close") {
-            const statusCode = lastDisconnect?.error?.output?.statusCode;
-            const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
-            console.log(`❌ Conexão fechada. Código: ${statusCode || 'desconhecido'}`);
-            if (shouldReconnect) setTimeout(startBot, 5000);
-            else console.log("🚫 Sessão expirada. Apague auth_info e escaneie novamente.");
+        if (connection === "open") {
+            console.log("✅ WhatsApp conectado!");
+        }
+
+        if (connection === "close") {
+            const code = lastDisconnect?.error?.output?.statusCode;
+            const reconnect = code !== DisconnectReason.loggedOut;
+
+            console.log(`❌ Conexão fechada. Código: ${code || "desconhecido"}`);
+
+            if (reconnect) {
+                console.log("🔄 Tentando reconectar em 5s...");
+                setTimeout(startBot, 5000);
+            } else {
+                console.log("🚫 Sessão expirada. Delete 'whatsapp/auth_info' e escaneie QR.");
+            }
         }
     });
 
+    // ==========================
+    // RECEBE MENSAGENS DIRETAS
+    // ==========================
     sock.ev.on("messages.upsert", async ({ messages }) => {
         const msg = messages[0];
         if (!msg.message) return;
 
+        const jid = msg.key.remoteJid;
+
+        // ignora grupos e canais
+        if (!jid.endsWith("@s.whatsapp.net")) return;
+
+        // pega o número real do cliente
+        const numero = msg.key?.participant?.replace(/\D/g, '') || jid.replace(/\D/g, '');
+        if (!numero || numero.length < 10) return;
+
         const texto = msg.message.conversation || msg.message.extendedTextMessage?.text;
         if (!texto) return;
 
-        const jid = msg.key.remoteJid;
-        let numero = jid?.replace(/\D/g, '');
-        if (!numero || numero.length < 10) return;
-
-        console.log("📩 Mensagem recebida:", numero, "-", texto);
+        console.log(`📩 Mensagem de ${numero}: ${texto}`);
 
         try {
             await axios.post("http://localhost/crm/webhook.php", { numero, mensagem: texto });
@@ -71,33 +93,40 @@ async function startBot() {
 app.post("/enviar", async (req, res) => {
     const { numero, mensagem } = req.body;
 
-    if (!numero || !mensagem) return res.json({ ok: false, erro: "Número e mensagem são obrigatórios" });
-    if (!sock || !sock.user) return res.json({ ok: false, erro: "WhatsApp não está conectado" });
+    if (!numero || !mensagem) {
+        return res.json({ ok: false, erro: "Número e mensagem obrigatórios" });
+    }
+
+    if (!sock || !sock.user) {
+        return res.json({ ok: false, erro: "WhatsApp não conectado" });
+    }
 
     try {
         let numeroLimpo = numero.replace(/\D/g, '');
         if (!numeroLimpo.startsWith('55')) numeroLimpo = '55' + numeroLimpo;
 
-        console.log("📌 Tentando enviar para número normalizado:", numeroLimpo);
-
+        // garante que o número existe no WhatsApp
         const [resultado] = await sock.onWhatsApp(numeroLimpo);
-        if (!resultado?.jid) return res.json({ ok: false, erro: "Número não tem WhatsApp ou não foi encontrado" });
+        if (!resultado?.jid) {
+            console.log("⚠️ Número não encontrado:", numeroLimpo);
+            return res.json({ ok: false, erro: "Número não tem WhatsApp ou não foi encontrado" });
+        }
 
         const jidCorreto = resultado.jid;
-        console.log(`📤 Enviando para JID correto: ${jidCorreto}`);
+        console.log(`📤 Enviando para: ${jidCorreto}`);
 
         const result = await sock.sendMessage(jidCorreto, { text: mensagem });
-        console.log("✅ Mensagem enviada com sucesso! ID:", result?.key?.id);
+        console.log("✅ Mensagem enviada! ID:", result?.key?.id);
 
         res.json({ ok: true, messageId: result?.key?.id });
     } catch (e) {
-        console.error("❌ Erro ao enviar mensagem:", e);
+        console.error("❌ Erro ao enviar:", e);
         res.json({ ok: false, erro: e.message || "Erro desconhecido" });
     }
 });
 
 // ==========================
-// INICIA SERVIDOR
+// INICIA SERVIDOR E BOT
 // ==========================
 app.listen(3001, () => {
     console.log("🚀 API WhatsApp rodando na porta 3001");
