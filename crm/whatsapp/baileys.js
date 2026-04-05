@@ -59,7 +59,7 @@ async function startBot() {
     });
 
     // ==========================
-    // RECEBE MENSAGENS DIRETAS (ignora grupos)
+    // RECEBE MENSAGENS DIRETAS
     // ==========================
     sock.ev.on("messages.upsert", async ({ messages }) => {
         const msg = messages[0];
@@ -67,11 +67,11 @@ async function startBot() {
 
         const jid = msg.key.remoteJid;
 
-        // Ignora grupos e broadcasts
-        if (jid.endsWith("@g.us") || jid.endsWith("@broadcast")) return;
+        // ignora grupos e canais
+        if (!jid.endsWith("@s.whatsapp.net")) return;
 
-        // Número real do cliente
-        const numero = jid.replace(/\D/g, '');
+        // pega o número real do cliente corretamente
+        const numero = jid.split("@")[0];
         if (!numero || numero.length < 10) return;
 
         const texto = msg.message.conversation || msg.message.extendedTextMessage?.text;
@@ -105,7 +105,7 @@ app.post("/enviar", async (req, res) => {
         let numeroLimpo = numero.replace(/\D/g, '');
         if (!numeroLimpo.startsWith('55')) numeroLimpo = '55' + numeroLimpo;
 
-        // Garante que o número existe no WhatsApp
+        // garante que o número existe no WhatsApp
         const [resultado] = await sock.onWhatsApp(numeroLimpo);
         if (!resultado?.jid) {
             console.log("⚠️ Número não encontrado:", numeroLimpo);
