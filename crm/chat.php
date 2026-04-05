@@ -52,5 +52,44 @@ if (!$cliente) {
 <?php endforeach; ?>
 </div>
 
+<!-- INPUT -->
+<div class="p-4 border-t border-gray-800 flex gap-3">
+    <input id="msgInput" type="text" placeholder="Digite sua mensagem..."
+           class="flex-1 bg-gray-800 px-4 py-2 rounded-xl">
+
+    <button onclick="enviarMensagem()"
+            class="bg-emerald-600 px-4 py-2 rounded-xl">
+        Enviar
+    </button>
+</div>
+
+<script>
+function enviarMensagem() {
+    const input = document.getElementById('msgInput');
+    const texto = input.value.trim();
+
+    if (!texto) return;
+
+    fetch('enviar.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            numero: "<?= $cliente['numero'] ?>",
+            mensagem: texto
+        })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.ok) {
+            location.reload();
+        } else {
+            alert("Erro ao enviar");
+        }
+    });
+
+    input.value = '';
+}
+</script>
+
 </body>
 </html>

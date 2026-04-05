@@ -78,4 +78,29 @@ async function startBot() {
     });
 }
 
+import express from 'express';
+
+const app = express();
+app.use(express.json());
+
+app.post('/enviar', async (req, res) => {
+    const { numero, mensagem } = req.body;
+
+    try {
+        await sock.sendMessage(numero + "@s.whatsapp.net", {
+            text: mensagem
+        });
+
+        res.json({ ok: true });
+
+    } catch (e) {
+        console.log("Erro ao enviar:", e);
+        res.json({ ok: false });
+    }
+});
+
+app.listen(3001, () => {
+    console.log("🚀 API WhatsApp rodando na porta 3001");
+});
+
 startBot();
