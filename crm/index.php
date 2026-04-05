@@ -239,10 +239,10 @@ while($row = $result->fetch(PDO::FETCH_ASSOC)){
                         ${valor > 0 ? `<p class="text-emerald-400 font-medium mt-4">R$ ${valor.toLocaleString('pt-BR')}</p>` : ''}
 
                         <div class="flex justify-start gap-5 mt-5 pt-4 border-t border-gray-700 text-sm">
-                            <button onclick="editLead(${lead.id}); event.stopImmediatePropagation()" class="text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                            <button onclick="editLead('${lead.id}'); event.stopImmediatePropagation()" class="text-blue-400 hover:text-blue-300 flex items-center gap-1">
                                 <i class="fas fa-edit"></i> Editar
                             </button>
-                            <button onclick="deleteLead(${lead.id}); event.stopImmediatePropagation()" class="text-red-400 hover:text-red-300 flex items-center gap-1">
+                            <button onclick="deleteLead('${lead.id}'); event.stopImmediatePropagation()" class="text-red-400 hover:text-red-300 flex items-center gap-1">
                                 <i class="fas fa-trash"></i> Excluir
                             </button>
                         </div>
