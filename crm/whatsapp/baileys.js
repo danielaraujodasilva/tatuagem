@@ -71,20 +71,22 @@ async function startBot() {
         if (!texto) return;
 
         const jid = msg.key.remoteJid;
+
         let numero = null;
 
-        // número normal
-        if (jid.includes("@s.whatsapp.net")) {
-            numero = jid.split("@")[0];
+        // tenta extrair número de qualquer formato
+        if (jid) {
+            numero = jid.replace(/\D/g, '');
         }
 
-        // fallback (alguns casos @lid)
-        else if (msg.key.participant) {
+        // fallback (casos estranhos)
+        if (!numero && msg.key.participant) {
             numero = msg.key.participant.replace(/\D/g, '');
         }
 
-        if (!numero) {
-            console.log("⚠️ Não consegui extrair número:", jid);
+        // valida número mínimo
+        if (!numero || numero.length < 10) {
+            console.log("⚠️ Número inválido:", jid);
             return;
         }
 
@@ -99,37 +101,10 @@ async function startBot() {
             console.log("❌ Erro ao enviar pro CRM:", err.message);
         }
     });
-
-    // ==========================
-    // TESTE AUTOMÁTICO
-    // ==========================
-    setTimeout(async () => {
-        try {
-            const numeroTeste = "5511947573311"; // <<< COLOCA SEU NÚMERO
-
-            console.log("🧪 Testando envio direto...");
-
-            const [res] = await sock.onWhatsApp(numeroTeste);
-
-            if (!res) {
-                console.log("❌ Número inválido no teste");
-                return;
-            }
-
-            await sock.sendMessage(res.jid, {
-                text: "🔥 teste direto baileys"
-            });
-
-            console.log("🚀 TESTE DIRETO FUNCIONOU");
-
-        } catch (e) {
-            console.log("💥 TESTE DIRETO FALHOU:", e);
-        }
-    }, 8000);
 }
 
 // ==========================
-// ROTA: ENVIAR MENSAGEM
+// ENVIO DE MENSAGEM
 // ==========================
 app.post("/enviar", async (req, res) => {
     const { numero, mensagem } = req.body;
@@ -141,44 +116,34 @@ app.post("/enviar", async (req, res) => {
 
         const numeroLimpo = numero.replace(/\D/g, '');
 
-        console.log("🔍 Validando número:", numeroLimpo);
-
-        const [resultNumero] = await sock.onWhatsApp(numeroLimpo);
-
-        if (!resultNumero) {
-            console.log("❌ Número não existe no WhatsApp:", numeroLimpo);
+        if (!numeroLimpo || numeroLimpo.length < 10) {
             return res.json({ ok: false, erro: "Número inválido" });
         }
 
-        const jid = resultNumero.jid;
+        const jid = numeroLimpo + "@s.whatsapp.net";
 
         console.log("📤 Enviando para:", jid);
 
-        try {
-            const result = await sock.sendMessage(jid, {
-                text: mensagem
-            });
+        const result = await sock.sendMessage(jid, {
+            text: mensagem
+        });
 
-            console.log("✅ ENVIO OK");
+        console.log("✅ Mensagem enviada:", result);
 
-            res.json({ ok: true });
-
-        } catch (err) {
-            console.log("💥 ERRO REAL DO WHATS:", err);
-            res.json({ ok: false, erro: err.message });
-        }
+        res.json({ ok: true });
 
     } catch (e) {
-        console.log("❌ Erro geral:", e);
+        console.log("❌ Erro ao enviar:", e);
         res.json({ ok: false, erro: e.message });
     }
 });
 
 // ==========================
-// INICIA SERVIDOR
+// START SERVIDOR
 // ==========================
 app.listen(3001, () => {
     console.log("🚀 API WhatsApp rodando na porta 3001");
 });
 
+// inicia bot
 startBot();
