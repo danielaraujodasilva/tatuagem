@@ -59,7 +59,7 @@ async function startBot() {
     });
 
     // ==========================
-    // RECEBE MENSAGENS DIRETAS
+    // RECEBE MENSAGENS DIRETAS (ignora grupos)
     // ==========================
     sock.ev.on("messages.upsert", async ({ messages }) => {
         const msg = messages[0];
@@ -67,17 +67,17 @@ async function startBot() {
 
         const jid = msg.key.remoteJid;
 
-        // ignora grupos e canais
-        if (!jid.endsWith("@s.whatsapp.net")) return;
+        // Ignora grupos e broadcasts
+        if (jid.endsWith("@g.us") || jid.endsWith("@broadcast")) return;
 
-        // pega o número real do cliente
-        const numero = msg.key?.participant?.replace(/\D/g, '') || jid.replace(/\D/g, '');
+        // Número real do cliente
+        const numero = jid.replace(/\D/g, '');
         if (!numero || numero.length < 10) return;
 
         const texto = msg.message.conversation || msg.message.extendedTextMessage?.text;
         if (!texto) return;
 
-        console.log(`📩 Mensagem de ${numero}: ${texto}`);
+        console.log(`📩 Mensagem recebida de ${numero}: ${texto}`);
 
         try {
             await axios.post("http://localhost/crm/webhook.php", { numero, mensagem: texto });
@@ -105,7 +105,7 @@ app.post("/enviar", async (req, res) => {
         let numeroLimpo = numero.replace(/\D/g, '');
         if (!numeroLimpo.startsWith('55')) numeroLimpo = '55' + numeroLimpo;
 
-        // garante que o número existe no WhatsApp
+        // Garante que o número existe no WhatsApp
         const [resultado] = await sock.onWhatsApp(numeroLimpo);
         if (!resultado?.jid) {
             console.log("⚠️ Número não encontrado:", numeroLimpo);
