@@ -1,6 +1,6 @@
-const { 
-    default: makeWASocket, 
-    useMultiFileAuthState, 
+const {
+    default: makeWASocket,
+    useMultiFileAuthState,
     fetchLatestBaileysVersion,
     DisconnectReason
 } = require("@whiskeysockets/baileys");
@@ -8,13 +8,22 @@ const {
 const fs = require("fs");
 const axios = require("axios");
 const qrcode = require("qrcode-terminal");
+const express = require("express");
 
+const app = express();
+app.use(express.json());
+
+let sock; // 👈 GLOBAL (ESSENCIAL)
+
+// ==========================
+// INICIA BOT
+// ==========================
 async function startBot() {
 
     const { state, saveCreds } = await useMultiFileAuthState("./whatsapp/auth_info");
     const { version } = await fetchLatestBaileysVersion();
 
-    const sock = makeWASocket({
+    sock = makeWASocket({
         version,
         auth: state,
         printQRInTerminal: false
@@ -51,7 +60,9 @@ async function startBot() {
         }
     });
 
-    // recebimento de mensagens
+    // ==========================
+    // RECEBE MENSAGENS
+    // ==========================
     sock.ev.on("messages.upsert", async ({ messages }) => {
         const msg = messages[0];
 
@@ -78,29 +89,41 @@ async function startBot() {
     });
 }
 
-import express from 'express';
-
-const app = express();
-app.use(express.json());
-
-app.post('/enviar', async (req, res) => {
+// ==========================
+// ROTA: ENVIAR MENSAGEM
+// ==========================
+app.post("/enviar", async (req, res) => {
     const { numero, mensagem } = req.body;
 
     try {
-        await sock.sendMessage(numero + "@s.whatsapp.net", {
+        if (!sock) {
+            return res.json({ ok: false, erro: "WhatsApp não conectado ainda" });
+        }
+
+        const jid = numero.includes("@s.whatsapp.net")
+            ? numero
+            : numero + "@s.whatsapp.net";
+
+        await sock.sendMessage(jid, {
             text: mensagem
         });
+
+        console.log("📤 Mensagem enviada para:", numero);
 
         res.json({ ok: true });
 
     } catch (e) {
-        console.log("Erro ao enviar:", e);
-        res.json({ ok: false });
+        console.log("❌ Erro ao enviar:", e);
+        res.json({ ok: false, erro: e.message });
     }
 });
 
+// ==========================
+// INICIA SERVIDOR
+// ==========================
 app.listen(3001, () => {
     console.log("🚀 API WhatsApp rodando na porta 3001");
 });
 
+// inicia bot
 startBot();
