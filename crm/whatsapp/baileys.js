@@ -14,9 +14,7 @@ const app = express();
 app.use(express.json());
 
 let sock = null;
-
-// Mapa para armazenar LID → Número real (telefone)
-const lidToPhone = new Map();
+const lidToPhone = new Map();   // LID → número real
 
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState("./whatsapp/auth_info");
@@ -27,6 +25,8 @@ async function startBot() {
         auth: state,
         printQRInTerminal: false,
         logger: pino({ level: "silent" }),
+        markOnlineOnConnect: true,        // ajuda em alguns casos
+        syncFullHistory: false,           // evita overload
     });
 
     sock.ev.on("creds.update", saveCreds);
@@ -47,98 +47,92 @@ async function startBot() {
             const code = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = code !== DisconnectReason.loggedOut;
 
-            console.log(`❌ Conexão fechada. Código: ${code || "desconhecido"}`);
+            console.log(`❌ Conexão fechada (código: ${code || "desconhecido"})`);
 
             if (shouldReconnect) {
-                console.log("🔄 Tentando reconectar em 5 segundos...");
+                console.log("🔄 Reconectando em 5s...");
                 setTimeout(startBot, 5000);
             } else {
-                console.log("🚫 Sessão expirada. Delete a pasta 'whatsapp/auth_info' e escaneie novamente.");
+                console.log("🚫 Sessão inválida. Delete a pasta 'whatsapp/auth_info' e escaneie novamente.");
             }
         }
     });
 
     // ==========================
-    // RECEBE MENSAGENS
+    // RECEBE MENSAGENS (versão mais robusta)
     // ==========================
-    sock.ev.on("messages.upsert", async ({ messages }) => {
-        const msg = messages[0];
-        if (!msg.message || msg.key.fromMe) return;
+    sock.ev.on("messages.upsert", async ({ messages, type }) => {
+        // type === "notify" → mensagens novas em tempo real
+        // type === "append" → mensagens antigas/histórico
+        if (type !== "notify") return;   // foca só em mensagens novas
 
-        const key = msg.key;
-        const jid = key.remoteJid;
+        for (const msg of messages) {     // importante: sempre usar loop!
+            if (!msg.message || msg.key.fromMe) continue;
 
-        // Ignora grupos e broadcasts
-        if (!jid || jid.endsWith("@g.us") || jid.endsWith("@broadcast")) return;
+            const key = msg.key;
+            const jid = key.remoteJid;
 
-        // === DEBUG COMPLETO (remova depois que resolver) ===
-        console.log("🔍 DEBUG KEY:", JSON.stringify({
-            remoteJid: key.remoteJid,
-            fromMe: key.fromMe,
-            senderPn: key.senderPn,
-            senderLid: key.senderLid,
-            id: key.id
-        }, null, 2));
+            if (!jid || jid.endsWith("@g.us") || jid.endsWith("@broadcast")) continue;
 
-        let numeroReal = null;
+            // DEBUG (deixe ativado por enquanto)
+            console.log("🔍 DEBUG messages.upsert →", JSON.stringify({
+                remoteJid: key.remoteJid,
+                fromMe: key.fromMe,
+                senderPn: key.senderPn,
+                id: key.id,
+                type: type
+            }, null, 2));
 
-        // 1. Tenta senderPn (melhor caso)
-        if (key.senderPn) {
-            numeroReal = key.senderPn.split("@")[0].replace(/\D/g, '');
-            // Salva no mapa
-            if (jid.endsWith("@lid")) {
-                lidToPhone.set(jid.split("@")[0], numeroReal);
+            let numeroReal = null;
+
+            if (key.senderPn) {
+                numeroReal = key.senderPn.split("@")[0].replace(/\D/g, '');
+                if (jid.endsWith("@lid")) {
+                    lidToPhone.set(jid.split("@")[0], numeroReal);
+                }
+            } 
+            else if (jid.endsWith("@s.whatsapp.net")) {
+                numeroReal = jid.split("@")[0].replace(/\D/g, '');
+            } 
+            else if (jid.endsWith("@lid")) {
+                const lid = jid.split("@")[0];
+                numeroReal = lidToPhone.get(lid) || lid;
+                if (!lidToPhone.has(lid)) {
+                    console.warn(`⚠️ LID sem mapeamento: ${lid}@lid`);
+                }
             }
-        }
-        // 2. Se for @s.whatsapp.net
-        else if (jid.endsWith("@s.whatsapp.net")) {
-            numeroReal = jid.split("@")[0].replace(/\D/g, '');
-        }
-        // 3. Se for @lid → procura no nosso mapa
-        else if (jid.endsWith("@lid")) {
-            const lid = jid.split("@")[0];
-            numeroReal = lidToPhone.get(lid);
 
-            if (!numeroReal) {
-                console.warn(`⚠️ LID sem mapeamento conhecido: ${lid}@lid`);
-                numeroReal = lid; // fallback (não ideal)
+            if (!numeroReal || numeroReal.length < 10) continue;
+
+            // Extrai texto (melhorado)
+            let texto = msg.message.conversation ||
+                        msg.message.extendedTextMessage?.text ||
+                        msg.message.imageMessage?.caption ||
+                        msg.message.videoMessage?.caption ||
+                        msg.message.documentMessage?.caption ||
+                        "";
+
+            if (!texto.trim()) continue;
+
+            console.log(`📩 Mensagem recebida de ${numeroReal} | JID: ${jid} | Texto: ${texto}`);
+
+            try {
+                await axios.post("http://localhost/crm/webhook.php", {
+                    numero: numeroReal,
+                    mensagem: texto,
+                    jidCompleto: jid,
+                    isLid: jid.endsWith("@lid")
+                });
+            } catch (err) {
+                console.error("❌ Erro ao enviar pro CRM:", err.message);
             }
-        }
-
-        if (!numeroReal || numeroReal.length < 10) {
-            console.log(`❌ Não consegui extrair número do JID: ${jid}`);
-            return;
-        }
-
-        // Pega o texto
-        let texto = 
-            msg.message.conversation ||
-            msg.message.extendedTextMessage?.text ||
-            msg.message.imageMessage?.caption ||
-            msg.message.videoMessage?.caption ||
-            msg.message.documentMessage?.caption ||
-            "";
-
-        if (!texto.trim()) return;
-
-        console.log(`📩 Mensagem recebida de ${numeroReal} | JID: ${jid} | Texto: ${texto}`);
-
-        try {
-            await axios.post("http://localhost/crm/webhook.php", {
-                numero: numeroReal,
-                mensagem: texto,
-                jidCompleto: jid,
-                isLid: jid.endsWith("@lid")
-            });
-        } catch (err) {
-            console.error("❌ Erro ao enviar pro CRM:", err.message);
         }
     });
 
-    // Evento para capturar novos mapeamentos (pode ajudar em alguns casos)
-    sock.ev.on("lid-mapping.update", (update) => {
-        console.log("🔄 Novo LID mapping recebido:", update);
-        // Aqui você pode popular o lidToPhone se o formato permitir
+    // Evento auxiliar para mappings (pode ajudar a preencher o mapa)
+    sock.ev.on("lid-mapping.update", (updates) => {
+        console.log("🔄 LID Mapping recebido:", updates);
+        // Você pode popular o lidToPhone aqui se o formato permitir
     });
 }
 
@@ -149,11 +143,11 @@ app.post("/enviar", async (req, res) => {
     const { numero, mensagem } = req.body;
 
     if (!numero || !mensagem) {
-        return res.json({ ok: false, erro: "Número e mensagem são obrigatórios" });
+        return res.json({ ok: false, erro: "Número e mensagem obrigatórios" });
     }
 
     if (!sock || !sock.user) {
-        return res.json({ ok: false, erro: "WhatsApp não está conectado" });
+        return res.json({ ok: false, erro: "WhatsApp não conectado" });
     }
 
     try {
@@ -167,21 +161,20 @@ app.post("/enviar", async (req, res) => {
             return res.json({ ok: false, erro: "Número não tem WhatsApp" });
         }
 
-        const jidCorreto = resultado.jid;
-        console.log(`📤 Enviando para: ${jidCorreto}`);
+        console.log(`📤 Enviando para: ${resultado.jid}`);
 
-        const result = await sock.sendMessage(jidCorreto, { text: mensagem });
-        console.log("✅ Mensagem enviada! ID:", result?.key?.id);
+        const result = await sock.sendMessage(resultado.jid, { text: mensagem });
+        console.log("✅ Enviada! ID:", result?.key?.id);
 
         res.json({ ok: true, messageId: result?.key?.id });
     } catch (e) {
-        console.error("❌ Erro ao enviar:", e.message || e);
+        console.error("❌ Erro no envio:", e.message || e);
         res.json({ ok: false, erro: e.message || "Erro desconhecido" });
     }
 });
 
 // ==========================
-// INICIA SERVIDOR
+// INICIA TUDO
 // ==========================
 app.listen(3001, () => {
     console.log("🚀 API WhatsApp rodando na porta 3001");
