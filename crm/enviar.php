@@ -5,6 +5,9 @@ $data = json_decode(file_get_contents("php://input"), true);
 $numero = $data['numero'];
 $mensagem = $data['mensagem'];
 
+// normaliza número (remove sufixo do WhatsApp)
+$numeroLimpo = str_replace('@s.whatsapp.net', '', $numero);
+
 // =====================
 // ENVIA PRO NODE
 // =====================
@@ -12,7 +15,7 @@ $ch = curl_init("http://localhost:3001/enviar");
 
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-    "numero" => $numero,
+    "numero" => $numeroLimpo,
     "mensagem" => $mensagem
 ]));
 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
@@ -26,7 +29,7 @@ $res = json_decode($response, true);
 // =====================
 // SE ENVIO OK → SALVA
 // =====================
-if ($res['ok']) {
+if (!empty($res['ok'])) {
 
     $arquivo = "data/clientes.json";
 
@@ -35,7 +38,10 @@ if ($res['ok']) {
         : [];
 
     foreach ($clientes as &$c) {
-        if ($c['numero'] == $numero) {
+
+        $numeroCliente = str_replace('@s.whatsapp.net', '', $c['numero']);
+
+        if ($numeroCliente == $numeroLimpo) {
 
             $c['mensagens'][] = [
                 "texto" => $mensagem,
