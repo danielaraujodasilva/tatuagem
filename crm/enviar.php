@@ -26,6 +26,11 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
 $response = curl_exec($ch);
+
+if ($response === false) {
+    echo "ERRO CURL: " . curl_error($ch);
+    exit;
+}
 curl_close($ch);
 
 $res = json_decode($response, true);
