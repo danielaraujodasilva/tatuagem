@@ -2,11 +2,14 @@
 
 $data = json_decode(file_get_contents("php://input"), true);
 
-$numero = $data['numero'];
-$mensagem = $data['mensagem'];
+$numero = $data['numero'] ?? '';
+$mensagem = $data['mensagem'] ?? '';
 
-// normaliza número (remove sufixo do WhatsApp)
-$numeroLimpo = str_replace('@s.whatsapp.net', '', $numero);
+function normalizarNumero($num) {
+    return preg_replace('/[^0-9]/', '', $num);
+}
+
+$numeroLimpo = normalizarNumero($numero);
 
 // =====================
 // ENVIA PRO NODE
@@ -37,10 +40,13 @@ if (!empty($res['ok'])) {
         ? json_decode(file_get_contents($arquivo), true)
         : [];
 
+    $achou = false;
+
     foreach ($clientes as &$c) {
 
-        $numeroCliente = str_replace('@s.whatsapp.net', '', $c['numero']);
+        $numeroCliente = normalizarNumero($c['numero']);
 
+        // tenta bater pelo número
         if ($numeroCliente == $numeroLimpo) {
 
             $c['mensagens'][] = [
@@ -49,8 +55,19 @@ if (!empty($res['ok'])) {
                 "fromMe" => true
             ];
 
+            $achou = true;
             break;
         }
+    }
+
+    // fallback (evita perder mensagem)
+    if (!$achou && !empty($clientes)) {
+
+        $clientes[0]['mensagens'][] = [
+            "texto" => $mensagem,
+            "data" => date('Y-m-d H:i:s'),
+            "fromMe" => true
+        ];
     }
 
     file_put_contents($arquivo, json_encode($clientes, JSON_PRETTY_PRINT));
