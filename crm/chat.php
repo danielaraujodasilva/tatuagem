@@ -61,7 +61,12 @@ if (!$cliente) {
 </div>
 
 <script>
-const socket = io("http://localhost:3001"); // endereço do seu server Baileys
+const socket = io("http://localhost:3001", {
+    transports: ['polling', 'websocket'],   // tenta polling primeiro
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000
+});
 
 const container = document.getElementById('mensagensContainer');
 const input = document.getElementById('msgInput');
