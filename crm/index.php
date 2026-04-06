@@ -98,6 +98,10 @@ while($row = $result->fetch(PDO::FETCH_ASSOC)){
                             class="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-2xl font-semibold flex items-center gap-2">
                         <i class="fas fa-plus"></i> Novo Lead
                     </button>
+
+                    <button onclick="openNewClientsModal()" class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-2xl font-semibold flex items-center gap-2">
+  <i class="fas fa-user-plus"></i> Novos Clientes
+</button>
                 </div>
             </div>
 
@@ -138,6 +142,36 @@ while($row = $result->fetch(PDO::FETCH_ASSOC)){
             <div id="listaVerTodos" class="flex-1 overflow-y-auto space-y-3"></div>
         </div>
     </div>
+
+    <!-- Modal Novos Clientes -->
+<div id="modalNovosClientes" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+  <div class="bg-gray-900 rounded-3xl w-full max-w-md mx-4 p-8">
+    <div class="flex justify-between items-center mb-6">
+      <h3 class="text-2xl font-bold">Novos Clientes</h3>
+      <button onclick="closeNewClientsModal()" class="text-gray-400 hover:text-white text-3xl">×</button>
+    </div>
+
+    <div class="mb-4">
+      <label class="block text-sm mb-1">Data Início</label>
+      <input type="date" id="newClientsStart" class="w-full bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3">
+    </div>
+    <div class="mb-4">
+      <label class="block text-sm mb-1">Data Fim</label>
+      <input type="date" id="newClientsEnd" class="w-full bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3">
+    </div>
+    <div class="mb-6">
+      <label class="block text-sm mb-1">Hora Início</label>
+      <input type="time" id="newClientsStartTime" class="w-full bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3">
+    </div>
+    <div class="mb-6">
+      <label class="block text-sm mb-1">Hora Fim</label>
+      <input type="time" id="newClientsEndTime" class="w-full bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3">
+    </div>
+    <button onclick="filterNewClients()" class="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-2xl font-semibold w-full">Filtrar</button>
+
+    <div id="newClientsResult" class="mt-6 text-gray-100 text-lg"></div>
+  </div>
+</div>
 
     <!-- Modal Novo/Editar -->
     <div id="modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
@@ -518,6 +552,24 @@ const stageName = stages[etapa] || 'Etapa ' + etapa;
     document.getElementById('filterValorMin').addEventListener('input', applyFilters);
     document.getElementById('filterValorMax').addEventListener('input', applyFilters);
 };
+    </script>
+
+    <script>
+        function openNewClientsModal() {
+  document.getElementById('modalNovosClientes').classList.remove('hidden');
+}
+
+function closeNewClientsModal() {
+  document.getElementById('modalNovosClientes').classList.add('hidden');
+}
+
+function openNewClientsModal() {
+  document.getElementById('modalNovosClientes').classList.remove('hidden');
+}
+
+function closeNewClientsModal() {
+  document.getElementById('modalNovosClientes').classList.add('hidden');
+}
     </script>
 </body>
 </html>
