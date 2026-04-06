@@ -14,8 +14,11 @@ const app = express();
 app.use(express.json());
 
 let sock = null;
-const lidToPhone = new Map();   // Backup caso precise no futuro
+const lidToPhone = new Map(); // Backup caso precise
 
+// ==========================
+// INICIA BOT
+// ==========================
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState("./whatsapp/auth_info");
     const { version } = await fetchLatestBaileysVersion();
@@ -38,22 +41,14 @@ async function startBot() {
             qrcode.generate(qr, { small: true });
         }
 
-        if (connection === "open") {
-            console.log("✅ WhatsApp conectado com sucesso!");
-        }
-
+        if (connection === "open") console.log("✅ WhatsApp conectado!");
         if (connection === "close") {
             const code = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = code !== DisconnectReason.loggedOut;
 
             console.log(`❌ Conexão fechada (código: ${code || "desconhecido"})`);
-
-            if (shouldReconnect) {
-                console.log("🔄 Reconectando em 5s...");
-                setTimeout(startBot, 5000);
-            } else {
-                console.log("🚫 Sessão inválida. Delete a pasta 'whatsapp/auth_info' e escaneie novamente.");
-            }
+            if (shouldReconnect) setTimeout(startBot, 5000);
+            else console.log("🚫 Sessão expirada. Delete 'whatsapp/auth_info' e escaneie QR.");
         }
     });
 
@@ -69,38 +64,28 @@ async function startBot() {
             const key = msg.key;
             const jid = key.remoteJid || "";
 
-            if (!jid || jid.endsWith("@g.us") || jid.endsWith("@broadcast")) continue;
+            // ignora grupos e broadcast
+            if (!jid.endsWith("@s.whatsapp.net")) continue;
 
-            // === LÓGICA PRINCIPAL PARA PEGAR O NÚMERO REAL ===
+            // === PEGA O NÚMERO REAL ===
             let numeroReal = null;
 
-            // Prioridade 1: remoteJidAlt (o que resolveu seu caso)
-            if (key.remoteJidAlt) {
-                numeroReal = key.remoteJidAlt.split("@")[0].replace(/\D/g, '');
-            }
-            // Prioridade 2: senderPn
-            else if (key.senderPn) {
-                numeroReal = key.senderPn.split("@")[0].replace(/\D/g, '');
-            }
-            // Prioridade 3: remoteJid normal (@s.whatsapp.net)
-            else if (jid.endsWith("@s.whatsapp.net")) {
-                numeroReal = jid.split("@")[0].replace(/\D/g, '');
-            }
-            // Prioridade 4: Fallback (LID)
-            else if (jid.endsWith("@lid")) {
-                const lid = jid.split("@")[0];
-                numeroReal = lidToPhone.get(lid) || lid;
-            }
+            // Prioridade 1: participant (para grupos, não usado aqui mas mantido)
+            if (key.participant) numeroReal = key.participant.split("@")[0].replace(/\D/g, '');
+            // Prioridade 2: remoteJid normal
+            else if (jid.endsWith("@s.whatsapp.net")) numeroReal = jid.split("@")[0].replace(/\D/g, '');
+            // Prioridade 3: fallback para lid
+            else if (jid.endsWith("@lid")) numeroReal = lidToPhone.get(jid.split("@")[0]) || jid.split("@")[0];
 
             if (!numeroReal || numeroReal.length < 10) continue;
 
-            // Salva mapeamento para futuro
+            // salva lid mapping
             if (jid.endsWith("@lid") && numeroReal !== jid.split("@")[0]) {
                 lidToPhone.set(jid.split("@")[0], numeroReal);
             }
 
-            // Extrai texto da mensagem
-            let texto = 
+            // pega texto
+            const texto =
                 msg.message.conversation ||
                 msg.message.extendedTextMessage?.text ||
                 msg.message.imageMessage?.caption ||
@@ -110,15 +95,12 @@ async function startBot() {
 
             if (!texto.trim()) continue;
 
-            console.log(`📩 Mensagem recebida de ${numeroReal} | JID: ${jid} | Texto: ${texto}`);
+            console.log(`📩 Mensagem de ${numeroReal}: ${texto}`);
 
-            // Envia para o CRM
             try {
                 await axios.post("http://localhost/crm/webhook.php", {
                     numero: numeroReal,
-                    mensagem: texto,
-                    jidCompleto: jid,
-                    isLid: jid.endsWith("@lid")
+                    mensagem: texto
                 });
             } catch (err) {
                 console.error("❌ Erro ao enviar pro CRM:", err.message);
@@ -133,27 +115,17 @@ async function startBot() {
 app.post("/enviar", async (req, res) => {
     const { numero, mensagem } = req.body;
 
-    if (!numero || !mensagem) {
-        return res.json({ ok: false, erro: "Número e mensagem obrigatórios" });
-    }
-
-    if (!sock || !sock.user) {
-        return res.json({ ok: false, erro: "WhatsApp não conectado" });
-    }
+    if (!numero || !mensagem) return res.json({ ok: false, erro: "Número e mensagem obrigatórios" });
+    if (!sock || !sock.user) return res.json({ ok: false, erro: "WhatsApp não conectado" });
 
     try {
         let numeroLimpo = numero.replace(/\D/g, '');
         if (!numeroLimpo.startsWith('55')) numeroLimpo = '55' + numeroLimpo;
 
         const [resultado] = await sock.onWhatsApp(numeroLimpo);
-
-        if (!resultado?.jid) {
-            console.log("⚠️ Número não encontrado:", numeroLimpo);
-            return res.json({ ok: false, erro: "Número não tem WhatsApp" });
-        }
+        if (!resultado?.jid) return res.json({ ok: false, erro: "Número não tem WhatsApp" });
 
         console.log(`📤 Enviando para: ${resultado.jid}`);
-
         const result = await sock.sendMessage(resultado.jid, { text: mensagem });
         console.log("✅ Mensagem enviada! ID:", result?.key?.id);
 
@@ -164,7 +136,9 @@ app.post("/enviar", async (req, res) => {
     }
 });
 
-// Inicia servidor
+// ==========================
+// INICIA SERVIDOR
+// ==========================
 app.listen(3001, () => {
     console.log("🚀 API WhatsApp rodando na porta 3001");
     startBot();
