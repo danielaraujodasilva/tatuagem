@@ -18,14 +18,10 @@ app.use(express.json());
 const server = http.createServer(app);
 
 const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    },
+    cors: { origin: "*", methods: ["GET", "POST"] },
     transports: ['polling', 'websocket'],
     pingTimeout: 60000,
-    pingInterval: 25000,
-    connectTimeout: 45000
+    pingInterval: 25000
 });
 
 let sock = null;
@@ -84,7 +80,6 @@ async function startBot() {
             if (!jid || jid.endsWith("@g.us") || jid.endsWith("@broadcast")) continue;
 
             let numeroReal = null;
-
             if (key.remoteJidAlt) {
                 numeroReal = key.remoteJidAlt.split("@")[0].replace(/\D/g, '');
             } else if (key.senderPn) {
@@ -102,13 +97,9 @@ async function startBot() {
                 lidToPhone.set(jid.split("@")[0], numeroReal);
             }
 
-            let texto = 
-                msg.message.conversation ||
-                msg.message.extendedTextMessage?.text ||
-                msg.message.imageMessage?.caption ||
-                msg.message.videoMessage?.caption ||
-                msg.message.documentMessage?.caption ||
-                "";
+            let texto = msg.message.conversation || msg.message.extendedTextMessage?.text ||
+                        msg.message.imageMessage?.caption || msg.message.videoMessage?.caption ||
+                        msg.message.documentMessage?.caption || "";
 
             if (!texto.trim()) continue;
 
@@ -116,58 +107,36 @@ async function startBot() {
 
             try {
                 await axios.post("http://localhost/crm/webhook.php", {
-                    numero: numeroReal,
-                    mensagem: texto,
-                    jidCompleto: jid,
-                    isLid: jid.endsWith("@lid")
+                    numero: numeroReal, mensagem: texto, jidCompleto: jid
                 });
             } catch (err) {
                 console.error("❌ Erro webhook:", err.message);
             }
 
-            io.emit("nova-mensagem", {
-                numero: numeroReal,
-                mensagem: texto,
-                jidCompleto: jid,
-                isLid: jid.endsWith("@lid")
-            });
+            io.emit("nova-mensagem", { numero: numeroReal, mensagem: texto });
         }
     });
 }
 
-// Rota de envio
 app.post("/enviar", async (req, res) => {
     const { numero, mensagem } = req.body;
 
-    if (!numero || !mensagem) {
-        return res.json({ ok: false, erro: "Número e mensagem obrigatórios" });
-    }
-
-    if (!sock || !sock.user) {
-        return res.json({ ok: false, erro: "WhatsApp não conectado" });
-    }
+    if (!numero || !mensagem) return res.json({ ok: false, erro: "Número e mensagem obrigatórios" });
+    if (!sock || !sock.user) return res.json({ ok: false, erro: "WhatsApp não conectado" });
 
     try {
         let numeroLimpo = numero.replace(/\D/g, '');
         if (!numeroLimpo.startsWith('55')) numeroLimpo = '55' + numeroLimpo;
 
         const [resultado] = await sock.onWhatsApp(numeroLimpo);
-
         if (!resultado?.jid) {
-            console.log("⚠️ Número não encontrado:", numeroLimpo);
             return res.json({ ok: false, erro: "Número não tem WhatsApp" });
         }
 
-        console.log(`📤 Enviando para: ${resultado.jid}`);
-
         const result = await sock.sendMessage(resultado.jid, { text: mensagem });
 
-        io.emit("mensagem-enviada", {
-            numero: numeroLimpo,
-            mensagem: mensagem
-        });
+        io.emit("mensagem-enviada", { numero: numeroLimpo, mensagem });
 
-        console.log("✅ Mensagem enviada! ID:", result?.key?.id);
         res.json({ ok: true, messageId: result?.key?.id });
     } catch (e) {
         console.error("❌ Erro ao enviar:", e.message);
@@ -175,9 +144,7 @@ app.post("/enviar", async (req, res) => {
     }
 });
 
-// Inicia o servidor (importante: bind em 0.0.0.0)
 server.listen(3001, '0.0.0.0', () => {
     console.log("🚀 Servidor WhatsApp + Socket.IO rodando em http://0.0.0.0:3001");
-    console.log("📡 Socket.IO pronto para conexões (polling + websocket)");
     startBot();
 });
