@@ -16,11 +16,15 @@ const app = express();
 app.use(express.json());
 
 const server = http.createServer(app);
+
 const io = new Server(server, {
     cors: {
-        origin: "*",        // em produção mude para seu domínio
+        origin: "*",        
         methods: ["GET", "POST"]
-    }
+    },
+    transports: ['polling', 'websocket'],
+    pingTimeout: 60000,
+    pingInterval: 25000
 });
 
 let sock = null;
@@ -67,6 +71,9 @@ async function startBot() {
         }
     });
 
+    // ==========================
+    // RECEBE MENSAGENS
+    // ==========================
     sock.ev.on("messages.upsert", async ({ messages, type }) => {
         if (type !== "notify") return;
 
@@ -109,7 +116,7 @@ async function startBot() {
 
             console.log(`📩 Mensagem recebida de ${numeroReal} | JID: ${jid}`);
 
-            // Envia para webhook.php
+            // Envia para o webhook.php
             try {
                 await axios.post("http://localhost/crm/webhook.php", {
                     numero: numeroReal,
@@ -121,7 +128,7 @@ async function startBot() {
                 console.error("❌ Erro webhook:", err.message);
             }
 
-            // Emite para o painel via Socket.IO
+            // Emite via Socket.IO para o painel
             io.emit("nova-mensagem", {
                 numero: numeroReal,
                 mensagem: texto,
@@ -132,7 +139,9 @@ async function startBot() {
     });
 }
 
-// Rota de envio
+// ==========================
+// ENVIO DE MENSAGEM
+// ==========================
 app.post("/enviar", async (req, res) => {
     const { numero, mensagem } = req.body;
 
@@ -151,16 +160,21 @@ app.post("/enviar", async (req, res) => {
         const [resultado] = await sock.onWhatsApp(numeroLimpo);
 
         if (!resultado?.jid) {
+            console.log("⚠️ Número não encontrado:", numeroLimpo);
             return res.json({ ok: false, erro: "Número não tem WhatsApp" });
         }
 
+        console.log(`📤 Enviando para: ${resultado.jid}`);
+
         const result = await sock.sendMessage(resultado.jid, { text: mensagem });
 
+        // Emite para o painel
         io.emit("mensagem-enviada", {
             numero: numeroLimpo,
             mensagem: mensagem
         });
 
+        console.log("✅ Mensagem enviada! ID:", result?.key?.id);
         res.json({ ok: true, messageId: result?.key?.id });
     } catch (e) {
         console.error("❌ Erro ao enviar:", e.message);
@@ -169,7 +183,8 @@ app.post("/enviar", async (req, res) => {
 });
 
 // Inicia o servidor
-server.listen(3001, () => {
-    console.log("🚀 Servidor WhatsApp + Socket.IO rodando na porta 3001");
+server.listen(3001, '0.0.0.0', () => {
+    console.log("🚀 Servidor WhatsApp + Socket.IO rodando em http://localhost:3001");
+    console.log("📡 Socket.IO pronto para conexões");
     startBot();
 });
