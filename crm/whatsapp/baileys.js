@@ -14,7 +14,7 @@ const app = express();
 app.use(express.json());
 
 let sock = null;
-const lidToPhone = new Map(); // backup caso precise no futuro
+const lidToPhone = new Map();   // Backup caso precise no futuro
 
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState("./whatsapp/auth_info");
@@ -58,7 +58,7 @@ async function startBot() {
     });
 
     // ==========================
-    // RECEBE MENSAGENS DIRETAS
+    // RECEBE MENSAGENS
     // ==========================
     sock.ev.on("messages.upsert", async ({ messages, type }) => {
         if (type !== "notify") return;
@@ -69,18 +69,30 @@ async function startBot() {
             const key = msg.key;
             const jid = key.remoteJid || "";
 
-            // ignora grupos e canais
-            if (!jid.endsWith("@s.whatsapp.net")) continue;
+            if (!jid || jid.endsWith("@g.us") || jid.endsWith("@broadcast")) continue;
 
-            // === LÓGICA PARA PEGAR O NÚMERO REAL ===
-            let numero = key.participant
-                ? key.participant.split("@")[0].replace(/\D/g, '')
-                : jid.split("@")[0].replace(/\D/g, '');
+            // === LÓGICA PRINCIPAL PARA PEGAR O NÚMERO REAL ===
+            let numeroReal = null;
 
-            if (!numero || numero.length < 10) continue;
+            if (key.remoteJidAlt) {
+                numeroReal = key.remoteJidAlt.split("@")[0].replace(/\D/g, '');
+            } else if (key.senderPn) {
+                numeroReal = key.senderPn.split("@")[0].replace(/\D/g, '');
+            } else if (jid.endsWith("@s.whatsapp.net")) {
+                numeroReal = jid.split("@")[0].replace(/\D/g, '');
+            } else if (jid.endsWith("@lid")) {
+                const lid = jid.split("@")[0];
+                numeroReal = lidToPhone.get(lid) || lid;
+            }
+
+            if (!numeroReal || numeroReal.length < 10) continue;
+
+            if (jid.endsWith("@lid") && numeroReal !== jid.split("@")[0]) {
+                lidToPhone.set(jid.split("@")[0], numeroReal);
+            }
 
             // Extrai texto da mensagem
-            let texto =
+            let texto = 
                 msg.message.conversation ||
                 msg.message.extendedTextMessage?.text ||
                 msg.message.imageMessage?.caption ||
@@ -90,11 +102,21 @@ async function startBot() {
 
             if (!texto.trim()) continue;
 
-            console.log(`📩 Mensagem de ${numero}: ${texto}`);
+            console.log(`📩 Mensagem recebida de ${numeroReal} | JID: ${jid} | Texto: ${texto}`);
 
-            // Envia para o CRM
+            // Envia pro painel/CRM com campos que seu painel espera
             try {
-                await axios.post("http://localhost/crm/webhook.php", { numero, mensagem: texto });
+                await axios.post("http://localhost/crm/webhook.php", {
+                    numero: numeroReal,
+                    mensagem: texto,
+                    jidCompleto: jid,
+                    isLid: jid.endsWith("@lid"),
+                    tipoMensagem: msg.message?.conversation ? "texto" :
+                                  msg.message?.imageMessage ? "imagem" :
+                                  msg.message?.videoMessage ? "video" :
+                                  msg.message?.documentMessage ? "documento" :
+                                  "outro"
+                });
             } catch (err) {
                 console.error("❌ Erro ao enviar pro CRM:", err.message);
             }
@@ -139,9 +161,7 @@ app.post("/enviar", async (req, res) => {
     }
 });
 
-// ==========================
-// INICIA SERVIDOR E BOT
-// ==========================
+// Inicia servidor
 app.listen(3001, () => {
     console.log("🚀 API WhatsApp rodando na porta 3001");
     startBot();
