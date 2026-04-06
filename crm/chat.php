@@ -20,9 +20,8 @@ if (!$cliente) {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Chat</title>
+    <title>Chat - <?= htmlspecialchars($cliente['nome']) ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Socket.IO corrigido: sem integrity -->
     <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
 </head>
 
@@ -30,7 +29,7 @@ if (!$cliente) {
 
 <!-- HEADER -->
 <div class="bg-gray-900 p-4 border-b border-gray-800">
-    <h1 class="text-lg font-bold"><?= $cliente['nome'] ?></h1>
+    <h1 class="text-lg font-bold"><?= htmlspecialchars($cliente['nome']) ?></h1>
     <p class="text-sm text-gray-400"><?= $cliente['numero'] ?></p>
 </div>
 
@@ -52,20 +51,34 @@ if (!$cliente) {
 <!-- INPUT -->
 <div class="p-4 border-t border-gray-800 flex gap-3">
     <input id="msgInput" type="text" placeholder="Digite sua mensagem..."
-           class="flex-1 bg-gray-800 px-4 py-2 rounded-xl">
+           class="flex-1 bg-gray-800 px-4 py-2 rounded-xl focus:outline-none">
 
     <button id="enviarBtn"
-            class="bg-emerald-600 px-4 py-2 rounded-xl">
+            class="bg-emerald-600 hover:bg-emerald-700 px-6 py-2 rounded-xl transition">
         Enviar
     </button>
 </div>
 
 <script>
 const socket = io("http://localhost:3001", {
-    transports: ['polling', 'websocket'],   // tenta polling primeiro
+    transports: ['polling', 'websocket'],
     reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 1000
+    reconnectionAttempts: 10,
+    reconnectionDelay: 1000,
+    timeout: 20000
+});
+
+// Debug do Socket.IO
+socket.on('connect', () => {
+    console.log('✅ Socket.IO conectado com sucesso!');
+});
+
+socket.on('connect_error', (err) => {
+    console.error('❌ Socket.IO erro de conexão:', err.message);
+});
+
+socket.on('disconnect', (reason) => {
+    console.warn('⚠️ Socket.IO desconectado. Motivo:', reason);
 });
 
 const container = document.getElementById('mensagensContainer');
@@ -98,9 +111,7 @@ function adicionarMensagem(texto, fromMe) {
     scrollBottom();
 }
 
-// ====================
 // Envia mensagem
-// ====================
 function enviarMensagem() {
     const texto = input.value.trim();
     if (!texto) return;
@@ -120,17 +131,18 @@ function enviarMensagem() {
         } else {
             alert("Erro ao enviar: " + (res.erro || ''));
         }
-    });
+    })
+    .catch(err => console.error("Erro na requisição:", err));
 
     input.value = '';
 }
 
 enviarBtn.addEventListener('click', enviarMensagem);
-input.addEventListener('keydown', e => { if (e.key === 'Enter') enviarMensagem(); });
+input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') enviarMensagem();
+});
 
-// ====================
 // Recebe mensagens em tempo real
-// ====================
 socket.on('nova-mensagem', data => {
     if (data.numero === "<?= $cliente['numero'] ?>") {
         adicionarMensagem(data.mensagem, false);
@@ -139,8 +151,7 @@ socket.on('nova-mensagem', data => {
 
 socket.on('mensagem-enviada', data => {
     if (data.numero === "<?= $cliente['numero'] ?>") {
-        // opcional: já mostramos localmente ao enviar
-        // adicionarMensagem(data.mensagem, true);
+        // Já adicionamos localmente, então podemos ignorar ou atualizar
     }
 });
 
