@@ -570,6 +570,28 @@ function openNewClientsModal() {
 function closeNewClientsModal() {
   document.getElementById('modalNovosClientes').classList.add('hidden');
 }
+
+function filterNewClients() {
+    const startDate = document.getElementById('newClientsStart').value;
+    const endDate = document.getElementById('newClientsEnd').value;
+    const startTime = document.getElementById('newClientsStartTime').value;
+    const endTime = document.getElementById('newClientsEndTime').value;
+
+    if (!startDate || !endDate) return alert('Preencha data início e fim');
+
+    const start = new Date(`${startDate}T${startTime || '00:00'}`);
+    const end = new Date(`${endDate}T${endTime || '23:59'}`);
+
+    const filtered = allLeads.filter(lead => {
+        const created = new Date(lead.created_at); // assumindo que created_at existe
+        return created >= start && created <= end;
+    });
+
+    const resultContainer = document.getElementById('newClientsResult');
+    resultContainer.innerHTML = filtered.length
+        ? `<p>${filtered.length} clientes encontrados</p>` + filtered.map(l => `<div>${l.nome} - ${l.telefone}</div>`).join('')
+        : '<p>Nenhum cliente encontrado nesse período</p>';
+}
     </script>
 </body>
 </html>
