@@ -22,9 +22,8 @@ if (!$cliente) {
 <head>
     <title>Chat</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"
-            integrity="sha384-kETDfL7XyEO3sqD3uTX7s7g3GxWgEtO3YZtL/DLknV6+cF6/s+udx5qk+R+7q+3U"
-            crossorigin="anonymous"></script>
+    <!-- Socket.IO corrigido: sem integrity -->
+    <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
 </head>
 
 <body class="bg-gray-950 text-gray-100 flex flex-col h-screen">
@@ -62,7 +61,7 @@ if (!$cliente) {
 </div>
 
 <script>
-const socket = io("http://localhost:3001"); // endereço do seu baileys.js
+const socket = io("http://localhost:3001"); // endereço do seu server Baileys
 
 const container = document.getElementById('mensagensContainer');
 const input = document.getElementById('msgInput');
