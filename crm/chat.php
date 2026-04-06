@@ -27,34 +27,30 @@ if (!$cliente) {
 
 <body class="bg-gray-950 text-gray-100 flex flex-col h-screen">
 
-<!-- HEADER -->
 <div class="bg-gray-900 p-4 border-b border-gray-800">
     <h1 class="text-lg font-bold"><?= htmlspecialchars($cliente['nome']) ?></h1>
     <p class="text-sm text-gray-400"><?= $cliente['numero'] ?></p>
 </div>
 
-<!-- MENSAGENS -->
 <div id="mensagensContainer" class="flex-1 overflow-y-auto p-4 space-y-3">
-<?php foreach ($cliente['mensagens'] as $msg): ?>
-    <?php $isMe = $msg['fromMe'] ?? false; ?>
-    <div class="flex <?= $isMe ? 'justify-end' : 'justify-start' ?>">
-        <div class="<?= $isMe ? 'bg-emerald-600' : 'bg-gray-800' ?> px-4 py-2 rounded-2xl max-w-xs">
-            <p><?= htmlspecialchars($msg['texto']) ?></p>
-            <span class="text-xs text-gray-300 block mt-1">
-                <?= date('H:i', strtotime($msg['data'])) ?>
-            </span>
+    <!-- mensagens iniciais do PHP -->
+    <?php foreach ($cliente['mensagens'] as $msg): ?>
+        <?php $isMe = $msg['fromMe'] ?? false; ?>
+        <div class="flex <?= $isMe ? 'justify-end' : 'justify-start' ?>">
+            <div class="<?= $isMe ? 'bg-emerald-600' : 'bg-gray-800' ?> px-4 py-2 rounded-2xl max-w-xs">
+                <p><?= htmlspecialchars($msg['texto']) ?></p>
+                <span class="text-xs text-gray-300 block mt-1">
+                    <?= date('H:i', strtotime($msg['data'])) ?>
+                </span>
+            </div>
         </div>
-    </div>
-<?php endforeach; ?>
+    <?php endforeach; ?>
 </div>
 
-<!-- INPUT -->
 <div class="p-4 border-t border-gray-800 flex gap-3">
     <input id="msgInput" type="text" placeholder="Digite sua mensagem..."
            class="flex-1 bg-gray-800 px-4 py-2 rounded-xl focus:outline-none">
-
-    <button id="enviarBtn"
-            class="bg-emerald-600 hover:bg-emerald-700 px-6 py-2 rounded-xl transition">
+    <button id="enviarBtn" class="bg-emerald-600 hover:bg-emerald-700 px-6 py-2 rounded-xl transition">
         Enviar
     </button>
 </div>
@@ -63,18 +59,19 @@ if (!$cliente) {
 const socket = io("http://localhost:3001", {
     transports: ['polling', 'websocket'],
     reconnection: true,
-    reconnectionAttempts: 10,
+    reconnectionAttempts: 15,
     reconnectionDelay: 1000,
-    timeout: 20000
+    timeout: 30000
 });
 
-// Debug do Socket.IO
+// Debug detalhado
 socket.on('connect', () => {
     console.log('✅ Socket.IO conectado com sucesso!');
 });
 
 socket.on('connect_error', (err) => {
     console.error('❌ Socket.IO erro de conexão:', err.message);
+    if (err.description) console.error('Descrição:', err.description);
 });
 
 socket.on('disconnect', (reason) => {
@@ -111,7 +108,6 @@ function adicionarMensagem(texto, fromMe) {
     scrollBottom();
 }
 
-// Envia mensagem
 function enviarMensagem() {
     const texto = input.value.trim();
     if (!texto) return;
@@ -126,23 +122,17 @@ function enviarMensagem() {
     })
     .then(r => r.json())
     .then(res => {
-        if (res.ok) {
-            adicionarMensagem(texto, true);
-        } else {
-            alert("Erro ao enviar: " + (res.erro || ''));
-        }
+        if (res.ok) adicionarMensagem(texto, true);
+        else alert("Erro ao enviar: " + (res.erro || ''));
     })
-    .catch(err => console.error("Erro na requisição:", err));
+    .catch(err => console.error("Erro fetch:", err));
 
     input.value = '';
 }
 
 enviarBtn.addEventListener('click', enviarMensagem);
-input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') enviarMensagem();
-});
+input.addEventListener('keydown', e => { if (e.key === 'Enter') enviarMensagem(); });
 
-// Recebe mensagens em tempo real
 socket.on('nova-mensagem', data => {
     if (data.numero === "<?= $cliente['numero'] ?>") {
         adicionarMensagem(data.mensagem, false);
@@ -150,12 +140,9 @@ socket.on('nova-mensagem', data => {
 });
 
 socket.on('mensagem-enviada', data => {
-    if (data.numero === "<?= $cliente['numero'] ?>") {
-        // Já adicionamos localmente, então podemos ignorar ou atualizar
-    }
+    // já adicionamos localmente
 });
 
-// Scroll inicial
 window.onload = scrollBottom;
 </script>
 

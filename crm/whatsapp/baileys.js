@@ -19,12 +19,13 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
     cors: {
-        origin: "*",        
+        origin: "*",
         methods: ["GET", "POST"]
     },
     transports: ['polling', 'websocket'],
     pingTimeout: 60000,
-    pingInterval: 25000
+    pingInterval: 25000,
+    connectTimeout: 45000
 });
 
 let sock = null;
@@ -71,9 +72,6 @@ async function startBot() {
         }
     });
 
-    // ==========================
-    // RECEBE MENSAGENS
-    // ==========================
     sock.ev.on("messages.upsert", async ({ messages, type }) => {
         if (type !== "notify") return;
 
@@ -116,7 +114,6 @@ async function startBot() {
 
             console.log(`📩 Mensagem recebida de ${numeroReal} | JID: ${jid}`);
 
-            // Envia para o webhook.php
             try {
                 await axios.post("http://localhost/crm/webhook.php", {
                     numero: numeroReal,
@@ -128,7 +125,6 @@ async function startBot() {
                 console.error("❌ Erro webhook:", err.message);
             }
 
-            // Emite via Socket.IO para o painel
             io.emit("nova-mensagem", {
                 numero: numeroReal,
                 mensagem: texto,
@@ -139,9 +135,7 @@ async function startBot() {
     });
 }
 
-// ==========================
-// ENVIO DE MENSAGEM
-// ==========================
+// Rota de envio
 app.post("/enviar", async (req, res) => {
     const { numero, mensagem } = req.body;
 
@@ -168,7 +162,6 @@ app.post("/enviar", async (req, res) => {
 
         const result = await sock.sendMessage(resultado.jid, { text: mensagem });
 
-        // Emite para o painel
         io.emit("mensagem-enviada", {
             numero: numeroLimpo,
             mensagem: mensagem
@@ -182,9 +175,9 @@ app.post("/enviar", async (req, res) => {
     }
 });
 
-// Inicia o servidor
+// Inicia o servidor (importante: bind em 0.0.0.0)
 server.listen(3001, '0.0.0.0', () => {
-    console.log("🚀 Servidor WhatsApp + Socket.IO rodando em http://localhost:3001");
-    console.log("📡 Socket.IO pronto para conexões");
+    console.log("🚀 Servidor WhatsApp + Socket.IO rodando em http://0.0.0.0:3001");
+    console.log("📡 Socket.IO pronto para conexões (polling + websocket)");
     startBot();
 });
