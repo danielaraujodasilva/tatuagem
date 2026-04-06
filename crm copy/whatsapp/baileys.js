@@ -2,23 +2,20 @@ const {
     default: makeWASocket,
     useMultiFileAuthState,
     fetchLatestBaileysVersion,
-    DisconnectReason,   // ← Adicionado
-    // Boom (se precisar tratar erros melhor)
+    DisconnectReason
 } = require("@whiskeysockets/baileys");
 
 const axios = require("axios");
 const qrcode = require("qrcode-terminal");
 const express = require("express");
-const pino = require("pino");   // ← Recomendado para debug
+const pino = require("pino");
 
 const app = express();
 app.use(express.json());
 
 let sock = null;
+const lidToPhone = new Map();   // Backup caso precise no futuro
 
-// ==========================
-// INICIA BOT
-// ==========================
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState("./whatsapp/auth_info");
     const { version } = await fetchLatestBaileysVersion();
@@ -27,9 +24,8 @@ async function startBot() {
         version,
         auth: state,
         printQRInTerminal: false,
-        logger: pino({ level: "silent" }), // mude para "debug" se quiser ver tudo
-        // markOnlineOnConnect: false,     // descomente se quiser ficar "offline"
-        // syncFullHistory: false,         // só ative se precisar
+        logger: pino({ level: "silent" }),
+        markOnlineOnConnect: true,
     });
 
     sock.ev.on("creds.update", saveCreds);
@@ -47,98 +43,126 @@ async function startBot() {
         }
 
         if (connection === "close") {
-            const statusCode = lastDisconnect?.error?.output?.statusCode;
-            const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+            const code = lastDisconnect?.error?.output?.statusCode;
+            const shouldReconnect = code !== DisconnectReason.loggedOut;
 
-            console.log(`❌ Conexão fechada. Código: ${statusCode || 'desconhecido'}`);
+            console.log(`❌ Conexão fechada (código: ${code || "desconhecido"})`);
 
             if (shouldReconnect) {
-                console.log("🔄 Tentando reconectar em 5s...");
-                setTimeout(startBot, 5000); // delay evita loop rápido
+                console.log("🔄 Reconectando em 5s...");
+                setTimeout(startBot, 5000);
             } else {
-                console.log("🚫 Sessão expirada. Apague a pasta 'whatsapp/auth_info' e escaneie novamente.");
+                console.log("🚫 Sessão inválida. Delete a pasta 'whatsapp/auth_info' e escaneie novamente.");
             }
         }
     });
 
     // ==========================
-    // RECEBE MENSAGENS (mantido quase igual)
+    // RECEBE MENSAGENS
     // ==========================
-    sock.ev.on("messages.upsert", async ({ messages }) => {
-        const msg = messages[0];
-        if (!msg.message) return;
+    sock.ev.on("messages.upsert", async ({ messages, type }) => {
+        if (type !== "notify") return;
 
-        const texto = msg.message.conversation || msg.message.extendedTextMessage?.text;
-        if (!texto) return;
+        for (const msg of messages) {
+            if (!msg.message || msg.key.fromMe) continue;
 
-        const jid = msg.key.remoteJid;
-        let numero = jid ? jid.replace(/\D/g, '') : null;
+            const key = msg.key;
+            const jid = key.remoteJid || "";
 
-        if (!numero || numero.length < 10) return;
+            if (!jid || jid.endsWith("@g.us") || jid.endsWith("@broadcast")) continue;
 
-        console.log("📩 Mensagem recebida:", numero, "-", texto);
+            // === LÓGICA PRINCIPAL PARA PEGAR O NÚMERO REAL ===
+            let numeroReal = null;
 
-        try {
-            await axios.post("http://localhost/crm/webhook.php", { numero, mensagem: texto });
-        } catch (err) {
-            console.error("❌ Erro ao enviar pro CRM:", err.message);
+            if (key.remoteJidAlt) {
+                numeroReal = key.remoteJidAlt.split("@")[0].replace(/\D/g, '');
+            } else if (key.senderPn) {
+                numeroReal = key.senderPn.split("@")[0].replace(/\D/g, '');
+            } else if (jid.endsWith("@s.whatsapp.net")) {
+                numeroReal = jid.split("@")[0].replace(/\D/g, '');
+            } else if (jid.endsWith("@lid")) {
+                const lid = jid.split("@")[0];
+                numeroReal = lidToPhone.get(lid) || lid;
+            }
+
+            if (!numeroReal || numeroReal.length < 10) continue;
+
+            if (jid.endsWith("@lid") && numeroReal !== jid.split("@")[0]) {
+                lidToPhone.set(jid.split("@")[0], numeroReal);
+            }
+
+            // Extrai texto da mensagem
+            let texto = 
+                msg.message.conversation ||
+                msg.message.extendedTextMessage?.text ||
+                msg.message.imageMessage?.caption ||
+                msg.message.videoMessage?.caption ||
+                msg.message.documentMessage?.caption ||
+                "";
+
+            if (!texto.trim()) continue;
+
+            console.log(`📩 Mensagem recebida de ${numeroReal} | JID: ${jid} | Texto: ${texto}`);
+
+            // Envia pro painel/CRM com campos que seu painel espera
+            try {
+                await axios.post("http://localhost/crm/webhook.php", {
+                    numero: numeroReal,
+                    mensagem: texto,
+                    jidCompleto: jid,
+                    isLid: jid.endsWith("@lid"),
+                    tipoMensagem: msg.message?.conversation ? "texto" :
+                                  msg.message?.imageMessage ? "imagem" :
+                                  msg.message?.videoMessage ? "video" :
+                                  msg.message?.documentMessage ? "documento" :
+                                  "outro"
+                });
+            } catch (err) {
+                console.error("❌ Erro ao enviar pro CRM:", err.message);
+            }
         }
     });
 }
 
 // ==========================
-// ENVIO DE MENSAGEM (melhorado)
+// ENVIO DE MENSAGEM
 // ==========================
 app.post("/enviar", async (req, res) => {
     const { numero, mensagem } = req.body;
 
     if (!numero || !mensagem) {
-        return res.json({ ok: false, erro: "Número e mensagem são obrigatórios" });
+        return res.json({ ok: false, erro: "Número e mensagem obrigatórios" });
     }
 
     if (!sock || !sock.user) {
-        return res.json({ ok: false, erro: "WhatsApp não está conectado" });
+        return res.json({ ok: false, erro: "WhatsApp não conectado" });
     }
 
     try {
         let numeroLimpo = numero.replace(/\D/g, '');
+        if (!numeroLimpo.startsWith('55')) numeroLimpo = '55' + numeroLimpo;
 
-        // Garante que comece com 55 (Brasil)
-        if (!numeroLimpo.startsWith('55')) {
-            numeroLimpo = '55' + numeroLimpo;
-        }
-
-        // Usa onWhatsApp para pegar o JID correto (resolve problema do 9 e números inválidos)
         const [resultado] = await sock.onWhatsApp(numeroLimpo);
-        
+
         if (!resultado?.jid) {
-            return res.json({ ok: false, erro: "Número não tem WhatsApp ou não foi encontrado" });
+            console.log("⚠️ Número não encontrado:", numeroLimpo);
+            return res.json({ ok: false, erro: "Número não tem WhatsApp" });
         }
 
-        const jidCorreto = resultado.jid;
+        console.log(`📤 Enviando para: ${resultado.jid}`);
 
-        console.log(`📤 Enviando para JID correto: ${jidCorreto}`);
-
-        const result = await sock.sendMessage(jidCorreto, { text: mensagem });
-
-        console.log("✅ Mensagem enviada com sucesso! ID:", result?.key?.id);
+        const result = await sock.sendMessage(resultado.jid, { text: mensagem });
+        console.log("✅ Mensagem enviada! ID:", result?.key?.id);
 
         res.json({ ok: true, messageId: result?.key?.id });
-
     } catch (e) {
-        console.error("❌ Erro ao enviar mensagem:", e);
-        res.json({ 
-            ok: false, 
-            erro: e.message || "Erro desconhecido",
-            details: e.output?.payload || null 
-        });
+        console.error("❌ Erro ao enviar:", e.message || e);
+        res.json({ ok: false, erro: e.message || "Erro desconhecido" });
     }
 });
 
-// ==========================
-// START SERVIDOR
-// ==========================
+// Inicia servidor
 app.listen(3001, () => {
     console.log("🚀 API WhatsApp rodando na porta 3001");
-    startBot(); // inicia o bot
+    startBot();
 });

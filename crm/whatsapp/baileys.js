@@ -13,6 +13,13 @@ const pino = require("pino");
 const app = express();
 app.use(express.json());
 
+// Cria servidor HTTP separado para Socket.IO
+const server = require('http').createServer(app);
+const { Server } = require('socket.io');
+const io = new Server(server, {
+    cors: { origin: "*" } // depois limita ao domínio do painel
+});
+
 let sock = null;
 const lidToPhone = new Map();   // Backup caso precise no futuro
 
@@ -120,6 +127,19 @@ async function startBot() {
             } catch (err) {
                 console.error("❌ Erro ao enviar pro CRM:", err.message);
             }
+
+            // 🔥 Envia evento em tempo real pro painel
+            io.emit("nova-mensagem", {
+                numero: numeroReal,
+                mensagem: texto,
+                jidCompleto: jid,
+                isLid: jid.endsWith("@lid"),
+                tipoMensagem: msg.message?.conversation ? "texto" :
+                              msg.message?.imageMessage ? "imagem" :
+                              msg.message?.videoMessage ? "video" :
+                              msg.message?.documentMessage ? "documento" :
+                              "outro"
+            });
         }
     });
 }
@@ -154,6 +174,12 @@ app.post("/enviar", async (req, res) => {
         const result = await sock.sendMessage(resultado.jid, { text: mensagem });
         console.log("✅ Mensagem enviada! ID:", result?.key?.id);
 
+        // 🔥 Atualiza o painel em tempo real também quando envia
+        io.emit("mensagem-enviada", {
+            numero: numeroLimpo,
+            mensagem
+        });
+
         res.json({ ok: true, messageId: result?.key?.id });
     } catch (e) {
         console.error("❌ Erro ao enviar:", e.message || e);
@@ -161,8 +187,8 @@ app.post("/enviar", async (req, res) => {
     }
 });
 
-// Inicia servidor
-app.listen(3001, () => {
-    console.log("🚀 API WhatsApp rodando na porta 3001");
+// Inicia servidor com Socket.IO
+server.listen(3001, () => {
+    console.log("🚀 API WhatsApp + Socket.IO rodando na porta 3001");
     startBot();
 });
