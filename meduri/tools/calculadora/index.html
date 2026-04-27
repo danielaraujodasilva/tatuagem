@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Calculadora de Taxas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      background: #f4f6f9;
+      color: #212529;
+    }
+
+    .card {
+      border: none;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+      animation: fadeUp 0.6s ease;
+    }
+
+    h2 {
+      font-weight: 700;
+    }
+
+    .form-label {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .form-control, .form-select {
+      border-radius: 12px;
+    }
+
+    .btn-primary {
+      border-radius: 14px;
+      padding: 12px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(13,110,253,0.25);
+    }
+
+    .result-box {
+      background: linear-gradient(135deg, #0d6efd, #4f8dff);
+      color: #fff;
+      border-radius: 18px;
+      padding: 24px;
+      animation: fadeUp 0.5s ease;
+    }
+
+    .highlight {
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .parcelas-box {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+      animation: fadeUp 0.5s ease;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-7">
+
+      <div class="card p-4 p-md-5">
+        <h2 class="mb-4 text-center">💳 Calculadora de Taxas</h2>
+
+        <div class="mb-3">
+          <label class="form-label">Modo de cálculo</label>
+          <select id="modo" class="form-select">
+            <option value="liquido">Quero receber um valor líquido</option>
+            <option value="bruto">Vou cobrar um valor do cliente</option>
+          </select>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Bandeira</label>
+            <select id="bandeira" class="form-select"></select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Tipo de venda</label>
+            <select id="tipo" class="form-select"></select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Parcelas</label>
+            <select id="parcelas" class="form-select"></select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label" id="labelValor">Valor líquido desejado (R$)</label>
+            <input type="number" step="0.01" id="valor" class="form-control">
+          </div>
+        </div>
+
+        <button class="btn btn-primary mt-4 w-100" onclick="calcular()">Calcular</button>
+
+        <div id="resultado" class="result-box mt-4 d-none">
+          <div class="row">
+            <div class="col-md-6">
+              <p>Valor cobrado</p>
+              <div class="highlight">R$ <span id="valorCobrar"></span></div>
+            </div>
+            <div class="col-md-6">
+              <p>Valor líquido</p>
+              <div class="highlight">R$ <span id="valorLiquido"></span></div>
+            </div>
+          </div>
+          <hr class="opacity-25">
+          <p>Taxas: <strong>R$ <span id="valorTaxa"></span></strong></p>
+          <p>Percentual: <strong><span id="percentual"></span>%</strong></p>
+        </div>
+
+        <div id="parcelamento" class="parcelas-box d-none">
+          <h5 class="mb-3">Simulação de parcelamento</h5>
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Parcelas</th>
+                <th>Total</th>
+                <th>Valor da parcela</th>
+              </tr>
+            </thead>
+            <tbody id="listaParcelas"></tbody>
+          </table>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const taxas = {
+  Visa: {
+    "Crédito à Vista": { taxa: 3.4 },
+    "Débito": { taxa: 0.99 },
+    "Crédito Parcelado": { 2:4.96,3:5.63,4:6.3,5:7.02,6:7.7,7:8.82,8:9.69,9:10.65,10:11.13,11:12.3,12:13.29 }
+  },
+  Mastercard: {
+    "Crédito à Vista": { taxa: 3.4 },
+    "Débito": { taxa: 0.99 },
+    "Crédito Parcelado": { 2:4.96,3:5.63,4:6.3,5:7.02,6:7.7,7:8.82,8:9.69,9:10.65,10:11.13,11:12.3,12:13.29 }
+  },
+  Amex: {
+    "Crédito à Vista": { taxa: 3.9 },
+    "Crédito Parcelado": { 2:5.56,3:6.23,4:6.9,5:7.62,6:8.3,7:9.42,8:10.29,9:11.25,10:11.73,11:12.9,12:13.89 }
+  },
+  Elo: {
+    "Crédito à Vista": { taxa: 3.95 },
+    "Débito": { taxa: 1.54 },
+    "Crédito Parcelado": { 2:5.61,3:6.28,4:6.95,5:7.67,6:8.35,7:9.47,8:10.34,9:11.3,10:11.78,11:12.95,12:13.94 }
+  }
+};
+
+const bandeira = document.getElementById("bandeira");
+const tipo = document.getElementById("tipo");
+const parcelas = document.getElementById("parcelas");
+const modo = document.getElementById("modo");
+const labelValor = document.getElementById("labelValor");
+
+Object.keys(taxas).forEach(b => bandeira.innerHTML += `<option>${b}</option>`);
+
+bandeira.onchange = carregarTipos;
+tipo.onchange = carregarParcelas;
+modo.onchange = () => {
+  labelValor.innerText = modo.value === "liquido"
+    ? "Valor líquido desejado (R$)"
+    : "Valor que será cobrado (R$)";
+};
+
+carregarTipos();
+
+function carregarTipos() {
+  tipo.innerHTML = "";
+  Object.keys(taxas[bandeira.value]).forEach(t => tipo.innerHTML += `<option>${t}</option>`);
+  carregarParcelas();
+}
+
+function carregarParcelas() {
+  parcelas.innerHTML = "";
+  if (tipo.value === "Crédito Parcelado") {
+    Object.keys(taxas[bandeira.value][tipo.value]).forEach(p =>
+      parcelas.innerHTML += `<option value="${p}">${p}x</option>`
+    );
+  } else {
+    parcelas.innerHTML = `<option value="1">À vista</option>`;
+  }
+}
+
+function calcular() {
+  const valor = parseFloat(document.getElementById("valor").value);
+  if (!valor) return;
+
+  const taxaPerc = tipo.value === "Crédito Parcelado"
+    ? taxas[bandeira.value][tipo.value][parcelas.value]
+    : taxas[bandeira.value][tipo.value].taxa;
+
+  const taxa = taxaPerc / 100;
+  let bruto, liquido;
+
+  if (modo.value === "liquido") {
+    liquido = valor;
+    bruto = liquido / (1 - taxa);
+  } else {
+    bruto = valor;
+    liquido = bruto * (1 - taxa);
+  }
+
+  document.getElementById("valorCobrar").innerText = bruto.toFixed(2);
+  document.getElementById("valorLiquido").innerText = liquido.toFixed(2);
+  document.getElementById("valorTaxa").innerText = (bruto - liquido).toFixed(2);
+  document.getElementById("percentual").innerText = taxaPerc.toFixed(2);
+  document.getElementById("resultado").classList.remove("d-none");
+
+  const boxParcelas = document.getElementById("parcelamento");
+  const lista = document.getElementById("listaParcelas");
+  lista.innerHTML = "";
+
+  if (tipo.value === "Crédito Parcelado") {
+    Object.entries(taxas[bandeira.value]["Crédito Parcelado"]).forEach(([p, t]) => {
+      const taxaP = t / 100;
+      const total = modo.value === "liquido"
+        ? liquido / (1 - taxaP)
+        : bruto;
+
+      lista.innerHTML += `
+        <tr>
+          <td>${p}x</td>
+          <td>R$ ${total.toFixed(2)}</td>
+          <td>R$ ${(total / p).toFixed(2)}</td>
+        </tr>`;
+    });
+    boxParcelas.classList.remove("d-none");
+  } else {
+    boxParcelas.classList.add("d-none");
+  }
+}
+</script>
+
+</body>
+</html>
