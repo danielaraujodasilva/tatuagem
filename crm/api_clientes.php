@@ -10,5 +10,8 @@ if (!file_exists($arquivo)) {
 }
 
 $clientes = json_decode(file_get_contents($arquivo), true);
+if (!is_array($clientes)) {
+    $clientes = [];
+}
 
 echo json_encode($clientes);

@@ -3,7 +3,8 @@
 $data = json_decode(file_get_contents("php://input"), true);
 
 $numero = $data['numero'] ?? '';
-$mensagem = strtolower(trim($data['mensagem'] ?? ''));
+$mensagemOriginal = trim($data['mensagem'] ?? '');
+$mensagem = strtolower($mensagemOriginal);
 
 if (!$numero || !$mensagem) {
     exit;
@@ -17,12 +18,30 @@ $clientes = [];
 if (file_exists("data/clientes.json")) {
     $clientes = json_decode(file_get_contents("data/clientes.json"), true);
 }
+if (!is_array($clientes)) {
+    $clientes = [];
+}
+
+function normalizarNumero($num) {
+    return preg_replace('/\D/', '', (string)$num);
+}
+
+function numerosIguais($a, $b) {
+    $a = normalizarNumero($a);
+    $b = normalizarNumero($b);
+
+    if ($a === '' || $b === '') return false;
+    if ($a === $b) return true;
+
+    $min = min(strlen($a), strlen($b));
+    return $min >= 10 && substr($a, -$min) === substr($b, -$min);
+}
 
 $clienteIndex = null;
 
 // 🔍 procurar cliente existente
 foreach ($clientes as $index => $c) {
-    if ($c['numero'] === $numero) {
+    if (numerosIguais($c['numero'] ?? '', $numero)) {
         $clienteIndex = $index;
         break;
     }
@@ -41,6 +60,7 @@ if ($clienteIndex === null) {
         "numero" => $numero,
         "nome" => "Cliente",
         "status" => "novo",
+        "etapa" => "1",
         "atendente" => "bot",
         "mensagens" => []
     ];
@@ -52,9 +72,10 @@ if ($clienteIndex === null) {
 // 💬 adiciona mensagem no histórico
 $clientes[$clienteIndex]['mensagens'][] = [
     "de" => "cliente",
-    "texto" => $mensagem,
-    "data" => date("Y-m-d H:i:s")
+    "texto" => $mensagemOriginal,
+    "data" => date("Y-m-d H:i:s"),
+    "fromMe" => false
 ];
 
 // 💾 salva tudo
-file_put_contents("data/clientes.json", json_encode($clientes, JSON_PRETTY_PRINT));
+file_put_contents("data/clientes.json", json_encode($clientes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));

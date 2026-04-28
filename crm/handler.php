@@ -6,6 +6,30 @@ $action = $_REQUEST['action'] ?? $_POST['action'] ?? '';
 
 try {
 
+    function moverClienteWhatsApp($id, $etapa) {
+        $arquivo = __DIR__ . '/data/clientes.json';
+        if (!file_exists($arquivo)) {
+            return false;
+        }
+
+        $clientes = json_decode(file_get_contents($arquivo), true);
+        if (!is_array($clientes)) {
+            $clientes = [];
+        }
+
+        $clienteId = preg_replace('/^wa_/', '', (string)$id);
+
+        foreach ($clientes as &$cliente) {
+            if ((string)($cliente['id'] ?? '') === $clienteId) {
+                $cliente['etapa'] = (string)$etapa;
+                file_put_contents($arquivo, json_encode($clientes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // 🔥 FUNÇÃO PRA VALIDAR ETAPA
     function etapaExiste($conn, $etapa) {
         $stmt = $conn->prepare("SELECT id FROM pipelines WHERE id = ?");
@@ -95,7 +119,7 @@ try {
 
     // 🔥 MOVE (drag and drop)
     if ($action === 'move') {
-        $id = (int)($_POST['id'] ?? 0);
+        $id = $_POST['id'] ?? 0;
         $etapa = $_POST['etapa'] ?? '1';
 
         // valida etapa antes de mover
@@ -103,6 +127,17 @@ try {
             echo json_encode(['error' => 'Etapa inválida']);
             exit;
         }
+
+        if (strpos((string)$id, 'wa_') === 0) {
+            if (moverClienteWhatsApp($id, $etapa)) {
+                echo json_encode(['status' => 'ok']);
+            } else {
+                echo json_encode(['error' => 'Cliente WhatsApp nÃ£o encontrado']);
+            }
+            exit;
+        }
+
+        $id = (int)$id;
 
         $conn->prepare("UPDATE leads SET etapa_funil=? WHERE id=?")
              ->execute([$etapa, $id]);

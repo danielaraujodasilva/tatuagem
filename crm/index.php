@@ -7,6 +7,9 @@ $result = $conn->query("SELECT * FROM pipelines ORDER BY ordem");
 while($row = $result->fetch(PDO::FETCH_ASSOC)){
     $stages[$row['id']] = $row['nome'];
 }
+
+$stageIds = array_map('strval', array_keys($stages));
+$firstStage = $stageIds[0] ?? '1';
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -20,9 +23,9 @@ while($row = $result->fetch(PDO::FETCH_ASSOC)){
     <style>
         .pipeline-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(265px, 1fr));
-            gap: 1.25rem;
-            padding: 1.5rem;
+            grid-template-columns: repeat(<?= max(count($stages), 1) ?>, minmax(180px, 1fr));
+            gap: 0.75rem;
+            padding: 1rem;
             overflow-x: auto;
             scroll-behavior: smooth;
         }
@@ -31,12 +34,12 @@ while($row = $result->fetch(PDO::FETCH_ASSOC)){
             min-height: 540px; 
             max-height: 680px; 
             overflow-y: auto; 
-            padding-right: 8px;
+            padding-right: 4px;
         }
 
         .card { 
             transition: all 0.2s; 
-            min-height: 148px;
+            min-height: 126px;
         }
 
         .card:hover { 
@@ -47,22 +50,21 @@ while($row = $result->fetch(PDO::FETCH_ASSOC)){
         .lead-frio { border-left: 4px solid #eab308; }
         .lead-muito-frio { border-left: 4px solid #ef4444; }
 
-        /* Mobile - scroll horizontal */
         @media (max-width: 1280px) {
             .pipeline-container {
-                grid-template-columns: repeat(7, minmax(255px, 1fr));
+                grid-template-columns: repeat(<?= max(count($stages), 1) ?>, minmax(210px, 1fr));
             }
         }
 
         @media (max-width: 768px) {
             .pipeline-container {
-                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                grid-template-columns: repeat(<?= max(count($stages), 1) ?>, minmax(220px, 1fr));
             }
         }
     </style>
 </head>
 <body class="bg-gray-950 text-gray-100">
-    <div class="max-w-screen-2xl mx-auto">
+    <div class="w-full mx-auto">
         <!-- HEADER -->
         <div class="bg-gray-900 border-b border-gray-800 px-6 py-6">
             <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
@@ -229,6 +231,21 @@ while($row = $result->fetch(PDO::FETCH_ASSOC)){
 
     <script>
         let allLeads = [];
+        let currentLeads = null;
+        let currentVerTodosLeads = [];
+        const STAGES = <?= json_encode($stages, JSON_UNESCAPED_UNICODE) ?>;
+        const STAGE_IDS = <?= json_encode($stageIds, JSON_UNESCAPED_UNICODE) ?>;
+        const FIRST_STAGE = <?= json_encode($firstStage, JSON_UNESCAPED_UNICODE) ?>;
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, char => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            }[char]));
+        }
 
         function diasSemContato(data) {
             if (!data) return 999;
@@ -238,28 +255,29 @@ while($row = $result->fetch(PDO::FETCH_ASSOC)){
 
         function loadPipeline(filteredLeads = null) {
             const leads = filteredLeads || allLeads;
+            currentLeads = leads;
             document.querySelectorAll('.kanban-column').forEach(col => col.innerHTML = '');
 
             let totalValor = 0;
             const counts = {};
             const columnTotals = {};
 
-            Object.keys(<?= json_encode(array_keys($stages)) ?>).forEach(k => {
+            STAGE_IDS.forEach(k => {
                 counts[k] = 0;
                 columnTotals[k] = 0;
             });
 
             leads.forEach(lead => {
-                const etapa = String(
-    lead.etapa ||
-    (lead.status === 'novo' ? '1' : null) ||
-    Object.keys(<?= json_encode($stages) ?>)[0]
-);
+                const etapa = String(lead.etapa || (lead.status === 'novo' ? FIRST_STAGE : null) || FIRST_STAGE);
                 const valor = parseFloat(lead.valor) || 0;
                 const dias = diasSemContato(lead.data_ultimo_contato);
 
                 totalValor += valor;
-                counts[etapa]++;
+                if (counts[etapa] === undefined) {
+                    counts[etapa] = 0;
+                    columnTotals[etapa] = 0;
+                }
+                counts[etapa] += 1;
                 columnTotals[etapa] += valor;
 
                 let classeFrio = '';
@@ -267,16 +285,16 @@ while($row = $result->fetch(PDO::FETCH_ASSOC)){
                 else if (dias > 10) classeFrio = 'lead-frio';
 
                 const html = `
-                    <div data-id="${lead.id}" onclick="viewLead('${lead.id}')" class="card bg-gray-800 rounded-3xl p-5 cursor-pointer border border-gray-700 ${classeFrio}">
+                    <div data-id="${escapeHtml(lead.id)}" onclick="viewLead('${escapeHtml(lead.id)}')" class="card bg-gray-800 rounded-2xl p-4 cursor-pointer border border-gray-700 ${classeFrio}">
                         <div class="flex justify-between items-start">
-                            <h4 class="font-semibold text-base">${lead.nome}</h4>
+                            <h4 class="font-semibold text-sm break-words">${escapeHtml(lead.nome)}</h4>
                         </div>
-                        <p class="text-gray-400 text-sm mt-1">${lead.telefone}</p>
-                        ${lead.interesse ? `<p class="text-xs text-gray-500 mt-3">${lead.interesse}</p>` : ''}
+                        <p class="text-gray-400 text-xs mt-1 break-words">${escapeHtml(lead.telefone)}</p>
+                        ${lead.interesse ? `<p class="text-xs text-gray-500 mt-2 break-words">${escapeHtml(lead.interesse)}</p>` : ''}
                         ${dias < 999 ? `<p class="text-xs mt-3 ${dias > 20 ? 'text-red-400' : 'text-amber-400'}">Sem contato há ${dias} dias</p>` : ''}
-                        ${valor > 0 ? `<p class="text-emerald-400 font-medium mt-4">R$ ${valor.toLocaleString('pt-BR')}</p>` : ''}
+                        ${valor > 0 ? `<p class="text-emerald-400 font-medium mt-3">R$ ${valor.toLocaleString('pt-BR')}</p>` : ''}
 
-                        <div class="flex justify-start gap-5 mt-5 pt-4 border-t border-gray-700 text-sm">
+                        <div class="flex justify-start gap-3 mt-4 pt-3 border-t border-gray-700 text-xs">
                             <button onclick="editLead('${lead.id}'); event.stopImmediatePropagation()" class="text-blue-400 hover:text-blue-300 flex items-center gap-1">
                                 <i class="fas fa-edit"></i> Editar
                             </button>
@@ -347,9 +365,15 @@ while($row = $result->fetch(PDO::FETCH_ASSOC)){
                     fetch('handler.php', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: `action=move&id=${id}&etapa=${newEtapa}`
+                        body: `action=move&id=${encodeURIComponent(id)}&etapa=${encodeURIComponent(newEtapa)}`
                     })
-                    .then(() => {
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(data.error);
+                            loadPipeline(currentLeads);
+                            return;
+                        }
     Promise.all([
         fetch('handler.php?action=getAll').then(r => r.json()),
         carregarClientesWhatsApp()
@@ -365,24 +389,25 @@ while($row = $result->fetch(PDO::FETCH_ASSOC)){
 }
 
         function verTodosNaEtapa(etapa) {
-            const stages = <?= json_encode($stages) ?>;
-const stageName = stages[etapa] || 'Etapa ' + etapa;
+            const stageName = STAGES[etapa] || 'Etapa ' + etapa;
             document.getElementById('modalVerTitulo').textContent = `Leads - ${stageName}`;
             document.getElementById('modalVerTodos').classList.remove('hidden');
 
             const filtered = allLeads.filter(l => String(l.etapa) === etapa);
+            currentVerTodosLeads = filtered;
+            document.getElementById('searchVerTodos').value = '';
             renderListaVerTodos(filtered);
         }
 
         function renderListaVerTodos(leads) {
             const container = document.getElementById('listaVerTodos');
             container.innerHTML = leads.map(lead => `
-                <div onclick="closeVerTodos(); viewLead(${lead.id});" class="bg-gray-800 hover:bg-gray-700 rounded-2xl p-5 cursor-pointer">
+                <div onclick="closeVerTodos(); viewLead('${escapeHtml(lead.id)}');" class="bg-gray-800 hover:bg-gray-700 rounded-2xl p-5 cursor-pointer">
                     <div class="flex justify-between">
-                        <strong>${lead.nome}</strong>
+                        <strong>${escapeHtml(lead.nome)}</strong>
                         <span class="text-emerald-400">R$ ${(parseFloat(lead.valor)||0).toLocaleString('pt-BR')}</span>
                     </div>
-                    <p class="text-gray-400">${lead.telefone}</p>
+                    <p class="text-gray-400">${escapeHtml(lead.telefone)}</p>
                 </div>
             `).join('');
         }
@@ -392,11 +417,25 @@ const stageName = stages[etapa] || 'Etapa ' + etapa;
         }
 
         function exportToCSV() {
-            if (!allLeads.length) return alert("Não há leads para exportar");
+            const leadsToExport = currentLeads ?? allLeads;
+            if (!leadsToExport.length) return alert("Não há leads para exportar");
+
+            const csvValue = value => `"${String(value ?? '').replace(/"/g, '""')}"`;
 
             let csv = "ID,Nome,Telefone,Interesse,Valor,Origem,Status,Etapa,Último Contato,Data Cadastro\n";
-            allLeads.forEach(l => {
-                csv += `"${l.id}","${l.nome.replace(/"/g, '""')}","${l.telefone}","${(l.interesse||'').replace(/"/g, '""')}",${l.valor||0},"${(l.origem||'').replace(/"/g, '""')}","${(l.status||'').replace(/"/g, '""')}","${l.etapa}","${l.data_ultimo_contato||''}","${l.created_at}"\n`;
+            leadsToExport.forEach(l => {
+                csv += [
+                    l.id,
+                    l.nome,
+                    l.telefone,
+                    l.interesse,
+                    l.valor || 0,
+                    l.origem,
+                    l.status,
+                    STAGES[l.etapa] || l.etapa,
+                    l.data_ultimo_contato || '',
+                    l.created_at || ''
+                ].map(csvValue).join(',') + "\n";
             });
 
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -520,7 +559,7 @@ const stageName = stages[etapa] || 'Etapa ' + etapa;
             valor: 0,
             origem: 'WhatsApp',
             status: c.status || 'novo',
-            etapa: Object.keys(<?= json_encode($stages) ?>)[0], // joga na primeira coluna
+            etapa: c.etapa || FIRST_STAGE,
             data_ultimo_contato: c.mensagens?.slice(-1)[0]?.data || '',
             created_at: c.mensagens?.[0]?.data || ''
         }));
@@ -548,22 +587,23 @@ const stageName = stages[etapa] || 'Etapa ' + etapa;
     loadPipeline(allLeads);
 
     document.getElementById('search').addEventListener('input', applyFilters);
-    document.getElementById('filterEtapa').addEventListener('change', applyFilters);
-    document.getElementById('filterValorMin').addEventListener('input', applyFilters);
-    document.getElementById('filterValorMax').addEventListener('input', applyFilters);
+            document.getElementById('filterEtapa').addEventListener('change', applyFilters);
+            document.getElementById('filterValorMin').addEventListener('input', applyFilters);
+            document.getElementById('filterValorMax').addEventListener('input', applyFilters);
+            document.getElementById('searchVerTodos').addEventListener('input', (event) => {
+                const term = event.target.value.toLowerCase().trim();
+                renderListaVerTodos(currentVerTodosLeads.filter(lead =>
+                    !term ||
+                    (lead.nome && lead.nome.toLowerCase().includes(term)) ||
+                    (lead.telefone && String(lead.telefone).includes(term)) ||
+                    (lead.interesse && lead.interesse.toLowerCase().includes(term))
+                ));
+            });
 };
     </script>
 
     <script>
         function openNewClientsModal() {
-  document.getElementById('modalNovosClientes').classList.remove('hidden');
-}
-
-function closeNewClientsModal() {
-  document.getElementById('modalNovosClientes').classList.add('hidden');
-}
-
-function openNewClientsModal() {
   document.getElementById('modalNovosClientes').classList.remove('hidden');
 }
 
@@ -589,7 +629,7 @@ function filterNewClients() {
 
     const resultContainer = document.getElementById('newClientsResult');
     resultContainer.innerHTML = filtered.length
-        ? `<p>${filtered.length} clientes encontrados</p>` + filtered.map(l => `<div>${l.nome} - ${l.telefone}</div>`).join('')
+        ? `<p>${filtered.length} clientes encontrados</p>` + filtered.map(l => `<div>${escapeHtml(l.nome)} - ${escapeHtml(l.telefone)}</div>`).join('')
         : '<p>Nenhum cliente encontrado nesse período</p>';
 }
     </script>

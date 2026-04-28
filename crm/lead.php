@@ -120,6 +120,16 @@ if (!$lead) {
     <script>
         const leadId = <?= $id ?>;
 
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, char => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            }[char]));
+        }
+
         function loadHistory() {
             fetch(`handler.php?action=getHistory&id=${leadId}`)
                 .then(r => r.json())
@@ -144,10 +154,10 @@ if (!$lead) {
                         container.innerHTML += `
                             <div class="bg-gray-800 rounded-2xl p-6">
                                 <div class="flex justify-between">
-                                    <span class="text-lg">${tipoIcon} <strong>${item.tipo}</strong></span>
+                                    <span class="text-lg">${tipoIcon} <strong>${escapeHtml(item.tipo)}</strong></span>
                                     <small class="text-gray-400">${new Date(item.data).toLocaleString('pt-BR')}</small>
                                 </div>
-                                <p class="mt-3 text-gray-200">${item.mensagem}</p>
+                                <p class="mt-3 text-gray-200">${escapeHtml(item.mensagem)}</p>
                             </div>`;
                     });
                 })
