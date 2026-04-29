@@ -5,7 +5,11 @@ $stages = [];
 $result = $conn->query("SELECT * FROM pipelines ORDER BY ordem");
 
 while($row = $result->fetch(PDO::FETCH_ASSOC)){
-    $stages[$row['id']] = $row['nome'];
+    $stageName = trim((string)($row['nome'] ?? ''));
+    if ($stageName === '') {
+        continue;
+    }
+    $stages[(string)$row['id']] = $stageName;
 }
 
 $stageIds = array_map('strval', array_keys($stages));
@@ -268,7 +272,10 @@ $firstStage = $stageIds[0] ?? '1';
             });
 
             leads.forEach(lead => {
-                const etapa = String(lead.etapa || (lead.status === 'novo' ? FIRST_STAGE : null) || FIRST_STAGE);
+                let etapa = String(lead.etapa || (lead.status === 'novo' ? FIRST_STAGE : null) || FIRST_STAGE);
+                if (!STAGE_IDS.includes(etapa)) {
+                    etapa = FIRST_STAGE;
+                }
                 const valor = parseFloat(lead.valor) || 0;
                 const dias = diasSemContato(lead.data_ultimo_contato);
 
