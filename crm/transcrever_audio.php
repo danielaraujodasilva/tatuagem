@@ -93,7 +93,7 @@ function executarComando($command) {
 $data = json_decode(file_get_contents('php://input'), true) ?: [];
 $messageId = trim((string)($data['messageId'] ?? ''));
 $mediaUrl = trim((string)($data['mediaUrl'] ?? ''));
-$model = trim((string)($data['model'] ?? 'tiny'));
+$model = trim((string)($data['model'] ?? 'small'));
 
 if ($messageId === '' && $mediaUrl === '') {
     responderJson(['ok' => false, 'error' => 'Mensagem nao informada']);

@@ -290,7 +290,7 @@ app.post("/enviar", async (req, res) => {
             } else if (mime.startsWith("video/")) {
                 payload = { video: buffer, mimetype: mime, caption: mensagem || "" };
             } else if (mime.startsWith("audio/")) {
-                payload = { audio: buffer, mimetype: mime };
+                payload = { audio: buffer, mimetype: mime, ptt: !!media.ptt };
             } else {
                 payload = { document: buffer, mimetype: mime, fileName, caption: mensagem || "" };
             }

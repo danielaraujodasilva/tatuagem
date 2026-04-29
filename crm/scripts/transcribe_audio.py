@@ -41,6 +41,10 @@ def main():
     log_debug(f"start audio={audio_path} model={model_name} engine={engine} python={sys.executable}")
 
     engines = [engine] if engine in {"openai", "faster"} else ["openai", "faster"]
+    prompt = (
+        "Transcricao em portugues brasileiro de conversa de WhatsApp. "
+        "Contexto: atendimento de estudio de tatuagem, orcamento, agenda, tattoo, desenho, cliente."
+    )
 
     for selected_engine in engines:
         if selected_engine == "openai":
@@ -50,11 +54,25 @@ def main():
                 log_debug("loading openai-whisper model")
                 model = whisper.load_model(model_name)
                 log_debug("transcribing with openai-whisper")
-                result = model.transcribe(audio_path, language="pt", fp16=False)
+                result = model.transcribe(
+                    audio_path,
+                    language="pt",
+                    task="transcribe",
+                    fp16=False,
+                    temperature=0,
+                    beam_size=5,
+                    best_of=5,
+                    condition_on_previous_text=False,
+                    initial_prompt=prompt,
+                    no_speech_threshold=0.2,
+                    logprob_threshold=-1.0,
+                )
                 text = (result.get("text") or "").strip()
                 log_debug(f"success openai-whisper chars={len(text)}")
-                emit_json({"ok": True, "text": text, "engine": "openai"})
-                return 0
+                if text:
+                    emit_json({"ok": True, "text": text, "engine": "openai"})
+                    return 0
+                log_debug("openai-whisper returned empty text")
             except ModuleNotFoundError:
                 log_debug("openai-whisper not installed")
             except Exception as exc:
@@ -71,11 +89,20 @@ def main():
                 log_debug("loading faster-whisper model")
                 model = WhisperModel(model_name, device="cpu", compute_type="int8")
                 log_debug("transcribing with faster-whisper")
-                segments, _ = model.transcribe(audio_path, language="pt", vad_filter=True)
+                segments, _ = model.transcribe(
+                    audio_path,
+                    language="pt",
+                    beam_size=5,
+                    vad_filter=False,
+                    condition_on_previous_text=False,
+                    initial_prompt=prompt,
+                )
                 text = " ".join(segment.text.strip() for segment in segments).strip()
                 log_debug(f"success faster-whisper chars={len(text)}")
-                emit_json({"ok": True, "text": text, "engine": "faster"})
-                return 0
+                if text:
+                    emit_json({"ok": True, "text": text, "engine": "faster"})
+                    return 0
+                log_debug("faster-whisper returned empty text")
             except ModuleNotFoundError:
                 log_debug("faster-whisper not installed")
             except Exception as exc:
@@ -87,7 +114,7 @@ def main():
 
     emit_json({
         "ok": False,
-        "error": "Instale openai-whisper ou faster-whisper no Python do servidor"
+        "error": "Nao foi possivel reconhecer fala nesse audio"
     })
     return 1
 

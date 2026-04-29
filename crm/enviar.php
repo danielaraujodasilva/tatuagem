@@ -9,8 +9,10 @@ $data = $isMultipart ? $_POST : (json_decode(file_get_contents("php://input"), t
 
 $numero = $data['numero'] ?? '';
 $mensagem = $data['mensagem'] ?? '';
+$ptt = !empty($data['ptt']);
 $media = null;
 $mediaLocal = null;
+$arquivoConvertidoTemporario = null;
 
 function normalizarNumero($num) {
     return preg_replace('/[^0-9]/', '', (string)$num);
@@ -44,6 +46,48 @@ function salvarAnexoLocal($tmp, $mime, $fileName) {
     copy($tmp, $target);
 
     return 'data/media/' . $name;
+}
+
+function comandoDisponivel($funcao) {
+    if (!function_exists($funcao)) {
+        return false;
+    }
+
+    $desabilitadas = array_map('trim', explode(',', (string)ini_get('disable_functions')));
+    return !in_array($funcao, $desabilitadas, true);
+}
+
+function converterAudioVoz($tmp) {
+    if (!comandoDisponivel('exec')) {
+        return null;
+    }
+
+    $saida = tempnam(sys_get_temp_dir(), 'wa_ptt_');
+    if ($saida === false) {
+        return null;
+    }
+    if (is_file($saida)) {
+        unlink($saida);
+    }
+    $saida .= '.ogg';
+
+    $cmd = 'ffmpeg -y -i ' . escapeshellarg($tmp)
+        . ' -vn -c:a libopus -b:a 32k -ar 48000 -ac 1 '
+        . escapeshellarg($saida)
+        . ' > NUL 2> NUL';
+
+    $output = [];
+    $exitCode = null;
+    exec($cmd, $output, $exitCode);
+
+    if ($exitCode === 0 && is_file($saida) && filesize($saida) > 0) {
+        return $saida;
+    }
+
+    if (is_file($saida)) {
+        unlink($saida);
+    }
+    return null;
 }
 
 function pesoStatusMensagem($status) {
@@ -95,11 +139,25 @@ if (!empty($_FILES['arquivo']) && is_uploaded_file($_FILES['arquivo']['tmp_name'
     $tmp = $_FILES['arquivo']['tmp_name'];
     $mime = mime_content_type($tmp) ?: ($_FILES['arquivo']['type'] ?? 'application/octet-stream');
     $fileName = $_FILES['arquivo']['name'] ?? 'arquivo';
+    if ($ptt && (!str_starts_with($mime, 'audio/') || $mime === 'application/octet-stream')) {
+        $mime = $_FILES['arquivo']['type'] ?: 'audio/webm';
+    }
+
+    if ($ptt) {
+        $convertido = converterAudioVoz($tmp);
+        if ($convertido) {
+            $arquivoConvertidoTemporario = $convertido;
+            $tmp = $convertido;
+            $mime = 'audio/ogg';
+            $fileName = preg_replace('/\.[^.]+$/', '', $fileName) . '.ogg';
+        }
+    }
 
     $media = [
         'base64' => base64_encode(file_get_contents($tmp)),
         'mime' => $mime,
         'fileName' => $fileName,
+        'ptt' => $ptt,
     ];
     $mediaLocal = [
         'url' => salvarAnexoLocal($tmp, $mime, $fileName),
@@ -174,3 +232,7 @@ if (!empty($res['ok'])) {
 }
 
 echo json_encode($res ?: ['ok' => false, 'erro' => 'Erro ao enviar'], JSON_UNESCAPED_UNICODE);
+
+if ($arquivoConvertidoTemporario && is_file($arquivoConvertidoTemporario)) {
+    unlink($arquivoConvertidoTemporario);
+}

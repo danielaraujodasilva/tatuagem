@@ -275,6 +275,9 @@ $firstStage = $stageIds[0] ?? '1';
                         <button type="button" onclick="document.getElementById('chatFile').click()" class="bg-gray-800 hover:bg-gray-700 w-11 h-11 rounded-2xl flex items-center justify-center">
                             <i class="fas fa-paperclip"></i>
                         </button>
+                        <button id="recordAudioBtn" type="button" onclick="toggleAudioRecording()" class="bg-gray-800 hover:bg-gray-700 w-11 h-11 rounded-2xl flex items-center justify-center">
+                            <i class="fas fa-microphone"></i>
+                        </button>
                         <textarea id="chatInput" rows="1" placeholder="Digite uma mensagem..." class="flex-1 max-h-40 bg-gray-800 border border-gray-700 rounded-2xl px-4 py-3 resize-none focus:outline-none focus:border-emerald-500"></textarea>
                         <button type="button" onclick="sendChatMessage()" class="bg-emerald-600 hover:bg-emerald-700 w-11 h-11 rounded-2xl flex items-center justify-center">
                             <i class="fas fa-paper-plane"></i>
@@ -293,6 +296,11 @@ $firstStage = $stageIds[0] ?? '1';
         let chatPollTimer = null;
         let chatLastSignature = '';
         const pendingTranscriptions = {};
+        let mediaRecorder = null;
+        let recordedAudioChunks = [];
+        let recordedAudioFile = null;
+        let recordingTimer = null;
+        let recordingStartedAt = 0;
         const STAGES = <?= json_encode($stages, JSON_UNESCAPED_UNICODE) ?>;
         const STAGE_IDS = <?= json_encode($stageIds, JSON_UNESCAPED_UNICODE) ?>;
         const FIRST_STAGE = <?= json_encode($firstStage, JSON_UNESCAPED_UNICODE) ?>;
@@ -654,7 +662,7 @@ $firstStage = $stageIds[0] ?? '1';
             fetch('transcrever_audio.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messageId, mediaUrl: url, model: 'tiny' })
+                body: JSON.stringify({ messageId, mediaUrl: url, model: 'small' })
             })
             .then(async r => {
                 const raw = await r.text();
@@ -726,11 +734,14 @@ $firstStage = $stageIds[0] ?? '1';
 
             loadChatMessages(true);
             clearInterval(chatPollTimer);
-            chatPollTimer = setInterval(loadChatMessages, 2500);
+            chatPollTimer = setInterval(loadChatMessages, 1000);
             setTimeout(() => document.getElementById('chatInput').focus(), 50);
         }
 
         function closeChatOverlay() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                stopAudioRecording(true);
+            }
             document.getElementById('chatOverlay').classList.add('hidden');
             clearInterval(chatPollTimer);
             chatPollTimer = null;
@@ -753,7 +764,7 @@ $firstStage = $stageIds[0] ?? '1';
         function updateAttachmentPreview() {
             const input = document.getElementById('chatFile');
             const preview = document.getElementById('attachmentPreview');
-            const file = input.files?.[0];
+            const file = recordedAudioFile || input.files?.[0];
 
             if (!file) {
                 preview.classList.add('hidden');
@@ -771,6 +782,7 @@ $firstStage = $stageIds[0] ?? '1';
         function removeAttachment() {
             const input = document.getElementById('chatFile');
             if (input) input.value = '';
+            recordedAudioFile = null;
             const preview = document.getElementById('attachmentPreview');
             if (preview) {
                 preview.classList.add('hidden');
@@ -778,11 +790,88 @@ $firstStage = $stageIds[0] ?? '1';
             }
         }
 
+        function updateRecordingPreview() {
+            const preview = document.getElementById('attachmentPreview');
+            const elapsed = Math.max(0, Math.floor((Date.now() - recordingStartedAt) / 1000));
+            const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0');
+            const seconds = String(elapsed % 60).padStart(2, '0');
+            preview.classList.remove('hidden');
+            preview.innerHTML = `
+                <span class="flex items-center gap-2 text-red-200"><i class="fas fa-circle text-red-400 text-[10px]"></i> Gravando ${minutes}:${seconds}</span>
+                <button type="button" onclick="stopAudioRecording(true)" class="text-red-200 hover:text-white text-xs">Cancelar</button>
+            `;
+        }
+
+        async function toggleAudioRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                stopAudioRecording(false);
+                return;
+            }
+
+            if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+                alert('Seu navegador nao liberou gravacao de audio aqui.');
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const options = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                    ? { mimeType: 'audio/webm;codecs=opus' }
+                    : {};
+                mediaRecorder = new MediaRecorder(stream, options);
+                recordedAudioChunks = [];
+                recordedAudioFile = null;
+
+                mediaRecorder.ondataavailable = event => {
+                    if (event.data && event.data.size > 0) {
+                        recordedAudioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    stream.getTracks().forEach(track => track.stop());
+                    clearInterval(recordingTimer);
+                    recordingTimer = null;
+                    document.getElementById('recordAudioBtn').classList.remove('bg-red-600', 'hover:bg-red-700');
+                    document.getElementById('recordAudioBtn').classList.add('bg-gray-800', 'hover:bg-gray-700');
+                };
+
+                recordingStartedAt = Date.now();
+                mediaRecorder.start();
+                document.getElementById('recordAudioBtn').classList.remove('bg-gray-800', 'hover:bg-gray-700');
+                document.getElementById('recordAudioBtn').classList.add('bg-red-600', 'hover:bg-red-700');
+                updateRecordingPreview();
+                recordingTimer = setInterval(updateRecordingPreview, 500);
+            } catch (error) {
+                alert('Nao consegui acessar o microfone: ' + (error.message || error));
+            }
+        }
+
+        function stopAudioRecording(cancel = false) {
+            if (!mediaRecorder || mediaRecorder.state !== 'recording') return;
+
+            const recorder = mediaRecorder;
+            recorder.addEventListener('stop', () => {
+                if (!cancel && recordedAudioChunks.length) {
+                    const mime = recorder.mimeType || 'audio/webm';
+                    const blob = new Blob(recordedAudioChunks, { type: mime });
+                    recordedAudioFile = new File([blob], `audio_${Date.now()}.webm`, { type: mime });
+                    updateAttachmentPreview();
+                } else {
+                    recordedAudioFile = null;
+                    updateAttachmentPreview();
+                }
+                recordedAudioChunks = [];
+            }, { once: true });
+
+            recorder.stop();
+        }
+
         function sendChatMessage() {
             const input = document.getElementById('chatInput');
             const fileInput = document.getElementById('chatFile');
             const texto = input.value.trim();
-            const file = fileInput.files?.[0];
+            const file = recordedAudioFile || fileInput.files?.[0];
             if (!activeChat || (!texto && !file)) return;
 
             const formData = new FormData();
@@ -790,6 +879,9 @@ $firstStage = $stageIds[0] ?? '1';
             formData.append('mensagem', texto);
             if (file) {
                 formData.append('arquivo', file);
+                if (recordedAudioFile) {
+                    formData.append('ptt', '1');
+                }
             }
 
             input.disabled = true;
