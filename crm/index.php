@@ -616,7 +616,7 @@ $firstStage = $stageIds[0] ?? '1';
                 return `
                     <div class="space-y-2">
                         <audio src="${url}" controls class="w-72 max-w-full"></audio>
-                        ${pending ? renderTranscriptionProgress(pending.progress) : `<button type="button" onclick="transcribeAudio(this, '${escapeHtml(msg.messageId || '')}', '${url}')" class="text-xs bg-gray-950/40 hover:bg-gray-950/60 px-3 py-2 rounded-xl">Transcrever audio</button>`}
+                        ${pending ? renderTranscriptionProgress(pending) : `<button type="button" onclick="transcribeAudio(this, '${escapeHtml(msg.messageId || '')}', '${url}')" class="text-xs bg-gray-950/40 hover:bg-gray-950/60 px-3 py-2 rounded-xl">Transcrever audio</button>`}
                     </div>
                 `;
             }
@@ -628,17 +628,28 @@ $firstStage = $stageIds[0] ?? '1';
             return messageId || url;
         }
 
-        function renderTranscriptionProgress(progress) {
-            const safeProgress = Math.max(5, Math.min(95, Number(progress) || 5));
+        function renderTranscriptionProgress(state) {
+            const progress = Number(state?.progress) || 5;
+            const elapsed = Math.max(0, Math.floor((Date.now() - (state?.startedAt || Date.now())) / 1000));
+            const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0');
+            const seconds = String(elapsed % 60).padStart(2, '0');
+            const safeProgress = Math.max(5, Math.min(95, progress));
+            let phase = 'Preparando audio...';
+            if (elapsed >= 10) phase = 'Carregando modelo medium...';
+            if (elapsed >= 45) phase = 'Transcrevendo com mais qualidade...';
+            if (elapsed >= 120) phase = 'Ainda trabalhando. A primeira vez pode demorar.';
+            if (elapsed >= 240) phase = 'Modelo medium pode levar varios minutos no CPU.';
+
             return `
                 <div class="bg-gray-950/40 rounded-xl px-3 py-2 w-72 max-w-full">
                     <div class="flex justify-between text-[11px] text-gray-200 mb-1">
-                        <span>Transcrevendo...</span>
-                        <span>${safeProgress}%</span>
+                        <span>${phase}</span>
+                        <span>${minutes}:${seconds}</span>
                     </div>
                     <div class="h-1.5 bg-gray-800 rounded-full overflow-hidden">
                         <div class="h-full bg-emerald-400 rounded-full transition-all" style="width: ${safeProgress}%"></div>
                     </div>
+                    <div class="text-[10px] text-gray-400 mt-1">${safeProgress}% estimado</div>
                 </div>
             `;
         }
@@ -650,12 +661,15 @@ $firstStage = $stageIds[0] ?? '1';
             button.textContent = 'Transcrevendo...';
             pendingTranscriptions[key] = {
                 progress: 8,
+                startedAt: Date.now(),
                 timer: setInterval(() => {
                     const current = pendingTranscriptions[key];
                     if (!current) return;
-                    current.progress = Math.min(95, current.progress + (current.progress < 60 ? 7 : 3));
+                    const elapsed = Math.floor((Date.now() - current.startedAt) / 1000);
+                    const nextStep = elapsed < 30 ? 6 : (elapsed < 120 ? 2 : 1);
+                    current.progress = Math.min(95, current.progress + nextStep);
                     loadChatMessages(true);
-                }, 2500)
+                }, 2000)
             };
             loadChatMessages(true);
 
