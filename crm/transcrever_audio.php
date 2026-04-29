@@ -95,10 +95,51 @@ function jsonFromOutput($output) {
     return null;
 }
 
+$audioForWhisper = $audioPath;
+$convertedAudio = null;
+$ffmpegOut = tempnam(sys_get_temp_dir(), 'ffmpeg_out_');
+$ffmpegErr = tempnam(sys_get_temp_dir(), 'ffmpeg_err_');
+$convertedCandidate = tempnam(sys_get_temp_dir(), 'whisper_wav_');
+if ($convertedCandidate !== false) {
+    if (is_file($convertedCandidate)) {
+        unlink($convertedCandidate);
+    }
+    $convertedCandidate .= '.wav';
+    $ffmpegCommand = 'ffmpeg -y -i ' . escapeshellarg($audioPath)
+        . ' -ar 16000 -ac 1 -vn ' . escapeshellarg($convertedCandidate)
+        . ' > ' . escapeshellarg($ffmpegOut)
+        . ' 2> ' . escapeshellarg($ffmpegErr);
+
+    logTranscricao(['ffmpegCommand' => $ffmpegCommand]);
+    exec($ffmpegCommand, $ffmpegUnused, $ffmpegExitCode);
+    $ffmpegStdout = is_file($ffmpegOut) ? file_get_contents($ffmpegOut) : '';
+    $ffmpegStderr = is_file($ffmpegErr) ? file_get_contents($ffmpegErr) : '';
+    logTranscricao([
+        'ffmpegExitCode' => $ffmpegExitCode,
+        'ffmpegStdout' => mb_substr($ffmpegStdout, 0, 1200),
+        'ffmpegStderr' => mb_substr($ffmpegStderr, 0, 2000),
+        'convertedAudio' => is_file($convertedCandidate) ? $convertedCandidate : '',
+        'convertedSize' => is_file($convertedCandidate) ? filesize($convertedCandidate) : 0,
+    ]);
+
+    if ($ffmpegExitCode === 0 && is_file($convertedCandidate) && filesize($convertedCandidate) > 0) {
+        $audioForWhisper = $convertedCandidate;
+        $convertedAudio = $convertedCandidate;
+    } elseif (is_file($convertedCandidate)) {
+        unlink($convertedCandidate);
+    }
+}
+if (is_file($ffmpegOut)) {
+    unlink($ffmpegOut);
+}
+if (is_file($ffmpegErr)) {
+    unlink($ffmpegErr);
+}
+
 foreach ($commands as $cmd) {
     $stdoutFile = tempnam(sys_get_temp_dir(), 'whisper_out_');
     $stderrFile = tempnam(sys_get_temp_dir(), 'whisper_err_');
-    $fullCommand = $cmd . ' ' . escapeshellarg($script) . ' ' . escapeshellarg($audioPath) . ' ' . escapeshellarg($model)
+    $fullCommand = $cmd . ' ' . escapeshellarg($script) . ' ' . escapeshellarg($audioForWhisper) . ' ' . escapeshellarg($model)
         . ' > ' . escapeshellarg($stdoutFile)
         . ' 2> ' . escapeshellarg($stderrFile);
     logTranscricao(['command' => $fullCommand]);
@@ -125,6 +166,10 @@ foreach ($commands as $cmd) {
             break;
         }
     }
+}
+
+if ($convertedAudio && is_file($convertedAudio)) {
+    unlink($convertedAudio);
 }
 
 if (empty($result['ok'])) {

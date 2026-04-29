@@ -182,6 +182,10 @@ $mediaFileName = trim((string)($data['mediaFileName'] ?? ''));
 $timestamp = isset($data['timestamp']) ? (int)$data['timestamp'] : time();
 $dataMensagem = date('Y-m-d H:i:s', $timestamp > 0 ? $timestamp : time());
 
+if ($mediaBase64 && $tipoMensagem === 'audio' && $mediaMime === '') {
+    $mediaMime = 'audio/ogg';
+}
+
 if (!$numero || (!$mensagem && !$mediaBase64)) {
     exit;
 }
@@ -227,6 +231,8 @@ function extensaoPorMime($mime, $fileName) {
         'image/gif' => 'gif',
         'video/mp4' => 'mp4',
         'audio/ogg' => 'ogg',
+        'audio/opus' => 'opus',
+        'audio/webm' => 'webm',
         'audio/mpeg' => 'mp3',
         'audio/mp4' => 'm4a',
         'application/pdf' => 'pdf',

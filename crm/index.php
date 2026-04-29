@@ -566,7 +566,7 @@ $firstStage = $stageIds[0] ?? '1';
         }
 
         function renderMessageStatus(msg) {
-            if (!msg.fromMe) return '';
+            if (!msg.fromMe && !msg.status) return '';
 
             const status = msg.status || 'sent';
             const icons = {
@@ -594,7 +594,7 @@ $firstStage = $stageIds[0] ?? '1';
             if (mime.startsWith('video/')) {
                 return `<video src="${url}" controls class="max-h-80 rounded-xl bg-black/20"></video>`;
             }
-            if (mime.startsWith('audio/')) {
+            if (mime.startsWith('audio/') || msg.tipo === 'audio') {
                 return `
                     <div class="space-y-2">
                         <audio src="${url}" controls class="w-72 max-w-full"></audio>
@@ -639,7 +639,7 @@ $firstStage = $stageIds[0] ?? '1';
                 .then(data => {
                     if (!data.ok) return;
 
-                    const signature = JSON.stringify(data.mensagens.map(msg => [msg.texto, msg.data, msg.fromMe, msg.status, msg.transcricao, msg.transcricao_erro]));
+                    const signature = JSON.stringify(data.mensagens.map(msg => [msg.messageId, msg.texto, msg.data, msg.fromMe, msg.rawFromMe, msg.de, msg.status, msg.status_updated_at, msg.transcricao, msg.transcricao_erro, msg.mediaUrl]));
                     if (signature === chatLastSignature) return;
 
                     chatLastSignature = signature;

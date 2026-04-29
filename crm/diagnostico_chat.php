@@ -3,11 +3,15 @@ header('Content-Type: text/plain; charset=utf-8');
 
 function tailFile($path, $lines = 80) {
     if (!file_exists($path)) {
-        return "(arquivo não existe)\n";
+        return "(arquivo nao existe)\n";
     }
 
     $data = file($path, FILE_IGNORE_NEW_LINES);
     return implode("\n", array_slice($data, -$lines)) . "\n";
+}
+
+function cortar($texto, $limite) {
+    return mb_substr((string)$texto, 0, $limite);
 }
 
 echo "== status_debug.log ==\n";
@@ -16,30 +20,73 @@ echo tailFile(__DIR__ . '/data/status_debug.log');
 echo "\n== status_pending.json ==\n";
 echo file_exists(__DIR__ . '/data/status_pending.json')
     ? file_get_contents(__DIR__ . '/data/status_pending.json')
-    : "(arquivo não existe)\n";
+    : "(arquivo nao existe)\n";
 
 echo "\n\n== transcricao_debug.log ==\n";
 echo tailFile(__DIR__ . '/data/transcricao_debug.log');
 
-echo "\n== últimas mensagens fromMe ==\n";
+echo "\n== python_whisper_debug.log ==\n";
+echo tailFile(__DIR__ . '/data/python_whisper_debug.log');
+
 $clientes = file_exists(__DIR__ . '/data/clientes.json') ? json_decode(file_get_contents(__DIR__ . '/data/clientes.json'), true) : [];
+$clientes = is_array($clientes) ? $clientes : [];
+
+echo "\n== ultimas mensagens com status/fromMe/transcricao ==\n";
 $resumo = [];
-foreach (is_array($clientes) ? $clientes : [] as $cliente) {
-    foreach (array_slice($cliente['mensagens'] ?? [], -8) as $msg) {
-        if (!empty($msg['fromMe']) || !empty($msg['status'])) {
+foreach ($clientes as $cliente) {
+    foreach (($cliente['mensagens'] ?? []) as $msg) {
+        if (!empty($msg['fromMe']) || !empty($msg['status']) || !empty($msg['transcricao']) || !empty($msg['transcricao_erro'])) {
             $resumo[] = [
                 'cliente' => $cliente['numero'] ?? '',
-                'texto' => mb_substr($msg['texto'] ?? '', 0, 50),
+                'texto' => cortar($msg['texto'] ?? '', 50),
+                'de' => $msg['de'] ?? '',
                 'fromMe' => !empty($msg['fromMe']),
                 'messageId' => $msg['messageId'] ?? '',
                 'remoteJid' => $msg['remoteJid'] ?? '',
                 'status' => $msg['status'] ?? '',
+                'status_updated_at' => $msg['status_updated_at'] ?? '',
                 'fallback' => $msg['status_match_fallback'] ?? '',
-                'transcricao' => mb_substr($msg['transcricao'] ?? '', 0, 80),
-                'transcricao_erro' => mb_substr($msg['transcricao_erro'] ?? '', 0, 160),
+                'tipo' => $msg['tipo'] ?? '',
+                'mediaMime' => $msg['mediaMime'] ?? '',
+                'mediaUrl' => $msg['mediaUrl'] ?? '',
+                'transcricao' => cortar($msg['transcricao'] ?? '', 80),
+                'transcricao_erro' => cortar($msg['transcricao_erro'] ?? '', 220),
+                'data' => $msg['data'] ?? '',
             ];
         }
     }
 }
 
-echo json_encode(array_slice($resumo, -20), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+usort($resumo, function ($a, $b) {
+    return strcmp($a['data'] ?? '', $b['data'] ?? '');
+});
+
+echo json_encode(array_slice($resumo, -30), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+echo "\n\n== ultimas mensagens gerais ==\n";
+$geral = [];
+foreach ($clientes as $cliente) {
+    foreach (($cliente['mensagens'] ?? []) as $msg) {
+        $geral[] = [
+            'cliente' => $cliente['numero'] ?? '',
+            'texto' => cortar($msg['texto'] ?? '', 50),
+            'de' => $msg['de'] ?? '',
+            'fromMe' => !empty($msg['fromMe']),
+            'messageId' => $msg['messageId'] ?? '',
+            'remoteJid' => $msg['remoteJid'] ?? '',
+            'status' => $msg['status'] ?? '',
+            'tipo' => $msg['tipo'] ?? '',
+            'mediaMime' => $msg['mediaMime'] ?? '',
+            'mediaUrl' => $msg['mediaUrl'] ?? '',
+            'transcricao' => cortar($msg['transcricao'] ?? '', 80),
+            'transcricao_erro' => cortar($msg['transcricao_erro'] ?? '', 220),
+            'data' => $msg['data'] ?? '',
+        ];
+    }
+}
+
+usort($geral, function ($a, $b) {
+    return strcmp($a['data'] ?? '', $b['data'] ?? '');
+});
+
+echo json_encode(array_slice($geral, -30), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);

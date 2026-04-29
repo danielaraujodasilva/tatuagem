@@ -131,6 +131,7 @@ if (!empty($res['ok'])) {
     }
 
     $mensagemSalva = [
+        "de" => "atendente",
         "texto" => $mensagem,
         "data" => date('Y-m-d H:i:s'),
         "fromMe" => true,
