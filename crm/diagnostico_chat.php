@@ -26,14 +26,17 @@ $clientes = file_exists(__DIR__ . '/data/clientes.json') ? json_decode(file_get_
 $resumo = [];
 foreach (is_array($clientes) ? $clientes : [] as $cliente) {
     foreach (array_slice($cliente['mensagens'] ?? [], -8) as $msg) {
-        if (!empty($msg['fromMe'])) {
+        if (!empty($msg['fromMe']) || !empty($msg['status'])) {
             $resumo[] = [
                 'cliente' => $cliente['numero'] ?? '',
                 'texto' => mb_substr($msg['texto'] ?? '', 0, 50),
+                'fromMe' => !empty($msg['fromMe']),
                 'messageId' => $msg['messageId'] ?? '',
                 'remoteJid' => $msg['remoteJid'] ?? '',
                 'status' => $msg['status'] ?? '',
                 'fallback' => $msg['status_match_fallback'] ?? '',
+                'transcricao' => mb_substr($msg['transcricao'] ?? '', 0, 80),
+                'transcricao_erro' => mb_substr($msg['transcricao_erro'] ?? '', 0, 160),
             ];
         }
     }

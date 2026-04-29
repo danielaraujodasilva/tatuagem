@@ -76,6 +76,7 @@ $commands = [
 $result = null;
 $lastOutput = '';
 $lastError = '';
+$lastExitCode = null;
 
 function jsonFromOutput($output) {
     $trimmed = trim($output);
@@ -95,16 +96,24 @@ function jsonFromOutput($output) {
 }
 
 foreach ($commands as $cmd) {
-    $errFile = tempnam(sys_get_temp_dir(), 'whisper_err_');
-    $fullCommand = $cmd . ' ' . escapeshellarg($script) . ' ' . escapeshellarg($audioPath) . ' ' . escapeshellarg($model) . ' 2> ' . escapeshellarg($errFile);
+    $stdoutFile = tempnam(sys_get_temp_dir(), 'whisper_out_');
+    $stderrFile = tempnam(sys_get_temp_dir(), 'whisper_err_');
+    $fullCommand = $cmd . ' ' . escapeshellarg($script) . ' ' . escapeshellarg($audioPath) . ' ' . escapeshellarg($model)
+        . ' > ' . escapeshellarg($stdoutFile)
+        . ' 2> ' . escapeshellarg($stderrFile);
     logTranscricao(['command' => $fullCommand]);
-    $output = shell_exec($fullCommand);
-    $lastOutput = $output ?: '';
-    $lastError = is_file($errFile) ? file_get_contents($errFile) : '';
-    if (is_file($errFile)) {
-        unlink($errFile);
+    exec($fullCommand, $unusedOutput, $exitCode);
+    $lastExitCode = $exitCode;
+    $lastOutput = is_file($stdoutFile) ? file_get_contents($stdoutFile) : '';
+    $lastError = is_file($stderrFile) ? file_get_contents($stderrFile) : '';
+    if (is_file($stdoutFile)) {
+        unlink($stdoutFile);
+    }
+    if (is_file($stderrFile)) {
+        unlink($stderrFile);
     }
     logTranscricao([
+        'exitCode' => $exitCode,
         'stdout' => mb_substr($lastOutput, 0, 4000),
         'stderr' => mb_substr($lastError, 0, 4000),
     ]);
@@ -119,7 +128,7 @@ foreach ($commands as $cmd) {
 }
 
 if (empty($result['ok'])) {
-    $erro = $result['error'] ?? trim($lastError) ?: trim($lastOutput) ?: 'Falha ao transcrever audio';
+    $erro = $result['error'] ?? trim($lastError) ?: trim($lastOutput) ?: ('Falha ao transcrever audio. Exit code: ' . (string)$lastExitCode);
     logTranscricao(['error' => $erro]);
     $clientes[$clienteIndex]['mensagens'][$msgIndex]['transcricao_erro'] = $erro;
     $clientes[$clienteIndex]['mensagens'][$msgIndex]['transcrito_em'] = date('Y-m-d H:i:s');

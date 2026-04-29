@@ -13,6 +13,7 @@ if (!is_array($clientes)) {
 
 function mensagemEnviadaPorMim($msg) {
     if (!empty($msg['fromMe'])) return true;
+    if (!empty($msg['status'])) return true;
 
     $autor = strtolower($msg['de'] ?? $msg['autor'] ?? '');
     return in_array($autor, ['eu', 'me', 'atendente', 'humano', 'bot'], true);
