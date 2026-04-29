@@ -50,6 +50,58 @@ function normalizarStatusMensagem($status) {
     return $map[$status] ?? '';
 }
 
+function pesoStatusMensagem($status) {
+    $pesos = [
+        '' => 0,
+        'pending' => 1,
+        'sent' => 2,
+        'delivered' => 3,
+        'read' => 4,
+        'played' => 5,
+        'error' => 0,
+    ];
+
+    return $pesos[$status] ?? 0;
+}
+
+function aplicarStatusMensagem(&$clientes, $messageId, $remoteJid, $status) {
+    $novoPeso = pesoStatusMensagem($status);
+    $fallback = null;
+
+    foreach ($clientes as $clienteIndex => &$cliente) {
+        foreach (($cliente['mensagens'] ?? []) as $msgIndex => &$msg) {
+            $mesmoId = $messageId !== '' && (($msg['messageId'] ?? '') === $messageId);
+            $mesmoJid = $remoteJid !== '' && !empty($msg['remoteJid']) && $msg['remoteJid'] === $remoteJid;
+
+            if ($mesmoId || ($mesmoJid && !empty($msg['fromMe']))) {
+                $atualPeso = pesoStatusMensagem($msg['status'] ?? '');
+                if ($novoPeso >= $atualPeso) {
+                    $msg['status'] = $status;
+                    $msg['status_updated_at'] = date('Y-m-d H:i:s');
+                }
+                return ['matched' => true, 'mode' => $mesmoId ? 'messageId' : 'remoteJid'];
+            }
+
+            if (!empty($msg['fromMe'])) {
+                $atualPeso = pesoStatusMensagem($msg['status'] ?? '');
+                if ($novoPeso > $atualPeso) {
+                    $fallback = [$clienteIndex, $msgIndex];
+                }
+            }
+        }
+    }
+
+    if ($fallback) {
+        [$clienteIndex, $msgIndex] = $fallback;
+        $clientes[$clienteIndex]['mensagens'][$msgIndex]['status'] = $status;
+        $clientes[$clienteIndex]['mensagens'][$msgIndex]['status_updated_at'] = date('Y-m-d H:i:s');
+        $clientes[$clienteIndex]['mensagens'][$msgIndex]['status_match_fallback'] = $messageId ?: $remoteJid;
+        return ['matched' => true, 'mode' => 'latest_from_me_fallback'];
+    }
+
+    return ['matched' => false, 'mode' => 'none'];
+}
+
 if (!empty($data['statusUpdate'])) {
     $statusMessageId = trim((string)($data['messageId'] ?? ''));
     $status = normalizarStatusMensagem($data['status'] ?? '');
@@ -63,17 +115,18 @@ if (!empty($data['statusUpdate'])) {
     ]);
 
     if ($statusMessageId !== '' && $status !== '') {
-        foreach ($clientes as &$cliente) {
-            foreach (($cliente['mensagens'] ?? []) as &$msg) {
-                if (($msg['messageId'] ?? '') === $statusMessageId || (!empty($msg['remoteJid']) && $remoteJid !== '' && $msg['remoteJid'] === $remoteJid && !empty($msg['fromMe']))) {
-                    $msg['status'] = $status;
-                    $msg['status_updated_at'] = date('Y-m-d H:i:s');
-                    salvarClientes($arquivoClientes, $clientes);
-                    logDebug('status_debug.log', ['updated' => true, 'status' => $status, 'messageId' => $statusMessageId]);
-                    echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
-                    exit;
-                }
-            }
+        $resultado = aplicarStatusMensagem($clientes, $statusMessageId, $remoteJid, $status);
+        if ($resultado['matched']) {
+            salvarClientes($arquivoClientes, $clientes);
+            logDebug('status_debug.log', [
+                'updated' => true,
+                'mode' => $resultado['mode'],
+                'status' => $status,
+                'messageId' => $statusMessageId,
+                'remoteJid' => $remoteJid,
+            ]);
+            echo json_encode(['ok' => true, 'mode' => $resultado['mode']], JSON_UNESCAPED_UNICODE);
+            exit;
         }
     }
 

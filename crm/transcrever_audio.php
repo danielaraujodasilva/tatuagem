@@ -75,14 +75,40 @@ $commands = [
 
 $result = null;
 $lastOutput = '';
+$lastError = '';
+
+function jsonFromOutput($output) {
+    $trimmed = trim($output);
+    $decoded = json_decode($trimmed, true);
+    if (is_array($decoded)) {
+        return $decoded;
+    }
+
+    if (preg_match('/\{(?:.|\s)*\}\s*$/', $trimmed, $matches)) {
+        $decoded = json_decode($matches[0], true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+    }
+
+    return null;
+}
 
 foreach ($commands as $cmd) {
-    $fullCommand = $cmd . ' ' . escapeshellarg($script) . ' ' . escapeshellarg($audioPath) . ' ' . escapeshellarg($model) . ' 2>&1';
+    $errFile = tempnam(sys_get_temp_dir(), 'whisper_err_');
+    $fullCommand = $cmd . ' ' . escapeshellarg($script) . ' ' . escapeshellarg($audioPath) . ' ' . escapeshellarg($model) . ' 2> ' . escapeshellarg($errFile);
     logTranscricao(['command' => $fullCommand]);
     $output = shell_exec($fullCommand);
     $lastOutput = $output ?: '';
-    logTranscricao(['output' => mb_substr($lastOutput, 0, 4000)]);
-    $decoded = json_decode(trim($lastOutput), true);
+    $lastError = is_file($errFile) ? file_get_contents($errFile) : '';
+    if (is_file($errFile)) {
+        unlink($errFile);
+    }
+    logTranscricao([
+        'stdout' => mb_substr($lastOutput, 0, 4000),
+        'stderr' => mb_substr($lastError, 0, 4000),
+    ]);
+    $decoded = jsonFromOutput($lastOutput);
 
     if (is_array($decoded)) {
         $result = $decoded;
@@ -93,10 +119,11 @@ foreach ($commands as $cmd) {
 }
 
 if (empty($result['ok'])) {
-    logTranscricao(['error' => $result['error'] ?? trim($lastOutput) ?: 'Falha ao transcrever audio']);
+    $erro = $result['error'] ?? trim($lastError) ?: trim($lastOutput) ?: 'Falha ao transcrever audio';
+    logTranscricao(['error' => $erro]);
     echo json_encode([
         'ok' => false,
-        'error' => $result['error'] ?? trim($lastOutput) ?: 'Falha ao transcrever audio',
+        'error' => $erro,
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
