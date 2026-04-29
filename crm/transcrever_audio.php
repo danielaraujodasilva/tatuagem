@@ -90,6 +90,73 @@ function executarComando($command) {
     ];
 }
 
+function executarComandoComTimeout($command, $timeoutSeconds) {
+    if (stripos(PHP_OS_FAMILY, 'Windows') === false || !comandoDisponivel('proc_open')) {
+        return executarComando($command);
+    }
+
+    $descriptorSpec = [
+        0 => ['pipe', 'r'],
+        1 => ['pipe', 'w'],
+        2 => ['pipe', 'w'],
+    ];
+    $process = proc_open($command, $descriptorSpec, $pipes);
+    if (!is_resource($process)) {
+        return [
+            'exitCode' => 1,
+            'output' => 'Nao consegui iniciar o processo',
+            'runner' => 'proc_open',
+        ];
+    }
+
+    fclose($pipes[0]);
+    stream_set_blocking($pipes[1], false);
+    stream_set_blocking($pipes[2], false);
+    $output = '';
+    $error = '';
+    $startedAt = time();
+
+    while (true) {
+        $status = proc_get_status($process);
+        $output .= stream_get_contents($pipes[1]);
+        $error .= stream_get_contents($pipes[2]);
+
+        if (!$status['running']) {
+            break;
+        }
+
+        if ((time() - $startedAt) >= $timeoutSeconds) {
+            proc_terminate($process);
+            foreach ($pipes as $pipe) {
+                if (is_resource($pipe)) {
+                    fclose($pipe);
+                }
+            }
+            proc_close($process);
+            return [
+                'exitCode' => 124,
+                'output' => trim($output . PHP_EOL . $error . PHP_EOL . 'Timeout apos ' . $timeoutSeconds . 's'),
+                'runner' => 'proc_open',
+            ];
+        }
+
+        usleep(200000);
+    }
+
+    foreach ($pipes as $pipe) {
+        if (is_resource($pipe)) {
+            fclose($pipe);
+        }
+    }
+    $exitCode = proc_close($process);
+
+    return [
+        'exitCode' => $exitCode,
+        'output' => trim($output . PHP_EOL . $error),
+        'runner' => 'proc_open',
+    ];
+}
+
 $data = json_decode(file_get_contents('php://input'), true) ?: [];
 $messageId = trim((string)($data['messageId'] ?? ''));
 $mediaUrl = trim((string)($data['mediaUrl'] ?? ''));
@@ -139,8 +206,8 @@ $commands = [
     'python3',
 ];
 $engines = [
-    'openai',
     'faster',
+    'openai',
 ];
 
 $result = null;
@@ -219,7 +286,7 @@ foreach ($engines as $engine) {
             . ' > ' . escapeshellarg($stdoutFile)
             . ' 2> ' . escapeshellarg($stderrFile);
         logTranscricao(['command' => $fullCommand, 'engine' => $engine]);
-        $run = executarComando($fullCommand);
+        $run = executarComandoComTimeout($fullCommand, $engine === 'faster' ? 900 : 180);
         $exitCode = $run['exitCode'];
         $lastExitCode = $exitCode;
         $lastRunner = $run['runner'] ?? '';
