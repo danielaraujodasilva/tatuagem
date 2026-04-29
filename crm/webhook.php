@@ -206,7 +206,7 @@ if (!empty($data['statusUpdate'])) {
 
 $numero = $data['numero'] ?? '';
 $mensagemOriginal = trim($data['mensagem'] ?? '');
-$mensagem = strtolower($mensagemOriginal);
+$mensagem = normalizarTextoMensagem($mensagemOriginal);
 $fromMe = !empty($data['fromMe']);
 $messageId = trim((string)($data['messageId'] ?? ''));
 $remoteJid = trim((string)($data['remoteJid'] ?? ''));
@@ -222,11 +222,41 @@ if ($mediaBase64 && $tipoMensagem === 'audio' && $mediaMime === '') {
 }
 
 if (!$numero || (!$mensagem && !$mediaBase64)) {
+    logDebug('webhook_debug.log', [
+        'ignored' => true,
+        'reason' => 'numero_ou_conteudo_vazio',
+        'numero' => $numero,
+        'mensagem' => $mensagemOriginal,
+        'fromMe' => $fromMe,
+        'tipoMensagem' => $tipoMensagem,
+    ]);
     exit;
 }
 
 $config = json_decode(file_get_contents("data/config.json"), true);
-$mensagem_trigger = strtolower(trim($config['mensagem_trigger'] ?? 'oi'));
+$mensagem_trigger = normalizarTextoMensagem($config['mensagem_trigger'] ?? 'oi');
+
+function normalizarTextoMensagem($texto) {
+    $texto = trim((string)$texto);
+    if (function_exists('mb_strtolower')) {
+        $texto = mb_strtolower($texto, 'UTF-8');
+    } else {
+        $texto = strtolower($texto);
+    }
+
+    return preg_replace('/\s+/u', ' ', $texto);
+}
+
+function mensagemDisparaLead($mensagem, $trigger) {
+    if ($trigger === '') return $mensagem !== '';
+    if ($mensagem === $trigger) return true;
+
+    if (function_exists('mb_strpos')) {
+        return $mensagem !== '' && mb_strpos($mensagem, $trigger) !== false;
+    }
+
+    return $mensagem !== '' && strpos($mensagem, $trigger) !== false;
+}
 
 function normalizarNumero($num) {
     return preg_replace('/\D/', '', (string)$num);
@@ -308,7 +338,17 @@ foreach ($clientes as $index => $c) {
 if ($clienteIndex === null) {
 
     // só cria se for mensagem gatilho
-    if ($fromMe || $mensagem !== $mensagem_trigger) {
+    if ($fromMe || !mensagemDisparaLead($mensagem, $mensagem_trigger)) {
+        logDebug('webhook_debug.log', [
+            'ignored' => true,
+            'reason' => $fromMe ? 'mensagem_enviada_pelo_atendente' : 'mensagem_nao_e_gatilho',
+            'numero' => $numero,
+            'mensagem' => $mensagemOriginal,
+            'mensagem_normalizada' => $mensagem,
+            'gatilho' => $mensagem_trigger,
+            'messageId' => $messageId,
+            'remoteJid' => $remoteJid,
+        ]);
         exit;
     }
 
@@ -324,12 +364,25 @@ if ($clienteIndex === null) {
 
     $clientes[] = $novo;
     $clienteIndex = count($clientes) - 1;
+    logDebug('webhook_debug.log', [
+        'created' => true,
+        'numero' => $numero,
+        'mensagem' => $mensagemOriginal,
+        'messageId' => $messageId,
+        'remoteJid' => $remoteJid,
+        'etapa' => $novo['etapa'],
+    ]);
 }
 
 // 💬 adiciona mensagem no histórico
 if ($messageId !== '') {
     foreach (($clientes[$clienteIndex]['mensagens'] ?? []) as $msg) {
         if (($msg['messageId'] ?? '') === $messageId) {
+            logDebug('webhook_debug.log', [
+                'duplicated' => true,
+                'numero' => $numero,
+                'messageId' => $messageId,
+            ]);
             echo json_encode(['ok' => true, 'duplicated' => true]);
             exit;
         }
@@ -357,3 +410,13 @@ $clientes[$clienteIndex]['mensagens'][] = $novaMensagem;
 
 // 💾 salva tudo
 salvarClientes(null, $clientes);
+logDebug('webhook_debug.log', [
+    'saved' => true,
+    'numero' => $numero,
+    'clienteId' => $clientes[$clienteIndex]['id'] ?? '',
+    'fromMe' => $fromMe,
+    'messageId' => $messageId,
+    'remoteJid' => $remoteJid,
+    'tipoMensagem' => $tipoMensagem,
+]);
+echo json_encode(['ok' => true, 'clienteId' => $clientes[$clienteIndex]['id'] ?? null], JSON_UNESCAPED_UNICODE);

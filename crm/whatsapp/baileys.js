@@ -20,6 +20,65 @@ let sock = null;
 const lidToPhone = new Map();   // Backup caso precise no futuro
 const startedAt = Math.floor(Date.now() / 1000);
 
+function jidToDigits(jid) {
+    return String(jid || "").split("@")[0].replace(/\D/g, "");
+}
+
+function isPhoneJid(jid) {
+    return String(jid || "").endsWith("@s.whatsapp.net");
+}
+
+function isLidJid(jid) {
+    return String(jid || "").endsWith("@lid");
+}
+
+function extractContactNumber(key) {
+    const jid = key?.remoteJid || "";
+    const phoneCandidates = [
+        key?.remoteJidAlt,
+        key?.senderPn,
+        key?.participantAlt,
+        key?.participant,
+        isPhoneJid(jid) ? jid : "",
+    ];
+
+    for (const candidate of phoneCandidates) {
+        if (isPhoneJid(candidate)) {
+            const digits = jidToDigits(candidate);
+            if (digits.length >= 10) return { numero: digits, source: "phone_jid" };
+        }
+    }
+
+    const lidCandidates = [
+        isLidJid(jid) ? jid : "",
+        isLidJid(key?.senderLid) ? key.senderLid : "",
+        isLidJid(key?.participant) ? key.participant : "",
+    ];
+
+    for (const candidate of lidCandidates) {
+        const lid = jidToDigits(candidate);
+        const mappedPhone = lidToPhone.get(lid);
+        if (mappedPhone) return { numero: mappedPhone, source: "lid_map", lid };
+        if (lid.length >= 6) return { numero: lid, source: "lid_fallback", lid };
+    }
+
+    return { numero: "", source: "not_found" };
+}
+
+function logIgnoredMessage(reason, key, text) {
+    console.log("Mensagem ignorada:", {
+        reason,
+        remoteJid: key?.remoteJid || "",
+        remoteJidAlt: key?.remoteJidAlt || "",
+        senderPn: key?.senderPn || "",
+        senderLid: key?.senderLid || "",
+        participant: key?.participant || "",
+        participantAlt: key?.participantAlt || "",
+        id: key?.id || "",
+        text: String(text || "").slice(0, 80)
+    });
+}
+
 function getMessageContent(message) {
     return message?.ephemeralMessage?.message ||
         message?.viewOnceMessage?.message ||
@@ -136,24 +195,16 @@ async function startBot() {
 
             if (!jid || jid.endsWith("@g.us") || jid.endsWith("@broadcast")) continue;
 
-            // === LÓGICA PRINCIPAL PARA PEGAR O NÚMERO REAL ===
-            let numeroReal = null;
+            const identity = extractContactNumber(key);
+            const numeroReal = identity.numero;
 
-            if (key.remoteJidAlt) {
-                numeroReal = key.remoteJidAlt.split("@")[0].replace(/\D/g, '');
-            } else if (key.senderPn) {
-                numeroReal = key.senderPn.split("@")[0].replace(/\D/g, '');
-            } else if (jid.endsWith("@s.whatsapp.net")) {
-                numeroReal = jid.split("@")[0].replace(/\D/g, '');
-            } else if (jid.endsWith("@lid")) {
-                const lid = jid.split("@")[0];
-                numeroReal = lidToPhone.get(lid) || lid;
+            if (!numeroReal) {
+                logIgnoredMessage("numero_nao_identificado", key, extractText(msg.message));
+                continue;
             }
 
-            if (!numeroReal || numeroReal.length < 10) continue;
-
-            if (jid.endsWith("@lid") && numeroReal !== jid.split("@")[0]) {
-                lidToPhone.set(jid.split("@")[0], numeroReal);
+            if (jid.endsWith("@lid") && identity.source !== "lid_fallback") {
+                lidToPhone.set(jidToDigits(jid), numeroReal);
             }
 
             let texto = extractText(msg.message);
@@ -178,13 +229,16 @@ async function startBot() {
                 }
             }
 
-            if (!texto.trim() && !mediaInfo) continue;
+            if (!texto.trim() && !mediaInfo) {
+                logIgnoredMessage("sem_texto_ou_midia", key, texto);
+                continue;
+            }
 
-            console.log(`📩 Mensagem recebida de ${numeroReal} | JID: ${jid} | Texto: ${texto}`);
+            console.log(`📩 Mensagem recebida de ${numeroReal} | JID: ${jid} | Origem: ${identity.source} | Texto: ${texto}`);
 
             // Envia pro painel/CRM com campos que seu painel espera
             try {
-                await axios.post("http://localhost/crm/webhook.php", {
+                const crmResponse = await axios.post("http://localhost/crm/webhook.php", {
                     numero: numeroReal,
                     mensagem: texto,
                     fromMe: !!key.fromMe,
@@ -196,6 +250,7 @@ async function startBot() {
                     tipoMensagem: mediaInfo?.type || "texto",
                     ...mediaPayload
                 });
+                console.log("Resposta CRM:", crmResponse.data);
             } catch (err) {
                 console.error("❌ Erro ao enviar pro CRM:", err.message);
             }
