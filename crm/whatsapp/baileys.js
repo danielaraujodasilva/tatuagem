@@ -280,8 +280,10 @@ app.post("/enviar", async (req, res) => {
         console.log(`📤 Enviando para: ${resultado.jid}`);
 
         let payload = { text: mensagem };
+        let mediaSize = 0;
         if (media?.base64) {
             const buffer = Buffer.from(media.base64, "base64");
+            mediaSize = buffer.length;
             const mime = media.mime || "application/octet-stream";
             const fileName = media.fileName || "arquivo";
 
@@ -290,11 +292,23 @@ app.post("/enviar", async (req, res) => {
             } else if (mime.startsWith("video/")) {
                 payload = { video: buffer, mimetype: mime, caption: mensagem || "" };
             } else if (mime.startsWith("audio/")) {
-                payload = { audio: buffer, mimetype: mime, ptt: !!media.ptt };
+                payload = {
+                    audio: buffer,
+                    mimetype: media.ptt ? "audio/ogg; codecs=opus" : mime,
+                    ptt: !!media.ptt
+                };
             } else {
                 payload = { document: buffer, mimetype: mime, fileName, caption: mensagem || "" };
             }
         }
+
+        console.log("Payload de envio:", {
+            hasMedia: !!media?.base64,
+            mime: media?.mime || "",
+            ptt: !!media?.ptt,
+            fileName: media?.fileName || "",
+            size: mediaSize
+        });
 
         const result = await sock.sendMessage(resultado.jid, payload);
         console.log("✅ Mensagem enviada! ID:", result?.key?.id);

@@ -48,6 +48,19 @@ function salvarAnexoLocal($tmp, $mime, $fileName) {
     return 'data/media/' . $name;
 }
 
+function logEnvioWhatsApp($dados) {
+    $dir = __DIR__ . '/data';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0775, true);
+    }
+
+    file_put_contents(
+        $dir . '/envio_debug.log',
+        '[' . date('Y-m-d H:i:s') . '] ' . json_encode($dados, JSON_UNESCAPED_UNICODE) . PHP_EOL,
+        FILE_APPEND
+    );
+}
+
 function comandoDisponivel($funcao) {
     if (!function_exists($funcao)) {
         return false;
@@ -71,14 +84,36 @@ function converterAudioVoz($tmp) {
     }
     $saida .= '.ogg';
 
+    $stdoutFile = tempnam(sys_get_temp_dir(), 'ffmpeg_ptt_out_');
+    $stderrFile = tempnam(sys_get_temp_dir(), 'ffmpeg_ptt_err_');
     $cmd = 'ffmpeg -y -i ' . escapeshellarg($tmp)
         . ' -vn -c:a libopus -b:a 32k -ar 48000 -ac 1 '
         . escapeshellarg($saida)
-        . ' > NUL 2> NUL';
+        . ' > ' . escapeshellarg($stdoutFile)
+        . ' 2> ' . escapeshellarg($stderrFile);
 
     $output = [];
     $exitCode = null;
     exec($cmd, $output, $exitCode);
+    $stdout = is_file($stdoutFile) ? file_get_contents($stdoutFile) : '';
+    $stderr = is_file($stderrFile) ? file_get_contents($stderrFile) : '';
+
+    if (is_file($stdoutFile)) {
+        unlink($stdoutFile);
+    }
+    if (is_file($stderrFile)) {
+        unlink($stderrFile);
+    }
+
+    logEnvioWhatsApp([
+        'ffmpeg_ptt' => true,
+        'exitCode' => $exitCode,
+        'stdout' => mb_substr($stdout, 0, 1000),
+        'stderr' => mb_substr($stderr, 0, 2000),
+        'output' => mb_substr(implode(PHP_EOL, $output), 0, 1000),
+        'saida' => $saida,
+        'saidaSize' => is_file($saida) ? filesize($saida) : 0,
+    ]);
 
     if ($exitCode === 0 && is_file($saida) && filesize($saida) > 0) {
         return $saida;
@@ -148,8 +183,11 @@ if (!empty($_FILES['arquivo']) && is_uploaded_file($_FILES['arquivo']['tmp_name'
         if ($convertido) {
             $arquivoConvertidoTemporario = $convertido;
             $tmp = $convertido;
-            $mime = 'audio/ogg';
+            $mime = 'audio/ogg; codecs=opus';
             $fileName = preg_replace('/\.[^.]+$/', '', $fileName) . '.ogg';
+        } else {
+            echo json_encode(['ok' => false, 'erro' => 'Nao consegui converter o audio para enviar ao WhatsApp'], JSON_UNESCAPED_UNICODE);
+            exit;
         }
     }
 
@@ -178,11 +216,24 @@ curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
 ]));
 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+curl_setopt($ch, CURLOPT_TIMEOUT, 60);
 
 $response = curl_exec($ch);
+$curlError = curl_error($ch);
+$curlHttpCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
 curl_close($ch);
 
 $res = json_decode($response, true);
+logEnvioWhatsApp([
+    'numero' => $numeroLimpo,
+    'ptt' => $ptt,
+    'mediaMime' => $media['mime'] ?? '',
+    'mediaFileName' => $media['fileName'] ?? '',
+    'curlHttpCode' => $curlHttpCode,
+    'curlError' => $curlError,
+    'nodeResponse' => mb_substr((string)$response, 0, 2000),
+]);
 
 if (!empty($res['ok'])) {
     $messageId = trim((string)($res['messageId'] ?? ''));

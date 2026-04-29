@@ -662,7 +662,7 @@ $firstStage = $stageIds[0] ?? '1';
             fetch('transcrever_audio.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messageId, mediaUrl: url, model: 'small' })
+                body: JSON.stringify({ messageId, mediaUrl: url, model: 'medium' })
             })
             .then(async r => {
                 const raw = await r.text();
