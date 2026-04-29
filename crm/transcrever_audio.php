@@ -19,7 +19,7 @@ function logTranscricao($dados) {
 $data = json_decode(file_get_contents('php://input'), true) ?: [];
 $messageId = trim((string)($data['messageId'] ?? ''));
 $mediaUrl = trim((string)($data['mediaUrl'] ?? ''));
-$model = trim((string)($data['model'] ?? 'base'));
+$model = trim((string)($data['model'] ?? 'tiny'));
 
 if ($messageId === '' && $mediaUrl === '') {
     echo json_encode(['ok' => false, 'error' => 'Mensagem nao informada'], JSON_UNESCAPED_UNICODE);
@@ -121,6 +121,9 @@ foreach ($commands as $cmd) {
 if (empty($result['ok'])) {
     $erro = $result['error'] ?? trim($lastError) ?: trim($lastOutput) ?: 'Falha ao transcrever audio';
     logTranscricao(['error' => $erro]);
+    $clientes[$clienteIndex]['mensagens'][$msgIndex]['transcricao_erro'] = $erro;
+    $clientes[$clienteIndex]['mensagens'][$msgIndex]['transcrito_em'] = date('Y-m-d H:i:s');
+    file_put_contents($clientesPath, json_encode($clientes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     echo json_encode([
         'ok' => false,
         'error' => $erro,

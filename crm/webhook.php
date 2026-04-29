@@ -13,6 +13,39 @@ function salvarClientes($arquivo, $clientes) {
     file_put_contents($arquivo, json_encode($clientes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 }
 
+function arquivoStatusPendentes() {
+    return __DIR__ . '/data/status_pending.json';
+}
+
+function carregarStatusPendentes() {
+    $arquivo = arquivoStatusPendentes();
+    $dados = file_exists($arquivo) ? json_decode(file_get_contents($arquivo), true) : [];
+    return is_array($dados) ? $dados : [];
+}
+
+function salvarStatusPendentes($dados) {
+    file_put_contents(arquivoStatusPendentes(), json_encode($dados, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+}
+
+function registrarStatusPendente($messageId, $remoteJid, $status) {
+    $pendentes = carregarStatusPendentes();
+    $chaves = array_filter([$messageId, $remoteJid]);
+
+    foreach ($chaves as $chave) {
+        $atual = $pendentes[$chave]['status'] ?? '';
+        if (pesoStatusMensagem($status) >= pesoStatusMensagem($atual)) {
+            $pendentes[$chave] = [
+                'status' => $status,
+                'messageId' => $messageId,
+                'remoteJid' => $remoteJid,
+                'created_at' => date('Y-m-d H:i:s'),
+            ];
+        }
+    }
+
+    salvarStatusPendentes($pendentes);
+}
+
 function logDebug($arquivo, $dados) {
     $dir = __DIR__ . '/data';
     if (!is_dir($dir)) {
@@ -131,6 +164,7 @@ if (!empty($data['statusUpdate'])) {
     }
 
     logDebug('status_debug.log', ['updated' => false, 'error' => 'Mensagem nao encontrada']);
+    registrarStatusPendente($statusMessageId, $remoteJid, $status);
     echo json_encode(['ok' => false, 'error' => 'Mensagem nao encontrada'], JSON_UNESCAPED_UNICODE);
     exit;
 }

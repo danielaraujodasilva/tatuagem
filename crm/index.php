@@ -551,6 +551,7 @@ $firstStage = $stageIds[0] ?? '1';
                         ${renderChatMedia(msg)}
                         ${msg.texto ? `<p class="whitespace-pre-wrap break-words leading-relaxed ${msg.mediaUrl ? 'mt-2' : ''}">${escapeHtml(msg.texto)}</p>` : ''}
                         ${msg.transcricao ? `<div class="mt-3 bg-gray-950/35 rounded-xl px-3 py-2 text-sm"><strong>Transcrição:</strong> ${escapeHtml(msg.transcricao)}</div>` : ''}
+                        ${msg.transcricao_erro ? `<div class="mt-3 bg-red-950/40 border border-red-800/60 rounded-xl px-3 py-2 text-sm text-red-100"><strong>Erro na transcrição:</strong> ${escapeHtml(msg.transcricao_erro)}</div>` : ''}
                         <span class="text-[11px] text-gray-300 flex items-center justify-end gap-1 mt-2">
                             <span>${escapeHtml(msg.hora)}</span>
                             ${renderMessageStatus(msg)}
@@ -597,7 +598,7 @@ $firstStage = $stageIds[0] ?? '1';
                 return `
                     <div class="space-y-2">
                         <audio src="${url}" controls class="w-72 max-w-full"></audio>
-                        <button type="button" onclick="transcribeAudio('${escapeHtml(msg.messageId || '')}', '${url}')" class="text-xs bg-gray-950/40 hover:bg-gray-950/60 px-3 py-2 rounded-xl">Transcrever áudio</button>
+                        <button type="button" onclick="transcribeAudio(this, '${escapeHtml(msg.messageId || '')}', '${url}')" class="text-xs bg-gray-950/40 hover:bg-gray-950/60 px-3 py-2 rounded-xl">Transcrever áudio</button>
                     </div>
                 `;
             }
@@ -605,11 +606,14 @@ $firstStage = $stageIds[0] ?? '1';
             return `<a href="${url}" target="_blank" class="flex items-center gap-3 bg-gray-950/35 hover:bg-gray-950/50 rounded-xl px-3 py-3"><i class="fas fa-file"></i><span class="break-all">${fileName}</span></a>`;
         }
 
-        function transcribeAudio(messageId, url) {
+        function transcribeAudio(button, messageId, url) {
+            const oldText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Transcrevendo...';
             fetch('transcrever_audio.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messageId, mediaUrl: url, model: 'base' })
+                body: JSON.stringify({ messageId, mediaUrl: url, model: 'tiny' })
             })
             .then(r => r.json())
             .then(data => {
@@ -617,9 +621,14 @@ $firstStage = $stageIds[0] ?? '1';
                     loadChatMessages(true);
                 } else {
                     alert(data.error || 'Não foi possível transcrever o áudio');
+                    loadChatMessages(true);
                 }
             })
-            .catch(() => alert('Erro ao transcrever áudio'));
+            .catch(() => alert('Erro ao transcrever áudio'))
+            .finally(() => {
+                button.disabled = false;
+                button.textContent = oldText;
+            });
         }
 
         function loadChatMessages(forceScroll = false) {
@@ -630,7 +639,7 @@ $firstStage = $stageIds[0] ?? '1';
                 .then(data => {
                     if (!data.ok) return;
 
-                    const signature = JSON.stringify(data.mensagens.map(msg => [msg.texto, msg.data, msg.fromMe, msg.status, msg.transcricao]));
+                    const signature = JSON.stringify(data.mensagens.map(msg => [msg.texto, msg.data, msg.fromMe, msg.status, msg.transcricao, msg.transcricao_erro]));
                     if (signature === chatLastSignature) return;
 
                     chatLastSignature = signature;

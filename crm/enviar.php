@@ -44,6 +44,47 @@ function salvarAnexoLocal($tmp, $mime, $fileName) {
     return 'data/media/' . $name;
 }
 
+function pesoStatusMensagem($status) {
+    $pesos = [
+        '' => 0,
+        'pending' => 1,
+        'sent' => 2,
+        'delivered' => 3,
+        'read' => 4,
+        'played' => 5,
+        'error' => 0,
+    ];
+
+    return $pesos[$status] ?? 0;
+}
+
+function aplicarStatusPendente(&$mensagem, $messageId, $remoteJid) {
+    $arquivo = __DIR__ . '/data/status_pending.json';
+    $pendentes = file_exists($arquivo) ? json_decode(file_get_contents($arquivo), true) : [];
+    if (!is_array($pendentes)) {
+        return;
+    }
+
+    $melhorChave = null;
+    $melhorStatus = '';
+
+    foreach (array_filter([$messageId, $remoteJid]) as $chave) {
+        if (!empty($pendentes[$chave]['status']) && pesoStatusMensagem($pendentes[$chave]['status']) >= pesoStatusMensagem($melhorStatus)) {
+            $melhorChave = $chave;
+            $melhorStatus = $pendentes[$chave]['status'];
+        }
+    }
+
+    if ($melhorStatus) {
+        $mensagem['status'] = $melhorStatus;
+        $mensagem['status_updated_at'] = date('Y-m-d H:i:s');
+        if ($melhorChave) {
+            unset($pendentes[$melhorChave]);
+            file_put_contents($arquivo, json_encode($pendentes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        }
+    }
+}
+
 if (!empty($_FILES['arquivo']) && is_uploaded_file($_FILES['arquivo']['tmp_name'])) {
     $tmp = $_FILES['arquivo']['tmp_name'];
     $mime = mime_content_type($tmp) ?: ($_FILES['arquivo']['type'] ?? 'application/octet-stream');
@@ -97,6 +138,7 @@ if (!empty($res['ok'])) {
         "remoteJid" => $remoteJid,
         "status" => "sent",
     ];
+    aplicarStatusPendente($mensagemSalva, $messageId, $remoteJid);
 
     if ($mediaLocal) {
         $mensagemSalva["tipo"] = $mediaLocal['tipo'];

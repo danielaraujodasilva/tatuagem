@@ -34,6 +34,7 @@ foreach ($clientes as $cliente) {
             'fromMe' => mensagemEnviadaPorMim($msg),
             'status' => $msg['status'] ?? '',
             'transcricao' => $msg['transcricao'] ?? '',
+            'transcricao_erro' => $msg['transcricao_erro'] ?? '',
             'tipo' => $msg['tipo'] ?? 'texto',
             'mediaUrl' => $msg['mediaUrl'] ?? '',
             'mediaMime' => $msg['mediaMime'] ?? '',
