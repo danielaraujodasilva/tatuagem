@@ -550,6 +550,7 @@ $firstStage = $stageIds[0] ?? '1';
                     <div class="${msg.fromMe ? 'bg-emerald-600 text-white rounded-br-md' : 'bg-gray-800 text-gray-100 rounded-bl-md'} px-4 py-3 rounded-2xl max-w-[78%] shadow-lg">
                         ${renderChatMedia(msg)}
                         ${msg.texto ? `<p class="whitespace-pre-wrap break-words leading-relaxed ${msg.mediaUrl ? 'mt-2' : ''}">${escapeHtml(msg.texto)}</p>` : ''}
+                        ${msg.transcricao ? `<div class="mt-3 bg-gray-950/35 rounded-xl px-3 py-2 text-sm"><strong>Transcrição:</strong> ${escapeHtml(msg.transcricao)}</div>` : ''}
                         <span class="text-[11px] text-gray-300 flex items-center justify-end gap-1 mt-2">
                             <span>${escapeHtml(msg.hora)}</span>
                             ${renderMessageStatus(msg)}
@@ -596,7 +597,7 @@ $firstStage = $stageIds[0] ?? '1';
                 return `
                     <div class="space-y-2">
                         <audio src="${url}" controls class="w-72 max-w-full"></audio>
-                        <button type="button" onclick="transcribeAudio('${url}')" class="text-xs bg-gray-950/40 hover:bg-gray-950/60 px-3 py-2 rounded-xl">Transcrever áudio</button>
+                        <button type="button" onclick="transcribeAudio('${escapeHtml(msg.messageId || '')}', '${url}')" class="text-xs bg-gray-950/40 hover:bg-gray-950/60 px-3 py-2 rounded-xl">Transcrever áudio</button>
                     </div>
                 `;
             }
@@ -604,8 +605,21 @@ $firstStage = $stageIds[0] ?? '1';
             return `<a href="${url}" target="_blank" class="flex items-center gap-3 bg-gray-950/35 hover:bg-gray-950/50 rounded-xl px-3 py-3"><i class="fas fa-file"></i><span class="break-all">${fileName}</span></a>`;
         }
 
-        function transcribeAudio(url) {
-            alert('O botão já está pronto, mas a transcrição precisa conectar uma API de fala para texto.');
+        function transcribeAudio(messageId, url) {
+            fetch('transcrever_audio.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messageId, mediaUrl: url, model: 'base' })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    loadChatMessages(true);
+                } else {
+                    alert(data.error || 'Não foi possível transcrever o áudio');
+                }
+            })
+            .catch(() => alert('Erro ao transcrever áudio'));
         }
 
         function loadChatMessages(forceScroll = false) {
@@ -616,7 +630,7 @@ $firstStage = $stageIds[0] ?? '1';
                 .then(data => {
                     if (!data.ok) return;
 
-                    const signature = JSON.stringify(data.mensagens.map(msg => [msg.texto, msg.data, msg.fromMe]));
+                    const signature = JSON.stringify(data.mensagens.map(msg => [msg.texto, msg.data, msg.fromMe, msg.status, msg.transcricao]));
                     if (signature === chatLastSignature) return;
 
                     chatLastSignature = signature;

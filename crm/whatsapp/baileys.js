@@ -201,6 +201,32 @@ async function startBot() {
             }
         }
     });
+
+    sock.ev.on("message-receipt.update", async (updates) => {
+        for (const item of updates) {
+            const messageId = item.key?.id;
+            const receipt = item.receipt || {};
+            if (!messageId) continue;
+
+            let status = "";
+            if (receipt.playedTimestamp) status = "played";
+            else if (receipt.readTimestamp) status = "read";
+            else if (receipt.receiptTimestamp) status = "delivered";
+            else if (receipt.status !== undefined && receipt.status !== null) status = receipt.status;
+
+            if (!status) continue;
+
+            try {
+                await axios.post("http://localhost/crm/webhook.php", {
+                    statusUpdate: true,
+                    messageId,
+                    status
+                });
+            } catch (err) {
+                console.error("Erro ao atualizar recibo da mensagem:", err.message);
+            }
+        }
+    });
 }
 
 // ==========================

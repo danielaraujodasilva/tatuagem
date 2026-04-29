@@ -27,11 +27,13 @@ foreach ($clientes as $cliente) {
         $data = $msg['data'] ?? '';
 
         return [
+            'messageId' => $msg['messageId'] ?? '',
             'texto' => $msg['texto'] ?? '',
             'data' => $data,
             'hora' => $data ? date('H:i', strtotime($data)) : '',
             'fromMe' => mensagemEnviadaPorMim($msg),
             'status' => $msg['status'] ?? '',
+            'transcricao' => $msg['transcricao'] ?? '',
             'tipo' => $msg['tipo'] ?? 'texto',
             'mediaUrl' => $msg['mediaUrl'] ?? '',
             'mediaMime' => $msg['mediaMime'] ?? '',
