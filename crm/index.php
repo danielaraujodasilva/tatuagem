@@ -268,8 +268,13 @@ $firstStage = $stageIds[0] ?? '1';
                 </div>
 
                 <div class="bg-gray-900 border-t border-gray-800 p-4">
+                    <div id="attachmentPreview" class="hidden mb-3 bg-gray-800 border border-gray-700 rounded-2xl px-4 py-3 text-sm text-gray-200 flex items-center justify-between gap-3"></div>
                     <div class="flex items-end gap-3">
                         <button type="button" onclick="toggleEmojiPanel()" class="bg-gray-800 hover:bg-gray-700 w-11 h-11 rounded-2xl flex items-center justify-center text-xl">☺</button>
+                        <input id="chatFile" type="file" class="hidden" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.txt">
+                        <button type="button" onclick="document.getElementById('chatFile').click()" class="bg-gray-800 hover:bg-gray-700 w-11 h-11 rounded-2xl flex items-center justify-center">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
                         <textarea id="chatInput" rows="1" placeholder="Digite uma mensagem..." class="flex-1 max-h-40 bg-gray-800 border border-gray-700 rounded-2xl px-4 py-3 resize-none focus:outline-none focus:border-emerald-500"></textarea>
                         <button type="button" onclick="sendChatMessage()" class="bg-emerald-600 hover:bg-emerald-700 w-11 h-11 rounded-2xl flex items-center justify-center">
                             <i class="fas fa-paper-plane"></i>
@@ -352,10 +357,10 @@ $firstStage = $stageIds[0] ?? '1';
                         ${valor > 0 ? `<p class="text-emerald-400 font-medium mt-3">R$ ${valor.toLocaleString('pt-BR')}</p>` : ''}
 
                         <div class="flex justify-start gap-3 mt-4 pt-3 border-t border-gray-700 text-xs">
-                            <button onclick="editLead('${lead.id}'); event.stopImmediatePropagation()" class="text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                            <button onclick="event.stopPropagation(); editLead('${escapeHtml(lead.id)}')" class="text-blue-400 hover:text-blue-300 flex items-center gap-1">
                                 <i class="fas fa-edit"></i> Editar
                             </button>
-                            <button onclick="deleteLead('${lead.id}'); event.stopImmediatePropagation()" class="text-red-400 hover:text-red-300 flex items-center gap-1">
+                            <button onclick="event.stopPropagation(); deleteLead('${escapeHtml(lead.id)}')" class="text-red-400 hover:text-red-300 flex items-center gap-1">
                                 <i class="fas fa-trash"></i> Excluir
                             </button>
                         </div>
@@ -509,7 +514,7 @@ $firstStage = $stageIds[0] ?? '1';
         }
 
         function editLead(id) {
-            const lead = allLeads.find(l => Number(l.id) === Number(id));
+            const lead = allLeads.find(l => String(l.id) === String(id));
             if (!lead) return;
             document.getElementById('modalTitle').textContent = 'Editar Lead';
             document.getElementById('leadId').value = lead.id;
@@ -543,7 +548,8 @@ $firstStage = $stageIds[0] ?? '1';
             container.innerHTML = mensagens.map(msg => `
                 <div class="flex ${msg.fromMe ? 'justify-end' : 'justify-start'}">
                     <div class="${msg.fromMe ? 'bg-emerald-600 text-white rounded-br-md' : 'bg-gray-800 text-gray-100 rounded-bl-md'} px-4 py-3 rounded-2xl max-w-[78%] shadow-lg">
-                        <p class="whitespace-pre-wrap break-words leading-relaxed">${escapeHtml(msg.texto)}</p>
+                        ${renderChatMedia(msg)}
+                        ${msg.texto ? `<p class="whitespace-pre-wrap break-words leading-relaxed ${msg.mediaUrl ? 'mt-2' : ''}">${escapeHtml(msg.texto)}</p>` : ''}
                         <span class="text-[11px] text-gray-300 block mt-2 text-right">${escapeHtml(msg.hora)}</span>
                     </div>
                 </div>
@@ -552,6 +558,35 @@ $firstStage = $stageIds[0] ?? '1';
             if (shouldStickToBottom) {
                 container.scrollTop = container.scrollHeight;
             }
+        }
+
+        function renderChatMedia(msg) {
+            if (!msg.mediaUrl) return '';
+
+            const url = escapeHtml(msg.mediaUrl);
+            const mime = msg.mediaMime || '';
+            const fileName = escapeHtml(msg.mediaFileName || 'arquivo');
+
+            if (mime.startsWith('image/')) {
+                return `<a href="${url}" target="_blank"><img src="${url}" class="max-h-80 rounded-xl object-contain bg-black/20"></a>`;
+            }
+            if (mime.startsWith('video/')) {
+                return `<video src="${url}" controls class="max-h-80 rounded-xl bg-black/20"></video>`;
+            }
+            if (mime.startsWith('audio/')) {
+                return `
+                    <div class="space-y-2">
+                        <audio src="${url}" controls class="w-72 max-w-full"></audio>
+                        <button type="button" onclick="transcribeAudio('${url}')" class="text-xs bg-gray-950/40 hover:bg-gray-950/60 px-3 py-2 rounded-xl">Transcrever áudio</button>
+                    </div>
+                `;
+            }
+
+            return `<a href="${url}" target="_blank" class="flex items-center gap-3 bg-gray-950/35 hover:bg-gray-950/50 rounded-xl px-3 py-3"><i class="fas fa-file"></i><span class="break-all">${fileName}</span></a>`;
+        }
+
+        function transcribeAudio(url) {
+            alert('O botão já está pronto, mas a transcrição precisa conectar uma API de fala para texto.');
         }
 
         function loadChatMessages(forceScroll = false) {
@@ -584,6 +619,7 @@ $firstStage = $stageIds[0] ?? '1';
             document.getElementById('chatName').textContent = lead.nome || 'Cliente WhatsApp';
             document.getElementById('chatPhone').textContent = lead.telefone || '';
             document.getElementById('chatInput').value = '';
+            removeAttachment();
             document.getElementById('emojiPanel').classList.add('hidden');
             document.getElementById('chatOverlay').classList.remove('hidden');
 
@@ -613,24 +649,55 @@ $firstStage = $stageIds[0] ?? '1';
             input.selectionStart = input.selectionEnd = start + emoji.length;
         }
 
+        function updateAttachmentPreview() {
+            const input = document.getElementById('chatFile');
+            const preview = document.getElementById('attachmentPreview');
+            const file = input.files?.[0];
+
+            if (!file) {
+                preview.classList.add('hidden');
+                preview.innerHTML = '';
+                return;
+            }
+
+            preview.classList.remove('hidden');
+            preview.innerHTML = `
+                <span class="truncate"><i class="fas fa-paperclip mr-2"></i>${escapeHtml(file.name)}</span>
+                <button type="button" onclick="removeAttachment()" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+            `;
+        }
+
+        function removeAttachment() {
+            const input = document.getElementById('chatFile');
+            if (input) input.value = '';
+            const preview = document.getElementById('attachmentPreview');
+            if (preview) {
+                preview.classList.add('hidden');
+                preview.innerHTML = '';
+            }
+        }
+
         function sendChatMessage() {
             const input = document.getElementById('chatInput');
+            const fileInput = document.getElementById('chatFile');
             const texto = input.value.trim();
-            if (!activeChat || !texto) return;
+            const file = fileInput.files?.[0];
+            if (!activeChat || (!texto && !file)) return;
+
+            const formData = new FormData();
+            formData.append('numero', activeChat.telefone);
+            formData.append('mensagem', texto);
+            if (file) {
+                formData.append('arquivo', file);
+            }
 
             input.disabled = true;
-            fetch('enviar.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    numero: activeChat.telefone,
-                    mensagem: texto
-                })
-            })
+            fetch('enviar.php', { method: 'POST', body: formData })
             .then(r => r.json())
             .then(res => {
                 if (res.ok) {
                     input.value = '';
+                    removeAttachment();
                     loadChatMessages(true);
                 } else {
                     alert(res.erro || 'Erro ao enviar mensagem');
@@ -645,8 +712,18 @@ $firstStage = $stageIds[0] ?? '1';
 
         function saveLead(e) {
             e.preventDefault();
-            const formData = new FormData(e.target);
-            formData.append('action', document.getElementById('leadId').value ? 'update' : 'create');
+            const id = document.getElementById('leadId').value;
+            const formData = new FormData();
+            formData.append('action', id ? 'update' : 'create');
+            formData.append('id', id);
+            formData.append('nome', document.getElementById('nome').value);
+            formData.append('telefone', document.getElementById('telefone').value);
+            formData.append('valor', document.getElementById('valor').value);
+            formData.append('data_ultimo_contato', document.getElementById('data_ultimo_contato').value);
+            formData.append('interesse', document.getElementById('interesse').value);
+            formData.append('origem', document.getElementById('origem').value);
+            formData.append('status', document.getElementById('status').value);
+            formData.append('etapa', document.getElementById('etapa').value);
 
             fetch('handler.php', { method: 'POST', body: formData })
                 .then(r => r.json())
@@ -670,8 +747,12 @@ $firstStage = $stageIds[0] ?? '1';
             fetch('handler.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: `action=delete&id=${id}`
-            }).then(() => {
+                body: `action=delete&id=${encodeURIComponent(id)}`
+            }).then(r => r.json()).then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
                 Promise.all([
     fetch('handler.php?action=getAll').then(r => r.json()),
     carregarClientesWhatsApp()
@@ -719,12 +800,12 @@ $firstStage = $stageIds[0] ?? '1';
             id: 'wa_' + c.id,
             nome: c.nome || 'Cliente WhatsApp',
             telefone: c.numero,
-            interesse: c.mensagens?.slice(-1)[0]?.texto || '',
-            valor: 0,
-            origem: 'WhatsApp',
+            interesse: c.interesse || c.mensagens?.slice(-1)[0]?.texto || '',
+            valor: c.valor || 0,
+            origem: c.origem || 'WhatsApp',
             status: c.status || 'novo',
             etapa: c.etapa || FIRST_STAGE,
-            data_ultimo_contato: c.mensagens?.slice(-1)[0]?.data || '',
+            data_ultimo_contato: c.data_ultimo_contato || c.mensagens?.slice(-1)[0]?.data || '',
             created_at: c.mensagens?.[0]?.data || ''
         }));
 
@@ -769,6 +850,7 @@ $firstStage = $stageIds[0] ?? '1';
                     sendChatMessage();
                 }
             });
+            document.getElementById('chatFile').addEventListener('change', updateAttachmentPreview);
             document.addEventListener('keydown', (event) => {
                 if (event.key === 'Escape' && activeChat) {
                     closeChatOverlay();

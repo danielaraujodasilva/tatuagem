@@ -8,8 +8,12 @@ $mensagemOriginal = trim($data['mensagem'] ?? '');
 $mensagem = strtolower($mensagemOriginal);
 $fromMe = !empty($data['fromMe']);
 $messageId = trim((string)($data['messageId'] ?? ''));
+$tipoMensagem = trim((string)($data['tipoMensagem'] ?? 'texto'));
+$mediaBase64 = $data['mediaBase64'] ?? '';
+$mediaMime = trim((string)($data['mediaMime'] ?? ''));
+$mediaFileName = trim((string)($data['mediaFileName'] ?? ''));
 
-if (!$numero || !$mensagem) {
+if (!$numero || (!$mensagem && !$mediaBase64)) {
     exit;
 }
 
@@ -50,6 +54,43 @@ function primeiraEtapaDoFunil($conn) {
     }
 
     return '1';
+}
+
+function extensaoPorMime($mime, $fileName) {
+    $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+    if ($ext) return preg_replace('/[^a-z0-9]/', '', $ext);
+
+    $map = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+        'image/gif' => 'gif',
+        'video/mp4' => 'mp4',
+        'audio/ogg' => 'ogg',
+        'audio/mpeg' => 'mp3',
+        'audio/mp4' => 'm4a',
+        'application/pdf' => 'pdf',
+    ];
+
+    return $map[$mime] ?? 'bin';
+}
+
+function salvarMidia($base64, $mime, $fileName) {
+    if (!$base64) return null;
+
+    $bytes = base64_decode($base64, true);
+    if ($bytes === false) return null;
+
+    $dir = __DIR__ . '/data/media';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0775, true);
+    }
+
+    $ext = extensaoPorMime($mime, $fileName);
+    $name = uniqid('wa_', true) . '.' . $ext;
+    file_put_contents($dir . '/' . $name, $bytes);
+
+    return 'data/media/' . $name;
 }
 
 $clienteIndex = null;
@@ -94,12 +135,18 @@ if ($messageId !== '') {
     }
 }
 
+$mediaUrl = salvarMidia($mediaBase64, $mediaMime, $mediaFileName);
+
 $clientes[$clienteIndex]['mensagens'][] = [
     "de" => $fromMe ? "atendente" : "cliente",
     "texto" => $mensagemOriginal,
     "data" => date("Y-m-d H:i:s"),
     "fromMe" => $fromMe,
-    "messageId" => $messageId
+    "messageId" => $messageId,
+    "tipo" => $tipoMensagem,
+    "mediaUrl" => $mediaUrl,
+    "mediaMime" => $mediaMime,
+    "mediaFileName" => $mediaFileName
 ];
 
 // 💾 salva tudo

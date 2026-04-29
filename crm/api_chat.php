@@ -30,6 +30,10 @@ foreach ($clientes as $cliente) {
             'data' => $data,
             'hora' => $data ? date('H:i', strtotime($data)) : '',
             'fromMe' => mensagemEnviadaPorMim($msg),
+            'tipo' => $msg['tipo'] ?? 'texto',
+            'mediaUrl' => $msg['mediaUrl'] ?? '',
+            'mediaMime' => $msg['mediaMime'] ?? '',
+            'mediaFileName' => $msg['mediaFileName'] ?? '',
         ];
     }, $cliente['mensagens'] ?? []);
 

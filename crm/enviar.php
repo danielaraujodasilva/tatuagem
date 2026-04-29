@@ -1,11 +1,16 @@
 <?php
-$data = json_decode(file_get_contents("php://input"), true);
+header('Content-Type: application/json; charset=utf-8');
+
+$isMultipart = stripos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') !== false;
+$data = $isMultipart ? $_POST : (json_decode(file_get_contents("php://input"), true) ?: []);
 
 $numero = $data['numero'] ?? '';
 $mensagem = $data['mensagem'] ?? '';
+$media = null;
+$mediaLocal = null;
 
 function normalizarNumero($num) {
-    return preg_replace('/[^0-9]/', '', $num);
+    return preg_replace('/[^0-9]/', '', (string)$num);
 }
 
 function numerosIguais($a, $b) {
@@ -19,14 +24,51 @@ function numerosIguais($a, $b) {
     return $min >= 10 && substr($a, -$min) === substr($b, -$min);
 }
 
+function salvarAnexoLocal($tmp, $mime, $fileName) {
+    $dir = __DIR__ . '/data/media';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0775, true);
+    }
+
+    $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+    if (!$ext) {
+        $ext = explode('/', $mime ?: 'application/octet-stream')[1] ?? 'bin';
+        $ext = preg_replace('/[^a-z0-9]/', '', $ext) ?: 'bin';
+    }
+
+    $name = uniqid('wa_out_', true) . '.' . $ext;
+    $target = $dir . '/' . $name;
+    copy($tmp, $target);
+
+    return 'data/media/' . $name;
+}
+
+if (!empty($_FILES['arquivo']) && is_uploaded_file($_FILES['arquivo']['tmp_name'])) {
+    $tmp = $_FILES['arquivo']['tmp_name'];
+    $mime = mime_content_type($tmp) ?: ($_FILES['arquivo']['type'] ?? 'application/octet-stream');
+    $fileName = $_FILES['arquivo']['name'] ?? 'arquivo';
+
+    $media = [
+        'base64' => base64_encode(file_get_contents($tmp)),
+        'mime' => $mime,
+        'fileName' => $fileName,
+    ];
+    $mediaLocal = [
+        'url' => salvarAnexoLocal($tmp, $mime, $fileName),
+        'mime' => $mime,
+        'fileName' => $fileName,
+        'tipo' => explode('/', $mime)[0] ?? 'document',
+    ];
+}
+
 $numeroLimpo = normalizarNumero($numero);
 
-// envia para o Node
 $ch = curl_init("http://localhost:3001/enviar");
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
     "numero" => $numeroLimpo,
-    "mensagem" => $mensagem
+    "mensagem" => $mensagem,
+    "media" => $media,
 ]));
 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -36,28 +78,33 @@ curl_close($ch);
 
 $res = json_decode($response, true);
 
-// se ok → salva no JSON
 if (!empty($res['ok'])) {
-    $arquivo = "data/clientes.json";
+    $arquivo = __DIR__ . "/data/clientes.json";
     $messageId = trim((string)($res['messageId'] ?? ''));
 
-    $clientes = file_exists($arquivo)
-        ? json_decode(file_get_contents($arquivo), true)
-        : [];
+    $clientes = file_exists($arquivo) ? json_decode(file_get_contents($arquivo), true) : [];
     if (!is_array($clientes)) {
         $clientes = [];
     }
 
-    $achou = false;
+    $mensagemSalva = [
+        "texto" => $mensagem,
+        "data" => date('Y-m-d H:i:s'),
+        "fromMe" => true,
+        "messageId" => $messageId,
+    ];
 
+    if ($mediaLocal) {
+        $mensagemSalva["tipo"] = $mediaLocal['tipo'];
+        $mensagemSalva["mediaUrl"] = $mediaLocal['url'];
+        $mensagemSalva["mediaMime"] = $mediaLocal['mime'];
+        $mensagemSalva["mediaFileName"] = $mediaLocal['fileName'];
+    }
+
+    $achou = false;
     foreach ($clientes as &$c) {
         if (numerosIguais($c['numero'] ?? '', $numeroLimpo)) {
-            $c['mensagens'][] = [
-                "texto" => $mensagem,
-                "data" => date('Y-m-d H:i:s'),
-                "fromMe" => true,
-                "messageId" => $messageId
-            ];
+            $c['mensagens'][] = $mensagemSalva;
             $achou = true;
             break;
         }
@@ -70,16 +117,11 @@ if (!empty($res['ok'])) {
             "nome" => "Cliente",
             "status" => "novo",
             "atendente" => "humano",
-            "mensagens" => [[
-                "texto" => $mensagem,
-                "data" => date('Y-m-d H:i:s'),
-                "fromMe" => true,
-                "messageId" => $messageId
-            ]]
+            "mensagens" => [$mensagemSalva]
         ];
     }
 
     file_put_contents($arquivo, json_encode($clientes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 }
 
-echo json_encode($res);
+echo json_encode($res ?: ['ok' => false, 'erro' => 'Erro ao enviar'], JSON_UNESCAPED_UNICODE);

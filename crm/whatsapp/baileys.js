@@ -2,6 +2,7 @@ const {
     default: makeWASocket,
     useMultiFileAuthState,
     fetchLatestBaileysVersion,
+    downloadMediaMessage,
     DisconnectReason
 } = require("@whiskeysockets/baileys");
 
@@ -9,13 +10,49 @@ const axios = require("axios");
 const qrcode = require("qrcode-terminal");
 const express = require("express");
 const pino = require("pino");
+const fs = require("fs");
+const path = require("path");
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "30mb" }));
 
 let sock = null;
 const lidToPhone = new Map();   // Backup caso precise no futuro
 const startedAt = Math.floor(Date.now() / 1000);
+
+function getMessageContent(message) {
+    return message?.ephemeralMessage?.message ||
+        message?.viewOnceMessage?.message ||
+        message?.viewOnceMessageV2?.message ||
+        message;
+}
+
+function getMediaMessage(message) {
+    const content = getMessageContent(message);
+    const mediaTypes = [
+        ["image", content?.imageMessage],
+        ["video", content?.videoMessage],
+        ["audio", content?.audioMessage],
+        ["document", content?.documentMessage],
+        ["sticker", content?.stickerMessage]
+    ];
+
+    for (const [type, payload] of mediaTypes) {
+        if (payload) return { type, payload };
+    }
+
+    return null;
+}
+
+function extractText(message) {
+    const content = getMessageContent(message);
+    return content?.conversation ||
+        content?.extendedTextMessage?.text ||
+        content?.imageMessage?.caption ||
+        content?.videoMessage?.caption ||
+        content?.documentMessage?.caption ||
+        "";
+}
 
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState("./whatsapp/auth_info");
@@ -93,16 +130,29 @@ async function startBot() {
                 lidToPhone.set(jid.split("@")[0], numeroReal);
             }
 
-            // Extrai texto da mensagem
-            let texto = 
-                msg.message.conversation ||
-                msg.message.extendedTextMessage?.text ||
-                msg.message.imageMessage?.caption ||
-                msg.message.videoMessage?.caption ||
-                msg.message.documentMessage?.caption ||
-                "";
+            let texto = extractText(msg.message);
+            const mediaInfo = getMediaMessage(msg.message);
+            let mediaPayload = {};
 
-            if (!texto.trim()) continue;
+            if (mediaInfo) {
+                try {
+                    const buffer = await downloadMediaMessage(
+                        msg,
+                        "buffer",
+                        {},
+                        { logger: pino({ level: "silent" }) }
+                    );
+                    mediaPayload = {
+                        mediaBase64: buffer.toString("base64"),
+                        mediaMime: mediaInfo.payload.mimetype || "",
+                        mediaFileName: mediaInfo.payload.fileName || `${mediaInfo.type}_${key.id || Date.now()}`,
+                    };
+                } catch (err) {
+                    console.error("Erro ao baixar midia:", err.message);
+                }
+            }
+
+            if (!texto.trim() && !mediaInfo) continue;
 
             console.log(`📩 Mensagem recebida de ${numeroReal} | JID: ${jid} | Texto: ${texto}`);
 
@@ -115,11 +165,8 @@ async function startBot() {
                     messageId: key.id || null,
                     jidCompleto: jid,
                     isLid: jid.endsWith("@lid"),
-                    tipoMensagem: msg.message?.conversation ? "texto" :
-                                  msg.message?.imageMessage ? "imagem" :
-                                  msg.message?.videoMessage ? "video" :
-                                  msg.message?.documentMessage ? "documento" :
-                                  "outro"
+                    tipoMensagem: mediaInfo?.type || "texto",
+                    ...mediaPayload
                 });
             } catch (err) {
                 console.error("❌ Erro ao enviar pro CRM:", err.message);
@@ -132,9 +179,9 @@ async function startBot() {
 // ENVIO DE MENSAGEM
 // ==========================
 app.post("/enviar", async (req, res) => {
-    const { numero, mensagem } = req.body;
+    const { numero, mensagem, media } = req.body;
 
-    if (!numero || !mensagem) {
+    if (!numero || (!mensagem && !media?.base64)) {
         return res.json({ ok: false, erro: "Número e mensagem obrigatórios" });
     }
 
@@ -155,7 +202,24 @@ app.post("/enviar", async (req, res) => {
 
         console.log(`📤 Enviando para: ${resultado.jid}`);
 
-        const result = await sock.sendMessage(resultado.jid, { text: mensagem });
+        let payload = { text: mensagem };
+        if (media?.base64) {
+            const buffer = Buffer.from(media.base64, "base64");
+            const mime = media.mime || "application/octet-stream";
+            const fileName = media.fileName || "arquivo";
+
+            if (mime.startsWith("image/")) {
+                payload = { image: buffer, mimetype: mime, caption: mensagem || "" };
+            } else if (mime.startsWith("video/")) {
+                payload = { video: buffer, mimetype: mime, caption: mensagem || "" };
+            } else if (mime.startsWith("audio/")) {
+                payload = { audio: buffer, mimetype: mime };
+            } else {
+                payload = { document: buffer, mimetype: mime, fileName, caption: mensagem || "" };
+            }
+        }
+
+        const result = await sock.sendMessage(resultado.jid, payload);
         console.log("✅ Mensagem enviada! ID:", result?.key?.id);
 
         res.json({ ok: true, messageId: result?.key?.id });
