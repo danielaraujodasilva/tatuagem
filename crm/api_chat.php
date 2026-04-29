@@ -1,0 +1,46 @@
+<?php
+header('Content-Type: application/json; charset=utf-8');
+
+$id = $_GET['id'] ?? '';
+$clienteId = preg_replace('/^wa_/', '', (string)$id);
+$arquivo = __DIR__ . '/data/clientes.json';
+
+$clientes = file_exists($arquivo) ? json_decode(file_get_contents($arquivo), true) : [];
+if (!is_array($clientes)) {
+    $clientes = [];
+}
+
+function mensagemEnviadaPorMim($msg) {
+    if (!empty($msg['fromMe'])) return true;
+
+    $autor = strtolower($msg['de'] ?? $msg['autor'] ?? '');
+    return in_array($autor, ['eu', 'me', 'atendente', 'humano', 'bot'], true);
+}
+
+foreach ($clientes as $cliente) {
+    if ((string)($cliente['id'] ?? '') !== $clienteId) {
+        continue;
+    }
+
+    $mensagens = array_map(function ($msg) {
+        $data = $msg['data'] ?? '';
+
+        return [
+            'texto' => $msg['texto'] ?? '',
+            'data' => $data,
+            'hora' => $data ? date('H:i', strtotime($data)) : '',
+            'fromMe' => mensagemEnviadaPorMim($msg),
+        ];
+    }, $cliente['mensagens'] ?? []);
+
+    echo json_encode([
+        'ok' => true,
+        'mensagens' => $mensagens,
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+echo json_encode([
+    'ok' => false,
+    'error' => 'Cliente não encontrado',
+], JSON_UNESCAPED_UNICODE);

@@ -1,4 +1,5 @@
 <?php
+require 'config.php';
 
 $data = json_decode(file_get_contents("php://input"), true);
 
@@ -37,6 +38,18 @@ function numerosIguais($a, $b) {
     return $min >= 10 && substr($a, -$min) === substr($b, -$min);
 }
 
+function primeiraEtapaDoFunil($conn) {
+    $stmt = $conn->query("SELECT id, nome FROM pipelines ORDER BY ordem, id");
+
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        if (trim((string)($row['nome'] ?? '')) !== '') {
+            return (string)$row['id'];
+        }
+    }
+
+    return '1';
+}
+
 $clienteIndex = null;
 
 // 🔍 procurar cliente existente
@@ -60,7 +73,7 @@ if ($clienteIndex === null) {
         "numero" => $numero,
         "nome" => "Cliente",
         "status" => "novo",
-        "etapa" => "1",
+        "etapa" => primeiraEtapaDoFunil($conn),
         "atendente" => "bot",
         "mensagens" => []
     ];

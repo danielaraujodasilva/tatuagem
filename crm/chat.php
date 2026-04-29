@@ -45,7 +45,7 @@ if (!$cliente) {
 </div>
 
 <!-- MENSAGENS -->
-<div class="flex-1 overflow-y-auto p-4 space-y-3">
+<div id="messages" class="flex-1 overflow-y-auto p-4 space-y-3">
 <?php foreach (($cliente['mensagens'] ?? []) as $msg): ?>
     
     <?php $isMe = mensagemEnviadaPorMim($msg); ?>
@@ -74,6 +74,56 @@ if (!$cliente) {
 </div>
 
 <script>
+const chatId = <?= json_encode($id) ?>;
+let lastSignature = '';
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    }[char]));
+}
+
+function renderMessages(mensagens) {
+    const container = document.getElementById('messages');
+    const shouldStickToBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 80;
+
+    container.innerHTML = mensagens.map(msg => `
+        <div class="flex ${msg.fromMe ? 'justify-end' : 'justify-start'}">
+            <div class="${msg.fromMe ? 'bg-emerald-600' : 'bg-gray-800'} px-4 py-2 rounded-2xl max-w-xs">
+                <p>${escapeHtml(msg.texto)}</p>
+                <span class="text-xs text-gray-300 block mt-1">${escapeHtml(msg.hora)}</span>
+            </div>
+        </div>
+    `).join('');
+
+    if (shouldStickToBottom) {
+        container.scrollTop = container.scrollHeight;
+    }
+}
+
+function loadMessages(forceScroll = false) {
+    fetch(`api_chat.php?id=${encodeURIComponent(chatId)}`)
+        .then(r => r.json())
+        .then(data => {
+            if (!data.ok) return;
+
+            const signature = JSON.stringify(data.mensagens.map(msg => [msg.texto, msg.data, msg.fromMe]));
+            if (signature === lastSignature) return;
+
+            lastSignature = signature;
+            renderMessages(data.mensagens);
+
+            if (forceScroll) {
+                const container = document.getElementById('messages');
+                container.scrollTop = container.scrollHeight;
+            }
+        });
+}
+
 function enviarMensagem() {
     const input = document.getElementById('msgInput');
     const texto = input.value.trim();
@@ -91,7 +141,7 @@ function enviarMensagem() {
     .then(r => r.json())
     .then(res => {
         if (res.ok) {
-            location.reload();
+            loadMessages(true);
         } else {
             alert("Erro ao enviar");
         }
@@ -103,8 +153,10 @@ function enviarMensagem() {
 
 <script>
 window.onload = () => {
-    const container = document.querySelector('.flex-1');
+    const container = document.getElementById('messages');
     container.scrollTop = container.scrollHeight;
+    loadMessages(true);
+    setInterval(loadMessages, 3000);
 };
 </script>
 
