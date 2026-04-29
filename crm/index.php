@@ -292,6 +292,7 @@ $firstStage = $stageIds[0] ?? '1';
         let activeChat = null;
         let chatPollTimer = null;
         let chatLastSignature = '';
+        const pendingTranscriptions = {};
         const STAGES = <?= json_encode($stages, JSON_UNESCAPED_UNICODE) ?>;
         const STAGE_IDS = <?= json_encode($stageIds, JSON_UNESCAPED_UNICODE) ?>;
         const FIRST_STAGE = <?= json_encode($firstStage, JSON_UNESCAPED_UNICODE) ?>;
@@ -545,6 +546,14 @@ $firstStage = $stageIds[0] ?? '1';
             const container = document.getElementById('chatMessages');
             const shouldStickToBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 80;
 
+            mensagens.forEach(msg => {
+                const key = transcriptionKey(msg.messageId || '', msg.mediaUrl || '');
+                if (pendingTranscriptions[key] && (msg.transcricao || msg.transcricao_erro)) {
+                    clearInterval(pendingTranscriptions[key].timer);
+                    delete pendingTranscriptions[key];
+                }
+            });
+
             container.innerHTML = mensagens.map(msg => `
                 <div class="flex ${msg.fromMe ? 'justify-end' : 'justify-start'}">
                     <div class="${msg.fromMe ? 'bg-emerald-600 text-white rounded-br-md' : 'bg-gray-800 text-gray-100 rounded-bl-md'} px-4 py-3 rounded-2xl max-w-[78%] shadow-lg">
@@ -587,6 +596,7 @@ $firstStage = $stageIds[0] ?? '1';
             const url = escapeHtml(msg.mediaUrl);
             const mime = msg.mediaMime || '';
             const fileName = escapeHtml(msg.mediaFileName || 'arquivo');
+            const pending = pendingTranscriptions[transcriptionKey(msg.messageId || '', msg.mediaUrl || '')];
 
             if (mime.startsWith('image/')) {
                 return `<a href="${url}" target="_blank"><img src="${url}" class="max-h-80 rounded-xl object-contain bg-black/20"></a>`;
@@ -598,7 +608,7 @@ $firstStage = $stageIds[0] ?? '1';
                 return `
                     <div class="space-y-2">
                         <audio src="${url}" controls class="w-72 max-w-full"></audio>
-                        <button type="button" onclick="transcribeAudio(this, '${escapeHtml(msg.messageId || '')}', '${url}')" class="text-xs bg-gray-950/40 hover:bg-gray-950/60 px-3 py-2 rounded-xl">Transcrever áudio</button>
+                        ${pending ? renderTranscriptionProgress(pending.progress) : `<button type="button" onclick="transcribeAudio(this, '${escapeHtml(msg.messageId || '')}', '${url}')" class="text-xs bg-gray-950/40 hover:bg-gray-950/60 px-3 py-2 rounded-xl">Transcrever audio</button>`}
                     </div>
                 `;
             }
@@ -606,25 +616,74 @@ $firstStage = $stageIds[0] ?? '1';
             return `<a href="${url}" target="_blank" class="flex items-center gap-3 bg-gray-950/35 hover:bg-gray-950/50 rounded-xl px-3 py-3"><i class="fas fa-file"></i><span class="break-all">${fileName}</span></a>`;
         }
 
+        function transcriptionKey(messageId, url) {
+            return messageId || url;
+        }
+
+        function renderTranscriptionProgress(progress) {
+            const safeProgress = Math.max(5, Math.min(95, Number(progress) || 5));
+            return `
+                <div class="bg-gray-950/40 rounded-xl px-3 py-2 w-72 max-w-full">
+                    <div class="flex justify-between text-[11px] text-gray-200 mb-1">
+                        <span>Transcrevendo...</span>
+                        <span>${safeProgress}%</span>
+                    </div>
+                    <div class="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-emerald-400 rounded-full transition-all" style="width: ${safeProgress}%"></div>
+                    </div>
+                </div>
+            `;
+        }
+
         function transcribeAudio(button, messageId, url) {
+            const key = transcriptionKey(messageId, url);
             const oldText = button.textContent;
             button.disabled = true;
             button.textContent = 'Transcrevendo...';
+            pendingTranscriptions[key] = {
+                progress: 8,
+                timer: setInterval(() => {
+                    const current = pendingTranscriptions[key];
+                    if (!current) return;
+                    current.progress = Math.min(95, current.progress + (current.progress < 60 ? 7 : 3));
+                    loadChatMessages(true);
+                }, 2500)
+            };
+            loadChatMessages(true);
+
             fetch('transcrever_audio.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ messageId, mediaUrl: url, model: 'tiny' })
             })
-            .then(r => r.json())
+            .then(async r => {
+                const raw = await r.text();
+                try {
+                    return JSON.parse(raw);
+                } catch (e) {
+                    const preview = raw.trim().slice(0, 500) || `HTTP ${r.status}`;
+                    throw new Error(preview);
+                }
+            })
             .then(data => {
                 if (data.ok) {
+                    clearInterval(pendingTranscriptions[key]?.timer);
+                    delete pendingTranscriptions[key];
                     loadChatMessages(true);
                 } else {
-                    alert(data.error || 'Não foi possível transcrever o áudio');
+                    alert(data.error || 'Nao foi possivel transcrever o audio');
+                    clearInterval(pendingTranscriptions[key]?.timer);
+                    delete pendingTranscriptions[key];
                     loadChatMessages(true);
                 }
             })
-            .catch(() => alert('Erro ao transcrever áudio'))
+            .catch(error => {
+                console.warn('Transcricao ainda pode estar rodando no servidor:', error);
+                if (pendingTranscriptions[key]) {
+                    pendingTranscriptions[key].progress = Math.max(pendingTranscriptions[key].progress, 70);
+                }
+                loadChatMessages(true);
+            })
             .finally(() => {
                 button.disabled = false;
                 button.textContent = oldText;
@@ -640,7 +699,7 @@ $firstStage = $stageIds[0] ?? '1';
                     if (!data.ok) return;
 
                     const signature = JSON.stringify(data.mensagens.map(msg => [msg.messageId, msg.texto, msg.data, msg.fromMe, msg.rawFromMe, msg.de, msg.status, msg.status_updated_at, msg.transcricao, msg.transcricao_erro, msg.mediaUrl]));
-                    if (signature === chatLastSignature) return;
+                    if (signature === chatLastSignature && Object.keys(pendingTranscriptions).length === 0) return;
 
                     chatLastSignature = signature;
                     renderChatMessages(data.mensagens);
