@@ -1,16 +1,13 @@
 <?php
 require 'config.php';
+require_once __DIR__ . '/data_store.php';
 date_default_timezone_set('America/Sao_Paulo');
 
 $data = json_decode(file_get_contents("php://input"), true);
-$arquivoClientes = __DIR__ . '/data/clientes.json';
-$clientes = file_exists($arquivoClientes) ? json_decode(file_get_contents($arquivoClientes), true) : [];
-if (!is_array($clientes)) {
-    $clientes = [];
-}
+$clientes = crmCarregarClientes();
 
 function salvarClientes($arquivo, $clientes) {
-    file_put_contents($arquivo, json_encode($clientes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    crmSalvarClientes($clientes);
 }
 
 function arquivoStatusPendentes() {
@@ -27,9 +24,13 @@ function salvarStatusPendentes($dados) {
     file_put_contents(arquivoStatusPendentes(), json_encode($dados, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 }
 
+function normalizarRemoteJid($jid) {
+    return preg_replace('/:\d+(?=@)/', '', (string)$jid);
+}
+
 function registrarStatusPendente($messageId, $remoteJid, $status) {
     $pendentes = carregarStatusPendentes();
-    $chaves = array_filter([$messageId, $remoteJid]);
+    $chaves = array_unique(array_filter([$messageId, $remoteJid, normalizarRemoteJid($remoteJid)]));
 
     foreach ($chaves as $chave) {
         $atual = $pendentes[$chave]['status'] ?? '';
@@ -97,6 +98,26 @@ function pesoStatusMensagem($status) {
     return $pesos[$status] ?? 0;
 }
 
+function aplicarStatusPendenteMensagem(&$mensagem) {
+    $pendentes = carregarStatusPendentes();
+    $melhorChave = null;
+    $melhorStatus = $mensagem['status'] ?? '';
+
+    foreach (array_unique(array_filter([$mensagem['messageId'] ?? '', $mensagem['remoteJid'] ?? '', normalizarRemoteJid($mensagem['remoteJid'] ?? '')])) as $chave) {
+        if (!empty($pendentes[$chave]['status']) && pesoStatusMensagem($pendentes[$chave]['status']) > pesoStatusMensagem($melhorStatus)) {
+            $melhorChave = $chave;
+            $melhorStatus = $pendentes[$chave]['status'];
+        }
+    }
+
+    if ($melhorChave !== null) {
+        $mensagem['status'] = $melhorStatus;
+        $mensagem['status_updated_at'] = date('Y-m-d H:i:s');
+        unset($pendentes[$melhorChave]);
+        salvarStatusPendentes($pendentes);
+    }
+}
+
 function aplicarStatusMensagem(&$clientes, $messageId, $remoteJid, $status) {
     $novoPeso = pesoStatusMensagem($status);
     $fallback = null;
@@ -104,7 +125,7 @@ function aplicarStatusMensagem(&$clientes, $messageId, $remoteJid, $status) {
     foreach ($clientes as $clienteIndex => &$cliente) {
         foreach (($cliente['mensagens'] ?? []) as $msgIndex => &$msg) {
             $mesmoId = $messageId !== '' && (($msg['messageId'] ?? '') === $messageId);
-            $mesmoJid = $remoteJid !== '' && !empty($msg['remoteJid']) && $msg['remoteJid'] === $remoteJid;
+            $mesmoJid = $remoteJid !== '' && !empty($msg['remoteJid']) && normalizarRemoteJid($msg['remoteJid']) === normalizarRemoteJid($remoteJid);
 
             if ($mesmoId || ($mesmoJid && !empty($msg['fromMe']))) {
                 $atualPeso = pesoStatusMensagem($msg['status'] ?? '');
@@ -150,7 +171,7 @@ if (!empty($data['statusUpdate'])) {
     if ($statusMessageId !== '' && $status !== '') {
         $resultado = aplicarStatusMensagem($clientes, $statusMessageId, $remoteJid, $status);
         if ($resultado['matched']) {
-            salvarClientes($arquivoClientes, $clientes);
+            salvarClientes(null, $clientes);
             logDebug('status_debug.log', [
                 'updated' => true,
                 'mode' => $resultado['mode'],
@@ -303,7 +324,7 @@ if ($messageId !== '') {
 
 $mediaUrl = salvarMidia($mediaBase64, $mediaMime, $mediaFileName);
 
-$clientes[$clienteIndex]['mensagens'][] = [
+$novaMensagem = [
     "de" => $fromMe ? "atendente" : "cliente",
     "texto" => $mensagemOriginal,
     "data" => $dataMensagem,
@@ -317,5 +338,8 @@ $clientes[$clienteIndex]['mensagens'][] = [
     "mediaFileName" => $mediaFileName
 ];
 
+aplicarStatusPendenteMensagem($novaMensagem);
+$clientes[$clienteIndex]['mensagens'][] = $novaMensagem;
+
 // 💾 salva tudo
-salvarClientes($arquivoClientes, $clientes);
+salvarClientes(null, $clientes);

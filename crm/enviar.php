@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/data_store.php';
+
 header('Content-Type: application/json; charset=utf-8');
 date_default_timezone_set('America/Sao_Paulo');
 
@@ -58,6 +60,10 @@ function pesoStatusMensagem($status) {
     return $pesos[$status] ?? 0;
 }
 
+function normalizarRemoteJidStatus($jid) {
+    return preg_replace('/:\d+(?=@)/', '', (string)$jid);
+}
+
 function aplicarStatusPendente(&$mensagem, $messageId, $remoteJid) {
     $arquivo = __DIR__ . '/data/status_pending.json';
     $pendentes = file_exists($arquivo) ? json_decode(file_get_contents($arquivo), true) : [];
@@ -68,7 +74,7 @@ function aplicarStatusPendente(&$mensagem, $messageId, $remoteJid) {
     $melhorChave = null;
     $melhorStatus = '';
 
-    foreach (array_filter([$messageId, $remoteJid]) as $chave) {
+    foreach (array_unique(array_filter([$messageId, $remoteJid, normalizarRemoteJidStatus($remoteJid)])) as $chave) {
         if (!empty($pendentes[$chave]['status']) && pesoStatusMensagem($pendentes[$chave]['status']) >= pesoStatusMensagem($melhorStatus)) {
             $melhorChave = $chave;
             $melhorStatus = $pendentes[$chave]['status'];
@@ -121,14 +127,10 @@ curl_close($ch);
 $res = json_decode($response, true);
 
 if (!empty($res['ok'])) {
-    $arquivo = __DIR__ . "/data/clientes.json";
     $messageId = trim((string)($res['messageId'] ?? ''));
     $remoteJid = trim((string)($res['remoteJid'] ?? ''));
 
-    $clientes = file_exists($arquivo) ? json_decode(file_get_contents($arquivo), true) : [];
-    if (!is_array($clientes)) {
-        $clientes = [];
-    }
+    $clientes = crmCarregarClientes();
 
     $mensagemSalva = [
         "de" => "atendente",
@@ -168,7 +170,7 @@ if (!empty($res['ok'])) {
         ];
     }
 
-    file_put_contents($arquivo, json_encode($clientes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    crmSalvarClientes($clientes);
 }
 
 echo json_encode($res ?: ['ok' => false, 'erro' => 'Erro ao enviar'], JSON_UNESCAPED_UNICODE);

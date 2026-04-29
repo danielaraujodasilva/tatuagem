@@ -1,1 +1,7 @@
 config.js
+crm/data/clientes_runtime.json
+crm/data/clientes_runtime.json.bak
+crm/data/clientes_runtime.json.tmp
+crm/data/status_pending.json
+crm/data/*.log
+crm/data/media/

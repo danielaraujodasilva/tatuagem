@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/data_store.php';
+
 header('Content-Type: application/json; charset=utf-8');
 date_default_timezone_set('America/Sao_Paulo');
 set_time_limit(0);
@@ -26,11 +28,7 @@ if ($messageId === '' && $mediaUrl === '') {
     exit;
 }
 
-$clientesPath = __DIR__ . '/data/clientes.json';
-$clientes = file_exists($clientesPath) ? json_decode(file_get_contents($clientesPath), true) : [];
-if (!is_array($clientes)) {
-    $clientes = [];
-}
+$clientes = crmCarregarClientes();
 
 $found = null;
 foreach ($clientes as $clienteIndex => $cliente) {
@@ -71,6 +69,10 @@ $commands = [
     'py -3',
     'python',
     'python3',
+];
+$engines = [
+    'openai',
+    'faster',
 ];
 
 $result = null;
@@ -136,34 +138,36 @@ if (is_file($ffmpegErr)) {
     unlink($ffmpegErr);
 }
 
-foreach ($commands as $cmd) {
-    $stdoutFile = tempnam(sys_get_temp_dir(), 'whisper_out_');
-    $stderrFile = tempnam(sys_get_temp_dir(), 'whisper_err_');
-    $fullCommand = $cmd . ' ' . escapeshellarg($script) . ' ' . escapeshellarg($audioForWhisper) . ' ' . escapeshellarg($model)
-        . ' > ' . escapeshellarg($stdoutFile)
-        . ' 2> ' . escapeshellarg($stderrFile);
-    logTranscricao(['command' => $fullCommand]);
-    exec($fullCommand, $unusedOutput, $exitCode);
-    $lastExitCode = $exitCode;
-    $lastOutput = is_file($stdoutFile) ? file_get_contents($stdoutFile) : '';
-    $lastError = is_file($stderrFile) ? file_get_contents($stderrFile) : '';
-    if (is_file($stdoutFile)) {
-        unlink($stdoutFile);
-    }
-    if (is_file($stderrFile)) {
-        unlink($stderrFile);
-    }
-    logTranscricao([
-        'exitCode' => $exitCode,
-        'stdout' => mb_substr($lastOutput, 0, 4000),
-        'stderr' => mb_substr($lastError, 0, 4000),
-    ]);
-    $decoded = jsonFromOutput($lastOutput);
+foreach ($engines as $engine) {
+    foreach ($commands as $cmd) {
+        $stdoutFile = tempnam(sys_get_temp_dir(), 'whisper_out_');
+        $stderrFile = tempnam(sys_get_temp_dir(), 'whisper_err_');
+        $fullCommand = $cmd . ' ' . escapeshellarg($script) . ' ' . escapeshellarg($audioForWhisper) . ' ' . escapeshellarg($model) . ' ' . escapeshellarg($engine)
+            . ' > ' . escapeshellarg($stdoutFile)
+            . ' 2> ' . escapeshellarg($stderrFile);
+        logTranscricao(['command' => $fullCommand, 'engine' => $engine]);
+        exec($fullCommand, $unusedOutput, $exitCode);
+        $lastExitCode = $exitCode;
+        $lastOutput = is_file($stdoutFile) ? file_get_contents($stdoutFile) : '';
+        $lastError = is_file($stderrFile) ? file_get_contents($stderrFile) : '';
+        if (is_file($stdoutFile)) {
+            unlink($stdoutFile);
+        }
+        if (is_file($stderrFile)) {
+            unlink($stderrFile);
+        }
+        logTranscricao([
+            'exitCode' => $exitCode,
+            'stdout' => mb_substr($lastOutput, 0, 4000),
+            'stderr' => mb_substr($lastError, 0, 4000),
+        ]);
+        $decoded = jsonFromOutput($lastOutput);
 
-    if (is_array($decoded)) {
-        $result = $decoded;
-        if (!empty($decoded['ok'])) {
-            break;
+        if (is_array($decoded)) {
+            $result = $decoded;
+            if (!empty($decoded['ok'])) {
+                break 2;
+            }
         }
     }
 }
@@ -177,7 +181,7 @@ if (empty($result['ok'])) {
     logTranscricao(['error' => $erro]);
     $clientes[$clienteIndex]['mensagens'][$msgIndex]['transcricao_erro'] = $erro;
     $clientes[$clienteIndex]['mensagens'][$msgIndex]['transcrito_em'] = date('Y-m-d H:i:s');
-    file_put_contents($clientesPath, json_encode($clientes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    crmSalvarClientes($clientes);
     echo json_encode([
         'ok' => false,
         'error' => $erro,
@@ -188,6 +192,6 @@ if (empty($result['ok'])) {
 $text = trim((string)($result['text'] ?? ''));
 $clientes[$clienteIndex]['mensagens'][$msgIndex]['transcricao'] = $text;
 $clientes[$clienteIndex]['mensagens'][$msgIndex]['transcrito_em'] = date('Y-m-d H:i:s');
-file_put_contents($clientesPath, json_encode($clientes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+crmSalvarClientes($clientes);
 
 echo json_encode(['ok' => true, 'text' => $text], JSON_UNESCAPED_UNICODE);

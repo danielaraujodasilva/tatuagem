@@ -1,17 +1,8 @@
 <?php
+require_once __DIR__ . '/data_store.php';
 
 header('Content-Type: application/json');
 
-$arquivo = "data/clientes.json";
+$clientes = crmCarregarClientes();
 
-if (!file_exists($arquivo)) {
-    echo json_encode([]);
-    exit;
-}
-
-$clientes = json_decode(file_get_contents($arquivo), true);
-if (!is_array($clientes)) {
-    $clientes = [];
-}
-
-echo json_encode($clientes);
+echo json_encode(array_values($clientes), JSON_UNESCAPED_UNICODE);

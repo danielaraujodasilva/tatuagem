@@ -1,5 +1,6 @@
 <?php
 require 'config.php';
+require_once __DIR__ . '/data_store.php';
 header('Content-Type: application/json; charset=utf-8');
 
 $action = $_REQUEST['action'] ?? $_POST['action'] ?? '';
@@ -22,13 +23,11 @@ try {
     }
 
     function carregarClientesWhatsApp() {
-        $arquivo = __DIR__ . '/data/clientes.json';
-        $clientes = file_exists($arquivo) ? json_decode(file_get_contents($arquivo), true) : [];
-        return [$arquivo, is_array($clientes) ? $clientes : []];
+        return [crmClientesPath(), crmCarregarClientes()];
     }
 
     function salvarClientesWhatsApp($arquivo, $clientes) {
-        file_put_contents($arquivo, json_encode($clientes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        crmSalvarClientes($clientes);
     }
 
     function atualizarClienteWhatsApp($id, $dados) {

@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/data_store.php';
+
 header('Content-Type: text/plain; charset=utf-8');
 
 function tailFile($path, $lines = 80) {
@@ -28,8 +30,11 @@ echo tailFile(__DIR__ . '/data/transcricao_debug.log');
 echo "\n== python_whisper_debug.log ==\n";
 echo tailFile(__DIR__ . '/data/python_whisper_debug.log');
 
-$clientes = file_exists(__DIR__ . '/data/clientes.json') ? json_decode(file_get_contents(__DIR__ . '/data/clientes.json'), true) : [];
-$clientes = is_array($clientes) ? $clientes : [];
+$clientes = crmCarregarClientes();
+
+echo "\n== arquivos de clientes ==\n";
+echo "runtime: " . crmClientesPath() . " (" . (file_exists(crmClientesPath()) ? filesize(crmClientesPath()) : 0) . " bytes)\n";
+echo "legacy: " . crmClientesLegacyPath() . " (" . (file_exists(crmClientesLegacyPath()) ? filesize(crmClientesLegacyPath()) : 0) . " bytes)\n";
 
 echo "\n== ultimas mensagens com status/fromMe/transcricao ==\n";
 $resumo = [];

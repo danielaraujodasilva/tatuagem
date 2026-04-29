@@ -312,8 +312,12 @@ $firstStage = $stageIds[0] ?? '1';
             return Math.ceil(diff / (1000 * 60 * 60 * 24));
         }
 
+        function textoSeguro(value) {
+            return String(value ?? '');
+        }
+
         function loadPipeline(filteredLeads = null) {
-            const leads = filteredLeads || allLeads;
+            const leads = Array.isArray(filteredLeads) ? filteredLeads : allLeads;
             currentLeads = leads;
             document.querySelectorAll('.kanban-column').forEach(col => col.innerHTML = '');
 
@@ -326,7 +330,8 @@ $firstStage = $stageIds[0] ?? '1';
                 columnTotals[k] = 0;
             });
 
-            leads.forEach(lead => {
+            leads.forEach(leadRaw => {
+                const lead = leadRaw || {};
                 let etapa = String(lead.etapa || (lead.status === 'novo' ? FIRST_STAGE : null) || FIRST_STAGE);
                 if (!STAGE_IDS.includes(etapa)) {
                     etapa = FIRST_STAGE;
@@ -346,10 +351,11 @@ $firstStage = $stageIds[0] ?? '1';
                 if (dias > 20) classeFrio = 'lead-muito-frio';
                 else if (dias > 10) classeFrio = 'lead-frio';
 
+                const leadId = textoSeguro(lead.id);
                 const html = `
-                    <div data-id="${escapeHtml(lead.id)}" onclick="viewLead('${escapeHtml(lead.id)}')" class="card bg-gray-800 rounded-2xl p-4 cursor-pointer border border-gray-700 ${classeFrio}">
+                    <div data-id="${escapeHtml(leadId)}" onclick="viewLead('${escapeHtml(leadId)}')" class="card bg-gray-800 rounded-2xl p-4 cursor-pointer border border-gray-700 ${classeFrio}">
                         <div class="flex justify-between items-start">
-                            <h4 class="font-semibold text-sm break-words">${escapeHtml(lead.nome)}</h4>
+                            <h4 class="font-semibold text-sm break-words">${escapeHtml(lead.nome || 'Cliente')}</h4>
                         </div>
                         <p class="text-gray-400 text-xs mt-1 break-words">${escapeHtml(lead.telefone)}</p>
                         ${lead.interesse ? `<p class="text-xs text-gray-500 mt-2 break-words">${escapeHtml(lead.interesse)}</p>` : ''}
@@ -357,10 +363,10 @@ $firstStage = $stageIds[0] ?? '1';
                         ${valor > 0 ? `<p class="text-emerald-400 font-medium mt-3">R$ ${valor.toLocaleString('pt-BR')}</p>` : ''}
 
                         <div class="flex justify-start gap-3 mt-4 pt-3 border-t border-gray-700 text-xs">
-                            <button onclick="event.stopPropagation(); editLead('${escapeHtml(lead.id)}')" class="text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                            <button onclick="event.stopPropagation(); editLead('${escapeHtml(leadId)}')" class="text-blue-400 hover:text-blue-300 flex items-center gap-1">
                                 <i class="fas fa-edit"></i> Editar
                             </button>
-                            <button onclick="event.stopPropagation(); deleteLead('${escapeHtml(lead.id)}')" class="text-red-400 hover:text-red-300 flex items-center gap-1">
+                            <button onclick="event.stopPropagation(); deleteLead('${escapeHtml(leadId)}')" class="text-red-400 hover:text-red-300 flex items-center gap-1">
                                 <i class="fas fa-trash"></i> Excluir
                             </button>
                         </div>
@@ -436,13 +442,7 @@ $firstStage = $stageIds[0] ?? '1';
                             loadPipeline(currentLeads);
                             return;
                         }
-    Promise.all([
-        fetch('handler.php?action=getAll').then(r => r.json()),
-        carregarClientesWhatsApp()
-    ]).then(([leadsSistema, leadsWhats]) => {
-        allLeads = [...leadsSistema, ...leadsWhats];
-        loadPipeline();
-    });
+    refreshLeads();
 });
                 }
             }
@@ -773,13 +773,7 @@ $firstStage = $stageIds[0] ?? '1';
                     if (data.error) alert(data.error);
                     else {
                         closeModal();
-                        Promise.all([
-    fetch('handler.php?action=getAll').then(r => r.json()),
-    carregarClientesWhatsApp()
-]).then(([leadsSistema, leadsWhats]) => {
-    allLeads = [...leadsSistema, ...leadsWhats];
-    loadPipeline();
-});
+                        refreshLeads();
                     }
                 });
         }
@@ -795,13 +789,7 @@ $firstStage = $stageIds[0] ?? '1';
                     alert(data.error);
                     return;
                 }
-                Promise.all([
-    fetch('handler.php?action=getAll').then(r => r.json()),
-    carregarClientesWhatsApp()
-]).then(([leadsSistema, leadsWhats]) => {
-    allLeads = [...leadsSistema, ...leadsWhats];
-    loadPipeline();
-});
+                refreshLeads();
             });
         }
 
@@ -817,9 +805,9 @@ $firstStage = $stageIds[0] ?? '1';
 
             const filtered = allLeads.filter(lead => {
                 const matchSearch = !term || 
-                    (lead.nome && lead.nome.toLowerCase().includes(term)) ||
-                    (lead.telefone && lead.telefone.includes(term)) ||
-                    (lead.interesse && lead.interesse.toLowerCase().includes(term));
+                    (lead.nome && textoSeguro(lead.nome).toLowerCase().includes(term)) ||
+                    (lead.telefone && textoSeguro(lead.telefone).includes(term)) ||
+                    (lead.interesse && textoSeguro(lead.interesse).toLowerCase().includes(term));
 
                 const matchEtapa = !etapa || String(lead.etapa) === etapa;
                 const valor = parseFloat(lead.valor) || 0;
@@ -846,18 +834,28 @@ $firstStage = $stageIds[0] ?? '1';
         }
 
         // converter clientes em leads compatíveis
-        const leadsConvertidos = clientes.map(c => ({
-            id: 'wa_' + c.id,
-            nome: c.nome || 'Cliente WhatsApp',
-            telefone: c.numero,
-            interesse: c.interesse || c.mensagens?.slice(-1)[0]?.texto || '',
-            valor: c.valor || 0,
-            origem: c.origem || 'WhatsApp',
-            status: c.status || 'novo',
-            etapa: c.etapa || FIRST_STAGE,
-            data_ultimo_contato: c.data_ultimo_contato || c.mensagens?.slice(-1)[0]?.data || '',
-            created_at: c.mensagens?.[0]?.data || ''
-        }));
+        const leadsConvertidos = clientes
+            .map((c, index) => {
+                const cliente = c || {};
+                const mensagens = Array.isArray(cliente.mensagens) ? cliente.mensagens : [];
+                const ultimaMensagem = mensagens[mensagens.length - 1] || {};
+                const primeiraMensagem = mensagens[0] || {};
+                const idBase = textoSeguro(cliente.id || cliente.numero || index);
+
+                return {
+                    id: 'wa_' + idBase,
+                    nome: textoSeguro(cliente.nome || 'Cliente WhatsApp'),
+                    telefone: textoSeguro(cliente.numero || ''),
+                    interesse: textoSeguro(cliente.interesse || ultimaMensagem.texto || ''),
+                    valor: cliente.valor || 0,
+                    origem: textoSeguro(cliente.origem || 'WhatsApp'),
+                    status: textoSeguro(cliente.status || 'novo'),
+                    etapa: textoSeguro(cliente.etapa || FIRST_STAGE),
+                    data_ultimo_contato: textoSeguro(cliente.data_ultimo_contato || ultimaMensagem.data || ''),
+                    created_at: textoSeguro(primeiraMensagem.data || '')
+                };
+            })
+            .filter(lead => lead.id !== 'wa_' && (lead.telefone || lead.interesse || lead.nome));
 
         return leadsConvertidos;
 
@@ -888,19 +886,28 @@ async function carregarLeadsSistema() {
     }
 }
 
-
-        // Inicialização
-        window.onload = async () => {
-
-    const [leadsSistema, leadsWhats] = await Promise.all([
+async function refreshLeads() {
+    const [leadsSistemaResult, leadsWhatsResult] = await Promise.allSettled([
         carregarLeadsSistema(),
         carregarClientesWhatsApp()
     ]);
 
-    // junta tudo
-    allLeads = [...leadsSistema, ...leadsWhats];
+    const leadsSistema = leadsSistemaResult.status === 'fulfilled' && Array.isArray(leadsSistemaResult.value)
+        ? leadsSistemaResult.value
+        : [];
+    const leadsWhats = leadsWhatsResult.status === 'fulfilled' && Array.isArray(leadsWhatsResult.value)
+        ? leadsWhatsResult.value
+        : [];
 
+    allLeads = [...leadsSistema, ...leadsWhats];
     loadPipeline(allLeads);
+}
+
+
+        // Inicialização
+        window.onload = async () => {
+
+    await refreshLeads();
 
     document.getElementById('search').addEventListener('input', applyFilters);
             document.getElementById('filterEtapa').addEventListener('change', applyFilters);
@@ -910,9 +917,9 @@ async function carregarLeadsSistema() {
                 const term = event.target.value.toLowerCase().trim();
                 renderListaVerTodos(currentVerTodosLeads.filter(lead =>
                     !term ||
-                    (lead.nome && lead.nome.toLowerCase().includes(term)) ||
-                    (lead.telefone && String(lead.telefone).includes(term)) ||
-                    (lead.interesse && lead.interesse.toLowerCase().includes(term))
+                    (lead.nome && textoSeguro(lead.nome).toLowerCase().includes(term)) ||
+                    (lead.telefone && textoSeguro(lead.telefone).includes(term)) ||
+                    (lead.interesse && textoSeguro(lead.interesse).toLowerCase().includes(term))
                 ));
             });
             document.getElementById('chatInput').addEventListener('keydown', (event) => {

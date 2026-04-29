@@ -1,12 +1,9 @@
 <?php
+require_once __DIR__ . '/data_store.php';
+
 $id = $_GET['id'] ?? '';
 
-$arquivo = "data/clientes.json";
-
-$clientes = file_exists($arquivo) ? json_decode(file_get_contents($arquivo), true) : [];
-if (!is_array($clientes)) {
-    $clientes = [];
-}
+$clientes = crmCarregarClientes();
 
 $cliente = null;
 
