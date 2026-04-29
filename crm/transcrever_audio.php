@@ -160,7 +160,7 @@ function executarComandoComTimeout($command, $timeoutSeconds) {
 $data = json_decode(file_get_contents('php://input'), true) ?: [];
 $messageId = trim((string)($data['messageId'] ?? ''));
 $mediaUrl = trim((string)($data['mediaUrl'] ?? ''));
-$model = trim((string)($data['model'] ?? 'medium'));
+$model = trim((string)($data['model'] ?? 'small'));
 
 if ($messageId === '' && $mediaUrl === '') {
     responderJson(['ok' => false, 'error' => 'Mensagem nao informada']);

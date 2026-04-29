@@ -635,10 +635,10 @@ $firstStage = $stageIds[0] ?? '1';
             const seconds = String(elapsed % 60).padStart(2, '0');
             const safeProgress = Math.max(5, Math.min(95, progress));
             let phase = 'Preparando audio...';
-            if (elapsed >= 10) phase = 'Carregando modelo medium...';
+            if (elapsed >= 10) phase = 'Carregando modelo small...';
             if (elapsed >= 45) phase = 'Transcrevendo com mais qualidade...';
             if (elapsed >= 120) phase = 'Ainda trabalhando. A primeira vez pode demorar.';
-            if (elapsed >= 240) phase = 'Modelo medium pode levar varios minutos no CPU.';
+            if (elapsed >= 240) phase = 'Ainda rodando. Se passar de 6 min, tente novamente.';
 
             return `
                 <div class="bg-gray-950/40 rounded-xl px-3 py-2 w-72 max-w-full">
@@ -676,7 +676,7 @@ $firstStage = $stageIds[0] ?? '1';
             fetch('transcrever_audio.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messageId, mediaUrl: url, model: 'medium' })
+                body: JSON.stringify({ messageId, mediaUrl: url, model: 'small' })
             })
             .then(async r => {
                 const raw = await r.text();

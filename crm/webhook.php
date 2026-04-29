@@ -120,7 +120,6 @@ function aplicarStatusPendenteMensagem(&$mensagem) {
 
 function aplicarStatusMensagem(&$clientes, $messageId, $remoteJid, $status) {
     $novoPeso = pesoStatusMensagem($status);
-    $fallback = null;
 
     foreach ($clientes as $clienteIndex => &$cliente) {
         foreach (($cliente['mensagens'] ?? []) as $msgIndex => &$msg) {
@@ -135,22 +134,7 @@ function aplicarStatusMensagem(&$clientes, $messageId, $remoteJid, $status) {
                 }
                 return ['matched' => true, 'mode' => $mesmoId ? 'messageId' : 'remoteJid'];
             }
-
-            if (!empty($msg['fromMe'])) {
-                $atualPeso = pesoStatusMensagem($msg['status'] ?? '');
-                if ($novoPeso > $atualPeso) {
-                    $fallback = [$clienteIndex, $msgIndex];
-                }
-            }
         }
-    }
-
-    if ($fallback) {
-        [$clienteIndex, $msgIndex] = $fallback;
-        $clientes[$clienteIndex]['mensagens'][$msgIndex]['status'] = $status;
-        $clientes[$clienteIndex]['mensagens'][$msgIndex]['status_updated_at'] = date('Y-m-d H:i:s');
-        $clientes[$clienteIndex]['mensagens'][$msgIndex]['status_match_fallback'] = $messageId ?: $remoteJid;
-        return ['matched' => true, 'mode' => 'latest_from_me_fallback'];
     }
 
     return ['matched' => false, 'mode' => 'none'];
