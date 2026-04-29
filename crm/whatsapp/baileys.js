@@ -54,6 +54,15 @@ function extractText(message) {
         "";
 }
 
+function toUnixTimestamp(value) {
+    if (!value) return Math.floor(Date.now() / 1000);
+    if (typeof value === "number") return value;
+    if (typeof value === "string") return Number(value) || Math.floor(Date.now() / 1000);
+    if (typeof value.toNumber === "function") return value.toNumber();
+    if (typeof value.low === "number") return value.low;
+    return Math.floor(Date.now() / 1000);
+}
+
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState("./whatsapp/auth_info");
     const { version } = await fetchLatestBaileysVersion();
@@ -163,6 +172,7 @@ async function startBot() {
                     mensagem: texto,
                     fromMe: !!key.fromMe,
                     messageId: key.id || null,
+                    timestamp: toUnixTimestamp(msg.messageTimestamp),
                     jidCompleto: jid,
                     isLid: jid.endsWith("@lid"),
                     tipoMensagem: mediaInfo?.type || "texto",
@@ -170,6 +180,24 @@ async function startBot() {
                 });
             } catch (err) {
                 console.error("❌ Erro ao enviar pro CRM:", err.message);
+            }
+        }
+    });
+
+    sock.ev.on("messages.update", async (updates) => {
+        for (const item of updates) {
+            const messageId = item.key?.id;
+            const status = item.update?.status;
+            if (!messageId || status === undefined || status === null) continue;
+
+            try {
+                await axios.post("http://localhost/crm/webhook.php", {
+                    statusUpdate: true,
+                    messageId,
+                    status
+                });
+            } catch (err) {
+                console.error("Erro ao atualizar status da mensagem:", err.message);
             }
         }
     });

@@ -550,7 +550,10 @@ $firstStage = $stageIds[0] ?? '1';
                     <div class="${msg.fromMe ? 'bg-emerald-600 text-white rounded-br-md' : 'bg-gray-800 text-gray-100 rounded-bl-md'} px-4 py-3 rounded-2xl max-w-[78%] shadow-lg">
                         ${renderChatMedia(msg)}
                         ${msg.texto ? `<p class="whitespace-pre-wrap break-words leading-relaxed ${msg.mediaUrl ? 'mt-2' : ''}">${escapeHtml(msg.texto)}</p>` : ''}
-                        <span class="text-[11px] text-gray-300 block mt-2 text-right">${escapeHtml(msg.hora)}</span>
+                        <span class="text-[11px] text-gray-300 flex items-center justify-end gap-1 mt-2">
+                            <span>${escapeHtml(msg.hora)}</span>
+                            ${renderMessageStatus(msg)}
+                        </span>
                     </div>
                 </div>
             `).join('');
@@ -558,6 +561,22 @@ $firstStage = $stageIds[0] ?? '1';
             if (shouldStickToBottom) {
                 container.scrollTop = container.scrollHeight;
             }
+        }
+
+        function renderMessageStatus(msg) {
+            if (!msg.fromMe) return '';
+
+            const status = msg.status || 'sent';
+            const icons = {
+                pending: '<i class="fas fa-clock text-gray-300" title="Enviando"></i>',
+                sent: '<i class="fas fa-check text-gray-300" title="Enviada"></i>',
+                delivered: '<span class="text-gray-300" title="Entregue">✓✓</span>',
+                read: '<span class="text-sky-300 font-semibold" title="Visualizada">✓✓</span>',
+                played: '<span class="text-sky-300 font-semibold" title="Reproduzida">✓✓</span>',
+                error: '<i class="fas fa-triangle-exclamation text-red-300" title="Erro"></i>',
+            };
+
+            return icons[status] || icons.sent;
         }
 
         function renderChatMedia(msg) {

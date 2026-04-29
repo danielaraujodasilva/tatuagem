@@ -1,5 +1,6 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
+date_default_timezone_set('America/Sao_Paulo');
 
 $isMultipart = stripos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') !== false;
 $data = $isMultipart ? $_POST : (json_decode(file_get_contents("php://input"), true) ?: []);
@@ -92,6 +93,7 @@ if (!empty($res['ok'])) {
         "data" => date('Y-m-d H:i:s'),
         "fromMe" => true,
         "messageId" => $messageId,
+        "status" => "sent",
     ];
 
     if ($mediaLocal) {

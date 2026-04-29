@@ -1,5 +1,6 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
+date_default_timezone_set('America/Sao_Paulo');
 
 $id = $_GET['id'] ?? '';
 $clienteId = preg_replace('/^wa_/', '', (string)$id);
@@ -30,6 +31,7 @@ foreach ($clientes as $cliente) {
             'data' => $data,
             'hora' => $data ? date('H:i', strtotime($data)) : '',
             'fromMe' => mensagemEnviadaPorMim($msg),
+            'status' => $msg['status'] ?? '',
             'tipo' => $msg['tipo'] ?? 'texto',
             'mediaUrl' => $msg['mediaUrl'] ?? '',
             'mediaMime' => $msg['mediaMime'] ?? '',

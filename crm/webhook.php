@@ -1,7 +1,59 @@
 <?php
 require 'config.php';
+date_default_timezone_set('America/Sao_Paulo');
 
 $data = json_decode(file_get_contents("php://input"), true);
+$arquivoClientes = __DIR__ . '/data/clientes.json';
+$clientes = file_exists($arquivoClientes) ? json_decode(file_get_contents($arquivoClientes), true) : [];
+if (!is_array($clientes)) {
+    $clientes = [];
+}
+
+function salvarClientes($arquivo, $clientes) {
+    file_put_contents($arquivo, json_encode($clientes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+}
+
+function normalizarStatusMensagem($status) {
+    $status = (string)$status;
+    $map = [
+        '0' => 'error',
+        '1' => 'pending',
+        '2' => 'sent',
+        '3' => 'delivered',
+        '4' => 'read',
+        '5' => 'played',
+        'error' => 'error',
+        'pending' => 'pending',
+        'sent' => 'sent',
+        'delivered' => 'delivered',
+        'read' => 'read',
+        'played' => 'played',
+    ];
+
+    return $map[$status] ?? '';
+}
+
+if (!empty($data['statusUpdate'])) {
+    $statusMessageId = trim((string)($data['messageId'] ?? ''));
+    $status = normalizarStatusMensagem($data['status'] ?? '');
+
+    if ($statusMessageId !== '' && $status !== '') {
+        foreach ($clientes as &$cliente) {
+            foreach (($cliente['mensagens'] ?? []) as &$msg) {
+                if (($msg['messageId'] ?? '') === $statusMessageId) {
+                    $msg['status'] = $status;
+                    $msg['status_updated_at'] = date('Y-m-d H:i:s');
+                    salvarClientes($arquivoClientes, $clientes);
+                    echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+            }
+        }
+    }
+
+    echo json_encode(['ok' => false, 'error' => 'Mensagem nao encontrada'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
 $numero = $data['numero'] ?? '';
 $mensagemOriginal = trim($data['mensagem'] ?? '');
@@ -12,6 +64,8 @@ $tipoMensagem = trim((string)($data['tipoMensagem'] ?? 'texto'));
 $mediaBase64 = $data['mediaBase64'] ?? '';
 $mediaMime = trim((string)($data['mediaMime'] ?? ''));
 $mediaFileName = trim((string)($data['mediaFileName'] ?? ''));
+$timestamp = isset($data['timestamp']) ? (int)$data['timestamp'] : time();
+$dataMensagem = date('Y-m-d H:i:s', $timestamp > 0 ? $timestamp : time());
 
 if (!$numero || (!$mensagem && !$mediaBase64)) {
     exit;
@@ -19,15 +73,6 @@ if (!$numero || (!$mensagem && !$mediaBase64)) {
 
 $config = json_decode(file_get_contents("data/config.json"), true);
 $mensagem_trigger = strtolower(trim($config['mensagem_trigger'] ?? 'oi'));
-
-$clientes = [];
-
-if (file_exists("data/clientes.json")) {
-    $clientes = json_decode(file_get_contents("data/clientes.json"), true);
-}
-if (!is_array($clientes)) {
-    $clientes = [];
-}
 
 function normalizarNumero($num) {
     return preg_replace('/\D/', '', (string)$num);
@@ -140,9 +185,10 @@ $mediaUrl = salvarMidia($mediaBase64, $mediaMime, $mediaFileName);
 $clientes[$clienteIndex]['mensagens'][] = [
     "de" => $fromMe ? "atendente" : "cliente",
     "texto" => $mensagemOriginal,
-    "data" => date("Y-m-d H:i:s"),
+    "data" => $dataMensagem,
     "fromMe" => $fromMe,
     "messageId" => $messageId,
+    "status" => $fromMe ? "sent" : "",
     "tipo" => $tipoMensagem,
     "mediaUrl" => $mediaUrl,
     "mediaMime" => $mediaMime,
@@ -150,4 +196,4 @@ $clientes[$clienteIndex]['mensagens'][] = [
 ];
 
 // 💾 salva tudo
-file_put_contents("data/clientes.json", json_encode($clientes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+salvarClientes($arquivoClientes, $clientes);
