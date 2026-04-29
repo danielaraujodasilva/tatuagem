@@ -35,19 +35,27 @@ function normalizarRemoteJidChat($jid) {
 }
 
 function aplicarStatusPendenteChat(&$msg, &$pendentes) {
-    $chaves = array_unique(array_filter([
-        $msg['messageId'] ?? '',
+    $melhorChave = null;
+    $melhorStatus = $msg['status'] ?? '';
+    $messageId = $msg['messageId'] ?? '';
+
+    if ($messageId !== '' && !empty($pendentes[$messageId]['status']) && pesoStatusMensagemChat($pendentes[$messageId]['status']) > pesoStatusMensagemChat($melhorStatus)) {
+        $melhorChave = $messageId;
+        $melhorStatus = $pendentes[$messageId]['status'];
+    }
+
+    $chavesJid = array_unique(array_filter([
         $msg['remoteJid'] ?? '',
         normalizarRemoteJidChat($msg['remoteJid'] ?? ''),
     ]));
 
-    $melhorChave = null;
-    $melhorStatus = $msg['status'] ?? '';
-
-    foreach ($chaves as $chave) {
+    foreach ($chavesJid as $chave) {
         if (!empty($pendentes[$chave]['status']) && pesoStatusMensagemChat($pendentes[$chave]['status']) > pesoStatusMensagemChat($melhorStatus)) {
-            $melhorChave = $chave;
-            $melhorStatus = $pendentes[$chave]['status'];
+            $statusPendente = $pendentes[$chave]['status'];
+            if (pesoStatusMensagemChat($statusPendente) <= pesoStatusMensagemChat('delivered')) {
+                $melhorChave = $chave;
+                $melhorStatus = $statusPendente;
+            }
         }
     }
 

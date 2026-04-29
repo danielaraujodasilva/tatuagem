@@ -153,10 +153,18 @@ function aplicarStatusPendente(&$mensagem, $messageId, $remoteJid) {
     $melhorChave = null;
     $melhorStatus = '';
 
-    foreach (array_unique(array_filter([$messageId, $remoteJid, normalizarRemoteJidStatus($remoteJid)])) as $chave) {
+    if ($messageId !== '' && !empty($pendentes[$messageId]['status']) && pesoStatusMensagem($pendentes[$messageId]['status']) >= pesoStatusMensagem($melhorStatus)) {
+        $melhorChave = $messageId;
+        $melhorStatus = $pendentes[$messageId]['status'];
+    }
+
+    foreach (array_unique(array_filter([$remoteJid, normalizarRemoteJidStatus($remoteJid)])) as $chave) {
         if (!empty($pendentes[$chave]['status']) && pesoStatusMensagem($pendentes[$chave]['status']) >= pesoStatusMensagem($melhorStatus)) {
-            $melhorChave = $chave;
-            $melhorStatus = $pendentes[$chave]['status'];
+            $statusPendente = $pendentes[$chave]['status'];
+            if (pesoStatusMensagem($statusPendente) <= pesoStatusMensagem('delivered')) {
+                $melhorChave = $chave;
+                $melhorStatus = $statusPendente;
+            }
         }
     }
 

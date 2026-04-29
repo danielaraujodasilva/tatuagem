@@ -206,8 +206,8 @@ $commands = [
     'python3',
 ];
 $engines = [
-    'faster',
     'openai',
+    'faster',
 ];
 
 $result = null;

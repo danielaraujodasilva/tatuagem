@@ -40,7 +40,7 @@ def main():
     engine = (sys.argv[3] if len(sys.argv) > 3 else "auto").lower()
     log_debug(f"start audio={audio_path} model={model_name} engine={engine} python={sys.executable}")
 
-    engines = [engine] if engine in {"openai", "faster"} else ["faster", "openai"]
+    engines = [engine] if engine in {"openai", "faster"} else ["openai", "faster"]
     prompt = (
         "Transcricao em portugues brasileiro de conversa de WhatsApp. "
         "Contexto: atendimento de estudio de tatuagem, orcamento, agenda, tattoo, desenho, cliente."

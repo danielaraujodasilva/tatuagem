@@ -30,7 +30,12 @@ function normalizarRemoteJid($jid) {
 
 function registrarStatusPendente($messageId, $remoteJid, $status) {
     $pendentes = carregarStatusPendentes();
-    $chaves = array_unique(array_filter([$messageId, $remoteJid, normalizarRemoteJid($remoteJid)]));
+    $chaves = [$messageId];
+    if (pesoStatusMensagem($status) <= pesoStatusMensagem('delivered')) {
+        $chaves[] = $remoteJid;
+        $chaves[] = normalizarRemoteJid($remoteJid);
+    }
+    $chaves = array_unique(array_filter($chaves));
 
     foreach ($chaves as $chave) {
         $atual = $pendentes[$chave]['status'] ?? '';
@@ -103,10 +108,19 @@ function aplicarStatusPendenteMensagem(&$mensagem) {
     $melhorChave = null;
     $melhorStatus = $mensagem['status'] ?? '';
 
-    foreach (array_unique(array_filter([$mensagem['messageId'] ?? '', $mensagem['remoteJid'] ?? '', normalizarRemoteJid($mensagem['remoteJid'] ?? '')])) as $chave) {
+    $messageId = $mensagem['messageId'] ?? '';
+    if ($messageId !== '' && !empty($pendentes[$messageId]['status']) && pesoStatusMensagem($pendentes[$messageId]['status']) > pesoStatusMensagem($melhorStatus)) {
+        $melhorChave = $messageId;
+        $melhorStatus = $pendentes[$messageId]['status'];
+    }
+
+    foreach (array_unique(array_filter([$mensagem['remoteJid'] ?? '', normalizarRemoteJid($mensagem['remoteJid'] ?? '')])) as $chave) {
         if (!empty($pendentes[$chave]['status']) && pesoStatusMensagem($pendentes[$chave]['status']) > pesoStatusMensagem($melhorStatus)) {
-            $melhorChave = $chave;
-            $melhorStatus = $pendentes[$chave]['status'];
+            $statusPendente = $pendentes[$chave]['status'];
+            if (pesoStatusMensagem($statusPendente) <= pesoStatusMensagem('delivered')) {
+                $melhorChave = $chave;
+                $melhorStatus = $statusPendente;
+            }
         }
     }
 
@@ -120,6 +134,7 @@ function aplicarStatusPendenteMensagem(&$mensagem) {
 
 function aplicarStatusMensagem(&$clientes, $messageId, $remoteJid, $status) {
     $novoPeso = pesoStatusMensagem($status);
+    $fallbackDelivered = null;
 
     foreach ($clientes as $clienteIndex => &$cliente) {
         foreach (($cliente['mensagens'] ?? []) as $msgIndex => &$msg) {
@@ -134,7 +149,22 @@ function aplicarStatusMensagem(&$clientes, $messageId, $remoteJid, $status) {
                 }
                 return ['matched' => true, 'mode' => $mesmoId ? 'messageId' : 'remoteJid'];
             }
+
+            if (!empty($msg['fromMe']) && $novoPeso <= pesoStatusMensagem('delivered')) {
+                $atualPeso = pesoStatusMensagem($msg['status'] ?? '');
+                if ($novoPeso > $atualPeso) {
+                    $fallbackDelivered = [$clienteIndex, $msgIndex];
+                }
+            }
         }
+    }
+
+    if ($fallbackDelivered) {
+        [$clienteIndex, $msgIndex] = $fallbackDelivered;
+        $clientes[$clienteIndex]['mensagens'][$msgIndex]['status'] = $status;
+        $clientes[$clienteIndex]['mensagens'][$msgIndex]['status_updated_at'] = date('Y-m-d H:i:s');
+        $clientes[$clienteIndex]['mensagens'][$msgIndex]['status_match_fallback'] = $messageId ?: $remoteJid;
+        return ['matched' => true, 'mode' => 'latest_from_me_delivered_fallback'];
     }
 
     return ['matched' => false, 'mode' => 'none'];
