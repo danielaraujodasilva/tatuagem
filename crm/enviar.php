@@ -39,6 +39,7 @@ $res = json_decode($response, true);
 // se ok → salva no JSON
 if (!empty($res['ok'])) {
     $arquivo = "data/clientes.json";
+    $messageId = trim((string)($res['messageId'] ?? ''));
 
     $clientes = file_exists($arquivo)
         ? json_decode(file_get_contents($arquivo), true)
@@ -54,7 +55,8 @@ if (!empty($res['ok'])) {
             $c['mensagens'][] = [
                 "texto" => $mensagem,
                 "data" => date('Y-m-d H:i:s'),
-                "fromMe" => true
+                "fromMe" => true,
+                "messageId" => $messageId
             ];
             $achou = true;
             break;
@@ -71,7 +73,8 @@ if (!empty($res['ok'])) {
             "mensagens" => [[
                 "texto" => $mensagem,
                 "data" => date('Y-m-d H:i:s'),
-                "fromMe" => true
+                "fromMe" => true,
+                "messageId" => $messageId
             ]]
         ];
     }

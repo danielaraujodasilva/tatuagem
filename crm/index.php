@@ -233,10 +233,60 @@ $firstStage = $stageIds[0] ?? '1';
         </div>
     </div>
 
+    <!-- Overlay Chat WhatsApp -->
+    <div id="chatOverlay" class="hidden fixed inset-0 bg-black/75 z-50">
+        <div class="h-full w-full flex justify-end">
+            <aside class="w-full max-w-2xl h-full bg-gray-950 border-l border-gray-800 shadow-2xl flex flex-col">
+                <div class="bg-gray-900 border-b border-gray-800 px-5 py-4 flex items-center justify-between gap-4">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-2xl bg-emerald-600 flex items-center justify-center">
+                                <i class="fab fa-whatsapp text-xl"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <h3 id="chatName" class="font-bold text-lg truncate">Cliente WhatsApp</h3>
+                                <p id="chatPhone" class="text-sm text-gray-400 truncate"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="closeChatOverlay()" class="text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+                </div>
+
+                <div id="chatMessages" class="flex-1 overflow-y-auto px-5 py-5 space-y-3 bg-gray-950"></div>
+
+                <div id="emojiPanel" class="hidden border-t border-gray-800 bg-gray-900 px-5 py-3">
+                    <div class="flex flex-wrap gap-2 text-2xl">
+                        <button type="button" onclick="insertEmoji('😀')" class="hover:bg-gray-800 rounded-lg p-1">😀</button>
+                        <button type="button" onclick="insertEmoji('😂')" class="hover:bg-gray-800 rounded-lg p-1">😂</button>
+                        <button type="button" onclick="insertEmoji('😍')" class="hover:bg-gray-800 rounded-lg p-1">😍</button>
+                        <button type="button" onclick="insertEmoji('🙏')" class="hover:bg-gray-800 rounded-lg p-1">🙏</button>
+                        <button type="button" onclick="insertEmoji('👍')" class="hover:bg-gray-800 rounded-lg p-1">👍</button>
+                        <button type="button" onclick="insertEmoji('🔥')" class="hover:bg-gray-800 rounded-lg p-1">🔥</button>
+                        <button type="button" onclick="insertEmoji('✨')" class="hover:bg-gray-800 rounded-lg p-1">✨</button>
+                        <button type="button" onclick="insertEmoji('❤️')" class="hover:bg-gray-800 rounded-lg p-1">❤️</button>
+                    </div>
+                </div>
+
+                <div class="bg-gray-900 border-t border-gray-800 p-4">
+                    <div class="flex items-end gap-3">
+                        <button type="button" onclick="toggleEmojiPanel()" class="bg-gray-800 hover:bg-gray-700 w-11 h-11 rounded-2xl flex items-center justify-center text-xl">☺</button>
+                        <textarea id="chatInput" rows="1" placeholder="Digite uma mensagem..." class="flex-1 max-h-40 bg-gray-800 border border-gray-700 rounded-2xl px-4 py-3 resize-none focus:outline-none focus:border-emerald-500"></textarea>
+                        <button type="button" onclick="sendChatMessage()" class="bg-emerald-600 hover:bg-emerald-700 w-11 h-11 rounded-2xl flex items-center justify-center">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
     <script>
         let allLeads = [];
         let currentLeads = null;
         let currentVerTodosLeads = [];
+        let activeChat = null;
+        let chatPollTimer = null;
+        let chatLastSignature = '';
         const STAGES = <?= json_encode($stages, JSON_UNESCAPED_UNICODE) ?>;
         const STAGE_IDS = <?= json_encode($stageIds, JSON_UNESCAPED_UNICODE) ?>;
         const FIRST_STAGE = <?= json_encode($firstStage, JSON_UNESCAPED_UNICODE) ?>;
@@ -478,13 +528,120 @@ $firstStage = $stageIds[0] ?? '1';
 
     // se for WhatsApp
     if (String(id).startsWith('wa_')) {
-        window.location.href = `chat.php?id=${id}`;
+        openChatOverlay(id);
         return;
     }
 
     // se for lead normal
     window.location.href = `lead.php?id=${id}`;
 }
+
+        function renderChatMessages(mensagens) {
+            const container = document.getElementById('chatMessages');
+            const shouldStickToBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 80;
+
+            container.innerHTML = mensagens.map(msg => `
+                <div class="flex ${msg.fromMe ? 'justify-end' : 'justify-start'}">
+                    <div class="${msg.fromMe ? 'bg-emerald-600 text-white rounded-br-md' : 'bg-gray-800 text-gray-100 rounded-bl-md'} px-4 py-3 rounded-2xl max-w-[78%] shadow-lg">
+                        <p class="whitespace-pre-wrap break-words leading-relaxed">${escapeHtml(msg.texto)}</p>
+                        <span class="text-[11px] text-gray-300 block mt-2 text-right">${escapeHtml(msg.hora)}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            if (shouldStickToBottom) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        function loadChatMessages(forceScroll = false) {
+            if (!activeChat) return;
+
+            fetch(`api_chat.php?id=${encodeURIComponent(activeChat.id)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.ok) return;
+
+                    const signature = JSON.stringify(data.mensagens.map(msg => [msg.texto, msg.data, msg.fromMe]));
+                    if (signature === chatLastSignature) return;
+
+                    chatLastSignature = signature;
+                    renderChatMessages(data.mensagens);
+
+                    if (forceScroll) {
+                        const container = document.getElementById('chatMessages');
+                        container.scrollTop = container.scrollHeight;
+                    }
+                });
+        }
+
+        function openChatOverlay(id) {
+            const lead = allLeads.find(l => String(l.id) === String(id));
+            if (!lead) return;
+
+            activeChat = lead;
+            chatLastSignature = '';
+            document.getElementById('chatName').textContent = lead.nome || 'Cliente WhatsApp';
+            document.getElementById('chatPhone').textContent = lead.telefone || '';
+            document.getElementById('chatInput').value = '';
+            document.getElementById('emojiPanel').classList.add('hidden');
+            document.getElementById('chatOverlay').classList.remove('hidden');
+
+            loadChatMessages(true);
+            clearInterval(chatPollTimer);
+            chatPollTimer = setInterval(loadChatMessages, 2500);
+            setTimeout(() => document.getElementById('chatInput').focus(), 50);
+        }
+
+        function closeChatOverlay() {
+            document.getElementById('chatOverlay').classList.add('hidden');
+            clearInterval(chatPollTimer);
+            chatPollTimer = null;
+            activeChat = null;
+        }
+
+        function toggleEmojiPanel() {
+            document.getElementById('emojiPanel').classList.toggle('hidden');
+        }
+
+        function insertEmoji(emoji) {
+            const input = document.getElementById('chatInput');
+            const start = input.selectionStart;
+            const end = input.selectionEnd;
+            input.value = input.value.slice(0, start) + emoji + input.value.slice(end);
+            input.focus();
+            input.selectionStart = input.selectionEnd = start + emoji.length;
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const texto = input.value.trim();
+            if (!activeChat || !texto) return;
+
+            input.disabled = true;
+            fetch('enviar.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    numero: activeChat.telefone,
+                    mensagem: texto
+                })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.ok) {
+                    input.value = '';
+                    loadChatMessages(true);
+                } else {
+                    alert(res.erro || 'Erro ao enviar mensagem');
+                }
+            })
+            .catch(() => alert('Erro de conexão'))
+            .finally(() => {
+                input.disabled = false;
+                input.focus();
+            });
+        }
 
         function saveLead(e) {
             e.preventDefault();
@@ -605,6 +762,17 @@ $firstStage = $stageIds[0] ?? '1';
                     (lead.telefone && String(lead.telefone).includes(term)) ||
                     (lead.interesse && lead.interesse.toLowerCase().includes(term))
                 ));
+            });
+            document.getElementById('chatInput').addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    sendChatMessage();
+                }
+            });
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && activeChat) {
+                    closeChatOverlay();
+                }
             });
 };
     </script>

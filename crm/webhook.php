@@ -6,6 +6,8 @@ $data = json_decode(file_get_contents("php://input"), true);
 $numero = $data['numero'] ?? '';
 $mensagemOriginal = trim($data['mensagem'] ?? '');
 $mensagem = strtolower($mensagemOriginal);
+$fromMe = !empty($data['fromMe']);
+$messageId = trim((string)($data['messageId'] ?? ''));
 
 if (!$numero || !$mensagem) {
     exit;
@@ -64,7 +66,7 @@ foreach ($clientes as $index => $c) {
 if ($clienteIndex === null) {
 
     // só cria se for mensagem gatilho
-    if ($mensagem !== $mensagem_trigger) {
+    if ($fromMe || $mensagem !== $mensagem_trigger) {
         exit;
     }
 
@@ -83,11 +85,21 @@ if ($clienteIndex === null) {
 }
 
 // 💬 adiciona mensagem no histórico
+if ($messageId !== '') {
+    foreach (($clientes[$clienteIndex]['mensagens'] ?? []) as $msg) {
+        if (($msg['messageId'] ?? '') === $messageId) {
+            echo json_encode(['ok' => true, 'duplicated' => true]);
+            exit;
+        }
+    }
+}
+
 $clientes[$clienteIndex]['mensagens'][] = [
-    "de" => "cliente",
+    "de" => $fromMe ? "atendente" : "cliente",
     "texto" => $mensagemOriginal,
     "data" => date("Y-m-d H:i:s"),
-    "fromMe" => false
+    "fromMe" => $fromMe,
+    "messageId" => $messageId
 ];
 
 // 💾 salva tudo

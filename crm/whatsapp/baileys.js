@@ -15,6 +15,7 @@ app.use(express.json());
 
 let sock = null;
 const lidToPhone = new Map();   // Backup caso precise no futuro
+const startedAt = Math.floor(Date.now() / 1000);
 
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState("./whatsapp/auth_info");
@@ -61,10 +62,11 @@ async function startBot() {
     // RECEBE MENSAGENS
     // ==========================
     sock.ev.on("messages.upsert", async ({ messages, type }) => {
-        if (type !== "notify") return;
+        if (!["notify", "append"].includes(type)) return;
 
         for (const msg of messages) {
-            if (!msg.message || msg.key.fromMe) continue;
+            if (!msg.message) continue;
+            if (type === "append" && Number(msg.messageTimestamp || 0) < startedAt - 10) continue;
 
             const key = msg.key;
             const jid = key.remoteJid || "";
@@ -109,6 +111,8 @@ async function startBot() {
                 await axios.post("http://localhost/crm/webhook.php", {
                     numero: numeroReal,
                     mensagem: texto,
+                    fromMe: !!key.fromMe,
+                    messageId: key.id || null,
                     jidCompleto: jid,
                     isLid: jid.endsWith("@lid"),
                     tipoMensagem: msg.message?.conversation ? "texto" :
