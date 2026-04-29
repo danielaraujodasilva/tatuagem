@@ -82,6 +82,7 @@ $res = json_decode($response, true);
 if (!empty($res['ok'])) {
     $arquivo = __DIR__ . "/data/clientes.json";
     $messageId = trim((string)($res['messageId'] ?? ''));
+    $remoteJid = trim((string)($res['remoteJid'] ?? ''));
 
     $clientes = file_exists($arquivo) ? json_decode(file_get_contents($arquivo), true) : [];
     if (!is_array($clientes)) {
@@ -93,6 +94,7 @@ if (!empty($res['ok'])) {
         "data" => date('Y-m-d H:i:s'),
         "fromMe" => true,
         "messageId" => $messageId,
+        "remoteJid" => $remoteJid,
         "status" => "sent",
     ];
 

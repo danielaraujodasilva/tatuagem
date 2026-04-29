@@ -1,6 +1,20 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 date_default_timezone_set('America/Sao_Paulo');
+set_time_limit(0);
+
+function logTranscricao($dados) {
+    $dir = __DIR__ . '/data';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0775, true);
+    }
+
+    file_put_contents(
+        $dir . '/transcricao_debug.log',
+        '[' . date('Y-m-d H:i:s') . '] ' . json_encode($dados, JSON_UNESCAPED_UNICODE) . PHP_EOL,
+        FILE_APPEND
+    );
+}
 
 $data = json_decode(file_get_contents('php://input'), true) ?: [];
 $messageId = trim((string)($data['messageId'] ?? ''));
@@ -47,6 +61,7 @@ $audioPath = realpath(__DIR__ . '/' . $relativePath);
 $mediaRoot = realpath(__DIR__ . '/data/media');
 
 if (!$audioPath || !$mediaRoot || strpos($audioPath, $mediaRoot) !== 0 || !is_file($audioPath)) {
+    logTranscricao(['error' => 'Arquivo de audio invalido', 'mediaUrl' => $relativePath, 'audioPath' => $audioPath]);
     echo json_encode(['ok' => false, 'error' => 'Arquivo de audio invalido'], JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -63,8 +78,10 @@ $lastOutput = '';
 
 foreach ($commands as $cmd) {
     $fullCommand = $cmd . ' ' . escapeshellarg($script) . ' ' . escapeshellarg($audioPath) . ' ' . escapeshellarg($model) . ' 2>&1';
+    logTranscricao(['command' => $fullCommand]);
     $output = shell_exec($fullCommand);
     $lastOutput = $output ?: '';
+    logTranscricao(['output' => mb_substr($lastOutput, 0, 4000)]);
     $decoded = json_decode(trim($lastOutput), true);
 
     if (is_array($decoded)) {
@@ -76,6 +93,7 @@ foreach ($commands as $cmd) {
 }
 
 if (empty($result['ok'])) {
+    logTranscricao(['error' => $result['error'] ?? trim($lastOutput) ?: 'Falha ao transcrever audio']);
     echo json_encode([
         'ok' => false,
         'error' => $result['error'] ?? trim($lastOutput) ?: 'Falha ao transcrever audio',

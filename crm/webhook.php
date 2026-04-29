@@ -13,6 +13,19 @@ function salvarClientes($arquivo, $clientes) {
     file_put_contents($arquivo, json_encode($clientes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 }
 
+function logDebug($arquivo, $dados) {
+    $dir = __DIR__ . '/data';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0775, true);
+    }
+
+    file_put_contents(
+        $dir . '/' . $arquivo,
+        '[' . date('Y-m-d H:i:s') . '] ' . json_encode($dados, JSON_UNESCAPED_UNICODE) . PHP_EOL,
+        FILE_APPEND
+    );
+}
+
 function normalizarStatusMensagem($status) {
     $status = (string)$status;
     $map = [
@@ -40,14 +53,23 @@ function normalizarStatusMensagem($status) {
 if (!empty($data['statusUpdate'])) {
     $statusMessageId = trim((string)($data['messageId'] ?? ''));
     $status = normalizarStatusMensagem($data['status'] ?? '');
+    $rawStatus = $data['status'] ?? null;
+    $remoteJid = trim((string)($data['remoteJid'] ?? ''));
+    logDebug('status_debug.log', [
+        'messageId' => $statusMessageId,
+        'remoteJid' => $remoteJid,
+        'rawStatus' => $rawStatus,
+        'normalized' => $status,
+    ]);
 
     if ($statusMessageId !== '' && $status !== '') {
         foreach ($clientes as &$cliente) {
             foreach (($cliente['mensagens'] ?? []) as &$msg) {
-                if (($msg['messageId'] ?? '') === $statusMessageId) {
+                if (($msg['messageId'] ?? '') === $statusMessageId || (!empty($msg['remoteJid']) && $remoteJid !== '' && $msg['remoteJid'] === $remoteJid && !empty($msg['fromMe']))) {
                     $msg['status'] = $status;
                     $msg['status_updated_at'] = date('Y-m-d H:i:s');
                     salvarClientes($arquivoClientes, $clientes);
+                    logDebug('status_debug.log', ['updated' => true, 'status' => $status, 'messageId' => $statusMessageId]);
                     echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
                     exit;
                 }
@@ -55,6 +77,7 @@ if (!empty($data['statusUpdate'])) {
         }
     }
 
+    logDebug('status_debug.log', ['updated' => false, 'error' => 'Mensagem nao encontrada']);
     echo json_encode(['ok' => false, 'error' => 'Mensagem nao encontrada'], JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -64,6 +87,7 @@ $mensagemOriginal = trim($data['mensagem'] ?? '');
 $mensagem = strtolower($mensagemOriginal);
 $fromMe = !empty($data['fromMe']);
 $messageId = trim((string)($data['messageId'] ?? ''));
+$remoteJid = trim((string)($data['remoteJid'] ?? ''));
 $tipoMensagem = trim((string)($data['tipoMensagem'] ?? 'texto'));
 $mediaBase64 = $data['mediaBase64'] ?? '';
 $mediaMime = trim((string)($data['mediaMime'] ?? ''));
@@ -192,6 +216,7 @@ $clientes[$clienteIndex]['mensagens'][] = [
     "data" => $dataMensagem,
     "fromMe" => $fromMe,
     "messageId" => $messageId,
+    "remoteJid" => $remoteJid,
     "status" => $fromMe ? "sent" : "",
     "tipo" => $tipoMensagem,
     "mediaUrl" => $mediaUrl,

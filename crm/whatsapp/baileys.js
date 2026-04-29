@@ -63,6 +63,23 @@ function toUnixTimestamp(value) {
     return Math.floor(Date.now() / 1000);
 }
 
+function normalizeBaileysStatus(status) {
+    if (status === undefined || status === null) return "";
+    if (typeof status === "number") return status;
+
+    const value = String(status).toLowerCase();
+    const map = {
+        error: 0,
+        pending: 1,
+        server_ack: 2,
+        delivery_ack: 3,
+        read: 4,
+        played: 5,
+    };
+
+    return map[value] ?? value;
+}
+
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState("./whatsapp/auth_info");
     const { version } = await fetchLatestBaileysVersion();
@@ -172,6 +189,7 @@ async function startBot() {
                     mensagem: texto,
                     fromMe: !!key.fromMe,
                     messageId: key.id || null,
+                    remoteJid: key.remoteJid || jid,
                     timestamp: toUnixTimestamp(msg.messageTimestamp),
                     jidCompleto: jid,
                     isLid: jid.endsWith("@lid"),
@@ -187,13 +205,15 @@ async function startBot() {
     sock.ev.on("messages.update", async (updates) => {
         for (const item of updates) {
             const messageId = item.key?.id;
-            const status = item.update?.status;
+            const status = normalizeBaileysStatus(item.update?.status);
             if (!messageId || status === undefined || status === null) continue;
+            console.log("Status update:", messageId, status, item.update);
 
             try {
                 await axios.post("http://localhost/crm/webhook.php", {
                     statusUpdate: true,
                     messageId,
+                    remoteJid: item.key?.remoteJid || "",
                     status
                 });
             } catch (err) {
@@ -215,11 +235,14 @@ async function startBot() {
             else if (receipt.status !== undefined && receipt.status !== null) status = receipt.status;
 
             if (!status) continue;
+            status = normalizeBaileysStatus(status);
+            console.log("Receipt update:", messageId, status, receipt);
 
             try {
                 await axios.post("http://localhost/crm/webhook.php", {
                     statusUpdate: true,
                     messageId,
+                    remoteJid: item.key?.remoteJid || "",
                     status
                 });
             } catch (err) {
@@ -276,7 +299,7 @@ app.post("/enviar", async (req, res) => {
         const result = await sock.sendMessage(resultado.jid, payload);
         console.log("✅ Mensagem enviada! ID:", result?.key?.id);
 
-        res.json({ ok: true, messageId: result?.key?.id });
+        res.json({ ok: true, messageId: result?.key?.id, remoteJid: result?.key?.remoteJid });
     } catch (e) {
         console.error("❌ Erro ao enviar:", e.message || e);
         res.json({ ok: false, erro: e.message || "Erro desconhecido" });
