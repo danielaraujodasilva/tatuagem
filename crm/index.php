@@ -835,7 +835,15 @@ $firstStage = $stageIds[0] ?? '1';
         async function carregarClientesWhatsApp() {
     try {
         const res = await fetch('api_clientes.php');
+        if (!res.ok) {
+            console.error('api_clientes.php retornou erro:', res.status);
+            return [];
+        }
         const clientes = await res.json();
+        if (!Array.isArray(clientes)) {
+            console.error('api_clientes.php não retornou uma lista:', clientes);
+            return [];
+        }
 
         // converter clientes em leads compatíveis
         const leadsConvertidos = clientes.map(c => ({
@@ -859,14 +867,35 @@ $firstStage = $stageIds[0] ?? '1';
     }
 }
 
+async function carregarLeadsSistema() {
+    try {
+        const res = await fetch('handler.php?action=getAll');
+        if (!res.ok) {
+            console.error('handler.php?action=getAll retornou erro:', res.status);
+            return [];
+        }
+
+        const leads = await res.json();
+        if (!Array.isArray(leads)) {
+            console.error('handler.php?action=getAll não retornou uma lista:', leads);
+            return [];
+        }
+
+        return leads;
+    } catch (e) {
+        console.error('Erro ao carregar leads do sistema:', e);
+        return [];
+    }
+}
+
 
         // Inicialização
         window.onload = async () => {
 
-    const leadsSistema = await fetch('handler.php?action=getAll')
-        .then(r => r.json());
-
-    const leadsWhats = await carregarClientesWhatsApp();
+    const [leadsSistema, leadsWhats] = await Promise.all([
+        carregarLeadsSistema(),
+        carregarClientesWhatsApp()
+    ]);
 
     // junta tudo
     allLeads = [...leadsSistema, ...leadsWhats];
