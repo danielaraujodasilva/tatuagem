@@ -1,16 +1,23 @@
-<?php
-include("../config/conexao.php");
+﻿<?php
+require __DIR__ . '/../config/conexao.php';
+header('Content-Type: application/json; charset=utf-8');
 
-$telefone = $_GET['telefone'];
-$sql = "SELECT nome FROM clientes WHERE telefone = '$telefone'";
-$result = $conn->query($sql);
+$telefone = isset($_GET['telefone']) ? trim((string) $_GET['telefone']) : '';
 
-if ($result->num_rows > 0) {
-  $cliente = $result->fetch_assoc();
-  echo json_encode(["encontrado" => true, "nome" => $cliente['nome']]);
-} else {
-  echo json_encode(["encontrado" => false]);
+if ($telefone === '') {
+    echo json_encode(['encontrado' => false]);
+    exit;
 }
 
-$conn->close();
-?>
+$stmt = $conn->prepare('SELECT id, nome FROM clientes WHERE telefone = ? LIMIT 1');
+$stmt->bind_param('s', $telefone);
+$stmt->execute();
+$result = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+if ($result) {
+    echo json_encode(['encontrado' => true, 'id' => (int) $result['id'], 'nome' => $result['nome']]);
+    exit;
+}
+
+echo json_encode(['encontrado' => false]);

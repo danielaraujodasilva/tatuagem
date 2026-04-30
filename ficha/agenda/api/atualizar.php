@@ -1,23 +1,26 @@
-<?php include("../../config/conexao.php"); ?>
-<?php
+﻿<?php
+require __DIR__ . '/../../config/conexao.php';
+header('Content-Type: application/json; charset=utf-8');
 
-$data = json_decode(file_get_contents("php://input"), true);
+$data = json_decode(file_get_contents('php://input'), true);
 
-$inicio = new DateTime($data['inicio']);
-$fim = new DateTime($data['fim']);
+$id = (int) ($data['id'] ?? 0);
+$descricao = trim((string) ($data['descricao'] ?? ''));
+$status = trim((string) ($data['status'] ?? 'agendado'));
+$dataTat = trim((string) ($data['data_tatuagem'] ?? ''));
+$horaInicio = trim((string) ($data['hora_inicio'] ?? ''));
+$horaFim = trim((string) ($data['hora_fim'] ?? ''));
+$valor = (float) ($data['valor'] ?? 0);
 
-$stmt = $conn->prepare("
-UPDATE tatuagens 
-SET data_tatuagem=?, hora_inicio=?, hora_fim=? 
-WHERE id=?
-");
+if ($id <= 0 || $descricao === '' || $dataTat === '' || $horaInicio === '' || $horaFim === '') {
+    http_response_code(400);
+    echo json_encode(['status' => 'error', 'message' => 'Dados insuficientes para atualizar o agendamento.']);
+    exit;
+}
 
-$stmt->bind_param(
-    "sssi",
-    $inicio->format('Y-m-d'),
-    $inicio->format('H:i:s'),
-    $fim->format('H:i:s'),
-    $data['id']
-);
-
+$stmt = $conn->prepare('UPDATE tatuagens SET descricao = ?, valor = ?, data_tatuagem = ?, hora_inicio = ?, hora_fim = ?, status = ? WHERE id = ?');
+$stmt->bind_param('sdssssi', $descricao, $valor, $dataTat, $horaInicio, $horaFim, $status, $id);
 $stmt->execute();
+$stmt->close();
+
+echo json_encode(['status' => 'success', 'message' => 'Agendamento atualizado com sucesso.']);
