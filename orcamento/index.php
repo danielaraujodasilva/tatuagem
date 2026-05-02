@@ -205,37 +205,37 @@ button { cursor: pointer; }
   color: var(--muted);
 }
 
-.promo-grid {
+.promo-picker {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
 }
 
-.promo-card {
+.promo-picker select {
   border: 1px solid rgba(255,52,75,.35);
   border-radius: 8px;
-  padding: 13px;
+  padding: 12px;
   background: rgba(215,25,42,.1);
   color: #fff;
-  text-align: left;
+  font-weight: 900;
+  min-height: 48px;
 }
 
-.promo-card strong {
-  display: block;
-  margin-bottom: 5px;
+.promo-picker button {
+  min-height: 48px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 8px;
+  padding: 12px 16px;
+  background: rgba(255,52,75,.25);
+  color: #fff;
+  font-weight: 900;
 }
 
-.promo-card span {
-  display: block;
+.promo-current {
+  margin-top: 10px;
   color: #ddd;
   font-size: 13px;
-  line-height: 1.35;
-}
-
-.promo-card.active {
-  background: rgba(255,52,75,.25);
-  border-color: rgba(255,255,255,.6);
-  box-shadow: 0 0 18px rgba(255,52,75,.25);
+  line-height: 1.4;
 }
 
 .info {
@@ -386,7 +386,7 @@ button { cursor: pointer; }
   .container { grid-template-columns: 1fr; }
   .info { position: static; }
   .map-wrap { min-height: 670px; }
-  .promo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .promo-picker { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {
@@ -396,7 +396,6 @@ button { cursor: pointer; }
   .map-card { padding: 10px; }
   .map-wrap { min-height: 570px; align-items: start; }
   .body-map { width: min(118vw, 580px); }
-  .promo-grid { grid-template-columns: 1fr; }
   .mobile-cta { display: block; }
 }
 </style>
@@ -527,10 +526,14 @@ button { cursor: pointer; }
     <div class="section-title">
       <div>
         <h2>Promoções de fechamento</h2>
-        <p>Combos prontos para selecionar várias regiões de uma vez.</p>
+        <p>Escolha uma promoção para selecionar o pacote completo.</p>
       </div>
     </div>
-    <div class="promo-grid" id="promoGrid"></div>
+    <div class="promo-picker">
+      <select id="promoSelect"></select>
+      <button id="applyPromo" type="button">Aplicar promoção</button>
+    </div>
+    <div class="promo-current" id="promoCurrent"></div>
   </section>
 </main>
 
@@ -545,17 +548,17 @@ const DEFAULT_CONFIG = {
 };
 
 const DEFAULT_PROMOS = [
-  promo("Fechamento de braço externo esquerdo", "Antebraço externo + braço externo + ombro", ["antebraco_esq_externo", "braco_esq_costas", "ombro_esq_costas"], .85),
-  promo("Fechamento de braço externo direito", "Antebraço externo + braço externo + ombro", ["antebraco_dir_externo", "braco_dir_costas", "ombro_dir_costas"], .85),
-  promo("Fechamento de braço interno esquerdo", "Antebraço interno + braço interno", ["antebraco_esq_interno", "braco_esq_frente"], .9),
-  promo("Fechamento de braço interno direito", "Antebraço interno + braço interno", ["antebraco_dir_interno", "braco_dir_frente"], .9),
-  promo("Fechamento de perna frontal esquerda", "Coxa + joelho + canela + tornozelo", ["coxa_esq_frontal", "joelho_esq", "canela_esq", "tornozelo_esq"], .85),
-  promo("Fechamento de perna frontal direita", "Coxa + joelho + canela + tornozelo", ["coxa_dir_frontal", "joelho_dir", "canela_dir", "tornozelo_dir"], .85),
-  promo("Fechamento de perna posterior esquerda", "Coxa posterior + joelho posterior + panturrilha + tornozelo", ["coxa_esq_posterior", "joelho_esq_posterior", "panturrilha_esq", "tornozelo_esq_costas"], .85),
-  promo("Fechamento de perna posterior direita", "Coxa posterior + joelho posterior + panturrilha + tornozelo", ["coxa_dir_posterior", "joelho_dir_posterior", "panturrilha_dir", "tornozelo_dir_costas"], .85),
-  promo("Fechamento de costas", "Costas completa", ["costas_esq_alta", "costas_dir_alta", "costas_esq_baixa", "costas_dir_baixa", "lombar"], .82),
-  promo("Fechamento de peitoral", "Peito esquerdo + peito direito", ["peito_esq", "peito_dir"], .9),
-  promo("Fechamento frontal", "Peitoral completo + abdômen", ["peito_esq", "peito_dir", "abdomen"], .85)
+  promo("Fechamento de braço externo esquerdo", "Antebraço externo + braço externo + ombro", ["antebraco_esq_externo", "braco_esq_costas", "ombro_esq_costas"], .85, "costas"),
+  promo("Fechamento de braço externo direito", "Antebraço externo + braço externo + ombro", ["antebraco_dir_externo", "braco_dir_costas", "ombro_dir_costas"], .85, "costas"),
+  promo("Fechamento de braço interno esquerdo", "Antebraço interno + braço interno", ["antebraco_esq_interno", "braco_esq_frente"], .9, "frente"),
+  promo("Fechamento de braço interno direito", "Antebraço interno + braço interno", ["antebraco_dir_interno", "braco_dir_frente"], .9, "frente"),
+  promo("Fechamento de perna frontal esquerda", "Coxa + joelho + canela + tornozelo", ["coxa_esq_frontal", "joelho_esq", "canela_esq", "tornozelo_esq"], .85, "frente"),
+  promo("Fechamento de perna frontal direita", "Coxa + joelho + canela + tornozelo", ["coxa_dir_frontal", "joelho_dir", "canela_dir", "tornozelo_dir"], .85, "frente"),
+  promo("Fechamento de perna posterior esquerda", "Coxa posterior + joelho posterior + panturrilha + tornozelo", ["coxa_esq_posterior", "joelho_esq_posterior", "panturrilha_esq", "tornozelo_esq_costas"], .85, "costas"),
+  promo("Fechamento de perna posterior direita", "Coxa posterior + joelho posterior + panturrilha + tornozelo", ["coxa_dir_posterior", "joelho_dir_posterior", "panturrilha_dir", "tornozelo_dir_costas"], .85, "costas"),
+  promo("Fechamento de costas", "Costas completa", ["costas_esq_alta", "costas_dir_alta", "costas_esq_baixa", "costas_dir_baixa", "lombar"], .82, "costas"),
+  promo("Fechamento de peitoral", "Peito esquerdo + peito direito", ["peito_esq", "peito_dir"], .9, "frente"),
+  promo("Fechamento frontal", "Peitoral completo + abdômen", ["peito_esq", "peito_dir", "abdomen"], .85, "frente")
 ];
 
 const DEFAULT_AREAS = {
@@ -591,8 +594,8 @@ function area(titulo, min, max, descricao) {
   return { titulo, min, max, descricao, ativa: true };
 }
 
-function promo(titulo, descricao, ids, desconto) {
-  return { titulo, descricao, ids, desconto, ativa: true };
+function promo(titulo, descricao, ids, desconto, view) {
+  return { titulo, descricao, ids, desconto, view, ativa: true };
 }
 
 const sideLabels = { esq: "esquerdo", dir: "direito" };
@@ -602,6 +605,7 @@ const areas = load("orcamentoTattooAreas", DEFAULT_AREAS);
 const promotions = loadPromos();
 const selected = new Map();
 let currentView = "frente";
+let activePromoTitle = "";
 
 function load(key, fallback) {
   try {
@@ -707,6 +711,7 @@ function updateLinks() {
 }
 
 function selectPart(el) {
+  activePromoTitle = "";
   const item = {
     id: el.dataset.id,
     region: el.dataset.region,
@@ -720,6 +725,9 @@ function selectPart(el) {
 }
 
 function selectPromo(item) {
+  selected.clear();
+  activePromoTitle = item.titulo;
+  setView(item.view || inferPromoView(item));
   item.ids.forEach(id => {
     const el = document.querySelector(`[data-id="${id}"]`);
     if (!el || areas[el.dataset.region]?.ativa === false) return;
@@ -730,16 +738,31 @@ function selectPromo(item) {
 }
 
 function renderPromos() {
-  $("promoGrid").innerHTML = promotions
-    .filter(item => item.ativa !== false)
+  const activePromos = promotions.filter(item => item.ativa !== false);
+  $("promoSelect").innerHTML = `<option value="">Selecionar promoção</option>` + activePromos
     .map((item, index) => {
-      const active = Array.isArray(item.ids) && item.ids.every(id => selected.has(id));
       const discount = Math.round((1 - Number(item.desconto || 1)) * 100);
-      return `<button class="promo-card ${active ? "active" : ""}" type="button" data-promo="${index}">
-        <strong>${item.titulo}</strong>
-        <span>${item.descricao}${discount > 0 ? ` · ${discount}% OFF` : ""}</span>
-      </button>`;
+      return `<option value="${index}">${item.titulo}${discount > 0 ? ` · ${discount}% OFF` : ""}</option>`;
     }).join("");
+  const selectedPromo = activePromos.find(item => item.titulo === activePromoTitle) || getAppliedPromo();
+  if (selectedPromo) {
+    $("promoSelect").value = String(activePromos.indexOf(selectedPromo));
+    $("promoCurrent").innerText = `${selectedPromo.titulo}: ${selectedPromo.descricao}`;
+  } else {
+    $("promoCurrent").innerText = "";
+  }
+}
+
+function inferPromoView(item) {
+  const ids = Array.isArray(item.ids) ? item.ids.join(" ") : "";
+  return /costas|posterior|panturrilha|nuca|lombar|gluteo|externo/.test(ids) ? "costas" : "frente";
+}
+
+function setView(view) {
+  currentView = view === "costas" ? "costas" : "frente";
+  document.querySelectorAll("[data-view]").forEach(btn => btn.classList.toggle("active", btn.dataset.view === currentView));
+  $("frente").classList.toggle("hidden", currentView !== "frente");
+  $("costas").classList.toggle("hidden", currentView !== "costas");
 }
 
 function track(event, payload) {
@@ -765,29 +788,27 @@ document.querySelectorAll(".body-part").forEach(part => {
 
 document.querySelectorAll("[data-view]").forEach(button => {
   button.addEventListener("click", () => {
-    currentView = button.dataset.view;
-    document.querySelectorAll("[data-view]").forEach(btn => btn.classList.toggle("active", btn === button));
-    $("frente").classList.toggle("hidden", currentView !== "frente");
-    $("costas").classList.toggle("hidden", currentView !== "costas");
+    setView(button.dataset.view);
   });
 });
 
 $("selectionList").addEventListener("click", event => {
   const button = event.target.closest("[data-remove]");
   if (!button) return;
+  activePromoTitle = "";
   selected.delete(button.dataset.remove);
   update();
 });
 
-$("promoGrid").addEventListener("click", event => {
-  const button = event.target.closest("[data-promo]");
-  if (!button) return;
-  const item = promotions[Number(button.dataset.promo)];
+$("applyPromo").addEventListener("click", () => {
+  const activePromos = promotions.filter(item => item.ativa !== false);
+  const item = activePromos[Number($("promoSelect").value)];
   if (item) selectPromo(item);
 });
 
 $("clearSelection").addEventListener("click", () => {
   selected.clear();
+  activePromoTitle = "";
   update();
 });
 
