@@ -217,6 +217,10 @@ td input[type="checkbox"] {
         <label for="intro">Texto de abertura</label>
         <textarea id="intro"></textarea>
       </div>
+      <div class="field full">
+        <label for="promos">Promoções (JSON editável)</label>
+        <textarea id="promos"></textarea>
+      </div>
     </div>
   </section>
 
@@ -244,6 +248,20 @@ const DEFAULT_CONFIG = {
   cta: "Quero orçamento agora",
   intro: "Selecione a região, envie uma referência e receba uma prévia de orçamento direto no WhatsApp."
 };
+
+const DEFAULT_PROMOS = [
+  promo("Fechamento de braço externo esquerdo", "Antebraço externo + braço externo + ombro", ["antebraco_esq_externo", "braco_esq_costas", "ombro_esq_costas"], .85),
+  promo("Fechamento de braço externo direito", "Antebraço externo + braço externo + ombro", ["antebraco_dir_externo", "braco_dir_costas", "ombro_dir_costas"], .85),
+  promo("Fechamento de braço interno esquerdo", "Antebraço interno + braço interno", ["antebraco_esq_interno", "braco_esq_frente"], .9),
+  promo("Fechamento de braço interno direito", "Antebraço interno + braço interno", ["antebraco_dir_interno", "braco_dir_frente"], .9),
+  promo("Fechamento de perna frontal esquerda", "Coxa + joelho + canela + tornozelo", ["coxa_esq_frontal", "joelho_esq", "canela_esq", "tornozelo_esq"], .85),
+  promo("Fechamento de perna frontal direita", "Coxa + joelho + canela + tornozelo", ["coxa_dir_frontal", "joelho_dir", "canela_dir", "tornozelo_dir"], .85),
+  promo("Fechamento de perna posterior esquerda", "Coxa posterior + joelho posterior + panturrilha + tornozelo", ["coxa_esq_posterior", "joelho_esq_posterior", "panturrilha_esq", "tornozelo_esq_costas"], .85),
+  promo("Fechamento de perna posterior direita", "Coxa posterior + joelho posterior + panturrilha + tornozelo", ["coxa_dir_posterior", "joelho_dir_posterior", "panturrilha_dir", "tornozelo_dir_costas"], .85),
+  promo("Fechamento de costas", "Costas completa", ["costas_esq_alta", "costas_dir_alta", "costas_esq_baixa", "costas_dir_baixa", "lombar"], .82),
+  promo("Fechamento de peitoral", "Peito esquerdo + peito direito", ["peito_esq", "peito_dir"], .9),
+  promo("Fechamento frontal", "Peitoral completo + abdômen", ["peito_esq", "peito_dir", "abdomen"], .85)
+];
 
 const DEFAULT_AREAS = {
   cabeca: area("Cabeça", 2500, 6500, "Área extrema e muito visível. Precisa de leitura forte, contraste e desenho que envelheça bem."),
@@ -278,9 +296,14 @@ function area(titulo, min, max, descricao) {
   return { titulo, min, max, descricao, ativa: true };
 }
 
+function promo(titulo, descricao, ids, desconto) {
+  return { titulo, descricao, ids, desconto, ativa: true };
+}
+
 const $ = (id) => document.getElementById(id);
 let config = load("orcamentoTattooConfig", DEFAULT_CONFIG);
 let areas = load("orcamentoTattooAreas", DEFAULT_AREAS);
+let promotions = loadPromos();
 
 function load(key, fallback) {
   try {
@@ -294,6 +317,16 @@ function fillConfig() {
   $("whatsapp").value = config.whatsapp || "";
   $("cta").value = config.cta || "";
   $("intro").value = config.intro || "";
+  $("promos").value = JSON.stringify(promotions, null, 2);
+}
+
+function loadPromos() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("orcamentoTattooPromos") || "[]");
+    return Array.isArray(saved) && saved.length ? saved : DEFAULT_PROMOS;
+  } catch (e) {
+    return DEFAULT_PROMOS;
+  }
 }
 
 function renderRows() {
@@ -319,6 +352,16 @@ function save() {
     intro: $("intro").value.trim()
   };
 
+  try {
+    const parsedPromos = JSON.parse($("promos").value || "[]");
+    if (!Array.isArray(parsedPromos)) throw new Error("Promoções precisa ser uma lista.");
+    promotions = parsedPromos;
+  } catch (e) {
+    $("notice").textContent = `Erro nas promoções: ${e.message}`;
+    $("notice").classList.add("show");
+    return;
+  }
+
   document.querySelectorAll("#rows tr").forEach(row => {
     const id = row.dataset.id;
     const next = { ...areas[id] };
@@ -333,6 +376,7 @@ function save() {
 
   localStorage.setItem("orcamentoTattooConfig", JSON.stringify(config));
   localStorage.setItem("orcamentoTattooAreas", JSON.stringify(areas));
+  localStorage.setItem("orcamentoTattooPromos", JSON.stringify(promotions));
   $("notice").textContent = "Configurações salvas.";
   $("notice").classList.add("show");
   setTimeout(() => $("notice").classList.remove("show"), 3200);
@@ -341,8 +385,10 @@ function save() {
 function reset() {
   localStorage.removeItem("orcamentoTattooConfig");
   localStorage.removeItem("orcamentoTattooAreas");
+  localStorage.removeItem("orcamentoTattooPromos");
   config = { ...DEFAULT_CONFIG };
   areas = { ...DEFAULT_AREAS };
+  promotions = [...DEFAULT_PROMOS];
   fillConfig();
   renderRows();
   $("notice").textContent = "Padrões restaurados.";

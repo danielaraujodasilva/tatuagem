@@ -122,23 +122,18 @@ button { cursor: pointer; }
 .hidden { display: none; }
 
 .body-base {
-  fill: #171717;
-  stroke: rgba(255,255,255,.46);
-  stroke-width: 2;
-  filter: drop-shadow(0 24px 32px rgba(0,0,0,.45));
+  display: none;
 }
 
-.body-shade { fill: rgba(255,255,255,.045); }
+.body-shade { display: none; }
 
 .body-line {
-  fill: none;
-  stroke: rgba(255,255,255,.13);
-  stroke-width: 1.3;
+  display: none;
 }
 
 .body-part {
-  fill: transparent;
-  stroke: transparent;
+  fill: rgba(215,25,42,.13);
+  stroke: rgba(255,255,255,.54);
   stroke-width: 1.25;
   cursor: pointer;
   transition: fill .18s ease, stroke .18s ease, filter .18s ease, opacity .18s ease;
@@ -185,6 +180,62 @@ button { cursor: pointer; }
   font-size: 13px;
   text-align: center;
   line-height: 1.4;
+}
+
+.promo-panel {
+  grid-column: 1 / -1;
+  padding: 18px;
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.section-title h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.section-title p {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.promo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.promo-card {
+  border: 1px solid rgba(255,52,75,.35);
+  border-radius: 8px;
+  padding: 13px;
+  background: rgba(215,25,42,.1);
+  color: #fff;
+  text-align: left;
+}
+
+.promo-card strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.promo-card span {
+  display: block;
+  color: #ddd;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.promo-card.active {
+  background: rgba(255,52,75,.25);
+  border-color: rgba(255,255,255,.6);
+  box-shadow: 0 0 18px rgba(255,52,75,.25);
 }
 
 .info {
@@ -335,6 +386,7 @@ button { cursor: pointer; }
   .container { grid-template-columns: 1fr; }
   .info { position: static; }
   .map-wrap { min-height: 670px; }
+  .promo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 720px) {
@@ -344,6 +396,7 @@ button { cursor: pointer; }
   .map-card { padding: 10px; }
   .map-wrap { min-height: 570px; align-items: start; }
   .body-map { width: min(118vw, 580px); }
+  .promo-grid { grid-template-columns: 1fr; }
   .mobile-cta { display: block; }
 }
 </style>
@@ -387,8 +440,8 @@ button { cursor: pointer; }
         <path class="body-part" data-id="pulso_dir" data-region="pulso" d="M327 410 L302 408 L299 432 L328 434 Z"/>
         <path class="body-part" data-id="mao_esq" data-region="mao" d="M88 434 Q106 422 124 436 L126 484 Q106 502 86 484 Z"/>
         <path class="body-part" data-id="mao_dir" data-region="mao" d="M332 434 Q314 422 296 436 L294 484 Q314 502 334 484 Z"/>
-        <path class="body-part" data-id="dedos_mao_esq" data-region="dedos_mao" d="M88 484 L96 484 L95 532 Q86 534 84 524 Z M99 491 L106 491 L105 538 Q96 540 95 531 Z M109 491 L116 491 L117 535 Q108 539 106 529 Z M119 484 L126 484 L130 520 Q124 529 119 520 Z"/>
-        <path class="body-part" data-id="dedos_mao_dir" data-region="dedos_mao" d="M332 484 L324 484 L325 532 Q334 534 336 524 Z M321 491 L314 491 L315 538 Q324 540 325 531 Z M311 491 L304 491 L303 535 Q312 539 314 529 Z M301 484 L294 484 L290 520 Q296 529 301 520 Z"/>
+        <path class="body-part" data-id="dedos_mao_esq" data-region="dedos_mao" d="M84 480 L91 482 L88 518 Q81 521 78 513 Z M92 484 L99 484 L96 532 Q87 535 85 524 Z M101 491 L108 491 L107 539 Q98 542 96 531 Z M111 491 L118 491 L119 536 Q110 540 108 529 Z M121 484 L129 486 L131 520 Q125 529 119 519 Z"/>
+        <path class="body-part" data-id="dedos_mao_dir" data-region="dedos_mao" d="M336 480 L329 482 L332 518 Q339 521 342 513 Z M328 484 L321 484 L324 532 Q333 535 335 524 Z M319 491 L312 491 L313 539 Q322 542 324 531 Z M309 491 L302 491 L301 536 Q310 540 312 529 Z M299 484 L291 486 L289 520 Q295 529 301 519 Z"/>
         <path class="body-part" data-id="coxa_esq_frontal" data-region="coxa_frontal" d="M160 456 Q186 478 205 470 L201 585 Q188 628 158 612 L150 505 Z"/>
         <path class="body-part" data-id="coxa_dir_frontal" data-region="coxa_frontal" d="M260 456 Q234 478 215 470 L219 585 Q232 628 262 612 L270 505 Z"/>
         <ellipse class="body-part" data-id="joelho_esq" data-region="joelho" cx="181" cy="612" rx="25" ry="28"/>
@@ -399,8 +452,8 @@ button { cursor: pointer; }
         <path class="body-part" data-id="tornozelo_dir" data-region="tornozelo" d="M262 720 L224 720 L222 745 Q244 758 266 742 Z"/>
         <path class="body-part" data-id="pe_esq" data-region="pe" d="M154 744 Q178 734 202 752 Q210 772 188 782 L146 776 Q136 760 154 744 Z"/>
         <path class="body-part" data-id="pe_dir" data-region="pe" d="M266 744 Q242 734 218 752 Q210 772 232 782 L274 776 Q284 760 266 744 Z"/>
-        <path class="body-part" data-id="dedos_pe_esq" data-region="dedos_pe" d="M142 775 Q148 767 153 776 Q153 786 145 783 Z M154 779 Q160 769 166 779 Q165 789 156 786 Z M167 780 Q173 771 178 781 Q177 790 169 787 Z"/>
-        <path class="body-part" data-id="dedos_pe_dir" data-region="dedos_pe" d="M278 775 Q272 767 267 776 Q267 786 275 783 Z M266 779 Q260 769 254 779 Q255 789 264 786 Z M253 780 Q247 771 242 781 Q243 790 251 787 Z"/>
+        <path class="body-part" data-id="dedos_pe_esq" data-region="dedos_pe" d="M139 775 Q144 767 150 776 Q150 785 142 783 Z M151 779 Q156 769 162 779 Q161 788 153 786 Z M163 781 Q168 771 174 781 Q173 790 165 788 Z M175 781 Q180 773 185 782 Q184 790 177 788 Z M187 779 Q192 773 197 781 Q196 788 189 786 Z"/>
+        <path class="body-part" data-id="dedos_pe_dir" data-region="dedos_pe" d="M281 775 Q276 767 270 776 Q270 785 278 783 Z M269 779 Q264 769 258 779 Q259 788 267 786 Z M257 781 Q252 771 246 781 Q247 790 255 788 Z M245 781 Q240 773 235 782 Q236 790 243 788 Z M233 779 Q228 773 223 781 Q224 788 231 786 Z"/>
       </svg>
 
       <svg id="costas" class="body-map hidden" viewBox="0 0 420 820" aria-label="Mapa corporal costas">
@@ -422,6 +475,8 @@ button { cursor: pointer; }
         <path class="body-part" data-id="antebraco_dir_externo" data-region="antebraco_externo" d="M319 270 Q335 335 327 410 L302 408 Q296 335 317 270 Z"/>
         <path class="body-part" data-id="mao_esq_costas" data-region="mao" d="M88 434 Q106 422 124 436 L126 484 Q106 502 86 484 Z"/>
         <path class="body-part" data-id="mao_dir_costas" data-region="mao" d="M332 434 Q314 422 296 436 L294 484 Q314 502 334 484 Z"/>
+        <path class="body-part" data-id="dedos_mao_esq_costas" data-region="dedos_mao" d="M84 480 L91 482 L88 518 Q81 521 78 513 Z M92 484 L99 484 L96 532 Q87 535 85 524 Z M101 491 L108 491 L107 539 Q98 542 96 531 Z M111 491 L118 491 L119 536 Q110 540 108 529 Z M121 484 L129 486 L131 520 Q125 529 119 519 Z"/>
+        <path class="body-part" data-id="dedos_mao_dir_costas" data-region="dedos_mao" d="M336 480 L329 482 L332 518 Q339 521 342 513 Z M328 484 L321 484 L324 532 Q333 535 335 524 Z M319 491 L312 491 L313 539 Q322 542 324 531 Z M309 491 L302 491 L301 536 Q310 540 312 529 Z M299 484 L291 486 L289 520 Q295 529 301 519 Z"/>
         <path class="body-part" data-id="gluteo_esq" data-region="gluteo" d="M160 456 Q185 474 207 464 L207 535 Q180 560 150 520 Z"/>
         <path class="body-part" data-id="gluteo_dir" data-region="gluteo" d="M260 456 Q235 474 213 464 L213 535 Q240 560 270 520 Z"/>
         <path class="body-part" data-id="coxa_esq_posterior" data-region="coxa_posterior" d="M150 524 Q180 560 207 536 L201 612 Q180 632 158 612 Z"/>
@@ -434,6 +489,8 @@ button { cursor: pointer; }
         <path class="body-part" data-id="tornozelo_dir_costas" data-region="tornozelo" d="M262 720 L224 720 L222 745 Q244 758 266 742 Z"/>
         <path class="body-part" data-id="pe_esq_costas" data-region="pe" d="M154 744 Q178 734 202 752 Q210 772 188 782 L146 776 Q136 760 154 744 Z"/>
         <path class="body-part" data-id="pe_dir_costas" data-region="pe" d="M266 744 Q242 734 218 752 Q210 772 232 782 L274 776 Q284 760 266 744 Z"/>
+        <path class="body-part" data-id="dedos_pe_esq_costas" data-region="dedos_pe" d="M139 775 Q144 767 150 776 Q150 785 142 783 Z M151 779 Q156 769 162 779 Q161 788 153 786 Z M163 781 Q168 771 174 781 Q173 790 165 788 Z M175 781 Q180 773 185 782 Q184 790 177 788 Z M187 779 Q192 773 197 781 Q196 788 189 786 Z"/>
+        <path class="body-part" data-id="dedos_pe_dir_costas" data-region="dedos_pe" d="M281 775 Q276 767 270 776 Q270 785 278 783 Z M269 779 Q264 769 258 779 Q259 788 267 786 Z M257 781 Q252 771 246 781 Q247 790 255 788 Z M245 781 Q240 773 235 782 Q236 790 243 788 Z M233 779 Q228 773 223 781 Q224 788 231 786 Z"/>
       </svg>
     </div>
     <p class="map-hint">Toque ou passe o mouse na região desejada. As áreas ficam discretas e só acendem quando você interage.</p>
@@ -465,6 +522,16 @@ button { cursor: pointer; }
     <a id="zap" class="whatsapp" href="#" target="_blank" rel="noopener">Quero orçamento agora</a>
     <p class="note">Quanto melhor a referência, mais rápido fica para avaliar e responder.</p>
   </aside>
+
+  <section class="card promo-panel">
+    <div class="section-title">
+      <div>
+        <h2>Promoções de fechamento</h2>
+        <p>Combos prontos para selecionar várias regiões de uma vez.</p>
+      </div>
+    </div>
+    <div class="promo-grid" id="promoGrid"></div>
+  </section>
 </main>
 
 <div class="tooltip" id="tooltip"></div>
@@ -476,6 +543,20 @@ const DEFAULT_CONFIG = {
   cta: "Quero orçamento agora",
   intro: "Selecione a região, envie uma referência e receba uma prévia de orçamento direto no WhatsApp."
 };
+
+const DEFAULT_PROMOS = [
+  promo("Fechamento de braço externo esquerdo", "Antebraço externo + braço externo + ombro", ["antebraco_esq_externo", "braco_esq_costas", "ombro_esq_costas"], .85),
+  promo("Fechamento de braço externo direito", "Antebraço externo + braço externo + ombro", ["antebraco_dir_externo", "braco_dir_costas", "ombro_dir_costas"], .85),
+  promo("Fechamento de braço interno esquerdo", "Antebraço interno + braço interno", ["antebraco_esq_interno", "braco_esq_frente"], .9),
+  promo("Fechamento de braço interno direito", "Antebraço interno + braço interno", ["antebraco_dir_interno", "braco_dir_frente"], .9),
+  promo("Fechamento de perna frontal esquerda", "Coxa + joelho + canela + tornozelo", ["coxa_esq_frontal", "joelho_esq", "canela_esq", "tornozelo_esq"], .85),
+  promo("Fechamento de perna frontal direita", "Coxa + joelho + canela + tornozelo", ["coxa_dir_frontal", "joelho_dir", "canela_dir", "tornozelo_dir"], .85),
+  promo("Fechamento de perna posterior esquerda", "Coxa posterior + joelho posterior + panturrilha + tornozelo", ["coxa_esq_posterior", "joelho_esq_posterior", "panturrilha_esq", "tornozelo_esq_costas"], .85),
+  promo("Fechamento de perna posterior direita", "Coxa posterior + joelho posterior + panturrilha + tornozelo", ["coxa_dir_posterior", "joelho_dir_posterior", "panturrilha_dir", "tornozelo_dir_costas"], .85),
+  promo("Fechamento de costas", "Costas completa", ["costas_esq_alta", "costas_dir_alta", "costas_esq_baixa", "costas_dir_baixa", "lombar"], .82),
+  promo("Fechamento de peitoral", "Peito esquerdo + peito direito", ["peito_esq", "peito_dir"], .9),
+  promo("Fechamento frontal", "Peitoral completo + abdômen", ["peito_esq", "peito_dir", "abdomen"], .85)
+];
 
 const DEFAULT_AREAS = {
   cabeca: area("Cabeça", 2500, 6500, "Área extrema e muito visível. Precisa de leitura forte, contraste e desenho que envelheça bem."),
@@ -510,10 +591,15 @@ function area(titulo, min, max, descricao) {
   return { titulo, min, max, descricao, ativa: true };
 }
 
+function promo(titulo, descricao, ids, desconto) {
+  return { titulo, descricao, ids, desconto, ativa: true };
+}
+
 const sideLabels = { esq: "esquerdo", dir: "direito" };
 const $ = (id) => document.getElementById(id);
 const config = load("orcamentoTattooConfig", DEFAULT_CONFIG);
 const areas = load("orcamentoTattooAreas", DEFAULT_AREAS);
+const promotions = loadPromos();
 const selected = new Map();
 let currentView = "frente";
 
@@ -529,6 +615,15 @@ function money(value) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 }
 
+function loadPromos() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("orcamentoTattooPromos") || "[]");
+    return Array.isArray(saved) && saved.length ? saved : DEFAULT_PROMOS;
+  } catch (e) {
+    return DEFAULT_PROMOS;
+  }
+}
+
 function partLabel(part) {
   const base = areas[part.region]?.titulo || part.region;
   const side = part.id.includes("_esq") ? sideLabels.esq : part.id.includes("_dir") ? sideLabels.dir : "";
@@ -541,10 +636,19 @@ function calculate() {
     const data = areas[item.region];
     return { min: acc.min + Number(data?.min || 0), max: acc.max + Number(data?.max || 0) };
   }, { min: 0, max: 0 });
+  const applied = getAppliedPromo();
+  const discount = applied?.desconto || 1;
   return {
-    min: Math.round(total.min / 50) * 50,
-    max: Math.round(total.max / 50) * 50
+    min: Math.round((total.min * discount) / 50) * 50,
+    max: Math.round((total.max * discount) / 50) * 50,
+    promo: applied
   };
+}
+
+function getAppliedPromo() {
+  return promotions
+    .filter(item => item.ativa !== false && Array.isArray(item.ids) && item.ids.every(id => selected.has(id)))
+    .sort((a, b) => Number(a.desconto || 1) - Number(b.desconto || 1))[0] || null;
 }
 
 function update() {
@@ -562,6 +666,7 @@ function update() {
     $("titulo").innerText = "Selecione uma área";
     $("preco").innerText = "---";
     $("descricao").innerText = "Clique em uma parte do corpo para montar a estimativa inicial.";
+    renderPromos();
     updateLinks();
     return;
   }
@@ -570,7 +675,10 @@ function update() {
   const data = areas[last.region];
   $("titulo").innerText = items.length === 1 ? last.label : `${items.length} áreas selecionadas`;
   $("preco").innerText = `${money(estimate.min)} a ${money(estimate.max)}`;
-  $("descricao").innerText = data.descricao || "Região selecionada para orçamento.";
+  $("descricao").innerText = estimate.promo
+    ? `${estimate.promo.titulo}: ${estimate.promo.descricao}`
+    : data.descricao || "Região selecionada para orçamento.";
+  renderPromos();
   updateLinks();
 }
 
@@ -580,10 +688,12 @@ function updateLinks() {
   const textRef = $("referenciaTexto").value.trim() || "Não descreveu ainda";
   const areaText = [...selected.values()].map(item => item.label).join(", ") || "a definir";
   const price = estimate ? `${money(estimate.min)} a ${money(estimate.max)}` : "Aguardando seleção de área";
+  const promoLine = estimate?.promo ? `Promoção: ${estimate.promo.titulo}` : "Promoção: não selecionada";
   const msg = [
     "Olá! Quero um orçamento de tatuagem.",
     `Nome: ${client}`,
     `Área escolhida: ${areaText}`,
+    promoLine,
     `Referência/ideia: ${textRef}`,
     "Vou enviar a imagem de referência aqui na conversa, se tiver.",
     `Pré-orçamento: ${price}`,
@@ -607,6 +717,29 @@ function selectPart(el) {
   else selected.set(item.id, item);
   track("area_click", { area: item.label, region: item.region });
   update();
+}
+
+function selectPromo(item) {
+  item.ids.forEach(id => {
+    const el = document.querySelector(`[data-id="${id}"]`);
+    if (!el || areas[el.dataset.region]?.ativa === false) return;
+    selected.set(id, { id, region: el.dataset.region, label: partLabel(el.dataset) });
+  });
+  track("promo_click", { promo: item.titulo });
+  update();
+}
+
+function renderPromos() {
+  $("promoGrid").innerHTML = promotions
+    .filter(item => item.ativa !== false)
+    .map((item, index) => {
+      const active = Array.isArray(item.ids) && item.ids.every(id => selected.has(id));
+      const discount = Math.round((1 - Number(item.desconto || 1)) * 100);
+      return `<button class="promo-card ${active ? "active" : ""}" type="button" data-promo="${index}">
+        <strong>${item.titulo}</strong>
+        <span>${item.descricao}${discount > 0 ? ` · ${discount}% OFF` : ""}</span>
+      </button>`;
+    }).join("");
 }
 
 function track(event, payload) {
@@ -646,6 +779,13 @@ $("selectionList").addEventListener("click", event => {
   update();
 });
 
+$("promoGrid").addEventListener("click", event => {
+  const button = event.target.closest("[data-promo]");
+  if (!button) return;
+  const item = promotions[Number(button.dataset.promo)];
+  if (item) selectPromo(item);
+});
+
 $("clearSelection").addEventListener("click", () => {
   selected.clear();
   update();
@@ -657,6 +797,7 @@ $("zap").addEventListener("click", () => track("whatsapp_click", { areas: [...se
 $("mobileCta").addEventListener("click", () => track("whatsapp_mobile_click", { areas: [...selected.values()].map(item => item.label).join(", ") }));
 
 $("introText").innerText = config.intro || DEFAULT_CONFIG.intro;
+renderPromos();
 update();
 </script>
 </body>
