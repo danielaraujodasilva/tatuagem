@@ -124,7 +124,7 @@ button { cursor: pointer; }
 .body-base {
   fill: #171717;
   stroke: rgba(255,255,255,.46);
-  stroke-width: 2.4;
+  stroke-width: 2;
   filter: drop-shadow(0 24px 32px rgba(0,0,0,.45));
 }
 
@@ -282,28 +282,6 @@ button { cursor: pointer; }
   resize: vertical;
 }
 
-.upload-preview {
-  display: none;
-  grid-template-columns: 72px 1fr;
-  gap: 10px;
-  align-items: center;
-  margin-top: 4px;
-  padding: 8px;
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: 6px;
-  background: rgba(255,255,255,.045);
-}
-
-.upload-preview.show { display: grid; }
-.upload-preview img {
-  width: 72px;
-  height: 72px;
-  object-fit: cover;
-  border-radius: 6px;
-}
-.upload-preview strong { display: block; }
-.upload-preview span { color: var(--muted); font-size: 13px; }
-
 .warning {
   margin: 12px 0 0;
   border-left: 3px solid rgba(255,255,255,.28);
@@ -388,10 +366,25 @@ button { cursor: pointer; }
     <div class="map-wrap">
       <svg id="frente" class="body-map" viewBox="0 0 420 820" aria-label="Mapa corporal frente">
         <ellipse class="body-base" cx="210" cy="68" rx="36" ry="44"/>
-        <path class="body-base" d="M174 116 Q210 142 246 116 L258 158 Q286 177 305 240 Q318 288 300 334 Q290 382 280 457 L270 520 L264 704 Q244 746 220 716 L210 528 L200 716 Q176 746 156 704 L150 520 L140 457 Q130 382 120 334 Q102 288 115 240 Q134 177 162 158 Z"/>
-        <path class="body-shade" d="M178 176 Q210 155 242 176 L251 285 Q210 314 169 285 Z"/>
-        <path class="body-shade" d="M174 396 Q210 426 246 396 L258 462 Q210 488 162 462 Z"/>
-        <path class="body-line" d="M188 70 Q210 78 232 70 M196 94 Q210 102 224 94 M181 184 Q210 202 239 184 M210 166 L210 462 M170 296 Q210 318 250 296 M166 458 Q210 488 254 458"/>
+        <path class="body-base" d="M184 112 L236 112 L244 150 Q210 166 176 150 Z"/>
+        <path class="body-base" d="M142 154 Q178 132 210 138 Q242 132 278 154 Q268 177 256 194 Q232 176 210 176 Q188 176 164 194 Q152 177 142 154 Z"/>
+        <path class="body-base" d="M164 190 Q210 166 256 190 L249 380 Q210 414 171 380 Z"/>
+        <path class="body-base" d="M174 388 Q210 410 246 388 L262 456 Q210 485 158 456 Z"/>
+        <path class="body-base" d="M139 164 Q104 188 86 255 Q78 292 94 314 L111 308 Q104 279 116 245 Q130 205 160 188 Z"/>
+        <path class="body-base" d="M281 164 Q316 188 334 255 Q342 292 326 314 L309 308 Q316 279 304 245 Q290 205 260 188 Z"/>
+        <path class="body-base" d="M96 312 Q84 354 92 410 Q101 423 119 412 Q124 354 112 310 Z"/>
+        <path class="body-base" d="M324 312 Q336 354 328 410 Q319 423 301 412 Q296 354 308 310 Z"/>
+        <path class="body-base" d="M91 412 L121 410 L126 482 Q107 503 86 484 Z"/>
+        <path class="body-base" d="M329 412 L299 410 L294 482 Q313 503 334 484 Z"/>
+        <path class="body-base" d="M87 482 L96 482 L95 530 Q86 533 83 523 Z M99 488 L108 488 L106 537 Q97 540 95 529 Z M111 488 L119 488 L119 534 Q110 539 107 528 Z M121 482 L129 484 L131 518 Q125 529 119 519 Z"/>
+        <path class="body-base" d="M333 482 L324 482 L325 530 Q334 533 337 523 Z M321 488 L312 488 L314 537 Q323 540 325 529 Z M309 488 L301 488 L301 534 Q310 539 313 528 Z M299 482 L291 484 L289 518 Q295 529 301 519 Z"/>
+        <path class="body-base" d="M158 456 Q184 478 206 470 L202 612 Q188 644 157 616 L148 506 Z"/>
+        <path class="body-base" d="M262 456 Q236 478 214 470 L218 612 Q232 644 263 616 L272 506 Z"/>
+        <path class="body-base" d="M157 618 Q181 632 202 618 L196 722 Q178 750 156 722 Z"/>
+        <path class="body-base" d="M263 618 Q239 632 218 618 L224 722 Q242 750 264 722 Z"/>
+        <path class="body-base" d="M156 720 L197 720 L204 752 Q210 774 188 784 L146 778 Q136 760 156 720 Z"/>
+        <path class="body-base" d="M264 720 L223 720 L216 752 Q210 774 232 784 L274 778 Q284 760 264 720 Z"/>
+        <path class="body-line" d="M188 70 Q210 78 232 70 M196 94 Q210 102 224 94 M181 184 Q210 202 239 184 M210 166 L210 462 M170 296 Q210 318 250 296 M166 458 Q210 488 254 458 M181 617 Q181 672 177 722 M239 617 Q239 672 243 722"/>
 
         <path class="body-part" data-id="cabeca" data-region="cabeca" d="M174 61 Q178 25 210 23 Q242 25 246 61 Q249 101 210 116 Q171 101 174 61Z"/>
         <path class="body-part" data-id="pescoco_frente" data-region="pescoco" d="M185 112 L235 112 L244 151 Q210 166 176 151 Z"/>
@@ -429,8 +422,23 @@ button { cursor: pointer; }
 
       <svg id="costas" class="body-map hidden" viewBox="0 0 420 820" aria-label="Mapa corporal costas">
         <ellipse class="body-base" cx="210" cy="68" rx="36" ry="44"/>
-        <path class="body-base" d="M174 116 Q210 142 246 116 L258 158 Q286 177 305 240 Q318 288 300 334 Q290 382 280 457 L270 520 L264 704 Q244 746 220 716 L210 528 L200 716 Q176 746 156 704 L150 520 L140 457 Q130 382 120 334 Q102 288 115 240 Q134 177 162 158 Z"/>
-        <path class="body-line" d="M182 184 Q210 160 238 184 M210 158 L210 455 M164 292 Q210 326 256 292 M171 394 Q210 420 249 394"/>
+        <path class="body-base" d="M184 112 L236 112 L244 150 Q210 166 176 150 Z"/>
+        <path class="body-base" d="M142 154 Q178 132 210 138 Q242 132 278 154 Q268 177 256 194 Q232 176 210 176 Q188 176 164 194 Q152 177 142 154 Z"/>
+        <path class="body-base" d="M164 190 Q210 166 256 190 L249 380 Q210 414 171 380 Z"/>
+        <path class="body-base" d="M174 388 Q210 410 246 388 L262 456 Q210 485 158 456 Z"/>
+        <path class="body-base" d="M139 164 Q104 188 86 255 Q78 292 94 314 L111 308 Q104 279 116 245 Q130 205 160 188 Z"/>
+        <path class="body-base" d="M281 164 Q316 188 334 255 Q342 292 326 314 L309 308 Q316 279 304 245 Q290 205 260 188 Z"/>
+        <path class="body-base" d="M96 312 Q84 354 92 410 Q101 423 119 412 Q124 354 112 310 Z"/>
+        <path class="body-base" d="M324 312 Q336 354 328 410 Q319 423 301 412 Q296 354 308 310 Z"/>
+        <path class="body-base" d="M91 412 L121 410 L126 482 Q107 503 86 484 Z"/>
+        <path class="body-base" d="M329 412 L299 410 L294 482 Q313 503 334 484 Z"/>
+        <path class="body-base" d="M158 456 Q184 478 206 470 L202 612 Q188 644 157 616 L148 506 Z"/>
+        <path class="body-base" d="M262 456 Q236 478 214 470 L218 612 Q232 644 263 616 L272 506 Z"/>
+        <path class="body-base" d="M157 618 Q181 632 202 618 L196 722 Q178 750 156 722 Z"/>
+        <path class="body-base" d="M263 618 Q239 632 218 618 L224 722 Q242 750 264 722 Z"/>
+        <path class="body-base" d="M156 720 L197 720 L204 752 Q210 774 188 784 L146 778 Q136 760 156 720 Z"/>
+        <path class="body-base" d="M264 720 L223 720 L216 752 Q210 774 232 784 L274 778 Q284 760 264 720 Z"/>
+        <path class="body-line" d="M182 184 Q210 160 238 184 M210 158 L210 455 M164 292 Q210 326 256 292 M171 394 Q210 420 249 394 M181 617 Q181 672 177 722 M239 617 Q239 672 243 722"/>
 
         <path class="body-part" data-id="cabeca_costas" data-region="cabeca" d="M174 61 Q178 25 210 23 Q242 25 246 61 Q249 101 210 116 Q171 101 174 61Z"/>
         <path class="body-part" data-id="nuca" data-region="nuca" d="M185 112 L235 112 L244 151 Q210 166 176 151 Z"/>
@@ -482,18 +490,7 @@ button { cursor: pointer; }
       </div>
       <div class="field">
         <label for="referenciaTexto">Referência / ideia</label>
-        <textarea id="referenciaTexto" placeholder="Descreva a ideia ou cole um link de referência."></textarea>
-      </div>
-      <div class="field">
-        <label for="referenciaFoto">Foto de referência</label>
-        <input id="referenciaFoto" type="file" accept="image/*" />
-        <div class="upload-preview" id="uploadPreview">
-          <img id="uploadImage" alt="Prévia da referência enviada" />
-          <div>
-            <strong id="uploadName"></strong>
-            <span>A imagem não vai anexada pelo link. O cliente envia a foto dentro da conversa.</span>
-          </div>
-        </div>
+        <textarea id="referenciaTexto" placeholder="Descreva a ideia, cole um link ou avise que vai enviar a imagem no WhatsApp."></textarea>
       </div>
     </div>
 
@@ -552,7 +549,6 @@ const config = load("orcamentoTattooConfig", DEFAULT_CONFIG);
 const areas = load("orcamentoTattooAreas", DEFAULT_AREAS);
 const selected = new Map();
 let currentView = "frente";
-let referenceFile = "";
 
 function load(key, fallback) {
   try {
@@ -617,13 +613,12 @@ function updateLinks() {
   const textRef = $("referenciaTexto").value.trim() || "Não descreveu ainda";
   const areaText = [...selected.values()].map(item => item.label).join(", ") || "a definir";
   const price = estimate ? `${money(estimate.min)} a ${money(estimate.max)}` : "Aguardando seleção de área";
-  const fileLine = referenceFile ? `Foto de referência: ${referenceFile} (vou enviar a imagem aqui na conversa)` : "Foto de referência: ainda não anexei";
   const msg = [
     "Olá! Quero um orçamento de tatuagem.",
     `Nome: ${client}`,
     `Área escolhida: ${areaText}`,
     `Referência/ideia: ${textRef}`,
-    fileLine,
+    "Vou enviar a imagem de referência aqui na conversa, se tiver.",
     `Pré-orçamento: ${price}`,
     "Sei que o valor final depende de avaliação."
   ].join("\n");
@@ -690,20 +685,6 @@ $("clearSelection").addEventListener("click", () => {
 });
 
 ["cliente", "referenciaTexto"].forEach(id => $(id).addEventListener("input", update));
-
-$("referenciaFoto").addEventListener("change", event => {
-  const file = event.target.files?.[0];
-  referenceFile = file ? file.name : "";
-  if (!file) {
-    $("uploadPreview").classList.remove("show");
-    update();
-    return;
-  }
-  $("uploadName").innerText = file.name;
-  $("uploadImage").src = URL.createObjectURL(file);
-  $("uploadPreview").classList.add("show");
-  update();
-});
 
 $("zap").addEventListener("click", () => track("whatsapp_click", { areas: [...selected.values()].map(item => item.label).join(", ") }));
 $("mobileCta").addEventListener("click", () => track("whatsapp_mobile_click", { areas: [...selected.values()].map(item => item.label).join(", ") }));
