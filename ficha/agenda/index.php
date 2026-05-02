@@ -155,6 +155,7 @@ if (empty($_GET['data'])) {
             <div class="col-md-8">
               <label class="ficha-form-label" for="eventReference">Arte de referencia</label>
               <input type="hidden" id="eventReference" name="referencia_arte">
+              <input type="file" id="eventReferenceFile" class="form-control" accept="image/*,.pdf">
               <div id="eventReferencePreview" class="mt-3"></div>
             </div>
             <div class="col-12">
@@ -210,7 +211,8 @@ document.addEventListener('DOMContentLoaded', function () {
     cliente: document.getElementById('eventClientName'),
     observacoes: document.getElementById('eventNotes'),
     pomadas: document.getElementById('eventPomadas'),
-    referencia: document.getElementById('eventReference')
+    referencia: document.getElementById('eventReference'),
+    referenciaArquivo: document.getElementById('eventReferenceFile')
   };
 
   const summary = {
@@ -281,6 +283,7 @@ document.addEventListener('DOMContentLoaded', function () {
   form.addEventListener('input', updateSummaryCards);
   fields.clienteBusca.addEventListener('input', searchEventClients);
   fields.referencia.addEventListener('input', updateReferencePreview);
+  fields.referenciaArquivo.addEventListener('change', updateReferencePreview);
   document.getElementById('referenceOverlayClose').addEventListener('click', closeReferenceOverlay);
   referenceOverlay.addEventListener('click', event => {
     if (event.target === referenceOverlay) {
@@ -290,6 +293,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   saveBtn.addEventListener('click', async function () {
     if (!form.reportValidity()) {
+      return;
+    }
+
+    const uploadedReference = await uploadReferenceIfNeeded();
+    if (uploadedReference === false) {
       return;
     }
 
@@ -304,7 +312,7 @@ document.addEventListener('DOMContentLoaded', function () {
       cliente_id: fields.clienteId.value || '',
       observacoes: fields.observacoes.value.trim(),
       pomadas_anestesicas: fields.pomadas.value || 0,
-      referencia_arte: fields.referencia.value.trim()
+      referencia_arte: uploadedReference || fields.referencia.value.trim()
     };
 
     const endpoint = payload.id ? 'api/atualizar.php' : 'api/salvar.php';
@@ -365,6 +373,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fields.observacoes.value = '';
     fields.pomadas.value = '0';
     fields.referencia.value = '';
+    fields.referenciaArquivo.value = '';
     updateReferencePreview();
     summary.status.textContent = 'Agendado';
     summary.client.textContent = 'Sem cliente';
@@ -685,7 +694,22 @@ document.addEventListener('DOMContentLoaded', function () {
   function updateReferencePreview() {
     const container = document.getElementById('eventReferencePreview');
     const raw = fields.referencia.value.trim();
+    const file = fields.referenciaArquivo.files?.[0] || null;
     const url = referenceUrl(raw);
+
+    if (file) {
+      const isImage = file.type.startsWith('image/');
+      const objectUrl = isImage ? URL.createObjectURL(file) : '';
+      container.innerHTML = isImage
+        ? `
+          <button type="button" class="border-0 bg-transparent p-0 text-start" onclick="openReferenceOverlay('${escapeHtml(objectUrl)}')">
+            <img src="${escapeHtml(objectUrl)}" alt="Arte de referencia" class="rounded-3 border" style="width: 140px; height: 140px; object-fit: cover;">
+            <div class="ficha-muted mt-2">Nova referencia selecionada</div>
+          </button>
+        `
+        : '<div class="ficha-muted">Novo arquivo selecionado: ' + escapeHtml(file.name) + '</div>';
+      return;
+    }
 
     if (!raw) {
       container.innerHTML = '<div class="ficha-muted">Nenhuma arte de referencia vinculada.</div>';
@@ -703,6 +727,30 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     container.innerHTML = `<a class="btn ficha-btn ficha-btn-secondary" href="${escapeHtml(url)}" target="_blank" rel="noopener">Abrir referencia</a>`;
+  }
+
+  async function uploadReferenceIfNeeded() {
+    const file = fields.referenciaArquivo.files?.[0] || null;
+    if (!file) return '';
+
+    const formData = new FormData();
+    formData.append('referencia', file);
+
+    const response = await fetch('api/upload_referencia.php', {
+      method: 'POST',
+      body: formData
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || result.status === 'error' || !result.path) {
+      showAlert(result.message || 'Nao foi possivel enviar a referencia.', 'danger');
+      return false;
+    }
+
+    fields.referencia.value = result.path;
+    fields.referenciaArquivo.value = '';
+    updateReferencePreview();
+    return result.path;
   }
 
   window.openReferenceOverlay = function (url) {
