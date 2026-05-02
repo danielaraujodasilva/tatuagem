@@ -191,12 +191,76 @@ button { cursor: pointer; }
 
 .promo-panel {
   grid-column: 1 / -1;
-  padding: 20px;
+  padding: 0;
+  overflow: hidden;
   border-color: rgba(255,52,75,.42);
   background:
     linear-gradient(135deg, rgba(215,25,42,.24), rgba(9,9,9,.98) 46%),
     linear-gradient(180deg, rgba(27,27,27,.98), rgba(9,9,9,.98));
   box-shadow: 0 22px 62px rgba(215,25,42,.16), 0 18px 54px rgba(0,0,0,.45);
+}
+
+.promo-callout {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 0;
+  padding: 20px;
+  background: transparent;
+  color: #fff;
+  text-align: left;
+}
+
+.promo-kicker {
+  display: inline-flex;
+  margin-bottom: 6px;
+  padding: 6px 9px;
+  border: 1px solid rgba(255,52,75,.48);
+  border-radius: 999px;
+  background: rgba(215,25,42,.18);
+  color: #ffd6da;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.promo-callout strong {
+  display: block;
+  font-size: clamp(24px, 3vw, 36px);
+  line-height: 1;
+}
+
+.promo-callout span:last-child {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.promo-chevron {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.1);
+  font-weight: 900;
+  transition: transform .18s ease;
+}
+
+.promo-panel.open .promo-chevron {
+  transform: rotate(180deg);
+}
+
+.promo-details {
+  display: none;
+  padding: 0 20px 20px;
+}
+
+.promo-panel.open .promo-details {
+  display: grid;
+  gap: 12px;
 }
 
 .section-title {
@@ -246,11 +310,64 @@ button { cursor: pointer; }
 }
 
 .promo-current {
-  margin-top: 10px;
+  display: none;
+  margin-top: 4px;
   color: #ffcbd0;
   font-size: 13px;
   line-height: 1.4;
   font-weight: 800;
+}
+
+.promo-current.show {
+  display: grid;
+  gap: 10px;
+}
+
+.promo-result {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.promo-result-box {
+  padding: 13px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 8px;
+  background: rgba(0,0,0,.32);
+}
+
+.promo-result-box span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.promo-result-box strong {
+  display: block;
+  margin-top: 4px;
+  color: #fff;
+  font-size: 20px;
+}
+
+.promo-result-box.final strong {
+  color: #8dffad;
+}
+
+.promo-arrow {
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 900;
+}
+
+.promo-save {
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(37,211,102,.12);
+  border: 1px solid rgba(37,211,102,.28);
+  color: #d8ffe5;
 }
 
 .info {
@@ -403,6 +520,8 @@ button { cursor: pointer; }
   .info { position: static; }
   .map-wrap { min-height: 670px; }
   .promo-picker { grid-template-columns: 1fr; }
+  .promo-result { grid-template-columns: 1fr; }
+  .promo-arrow { display: none; }
 }
 
 @media (max-width: 720px) {
@@ -424,17 +543,21 @@ button { cursor: pointer; }
   </header>
 
   <section class="card promo-panel">
-    <div class="section-title">
+    <button class="promo-callout" id="promoToggle" type="button" aria-expanded="false">
       <div>
-        <h2>Promoções de fechamento</h2>
-        <p>Escolha uma promoção para selecionar o pacote completo.</p>
+        <span class="promo-kicker">Condições especiais</span>
+        <strong>Promoções de fechamento</strong>
+        <span>Abra para ver pacotes com desconto em braço, perna, costas e frontal.</span>
       </div>
+      <span class="promo-chevron">⌄</span>
+    </button>
+    <div class="promo-details" id="promoDetails">
+      <div class="promo-picker">
+        <select id="promoSelect"></select>
+        <button id="applyPromo" type="button">Aplicar promoção</button>
+      </div>
+      <div class="promo-current" id="promoCurrent"></div>
     </div>
-    <div class="promo-picker">
-      <select id="promoSelect"></select>
-      <button id="applyPromo" type="button">Aplicar promoção</button>
-    </div>
-    <div class="promo-current" id="promoCurrent"></div>
   </section>
 
   <section class="card map-card">
@@ -660,8 +783,11 @@ function calculate() {
   const applied = getAppliedPromo();
   const discount = applied?.desconto || 1;
   return {
+    originalMin: total.min,
+    originalMax: total.max,
     min: Math.round((total.min * discount) / 50) * 50,
     max: Math.round((total.max * discount) / 50) * 50,
+    discountPercent: applied ? Math.round((1 - Number(discount || 1)) * 100) : 0,
     promo: applied
   };
 }
@@ -764,10 +890,32 @@ function renderPromos() {
   const selectedPromo = activePromos.find(item => item.titulo === activePromoTitle) || getAppliedPromo();
   if (selectedPromo) {
     $("promoSelect").value = String(activePromos.indexOf(selectedPromo));
-    $("promoCurrent").innerText = `${selectedPromo.titulo}: ${selectedPromo.descricao}`;
+    const estimate = calculate();
+    if (estimate?.promo) {
+      const savedMin = Math.max(0, estimate.originalMin - estimate.min);
+      const savedMax = Math.max(0, estimate.originalMax - estimate.max);
+      $("promoCurrent").classList.add("show");
+      $("promoCurrent").innerHTML = `
+        <div><strong>${escapeHtml(selectedPromo.titulo)}</strong>: ${escapeHtml(selectedPromo.descricao || "")}</div>
+        <div class="promo-result">
+          <div class="promo-result-box"><span>Valor normal</span><strong>${money(estimate.originalMin)} a ${money(estimate.originalMax)}</strong></div>
+          <div class="promo-arrow">→</div>
+          <div class="promo-result-box final"><span>Com ${estimate.discountPercent}% OFF</span><strong>${money(estimate.min)} a ${money(estimate.max)}</strong></div>
+        </div>
+        <div class="promo-save">Economia estimada de ${money(savedMin)} a ${money(savedMax)} nesse pacote.</div>
+      `;
+    } else {
+      $("promoCurrent").classList.remove("show");
+      $("promoCurrent").innerHTML = "";
+    }
   } else {
-    $("promoCurrent").innerText = "";
+    $("promoCurrent").classList.remove("show");
+    $("promoCurrent").innerHTML = "";
   }
+}
+
+function escapeHtml(value = "") {
+  return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" }[char]));
 }
 
 function inferPromoView(item) {
@@ -821,6 +969,12 @@ $("applyPromo").addEventListener("click", () => {
   const activePromos = promotions.filter(item => item.ativa !== false);
   const item = activePromos[Number($("promoSelect").value)];
   if (item) selectPromo(item);
+});
+$("promoToggle").addEventListener("click", () => {
+  const panel = document.querySelector(".promo-panel");
+  const open = !panel.classList.contains("open");
+  panel.classList.toggle("open", open);
+  $("promoToggle").setAttribute("aria-expanded", String(open));
 });
 
 $("clearSelection").addEventListener("click", () => {

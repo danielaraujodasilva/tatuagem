@@ -72,6 +72,31 @@ p {
   flex-wrap: wrap;
 }
 
+.admin-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-tab {
+  min-height: 48px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 8px;
+  background: rgba(255,255,255,.055);
+  color: #fff;
+  font-weight: 900;
+}
+
+.admin-tab.active {
+  border-color: rgba(37,211,102,.48);
+  background: rgba(37,211,102,.16);
+  color: #d8ffe5;
+}
+
+.admin-panel[hidden] {
+  display: none;
+}
+
 .btn, .link {
   display: inline-grid;
   place-items: center;
@@ -240,7 +265,30 @@ td input[type="checkbox"] {
 }
 
 .promo-areas {
-  min-height: 64px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.promo-piece {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 6px;
+  background: #0d0d0d;
+  color: #eee;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: none;
+}
+
+.promo-piece input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--green);
 }
 
 .promo-preview {
@@ -295,10 +343,12 @@ td input[type="checkbox"] {
 
 @media (max-width: 760px) {
   body { padding: 14px 10px; }
+  .admin-tabs { grid-template-columns: 1fr; }
   .grid { grid-template-columns: 1fr; }
   .section-head { align-items: stretch; flex-direction: column; }
   .promo-form-grid,
-  .promo-preview { grid-template-columns: 1fr; }
+  .promo-preview,
+  .promo-areas { grid-template-columns: 1fr; }
   .promo-form-grid .wide { grid-column: 1; }
 }
 </style>
@@ -317,9 +367,15 @@ td input[type="checkbox"] {
     </div>
   </header>
 
+  <nav class="admin-tabs" aria-label="Seções do admin">
+    <button class="admin-tab active" type="button" data-admin-tab="geral">Configurações</button>
+    <button class="admin-tab" type="button" data-admin-tab="promocoes">Promoções</button>
+    <button class="admin-tab" type="button" data-admin-tab="valores">Valores das peças</button>
+  </nav>
+
   <div class="notice" id="notice">Configurações salvas.</div>
 
-  <section class="card">
+  <section class="card admin-panel" data-admin-panel="geral">
     <div class="grid">
       <div class="field">
         <label for="whatsapp">WhatsApp</label>
@@ -336,7 +392,7 @@ td input[type="checkbox"] {
     </div>
   </section>
 
-  <section class="card">
+  <section class="card admin-panel" data-admin-panel="promocoes" hidden>
     <div class="section-head">
       <div>
         <h2>Promoções</h2>
@@ -347,7 +403,7 @@ td input[type="checkbox"] {
     <div class="promo-list" id="promoRows"></div>
   </section>
 
-  <section class="card">
+  <section class="card admin-panel" data-admin-panel="valores" hidden>
     <div class="table-wrap">
       <table>
         <thead>
@@ -497,8 +553,10 @@ function renderPromoRows() {
           </div>
           <div class="field full">
             <label>Peças da promoção</label>
-            <textarea class="promo-areas" data-promo-field="ids">${escapeHtml((item.ids || []).join("\n"))}</textarea>
-            <p class="mini-help">Use uma peça por linha. Exemplo: peito_esq, peito_dir, abdomen.</p>
+            <div class="promo-areas" data-promo-pieces>
+              ${renderPieceOptions(item.ids || [])}
+            </div>
+            <p class="mini-help">Marque as peças que fazem parte da promoção. O valor é calculado automaticamente com base nas áreas marcadas.</p>
           </div>
         </div>
         <div class="promo-preview" data-promo-preview></div>
@@ -506,6 +564,31 @@ function renderPromoRows() {
     `;
   }).join("");
   updatePromoPreviews();
+}
+
+function allPromoPieces() {
+  const defaults = DEFAULT_PROMOS.flatMap(item => item.ids || []);
+  const saved = promotions.flatMap(item => item.ids || []);
+  return [...new Set([...defaults, ...saved])].sort((a, b) => pieceLabel(a).localeCompare(pieceLabel(b), "pt-BR"));
+}
+
+function renderPieceOptions(selectedIds) {
+  const selectedSet = new Set(selectedIds || []);
+  return allPromoPieces().map(id => `
+    <label class="promo-piece">
+      <input type="checkbox" data-piece-id="${escapeHtml(id)}" ${selectedSet.has(id) ? "checked" : ""}>
+      ${escapeHtml(pieceLabel(id))}
+    </label>
+  `).join("");
+}
+
+function pieceLabel(id) {
+  const value = String(id || "");
+  const region = regionFromPartId(value);
+  const base = areas[region]?.titulo || value.replace(/_/g, " ");
+  const side = value.includes("_esq") ? " esquerdo" : value.includes("_dir") ? " direito" : "";
+  const view = /costas|posterior|panturrilha|nuca|lombar|gluteo|externo/.test(value) ? " - costas" : " - frente";
+  return `${base}${side}${view}`;
 }
 
 function escapeHtml(value = "") {
@@ -563,10 +646,14 @@ function promoIdsFromTextarea(value) {
     .filter(Boolean);
 }
 
+function selectedPromoIds(card) {
+  return [...card.querySelectorAll("[data-piece-id]:checked")].map(input => input.dataset.pieceId);
+}
+
 function updatePromoPreviews() {
   const areaDraft = currentAreasFromRows();
   document.querySelectorAll("[data-promo-index]").forEach(card => {
-    const ids = promoIdsFromTextarea(card.querySelector('[data-promo-field="ids"]').value);
+    const ids = selectedPromoIds(card);
     const discountPercent = Math.min(80, Math.max(0, Number(card.querySelector('[data-promo-field="descontoPercent"]').value || 0)));
     const factor = 1 - (discountPercent / 100);
     const total = ids.reduce((sum, id) => {
@@ -594,7 +681,7 @@ function collectPromosFromForm() {
     return {
       titulo: card.querySelector('[data-promo-field="titulo"]').value.trim(),
       descricao: card.querySelector('[data-promo-field="descricao"]').value.trim(),
-      ids: promoIdsFromTextarea(card.querySelector('[data-promo-field="ids"]').value),
+      ids: selectedPromoIds(card),
       desconto: Number((1 - (discountPercent / 100)).toFixed(2)),
       view: card.querySelector('[data-promo-field="view"]').value,
       ativa: card.querySelector('[data-promo-field="ativa"]').checked
@@ -662,6 +749,14 @@ $("promoRows").addEventListener("click", event => {
 });
 $("rows").addEventListener("input", updatePromoPreviews);
 $("rows").addEventListener("change", updatePromoPreviews);
+document.querySelectorAll("[data-admin-tab]").forEach(button => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll("[data-admin-tab]").forEach(item => item.classList.toggle("active", item === button));
+    document.querySelectorAll("[data-admin-panel]").forEach(panel => {
+      panel.hidden = panel.dataset.adminPanel !== button.dataset.adminTab;
+    });
+  });
+});
 
 fillConfig();
 renderRows();
