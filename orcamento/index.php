@@ -184,7 +184,12 @@ button { cursor: pointer; }
 
 .promo-panel {
   grid-column: 1 / -1;
-  padding: 18px;
+  padding: 20px;
+  border-color: rgba(255,52,75,.42);
+  background:
+    linear-gradient(135deg, rgba(215,25,42,.24), rgba(9,9,9,.98) 46%),
+    linear-gradient(180deg, rgba(27,27,27,.98), rgba(9,9,9,.98));
+  box-shadow: 0 22px 62px rgba(215,25,42,.16), 0 18px 54px rgba(0,0,0,.45);
 }
 
 .section-title {
@@ -197,7 +202,7 @@ button { cursor: pointer; }
 
 .section-title h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: clamp(24px, 3vw, 34px);
 }
 
 .section-title p {
@@ -215,7 +220,7 @@ button { cursor: pointer; }
   border: 1px solid rgba(255,52,75,.35);
   border-radius: 8px;
   padding: 12px;
-  background: rgba(215,25,42,.1);
+  background: #101010;
   color: #fff;
   font-weight: 900;
   min-height: 48px;
@@ -233,9 +238,10 @@ button { cursor: pointer; }
 
 .promo-current {
   margin-top: 10px;
-  color: #ddd;
+  color: #ffcbd0;
   font-size: 13px;
   line-height: 1.4;
+  font-weight: 800;
 }
 
 .info {
@@ -407,6 +413,20 @@ button { cursor: pointer; }
     <p id="introText">Selecione a região, envie uma referência e receba uma prévia de orçamento direto no WhatsApp.</p>
   </header>
 
+  <section class="card promo-panel">
+    <div class="section-title">
+      <div>
+        <h2>Promoções de fechamento</h2>
+        <p>Escolha uma promoção para selecionar o pacote completo.</p>
+      </div>
+    </div>
+    <div class="promo-picker">
+      <select id="promoSelect"></select>
+      <button id="applyPromo" type="button">Aplicar promoção</button>
+    </div>
+    <div class="promo-current" id="promoCurrent"></div>
+  </section>
+
   <section class="card map-card">
     <div class="topbar">
       <div class="segmented" aria-label="Vista do corpo">
@@ -522,19 +542,6 @@ button { cursor: pointer; }
     <p class="note">Quanto melhor a referência, mais rápido fica para avaliar e responder.</p>
   </aside>
 
-  <section class="card promo-panel">
-    <div class="section-title">
-      <div>
-        <h2>Promoções de fechamento</h2>
-        <p>Escolha uma promoção para selecionar o pacote completo.</p>
-      </div>
-    </div>
-    <div class="promo-picker">
-      <select id="promoSelect"></select>
-      <button id="applyPromo" type="button">Aplicar promoção</button>
-    </div>
-    <div class="promo-current" id="promoCurrent"></div>
-  </section>
 </main>
 
 <div class="tooltip" id="tooltip"></div>
