@@ -438,6 +438,18 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
+    if (diag.registro_procurado) {
+      const fallback = normalizeDiagnosticEvent(diag.registro_procurado);
+      if (!calendar.getEventById(String(fallback.id))) {
+        calendar.addEvent(buildCalendarEventFromDetails(fallback));
+      }
+
+      showAlert('Agendamento encontrado pelo diagnostico e aberto na agenda. O endpoint de detalhes falhou, mas o registro existe.', 'success');
+      fillEventFormFromData(fallback);
+      modal.show();
+      return;
+    }
+
     const ultimos = Array.isArray(diag.ultimos_agendamentos)
       ? diag.ultimos_agendamentos.map(item => `#${item.id} ${item.data_tatuagem || 'sem data'} ${item.hora_inicio || ''} - ${item.descricao || 'sem descricao'}`).join(' | ')
       : '';
@@ -446,6 +458,43 @@ document.addEventListener('DOMContentLoaded', function () {
       `Agendamento #${id} nao existe na agenda deste banco. Banco: ${diag.database || 'desconhecido'}. Total na tabela: ${diag.total_tatuagens}. Maior ID: ${diag.maior_id || 'nenhum'}. Ultimos: ${ultimos || 'nenhum'}.`,
       'danger'
     );
+  }
+
+  function normalizeDiagnosticEvent(data) {
+    return {
+      id: data.id,
+      cliente_id: data.cliente_id || '',
+      descricao: data.descricao || 'Tatuagem',
+      valor: data.valor || 0,
+      data_tatuagem: data.data_tatuagem || initialDate || '',
+      hora_inicio: data.hora_inicio || '00:00:00',
+      hora_fim: data.hora_fim || data.hora_inicio || '01:00:00',
+      status: data.status || 'agendado',
+      observacoes: data.observacoes || '',
+      pomadas_anestesicas: data.pomadas_anestesicas || 0,
+      referencia_arte: data.referencia_arte || '',
+      cliente_nome: data.cliente_nome || 'Cliente vinculado'
+    };
+  }
+
+  function fillEventFormFromData(data) {
+    resetForm();
+    fields.id.value = data.id || '';
+    fields.descricao.value = data.descricao || '';
+    fields.status.value = data.status || 'agendado';
+    fields.data.value = data.data_tatuagem || '';
+    fields.inicio.value = data.hora_inicio ? data.hora_inicio.slice(0, 5) : '';
+    fields.fim.value = data.hora_fim ? data.hora_fim.slice(0, 5) : '';
+    fields.valor.value = data.valor || 0;
+    fields.cliente.value = data.cliente_nome || 'Cliente vinculado';
+    fields.observacoes.value = data.observacoes || '';
+    fields.pomadas.value = data.pomadas_anestesicas || 0;
+    fields.referencia.value = data.referencia_arte || '';
+
+    summary.title.textContent = data.descricao || 'Detalhes do agendamento';
+    summary.subtitle.textContent = 'Revise as informacoes, ajuste o status e salve quando estiver pronto.';
+    deleteBtn.style.display = 'inline-flex';
+    updateSummaryCards();
   }
 
   function buildCalendarEventFromDetails(data) {
