@@ -58,6 +58,7 @@ try {
             'extendedProps' => [
                 'status' => $status,
                 'valor' => (float)($row['valor'] ?? 0),
+                'cliente_id' => (int)($row['cliente_id'] ?? 0),
                 'observacoes' => $row['observacoes'] ?? '',
                 'pomadas_anestesicas' => (int)($row['pomadas_anestesicas'] ?? 0),
                 'referencia_arte' => $row['referencia_arte'] ?? '',

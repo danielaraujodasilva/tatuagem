@@ -11,6 +11,7 @@ $dataTat = trim((string) ($data['data_tatuagem'] ?? ''));
 $horaInicio = trim((string) ($data['hora_inicio'] ?? ''));
 $horaFim = trim((string) ($data['hora_fim'] ?? ''));
 $valor = (float) ($data['valor'] ?? 0);
+$clienteId = isset($data['cliente_id']) && (int)$data['cliente_id'] > 0 ? (int) $data['cliente_id'] : null;
 $observacoes = trim((string) ($data['observacoes'] ?? ''));
 $pomadas = max(0, (int) ($data['pomadas_anestesicas'] ?? 0));
 $referencia = trim((string) ($data['referencia_arte'] ?? ''));
@@ -21,8 +22,8 @@ if ($id <= 0 || $descricao === '' || $dataTat === '' || $horaInicio === '' || $h
     exit;
 }
 
-$stmt = $conn->prepare('UPDATE tatuagens SET descricao = ?, valor = ?, data_tatuagem = ?, hora_inicio = ?, hora_fim = ?, status = ?, observacoes = ?, pomadas_anestesicas = ?, referencia_arte = ? WHERE id = ?');
-$stmt->bind_param('sdsssssisi', $descricao, $valor, $dataTat, $horaInicio, $horaFim, $status, $observacoes, $pomadas, $referencia, $id);
+$stmt = $conn->prepare('UPDATE tatuagens SET cliente_id = ?, descricao = ?, valor = ?, data_tatuagem = ?, hora_inicio = ?, hora_fim = ?, status = ?, observacoes = ?, pomadas_anestesicas = ?, referencia_arte = ? WHERE id = ?');
+$stmt->bind_param('isdsssssisi', $clienteId, $descricao, $valor, $dataTat, $horaInicio, $horaFim, $status, $observacoes, $pomadas, $referencia, $id);
 $stmt->execute();
 $stmt->close();
 

@@ -106,6 +106,7 @@ if (empty($_GET['data'])) {
 
         <form id="eventForm" class="ficha-modal-panel">
           <input type="hidden" id="eventId" name="id">
+          <input type="hidden" id="eventClientId" name="cliente_id">
           <div class="row g-3">
             <div class="col-md-8">
               <label class="ficha-form-label" for="eventDescription">Descricao</label>
@@ -139,6 +140,13 @@ if (empty($_GET['data'])) {
             <div class="col-md-8">
               <label class="ficha-form-label" for="eventClientName">Cliente vinculado</label>
               <input type="text" id="eventClientName" class="form-control" disabled>
+            </div>
+            <div class="col-12">
+              <label class="ficha-form-label" for="eventClientSearch">Buscar cliente para vincular</label>
+              <div class="position-relative">
+                <input type="text" id="eventClientSearch" class="form-control" placeholder="Digite nome, telefone ou e-mail">
+                <div id="eventClientResults" class="ficha-autocomplete" style="display:none;"></div>
+              </div>
             </div>
             <div class="col-md-4">
               <label class="ficha-form-label" for="eventPomadas">Pomadas anestesicas</label>
@@ -190,6 +198,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const fields = {
     id: document.getElementById('eventId'),
+    clienteId: document.getElementById('eventClientId'),
+    clienteBusca: document.getElementById('eventClientSearch'),
+    clienteResultados: document.getElementById('eventClientResults'),
     descricao: document.getElementById('eventDescription'),
     status: document.getElementById('eventStatus'),
     data: document.getElementById('eventDate'),
@@ -268,6 +279,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   form.addEventListener('input', updateSummaryCards);
+  fields.clienteBusca.addEventListener('input', searchEventClients);
   fields.referencia.addEventListener('input', updateReferencePreview);
   document.getElementById('referenceOverlayClose').addEventListener('click', closeReferenceOverlay);
   referenceOverlay.addEventListener('click', event => {
@@ -289,6 +301,7 @@ document.addEventListener('DOMContentLoaded', function () {
       hora_inicio: fields.inicio.value,
       hora_fim: fields.fim.value,
       valor: fields.valor.value || 0,
+      cliente_id: fields.clienteId.value || '',
       observacoes: fields.observacoes.value.trim(),
       pomadas_anestesicas: fields.pomadas.value || 0,
       referencia_arte: fields.referencia.value.trim()
@@ -343,6 +356,10 @@ document.addEventListener('DOMContentLoaded', function () {
   function resetForm() {
     form.reset();
     fields.id.value = '';
+    fields.clienteId.value = '';
+    fields.clienteBusca.value = '';
+    fields.clienteResultados.style.display = 'none';
+    fields.clienteResultados.innerHTML = '';
     fields.valor.value = '0';
     fields.cliente.value = 'Sem cliente vinculado';
     fields.observacoes.value = '';
@@ -391,6 +408,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     resetForm();
     fields.id.value = data.id;
+    fields.clienteId.value = data.cliente_id || '';
+    fields.clienteBusca.value = '';
     fields.descricao.value = data.descricao || '';
     fields.status.value = data.status || 'agendado';
     fields.data.value = data.data_tatuagem || '';
@@ -419,6 +438,7 @@ document.addEventListener('DOMContentLoaded', function () {
       hora_inicio: event.startStr.slice(11, 16),
       hora_fim: event.endStr ? event.endStr.slice(11, 16) : event.startStr.slice(11, 16),
       valor: event.extendedProps.valor || 0,
+      cliente_id: event.extendedProps.cliente_id || '',
       observacoes: event.extendedProps.observacoes || '',
       pomadas_anestesicas: event.extendedProps.pomadas_anestesicas || 0,
       referencia_arte: event.extendedProps.referencia_arte || ''
@@ -531,6 +551,8 @@ document.addEventListener('DOMContentLoaded', function () {
   function fillEventFormFromData(data) {
     resetForm();
     fields.id.value = data.id || '';
+    fields.clienteId.value = data.cliente_id || '';
+    fields.clienteBusca.value = '';
     fields.descricao.value = data.descricao || '';
     fields.status.value = data.status || 'agendado';
     fields.data.value = data.data_tatuagem || '';
@@ -568,6 +590,7 @@ document.addEventListener('DOMContentLoaded', function () {
       extendedProps: {
         status: data.status || 'agendado',
         valor: Number(data.valor || 0),
+        cliente_id: data.cliente_id || '',
         observacoes: data.observacoes || '',
         pomadas_anestesicas: Number(data.pomadas_anestesicas || 0),
         referencia_arte: data.referencia_arte || '',
@@ -585,6 +608,56 @@ document.addEventListener('DOMContentLoaded', function () {
     if (telefone) return telefone;
     return 'Sem cliente vinculado';
   }
+
+  let clientSearchTimer = null;
+  function searchEventClients() {
+    clearTimeout(clientSearchTimer);
+    const term = fields.clienteBusca.value.trim();
+
+    clientSearchTimer = setTimeout(async () => {
+      if (term.length < 2) {
+        fields.clienteResultados.style.display = 'none';
+        fields.clienteResultados.innerHTML = '';
+        return;
+      }
+
+      const response = await fetch('api/buscar_clientes.php?q=' + encodeURIComponent(term));
+      const data = await response.json().catch(() => ({ clientes: [] }));
+      const clientes = Array.isArray(data.clientes) ? data.clientes : [];
+
+      if (!clientes.length) {
+        fields.clienteResultados.innerHTML = '<div class="autocomplete-suggestion">Nenhum cliente encontrado</div>';
+        fields.clienteResultados.style.display = 'block';
+        return;
+      }
+
+      fields.clienteResultados.innerHTML = clientes.map(cliente => `
+        <div class="autocomplete-suggestion" data-id="${escapeHtml(cliente.id)}" data-nome="${escapeHtml(cliente.nome || '')}" data-telefone="${escapeHtml(cliente.telefone || '')}">
+          ${escapeHtml(cliente.nome || 'Cliente')} - ${escapeHtml(cliente.telefone || '')}${cliente.email ? ' - ' + escapeHtml(cliente.email) : ''}
+        </div>
+      `).join('');
+      fields.clienteResultados.style.display = 'block';
+    }, 220);
+  }
+
+  fields.clienteResultados.addEventListener('click', event => {
+    const item = event.target.closest('.autocomplete-suggestion[data-id]');
+    if (!item) return;
+
+    const cliente = {
+      id: item.dataset.id,
+      cliente_id: item.dataset.id,
+      cliente_nome: item.dataset.nome || '',
+      cliente_telefone: item.dataset.telefone || ''
+    };
+
+    fields.clienteId.value = cliente.id;
+    fields.cliente.value = clientLabel(cliente);
+    fields.clienteBusca.value = '';
+    fields.clienteResultados.innerHTML = '';
+    fields.clienteResultados.style.display = 'none';
+    updateSummaryCards();
+  });
 
   function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({
