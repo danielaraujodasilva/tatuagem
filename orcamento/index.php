@@ -17,6 +17,10 @@
 }
 
 * { box-sizing: border-box; }
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
 
 body {
   margin: 0;
@@ -40,6 +44,7 @@ button { cursor: pointer; }
   grid-template-columns: minmax(0, 1fr) 410px;
   gap: 18px;
   align-items: start;
+  min-width: 0;
 }
 
 .header {
@@ -63,6 +68,8 @@ button { cursor: pointer; }
 }
 
 .card {
+  min-width: 0;
+  max-width: 100%;
   background: linear-gradient(180deg, rgba(27,27,27,.98), rgba(9,9,9,.98));
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -214,9 +221,11 @@ button { cursor: pointer; }
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
+  min-width: 0;
 }
 
 .promo-picker select {
+  min-width: 0;
   border: 1px solid rgba(255,52,75,.35);
   border-radius: 8px;
   padding: 12px;
@@ -280,6 +289,7 @@ button { cursor: pointer; }
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  min-width: 0;
   min-height: 32px;
   margin-bottom: 10px;
 }
@@ -401,7 +411,7 @@ button { cursor: pointer; }
   .segmented { width: 100%; display: grid; grid-auto-flow: column; }
   .map-card { padding: 10px; }
   .map-wrap { min-height: 570px; align-items: start; }
-  .body-map { width: min(118vw, 580px); }
+  .body-map { width: 100%; max-width: 560px; }
   .mobile-cta { display: block; }
 }
 </style>

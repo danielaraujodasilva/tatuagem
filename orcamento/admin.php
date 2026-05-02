@@ -108,6 +108,22 @@ p {
 }
 
 .field.full { grid-column: 1 / -1; }
+.section-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.section-head h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.section-head p {
+  margin: 4px 0 0;
+}
 
 label {
   color: #ddd;
@@ -170,6 +186,102 @@ td input[type="checkbox"] {
 .area-name { min-width: 170px; }
 .area-text { min-width: 360px; }
 
+.promo-list {
+  display: grid;
+  gap: 12px;
+}
+
+.promo-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 8px;
+  background: rgba(255,255,255,.035);
+}
+
+.promo-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.promo-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 900;
+}
+
+.promo-card-title input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--red);
+}
+
+.promo-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.promo-form-grid .wide { grid-column: span 2; }
+.promo-form-grid .full { grid-column: 1 / -1; }
+
+.promo-card select {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 6px;
+  background: #0d0d0d;
+  color: #fff;
+  padding: 10px;
+  outline: none;
+}
+
+.promo-areas {
+  min-height: 64px;
+}
+
+.promo-preview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.promo-preview-box {
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 8px;
+  background: #0d0d0d;
+}
+
+.promo-preview-box span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.promo-preview-box strong {
+  display: block;
+  margin-top: 4px;
+  color: #fff;
+  font-size: 18px;
+}
+
+.promo-preview-box.final strong {
+  color: #8dffad;
+}
+
+.mini-help {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .notice {
   display: none;
   border-left: 3px solid var(--green);
@@ -184,6 +296,10 @@ td input[type="checkbox"] {
 @media (max-width: 760px) {
   body { padding: 14px 10px; }
   .grid { grid-template-columns: 1fr; }
+  .section-head { align-items: stretch; flex-direction: column; }
+  .promo-form-grid,
+  .promo-preview { grid-template-columns: 1fr; }
+  .promo-form-grid .wide { grid-column: 1; }
 }
 </style>
 </head>
@@ -217,11 +333,18 @@ td input[type="checkbox"] {
         <label for="intro">Texto de abertura</label>
         <textarea id="intro"></textarea>
       </div>
-      <div class="field full">
-        <label for="promos">Promoções (JSON editável)</label>
-        <textarea id="promos"></textarea>
-      </div>
     </div>
+  </section>
+
+  <section class="card">
+    <div class="section-head">
+      <div>
+        <h2>Promoções</h2>
+        <p>Edite o desconto em percentual e veja na hora a faixa estimada com desconto.</p>
+      </div>
+      <button class="btn primary" id="addPromo" type="button">Nova promoção</button>
+    </div>
+    <div class="promo-list" id="promoRows"></div>
   </section>
 
   <section class="card">
@@ -317,7 +440,6 @@ function fillConfig() {
   $("whatsapp").value = config.whatsapp || "";
   $("cta").value = config.cta || "";
   $("intro").value = config.intro || "";
-  $("promos").value = JSON.stringify(promotions, null, 2);
 }
 
 function loadPromos() {
@@ -341,8 +463,143 @@ function renderRows() {
   `).join("");
 }
 
+function renderPromoRows() {
+  $("promoRows").innerHTML = promotions.map((item, index) => {
+    const descontoPercent = Math.round((1 - Number(item.desconto || 1)) * 100);
+    return `
+      <article class="promo-card" data-promo-index="${index}">
+        <div class="promo-card-head">
+          <label class="promo-card-title">
+            <input data-promo-field="ativa" type="checkbox" ${item.ativa !== false ? "checked" : ""}>
+            Promoção ativa
+          </label>
+          <button class="btn danger" type="button" data-remove-promo="${index}">Remover</button>
+        </div>
+        <div class="promo-form-grid">
+          <div class="field wide">
+            <label>Título</label>
+            <input data-promo-field="titulo" value="${escapeHtml(item.titulo || "")}">
+          </div>
+          <div class="field">
+            <label>Desconto (%)</label>
+            <input data-promo-field="descontoPercent" type="number" min="0" max="80" step="1" value="${descontoPercent}">
+          </div>
+          <div class="field">
+            <label>Visual do boneco</label>
+            <select data-promo-field="view">
+              <option value="frente" ${item.view === "frente" ? "selected" : ""}>Frente</option>
+              <option value="costas" ${item.view === "costas" ? "selected" : ""}>Costas</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label>Descrição</label>
+            <input data-promo-field="descricao" value="${escapeHtml(item.descricao || "")}">
+          </div>
+          <div class="field full">
+            <label>Peças da promoção</label>
+            <textarea class="promo-areas" data-promo-field="ids">${escapeHtml((item.ids || []).join("\n"))}</textarea>
+            <p class="mini-help">Use uma peça por linha. Exemplo: peito_esq, peito_dir, abdomen.</p>
+          </div>
+        </div>
+        <div class="promo-preview" data-promo-preview></div>
+      </article>
+    `;
+  }).join("");
+  updatePromoPreviews();
+}
+
 function escapeHtml(value = "") {
   return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" }[char]));
+}
+
+function money(value) {
+  return Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function roundPrice(value) {
+  return Math.round((Number(value || 0)) / 50) * 50;
+}
+
+function currentAreasFromRows() {
+  const nextAreas = { ...areas };
+  document.querySelectorAll("#rows tr").forEach(row => {
+    const id = row.dataset.id;
+    const next = { ...nextAreas[id] };
+    row.querySelectorAll("[data-field]").forEach(input => {
+      const field = input.dataset.field;
+      if (field === "ativa") next.ativa = input.checked;
+      else if (field === "min" || field === "max") next[field] = Number(input.value || 0);
+      else next[field] = input.value;
+    });
+    nextAreas[id] = next;
+  });
+  return nextAreas;
+}
+
+function regionFromPartId(id) {
+  const value = String(id || "");
+  if (value.includes("antebraco") && value.includes("interno")) return "antebraco_interno";
+  if (value.includes("antebraco") && value.includes("externo")) return "antebraco_externo";
+  if (value.includes("coxa") && value.includes("posterior")) return "coxa_posterior";
+  if (value.includes("coxa")) return "coxa_frontal";
+  if (value.includes("joelho") && value.includes("posterior")) return "joelho_posterior";
+  if (value.includes("joelho")) return "joelho";
+  if (value.includes("panturrilha")) return "panturrilha";
+  if (value.includes("tornozelo")) return "tornozelo";
+  if (value.includes("canela")) return "canela";
+  if (value.includes("ombro")) return "ombros";
+  if (value.includes("braco")) return "braco";
+  if (value.includes("peito")) return "peito";
+  if (value.includes("abdomen")) return "abdomen";
+  if (value.includes("costas")) return "costas";
+  if (value.includes("lombar")) return "lombar";
+  return "";
+}
+
+function promoIdsFromTextarea(value) {
+  return String(value || "")
+    .split(/[\n,]+/)
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+function updatePromoPreviews() {
+  const areaDraft = currentAreasFromRows();
+  document.querySelectorAll("[data-promo-index]").forEach(card => {
+    const ids = promoIdsFromTextarea(card.querySelector('[data-promo-field="ids"]').value);
+    const discountPercent = Math.min(80, Math.max(0, Number(card.querySelector('[data-promo-field="descontoPercent"]').value || 0)));
+    const factor = 1 - (discountPercent / 100);
+    const total = ids.reduce((sum, id) => {
+      const region = regionFromPartId(id);
+      const data = areaDraft[region];
+      return {
+        min: sum.min + Number(data?.min || 0),
+        max: sum.max + Number(data?.max || 0)
+      };
+    }, { min: 0, max: 0 });
+    const finalMin = roundPrice(total.min * factor);
+    const finalMax = roundPrice(total.max * factor);
+    const preview = card.querySelector("[data-promo-preview]");
+    preview.innerHTML = `
+      <div class="promo-preview-box"><span>Sem desconto</span><strong>${money(total.min)} a ${money(total.max)}</strong></div>
+      <div class="promo-preview-box"><span>Desconto</span><strong>${discountPercent}% OFF</strong></div>
+      <div class="promo-preview-box final"><span>Com desconto</span><strong>${money(finalMin)} a ${money(finalMax)}</strong></div>
+    `;
+  });
+}
+
+function collectPromosFromForm() {
+  return [...document.querySelectorAll("[data-promo-index]")].map(card => {
+    const discountPercent = Math.min(80, Math.max(0, Number(card.querySelector('[data-promo-field="descontoPercent"]').value || 0)));
+    return {
+      titulo: card.querySelector('[data-promo-field="titulo"]').value.trim(),
+      descricao: card.querySelector('[data-promo-field="descricao"]').value.trim(),
+      ids: promoIdsFromTextarea(card.querySelector('[data-promo-field="ids"]').value),
+      desconto: Number((1 - (discountPercent / 100)).toFixed(2)),
+      view: card.querySelector('[data-promo-field="view"]').value,
+      ativa: card.querySelector('[data-promo-field="ativa"]').checked
+    };
+  }).filter(item => item.titulo && item.ids.length);
 }
 
 function save() {
@@ -352,15 +609,7 @@ function save() {
     intro: $("intro").value.trim()
   };
 
-  try {
-    const parsedPromos = JSON.parse($("promos").value || "[]");
-    if (!Array.isArray(parsedPromos)) throw new Error("Promoções precisa ser uma lista.");
-    promotions = parsedPromos;
-  } catch (e) {
-    $("notice").textContent = `Erro nas promoções: ${e.message}`;
-    $("notice").classList.add("show");
-    return;
-  }
+  promotions = collectPromosFromForm();
 
   document.querySelectorAll("#rows tr").forEach(row => {
     const id = row.dataset.id;
@@ -391,15 +640,32 @@ function reset() {
   promotions = [...DEFAULT_PROMOS];
   fillConfig();
   renderRows();
+  renderPromoRows();
   $("notice").textContent = "Padrões restaurados.";
   $("notice").classList.add("show");
 }
 
 $("save").addEventListener("click", save);
 $("reset").addEventListener("click", reset);
+$("addPromo").addEventListener("click", () => {
+  promotions.push(promo("Nova promoção", "Descreva o pacote", [], .9, "frente"));
+  renderPromoRows();
+});
+$("promoRows").addEventListener("input", updatePromoPreviews);
+$("promoRows").addEventListener("change", updatePromoPreviews);
+$("promoRows").addEventListener("click", event => {
+  const button = event.target.closest("[data-remove-promo]");
+  if (!button) return;
+  promotions = collectPromosFromForm();
+  promotions.splice(Number(button.dataset.removePromo), 1);
+  renderPromoRows();
+});
+$("rows").addEventListener("input", updatePromoPreviews);
+$("rows").addEventListener("change", updatePromoPreviews);
 
 fillConfig();
 renderRows();
+renderPromoRows();
 </script>
 </body>
 </html>
