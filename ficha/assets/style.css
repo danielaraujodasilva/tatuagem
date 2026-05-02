@@ -459,18 +459,47 @@ body.ficha-body {
   padding: 10px 12px;
 }
 
+.fc .fc-daygrid-day-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 8px 8px 2px auto;
+  padding: 0;
+  border-radius: 999px;
+  color: #dbeafe;
+  text-decoration: none;
+  font-weight: 800;
+  background: rgba(15, 23, 42, 0.62);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.fc .fc-daygrid-day-number:hover {
+  color: #ffffff;
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.36);
+}
+
 .fc .fc-daygrid-day-frame {
-  padding: 4px;
+  padding: 8px;
 }
 
 .fc .fc-daygrid-day-events {
   display: grid;
-  gap: 4px;
-  padding: 0 4px 6px;
+  gap: 6px;
+  padding: 4px 6px 10px;
 }
 
 .fc .fc-day-today {
   background: rgba(56, 189, 248, 0.08) !important;
+}
+
+.fc .fc-day-today .fc-daygrid-day-number {
+  color: #06111f;
+  background: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.88);
+  box-shadow: 0 10px 22px rgba(56, 189, 248, 0.22);
 }
 
 .fc-theme-standard td,
@@ -515,9 +544,9 @@ body.ficha-body {
 .agenda-event-card {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 5px;
   min-width: 0;
-  padding: 5px 8px;
+  padding: 6px 9px;
   line-height: 1.15;
 }
 
@@ -526,6 +555,13 @@ body.ficha-body {
   font-size: 0.72rem;
   font-weight: 900;
   opacity: 0.76;
+}
+
+.agenda-event-separator {
+  flex: 0 0 auto;
+  font-size: 0.74rem;
+  font-weight: 900;
+  opacity: 0.62;
 }
 
 .agenda-event-title {

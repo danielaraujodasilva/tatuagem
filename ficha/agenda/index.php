@@ -264,7 +264,8 @@ document.addEventListener('DOMContentLoaded', function () {
     eventContent: function (info) {
       const time = info.timeText ? `<span class="agenda-event-time">${escapeHtml(info.timeText)}</span>` : '';
       const title = `<span class="agenda-event-title">${escapeHtml(info.event.title)}</span>`;
-      return { html: `<div class="agenda-event-card">${time}${title}</div>` };
+      const separator = info.timeText ? '<span class="agenda-event-separator">-</span>' : '';
+      return { html: `<div class="agenda-event-card">${time}${separator}${title}</div>` };
     },
     select: function (info) {
       resetForm();
