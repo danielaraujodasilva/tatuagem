@@ -962,9 +962,11 @@ $firstStage = $stageIds[0] ?? '1';
                 }
 
                 const fichaUrl = new URL(result.ficha_url, window.location.href).href;
+                const agendaUrl = result.agenda_url ? new URL(result.agenda_url, window.location.href).href : '';
                 resultBox.classList.remove('hidden');
                 resultBox.innerHTML = `
                     <strong>${escapeHtml(result.message || 'Agendamento salvo.')}</strong>
+                    ${agendaUrl ? `<div class="mt-3"><a href="${escapeHtml(agendaUrl)}" target="_blank" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-xl font-semibold"><i class="fas fa-calendar-days"></i> Abrir na agenda</a></div>` : ''}
                     <div class="mt-2 text-gray-200">Link para o cliente completar a ficha:</div>
                     <div class="mt-2 flex flex-col md:flex-row gap-2">
                         <input id="scheduleFichaLink" readonly value="${escapeHtml(fichaUrl)}" class="flex-1 bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm">

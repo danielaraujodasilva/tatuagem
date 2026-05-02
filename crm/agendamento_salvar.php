@@ -151,12 +151,41 @@ try {
     $agendamentoId = (int)$stmt->insert_id;
     $stmt->close();
 
+    if ($agendamentoId <= 0) {
+        throw new RuntimeException('O banco nao confirmou o ID do agendamento.');
+    }
+
+    $stmt = $conn->prepare('
+        SELECT
+            t.id,
+            t.descricao,
+            t.data_tatuagem,
+            t.hora_inicio,
+            t.hora_fim,
+            t.status,
+            c.nome AS cliente_nome
+        FROM tatuagens t
+        LEFT JOIN clientes c ON c.id = t.cliente_id
+        WHERE t.id = ?
+        LIMIT 1
+    ');
+    $stmt->bind_param('i', $agendamentoId);
+    $stmt->execute();
+    $agendaEvento = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!$agendaEvento) {
+        throw new RuntimeException('O agendamento foi salvo, mas nao apareceu na consulta da agenda.');
+    }
+
     echo json_encode([
         'ok' => true,
         'agendamento_id' => $agendamentoId,
         'cliente_id' => $clienteId,
         'cliente_criado' => $clienteCriado,
         'ficha_url' => '../ficha/cadastro_publico.php?cliente_id=' . $clienteId,
+        'agenda_url' => '../ficha/agenda/?data=' . urlencode($data) . '&agendamento_id=' . $agendamentoId,
+        'agenda_evento' => $agendaEvento,
         'message' => $clienteCriado
             ? 'Cliente basico criado e agendamento salvo.'
             : 'Agendamento salvo para cliente existente.',

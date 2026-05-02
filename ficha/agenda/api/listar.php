@@ -7,7 +7,7 @@ $sql = '
         t.id,
         t.descricao AS title,
         CONCAT(t.data_tatuagem, "T", t.hora_inicio) AS start,
-        CONCAT(t.data_tatuagem, "T", t.hora_fim) AS end,
+        CONCAT(t.data_tatuagem, "T", COALESCE(t.hora_fim, ADDTIME(t.hora_inicio, "01:00:00"))) AS end,
         t.status,
         t.valor,
         t.observacoes,
@@ -16,6 +16,9 @@ $sql = '
         c.nome AS cliente_nome
     FROM tatuagens t
     LEFT JOIN clientes c ON c.id = t.cliente_id
+    WHERE t.data_tatuagem IS NOT NULL
+      AND t.hora_inicio IS NOT NULL
+    ORDER BY t.data_tatuagem ASC, t.hora_inicio ASC
 ';
 
 $result = $conn->query($sql);

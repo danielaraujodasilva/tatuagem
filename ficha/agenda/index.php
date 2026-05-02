@@ -148,6 +148,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const modal = new bootstrap.Modal(modalElement);
   const form = document.getElementById('eventForm');
   const calendarEl = document.getElementById('calendar');
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialDate = urlParams.get('data') || undefined;
+  const highlightedEventId = urlParams.get('agendamento_id') || '';
 
   const fields = {
     id: document.getElementById('eventId'),
@@ -191,6 +194,7 @@ document.addEventListener('DOMContentLoaded', function () {
     },
     slotMinTime: '08:00:00',
     slotMaxTime: '23:00:00',
+    initialDate: initialDate,
     nowIndicator: true,
     selectable: true,
     editable: true,
@@ -198,6 +202,11 @@ document.addEventListener('DOMContentLoaded', function () {
     eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
     height: 'auto',
     events: 'api/listar.php',
+    eventDidMount: function (info) {
+      if (highlightedEventId && String(info.event.id) === String(highlightedEventId)) {
+        info.el.style.boxShadow = '0 0 0 3px rgba(16,185,129,.85)';
+      }
+    },
     select: function (info) {
       resetForm();
       summary.title.textContent = 'Novo agendamento';
