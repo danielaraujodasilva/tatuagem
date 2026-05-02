@@ -417,7 +417,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const data = await response.json().catch(() => null);
 
     if (!response.ok || !data || data.status === 'error') {
-      showAlert('O link abriu a data certa, mas a agenda nao encontrou esse agendamento pelo ID ' + id + '.', 'danger');
+      await showLinkedEventDiagnostics(id);
       return;
     }
 
@@ -427,6 +427,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
     showAlert('Agendamento encontrado no banco e destacado na agenda.', 'success');
     loadEvent(data.id);
+  }
+
+  async function showLinkedEventDiagnostics(id) {
+    const response = await fetch('api/diagnostico.php?id=' + encodeURIComponent(id));
+    const diag = await response.json().catch(() => null);
+
+    if (!response.ok || !diag || !diag.ok) {
+      showAlert('O link abriu a data certa, mas a agenda nao encontrou esse agendamento pelo ID ' + id + ' e o diagnostico tambem falhou.', 'danger');
+      return;
+    }
+
+    const ultimos = Array.isArray(diag.ultimos_agendamentos)
+      ? diag.ultimos_agendamentos.map(item => `#${item.id} ${item.data_tatuagem || 'sem data'} ${item.hora_inicio || ''} - ${item.descricao || 'sem descricao'}`).join(' | ')
+      : '';
+
+    showAlert(
+      `Agendamento #${id} nao existe na agenda deste banco. Banco: ${diag.database || 'desconhecido'}. Total na tabela: ${diag.total_tatuagens}. Maior ID: ${diag.maior_id || 'nenhum'}. Ultimos: ${ultimos || 'nenhum'}.`,
+      'danger'
+    );
   }
 
   function buildCalendarEventFromDetails(data) {

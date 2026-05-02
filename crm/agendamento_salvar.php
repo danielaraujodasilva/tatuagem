@@ -178,6 +178,8 @@ try {
         throw new RuntimeException('O agendamento foi salvo, mas nao apareceu na consulta da agenda.');
     }
 
+    $dbAtual = $conn->query('SELECT DATABASE() AS db')->fetch_assoc()['db'] ?? '';
+
     echo json_encode([
         'ok' => true,
         'agendamento_id' => $agendamentoId,
@@ -186,6 +188,7 @@ try {
         'ficha_url' => '../ficha/cadastro_publico.php?cliente_id=' . $clienteId,
         'agenda_url' => '../ficha/agenda/?data=' . urlencode($data) . '&agendamento_id=' . $agendamentoId,
         'agenda_evento' => $agendaEvento,
+        'database' => $dbAtual,
         'message' => $clienteCriado
             ? 'Cliente basico criado e agendamento salvo.'
             : 'Agendamento salvo para cliente existente.',
