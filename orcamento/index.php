@@ -8,48 +8,43 @@
 <style>
 :root {
   --bg: #080808;
-  --card: #151515;
-  --card-2: #1d1d1d;
   --line: rgba(255,255,255,.12);
   --text: #fff;
   --muted: #b9b9b9;
   --red: #d7192a;
   --red-2: #ff344b;
   --green: #25d366;
-  --amber: #f1b64b;
 }
 
 * { box-sizing: border-box; }
+
 body {
   margin: 0;
   min-height: 100vh;
   font-family: Arial, Helvetica, sans-serif;
   color: var(--text);
   background:
-    linear-gradient(140deg, rgba(215,25,42,.18), transparent 30%),
-    linear-gradient(320deg, rgba(255,255,255,.07), transparent 26%),
+    linear-gradient(140deg, rgba(215,25,42,.17), transparent 30%),
+    linear-gradient(320deg, rgba(255,255,255,.06), transparent 26%),
     var(--bg);
   padding: 22px 14px 92px;
 }
 
-button, input, textarea, select { font: inherit; }
+button, input, textarea { font: inherit; }
 button { cursor: pointer; }
 
 .container {
-  width: min(1320px, 100%);
+  width: min(1260px, 100%);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 420px;
+  grid-template-columns: minmax(0, 1fr) 410px;
   gap: 18px;
   align-items: start;
 }
 
 .header {
   grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px;
-  align-items: end;
+  padding: 4px 2px;
 }
 
 .header h1 {
@@ -78,9 +73,7 @@ button { cursor: pointer; }
 
 .topbar {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+  justify-content: center;
   margin-bottom: 12px;
 }
 
@@ -93,7 +86,7 @@ button { cursor: pointer; }
   background: #0c0c0c;
 }
 
-.segmented button, .ghost-btn, .admin-link {
+.segmented button, .ghost-btn {
   min-height: 40px;
   border: 1px solid transparent;
   border-radius: 6px;
@@ -101,7 +94,6 @@ button { cursor: pointer; }
   background: transparent;
   color: #fff;
   font-weight: 900;
-  text-decoration: none;
 }
 
 .segmented button.active {
@@ -109,9 +101,7 @@ button { cursor: pointer; }
   border-color: rgba(255,255,255,.14);
 }
 
-.ghost-btn, .admin-link {
-  display: inline-grid;
-  place-items: center;
+.ghost-btn {
   background: #121212;
   border-color: var(--line);
 }
@@ -133,49 +123,41 @@ button { cursor: pointer; }
 
 .body-base {
   fill: #171717;
-  stroke: #777;
+  stroke: rgba(255,255,255,.46);
   stroke-width: 2.4;
+  filter: drop-shadow(0 24px 32px rgba(0,0,0,.45));
 }
 
-.body-shadow { fill: rgba(255,255,255,.045); }
+.body-shade { fill: rgba(255,255,255,.045); }
+
 .body-line {
   fill: none;
-  stroke: rgba(255,255,255,.16);
-  stroke-width: 1.35;
+  stroke: rgba(255,255,255,.13);
+  stroke-width: 1.3;
 }
 
 .body-part {
-  fill: rgba(215,25,42,.13);
-  stroke: rgba(255,255,255,.54);
+  fill: transparent;
+  stroke: transparent;
   stroke-width: 1.25;
   cursor: pointer;
-  transition: fill .18s ease, stroke .18s ease, filter .18s ease, transform .18s ease;
-  transform-box: fill-box;
-  transform-origin: center;
+  transition: fill .18s ease, stroke .18s ease, filter .18s ease, opacity .18s ease;
 }
 
 .body-part:hover, .body-part.focused {
-  fill: rgba(215,25,42,.52);
-  stroke: #fff;
-  filter: drop-shadow(0 0 8px rgba(255,52,75,.85));
+  fill: rgba(215,25,42,.34);
+  stroke: rgba(255,255,255,.75);
+  filter: drop-shadow(0 0 9px rgba(255,52,75,.85));
 }
 
 .body-part.selected {
-  fill: rgba(255,52,75,.88);
+  fill: rgba(255,52,75,.68);
   stroke: #fff;
-  filter: drop-shadow(0 0 13px rgba(255,52,75,.95));
-  animation: pulse .28s ease;
+  filter: drop-shadow(0 0 14px rgba(255,52,75,.95));
 }
 
 .body-part.disabled {
-  opacity: .22;
   pointer-events: none;
-}
-
-@keyframes pulse {
-  0% { transform: scale(.98); }
-  55% { transform: scale(1.035); }
-  100% { transform: scale(1); }
 }
 
 .tooltip {
@@ -196,31 +178,14 @@ button { cursor: pointer; }
 
 .tooltip.show { opacity: 1; }
 
-.legend {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 12px;
-  color: #d3d3d3;
+.map-hint {
+  max-width: 560px;
+  margin: 12px auto 0;
+  color: var(--muted);
   font-size: 13px;
+  text-align: center;
+  line-height: 1.4;
 }
-
-.legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-  display: inline-block;
-}
-.dot.low { background: #5ad66f; }
-.dot.mid { background: var(--amber); }
-.dot.high { background: var(--red-2); }
 
 .info {
   position: sticky;
@@ -287,7 +252,6 @@ button { cursor: pointer; }
 
 .form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
@@ -296,8 +260,6 @@ button { cursor: pointer; }
   gap: 6px;
 }
 
-.field.full { grid-column: 1 / -1; }
-
 .field label {
   color: #ddd;
   font-size: 12px;
@@ -305,7 +267,7 @@ button { cursor: pointer; }
   text-transform: uppercase;
 }
 
-.field input, .field textarea, .field select {
+.field input, .field textarea {
   width: 100%;
   border: 1px solid rgba(255,255,255,.13);
   border-radius: 6px;
@@ -316,18 +278,9 @@ button { cursor: pointer; }
 }
 
 .field textarea {
-  min-height: 86px;
+  min-height: 92px;
   resize: vertical;
 }
-
-.range-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
-  align-items: center;
-}
-
-input[type="range"] { accent-color: var(--red); }
 
 .upload-preview {
   display: none;
@@ -351,49 +304,22 @@ input[type="range"] { accent-color: var(--red); }
 .upload-preview strong { display: block; }
 .upload-preview span { color: var(--muted); font-size: 13px; }
 
-.details {
-  display: grid;
-  gap: 8px;
-  margin: 14px 0;
-}
-
-.detail {
-  padding: 11px 12px;
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 6px;
-  background: rgba(255,255,255,.045);
-  color: #d1d1d1;
-  line-height: 1.38;
-}
-
-.detail strong { color: #fff; }
-
-.warnings {
-  display: grid;
-  gap: 7px;
-  margin: 12px 0;
-}
-
 .warning {
-  border-left: 3px solid var(--amber);
+  margin: 12px 0 0;
+  border-left: 3px solid rgba(255,255,255,.28);
   border-radius: 4px;
-  padding: 9px 10px;
-  background: rgba(241,182,75,.1);
-  color: #f5e4bf;
+  padding: 10px 11px;
+  background: rgba(255,255,255,.055);
+  color: #d8d8d8;
   font-size: 13px;
-  line-height: 1.35;
-}
-
-.actions {
-  display: grid;
-  gap: 10px;
-  margin-top: 14px;
+  line-height: 1.38;
 }
 
 .whatsapp {
   display: grid;
   place-items: center;
   min-height: 50px;
+  margin-top: 14px;
   padding: 12px;
   border-radius: 6px;
   background: var(--green);
@@ -408,57 +334,6 @@ input[type="range"] { accent-color: var(--red); }
   color: #aaa;
   font-size: 13px;
   line-height: 1.45;
-}
-
-.portfolio {
-  grid-column: 1 / -1;
-  padding: 18px;
-}
-
-.section-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: end;
-  gap: 14px;
-  margin-bottom: 12px;
-}
-
-.section-title h2 {
-  margin: 0;
-  font-size: 24px;
-}
-
-.section-title p {
-  margin: 4px 0 0;
-  color: var(--muted);
-}
-
-.gallery {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.gallery-card {
-  min-height: 170px;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: 8px;
-  background: #0d0d0d;
-}
-
-.gallery-card img {
-  display: block;
-  width: 100%;
-  height: 138px;
-  object-fit: cover;
-}
-
-.gallery-card div {
-  padding: 8px;
-  color: #ddd;
-  font-size: 12px;
-  font-weight: 900;
 }
 
 .mobile-cta {
@@ -482,20 +357,15 @@ input[type="range"] { accent-color: var(--red); }
   .container { grid-template-columns: 1fr; }
   .info { position: static; }
   .map-wrap { min-height: 670px; }
-  .gallery { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (max-width: 720px) {
   body { padding: 14px 10px 88px; }
-  .header { grid-template-columns: 1fr; }
   .header h1 { font-size: 33px; }
-  .topbar { display: grid; }
   .segmented { width: 100%; display: grid; grid-auto-flow: column; }
   .map-card { padding: 10px; }
   .map-wrap { min-height: 570px; align-items: start; }
   .body-map { width: min(118vw, 580px); }
-  .form-grid { grid-template-columns: 1fr; }
-  .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mobile-cta { display: block; }
 }
 </style>
@@ -503,11 +373,8 @@ input[type="range"] { accent-color: var(--red); }
 <body>
 <main class="container">
   <header class="header">
-    <div>
-      <h1>Mapa de Orçamento Tattoo</h1>
-      <p id="introText">Selecione a região, informe o tamanho e envie uma referência. O sistema monta uma prévia de orçamento e uma mensagem pronta para o WhatsApp.</p>
-    </div>
-    <a class="admin-link" href="admin.php">Admin</a>
+    <h1>Mapa de Orçamento Tattoo</h1>
+    <p id="introText">Selecione a região, envie uma referência e receba uma prévia de orçamento direto no WhatsApp.</p>
   </header>
 
   <section class="card map-card">
@@ -522,8 +389,8 @@ input[type="range"] { accent-color: var(--red); }
       <svg id="frente" class="body-map" viewBox="0 0 420 820" aria-label="Mapa corporal frente">
         <ellipse class="body-base" cx="210" cy="68" rx="36" ry="44"/>
         <path class="body-base" d="M174 116 Q210 142 246 116 L258 158 Q286 177 305 240 Q318 288 300 334 Q290 382 280 457 L270 520 L264 704 Q244 746 220 716 L210 528 L200 716 Q176 746 156 704 L150 520 L140 457 Q130 382 120 334 Q102 288 115 240 Q134 177 162 158 Z"/>
-        <path class="body-shadow" d="M180 176 Q210 156 240 176 L250 284 Q210 314 170 284 Z"/>
-        <path class="body-shadow" d="M174 396 Q210 426 246 396 L258 462 Q210 488 162 462 Z"/>
+        <path class="body-shade" d="M178 176 Q210 155 242 176 L251 285 Q210 314 169 285 Z"/>
+        <path class="body-shade" d="M174 396 Q210 426 246 396 L258 462 Q210 488 162 462 Z"/>
         <path class="body-line" d="M188 70 Q210 78 232 70 M196 94 Q210 102 224 94 M181 184 Q210 202 239 184 M210 166 L210 462 M170 296 Q210 318 250 296 M166 458 Q210 488 254 458"/>
 
         <path class="body-part" data-id="cabeca" data-region="cabeca" d="M174 61 Q178 25 210 23 Q242 25 246 61 Q249 101 210 116 Q171 101 174 61Z"/>
@@ -594,12 +461,7 @@ input[type="range"] { accent-color: var(--red); }
         <path class="body-part" data-id="pe_dir_costas" data-region="pe" d="M266 744 Q242 734 218 752 Q210 772 232 782 L274 776 Q284 760 266 744 Z"/>
       </svg>
     </div>
-
-    <div class="legend">
-      <span><i class="dot low"></i>Até R$ 1.500</span>
-      <span><i class="dot mid"></i>R$ 1.500 a R$ 3.500</span>
-      <span><i class="dot high"></i>Acima de R$ 3.500</span>
-    </div>
+    <p class="map-hint">Toque ou passe o mouse na região desejada. As áreas ficam discretas e só acendem quando você interage.</p>
   </section>
 
   <aside class="card info">
@@ -614,59 +476,31 @@ input[type="range"] { accent-color: var(--red); }
     <p class="desc" id="descricao">Clique em uma parte do corpo para montar a estimativa inicial.</p>
 
     <div class="form-grid">
-      <div class="field full">
+      <div class="field">
         <label for="cliente">Nome do cliente</label>
         <input id="cliente" type="text" placeholder="Ex.: Ana Souza" />
       </div>
-      <div class="field full">
-        <label for="tamanho">Tamanho</label>
-        <div class="range-row">
-          <input id="tamanho" type="range" min="0" max="3" step="1" value="1" />
-          <strong id="tamanhoLabel">Médio</strong>
-        </div>
-      </div>
-      <div class="field full">
+      <div class="field">
         <label for="referenciaTexto">Referência / ideia</label>
-        <textarea id="referenciaTexto" placeholder="Descreva a ideia, estilo desejado ou cole um link de referência."></textarea>
+        <textarea id="referenciaTexto" placeholder="Descreva a ideia ou cole um link de referência."></textarea>
       </div>
-      <div class="field full">
+      <div class="field">
         <label for="referenciaFoto">Foto de referência</label>
         <input id="referenciaFoto" type="file" accept="image/*" />
         <div class="upload-preview" id="uploadPreview">
           <img id="uploadImage" alt="Prévia da referência enviada" />
           <div>
             <strong id="uploadName"></strong>
-            <span>A imagem não vai anexada automaticamente pelo link. O cliente pode enviá-la na conversa do WhatsApp.</span>
+            <span>A imagem não vai anexada pelo link. O cliente envia a foto dentro da conversa.</span>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="details">
-      <div class="detail"><strong>Dor:</strong> <span id="dor">---</span></div>
-      <div class="detail"><strong>Funciona melhor:</strong> <span id="indicacao">---</span></div>
-      <div class="detail"><strong>Orientação:</strong> <span id="orientacao">---</span></div>
-      <div class="detail"><strong>Tamanho mínimo:</strong> <span id="minimo">---</span></div>
-    </div>
-
-    <div class="warnings" id="warnings"></div>
-
-    <div class="actions">
-      <a id="zap" class="whatsapp" href="#" target="_blank" rel="noopener">Quero orçamento agora</a>
-    </div>
-
-    <p class="note">Valor final depende de avaliação da referência, pele, encaixe do desenho e fechamento da agenda.</p>
+    <div class="warning">Essa estimativa é inicial. Valor final, detalhes técnicos e viabilidade do desenho são alinhados no WhatsApp com base na referência.</div>
+    <a id="zap" class="whatsapp" href="#" target="_blank" rel="noopener">Quero orçamento agora</a>
+    <p class="note">Quanto melhor a referência, mais rápido fica para avaliar e responder.</p>
   </aside>
-
-  <section class="card portfolio">
-    <div class="section-title">
-      <div>
-        <h2>Exemplos e recomendações</h2>
-        <p id="portfolioIntro">Ao selecionar uma região, a galeria e os textos mudam para guiar o cliente.</p>
-      </div>
-    </div>
-    <div class="gallery" id="gallery"></div>
-  </section>
 </main>
 
 <div class="tooltip" id="tooltip"></div>
@@ -676,64 +510,43 @@ input[type="range"] { accent-color: var(--red); }
 const DEFAULT_CONFIG = {
   whatsapp: "5511947573311",
   cta: "Quero orçamento agora",
-  intro: "Selecione a região, informe o tamanho e envie uma referência. O sistema monta uma prévia de orçamento e uma mensagem pronta para o WhatsApp.",
-  gallery: [
-    "../fotos/0f20fb8e-5fb1-499f-aead-4f6b93210dc9.jpg",
-    "../fotos/18213344-55a0-4de9-88f6-9693601f6984.jpg",
-    "../fotos/1ddbc90c-0eb4-4976-8406-e19c4fd273b9.jpg",
-    "../fotos/248ef59a-0795-4cf4-be02-b2643415556e.jpg",
-    "../fotos/2a5282e1-ad90-45f8-82d9-8f3b457bc102.jpg",
-    "../fotos/35c9c706-59e5-455b-aa11-b26370b37eb4.jpg",
-    "../fotos/3dbb1060-bdd3-405f-a669-dc9b4da5a1de.jpg",
-    "../fotos/4e0ebe81-bced-4d86-94e7-5cb2f9973c22.jpg"
-  ]
+  intro: "Selecione a região, envie uma referência e receba uma prévia de orçamento direto no WhatsApp."
 };
 
 const DEFAULT_AREAS = {
-  cabeca: area("Cabeça", 2500, 6500, "Área extrema e muito visível. Precisa de leitura forte, contraste e desenho que envelheça bem.", "Alta", "Blackwork, ornamental e projetos ousados", "Encaixe anatômico", "Médio para cima", "Área muito visível. Avaliação é obrigatória antes de fechar."),
-  pescoco: area("Pescoço", 1500, 3500, "Região de alto impacto visual, boa para composições verticais e fechamentos.", "Alta", "Lettering, blackwork, ornamental", "Vertical ou anatômica", "Médio", "Região com movimento e exposição solar. Contraste ajuda muito."),
-  nuca: area("Nuca", 900, 2200, "Boa para peças menores, símbolos, ornamentos e complemento de costas ou pescoço.", "Média", "Projetos pequenos e médios", "Vertical ou central", "Pequeno forte", ""),
-  ombros: area("Ombros", 1800, 4200, "Excelente para encaixe anatômico, fechamentos de braço e projetos com presença.", "Média", "Realismo, mandalas, blackwork", "Circular ou anatômica", "Médio", "Muito procurado para começar fechamento de braço."),
-  peito: area("Peito", 2500, 7000, "Área grande e visual, ideal para projetos simétricos ou peça central de impacto.", "Alta", "Realismo, blackwork, ornamental", "Horizontal ou central", "Grande", ""),
-  abdomen: area("Abdômen", 2000, 5600, "Área ampla, sensível e com variação de elasticidade. Pede planejamento limpo.", "Alta", "Projetos verticais, centrais e fechamentos", "Vertical ou central", "Médio para grande", "Distorce mais com movimento e variação corporal."),
-  costela: area("Costela", 1800, 5600, "Ótima para composições laterais, florais, lettering e projetos verticais.", "Alta", "Florais, lettering, realismo", "Vertical", "Médio", "Região sensível. Linhas muito finas precisam de respiro."),
-  quadril: area("Quadril / Virilha", 1500, 4200, "Boa para peças ornamentais, sensuais ou complemento de perna e abdômen.", "Média/Alta", "Ornamental, fineline e composições laterais", "Anatômica", "Médio", ""),
-  costas: area("Costas", 3200, 12000, "Área nobre para projetos grandes, painéis, simetrias e fechamentos de alto impacto.", "Média", "Realismo, blackwork, oriental e painéis", "Vertical, central ou painel", "Grande", "Costas é uma área única, sem divisão alta/baixa."),
-  lombar: area("Lombar", 1500, 4200, "Boa para peças centrais, ornamentais e complementos de fechamento.", "Média/Alta", "Ornamentos, mandalas e simetria", "Horizontal ou central", "Médio", ""),
-  braco: area("Braço", 1800, 4800, "Uma das melhores áreas: boa leitura, boa resistência e encaixe anatômico.", "Média", "Realismo, anime, blackwork", "Vertical ou anatômica", "Médio", "Uma das áreas mais procuradas."),
-  antebraco_interno: area("Antebraço interno", 1200, 3400, "Área muito procurada, boa para projetos detalhados e leitura frontal.", "Média/Alta", "Fineline, realismo, lettering", "Vertical", "Médio", "Campeã de orçamento."),
-  antebraco_externo: area("Antebraço externo", 1200, 3200, "Área resistente e excelente para contraste, com boa leitura no dia a dia.", "Média", "Projetos visíveis e fechamentos", "Vertical", "Médio", ""),
-  pulso: area("Pulso", 600, 1600, "Área menor e delicada para símbolos, pulseiras, detalhes e complementos.", "Média/Alta", "Lettering, símbolos e ornamentos", "Circular ou horizontal", "Pequeno simples", "Linhas muito pequenas podem abrir com o tempo."),
-  mao: area("Mão", 900, 2800, "Área muito visível e com maior desgaste. Precisa de desenho forte e manutenção consciente.", "Alta", "Blackwork, símbolos e lettering", "Encaixe anatômico", "Pequeno forte", "Mão desgasta mais. Contraste e simplicidade vencem."),
-  dedos_mao: area("Dedos da mão", 400, 1300, "Área pequena, visível e com alto desgaste. Melhor para símbolos simples e letras.", "Alta", "Símbolos simples, letras e ornamentos", "Linear", "Micro, mas sem excesso", "Dedos precisam de desenho simples para não virar borrão com o tempo."),
-  coxa_frontal: area("Coxa frontal", 2500, 7200, "Área ampla para peças grandes, fechamentos e projetos com bastante detalhe.", "Média", "Realismo, anime, blackwork", "Vertical", "Grande", "Ótima para projeto grande com impacto."),
-  coxa_posterior: area("Coxa posterior", 2300, 6600, "Excelente para continuidade de fechamento de perna e composição vertical.", "Média/Alta", "Fechamento de perna e projetos verticais", "Vertical", "Grande", ""),
-  gluteo: area("Glúteo", 1800, 4600, "Boa para composições grandes e complementos de perna ou quadril.", "Média", "Ornamental, blackwork e fechamentos", "Anatômica", "Médio", ""),
-  joelho: area("Joelho", 1200, 3800, "Área complexa, dobra bastante e exige desenho inteligente.", "Alta", "Ornamentos, mandalas e blackwork", "Circular", "Médio", "Região que distorce com movimento. Desenho precisa respirar."),
-  joelho_posterior: area("Parte de trás do joelho", 900, 2700, "Área sensível e delicada, geralmente usada para complementar fechamento de perna.", "Alta", "Complementos e ornamentos", "Horizontal ou anatômica", "Pequeno forte", "Dobra bastante. Evitar microdetalhe."),
-  canela: area("Canela", 1800, 4800, "Área de impacto visual, ótima para projetos verticais e contraste forte.", "Alta", "Realismo, anime e blackwork", "Vertical", "Médio", ""),
-  panturrilha: area("Panturrilha", 1800, 4800, "Boa curvatura para peças médias, grandes e fechamento de perna.", "Média", "Peças médias, grandes e fechamento", "Vertical ou anatômica", "Médio", ""),
-  tornozelo: area("Tornozelo", 600, 1900, "Área menor, boa para detalhes, tornozeleiras e complementos.", "Média/Alta", "Ornamentos, símbolos e fineline", "Circular", "Pequeno forte", ""),
-  pe: area("Pé", 900, 2800, "Área visível, sensível e com desgaste. Precisa de projeto simples e bem planejado.", "Alta", "Símbolos, ornamentos e projetos pequenos", "Horizontal ou anatômica", "Pequeno forte", "Pé desgasta bastante por atrito. Evitar detalhe minúsculo."),
-  dedos_pe: area("Dedos do pé", 400, 1100, "Área pequena, sensível e com alto desgaste. Melhor para marcas simples.", "Alta", "Símbolos pequenos e letras", "Linear", "Micro simples", "Dedos do pé têm alto desgaste e pedem manutenção.")
+  cabeca: area("Cabeça", 2500, 6500, "Área extrema e muito visível. Precisa de leitura forte, contraste e desenho que envelheça bem."),
+  pescoco: area("Pescoço", 1500, 3500, "Região de alto impacto visual, boa para composições verticais e fechamentos."),
+  nuca: area("Nuca", 900, 2200, "Boa para peças menores, símbolos, ornamentos e complemento de costas ou pescoço."),
+  ombros: area("Ombros", 1800, 4200, "Excelente para encaixe anatômico, fechamentos de braço e projetos com presença."),
+  peito: area("Peito", 2500, 7000, "Área grande e visual, ideal para projetos simétricos ou peça central de impacto."),
+  abdomen: area("Abdômen", 2000, 5600, "Área ampla, sensível e com variação de elasticidade. Pede planejamento limpo."),
+  costela: area("Costela", 1800, 5600, "Ótima para composições laterais, florais, lettering e projetos verticais."),
+  quadril: area("Quadril / Virilha", 1500, 4200, "Boa para peças ornamentais, sensuais ou complemento de perna e abdômen."),
+  costas: area("Costas", 3200, 12000, "Área nobre para projetos grandes, painéis, simetrias e fechamentos de alto impacto."),
+  lombar: area("Lombar", 1500, 4200, "Boa para peças centrais, ornamentais e complementos de fechamento."),
+  braco: area("Braço", 1800, 4800, "Uma das melhores áreas: boa leitura, boa resistência e encaixe anatômico."),
+  antebraco_interno: area("Antebraço interno", 1200, 3400, "Área muito procurada, boa para projetos detalhados e leitura frontal."),
+  antebraco_externo: area("Antebraço externo", 1200, 3200, "Área resistente e excelente para contraste, com boa leitura no dia a dia."),
+  pulso: area("Pulso", 600, 1600, "Área menor e delicada para símbolos, pulseiras, detalhes e complementos."),
+  mao: area("Mão", 900, 2800, "Área muito visível e com maior desgaste. Precisa de desenho forte e manutenção consciente."),
+  dedos_mao: area("Dedos da mão", 400, 1300, "Área pequena, visível e com alto desgaste. Melhor para símbolos simples e letras."),
+  coxa_frontal: area("Coxa frontal", 2500, 7200, "Área ampla para peças grandes, fechamentos e projetos com bastante detalhe."),
+  coxa_posterior: area("Coxa posterior", 2300, 6600, "Excelente para continuidade de fechamento de perna e composição vertical."),
+  gluteo: area("Glúteo", 1800, 4600, "Boa para composições grandes e complementos de perna ou quadril."),
+  joelho: area("Joelho", 1200, 3800, "Área complexa, dobra bastante e exige desenho inteligente."),
+  joelho_posterior: area("Parte de trás do joelho", 900, 2700, "Área sensível e delicada, geralmente usada para complementar fechamento de perna."),
+  canela: area("Canela", 1800, 4800, "Área de impacto visual, ótima para projetos verticais e contraste forte."),
+  panturrilha: area("Panturrilha", 1800, 4800, "Boa curvatura para peças médias, grandes e fechamento de perna."),
+  tornozelo: area("Tornozelo", 600, 1900, "Área menor, boa para detalhes, tornozeleiras e complementos."),
+  pe: area("Pé", 900, 2800, "Área visível, sensível e com desgaste. Precisa de projeto simples e bem planejado."),
+  dedos_pe: area("Dedos do pé", 400, 1100, "Área pequena, sensível e com alto desgaste. Melhor para marcas simples.")
 };
 
-function area(titulo, min, max, descricao, dor, indicacao, orientacao, minimo, aviso) {
-  return { titulo, min, max, descricao, dor, indicacao, orientacao, minimo, aviso, ativa: true };
+function area(titulo, min, max, descricao) {
+  return { titulo, min, max, descricao, ativa: true };
 }
 
-const sizeOptions = [
-  { label: "Pequeno", mult: .72 },
-  { label: "Médio", mult: 1 },
-  { label: "Grande", mult: 1.55 },
-  { label: "Fechamento", mult: 2.45 }
-];
-
-const sideLabels = {
-  esq: "esquerdo",
-  dir: "direito"
-};
-
+const sideLabels = { esq: "esquerdo", dir: "direito" };
 const $ = (id) => document.getElementById(id);
 const config = load("orcamentoTattooConfig", DEFAULT_CONFIG);
 const areas = load("orcamentoTattooAreas", DEFAULT_AREAS);
@@ -745,7 +558,7 @@ function load(key, fallback) {
   try {
     return { ...fallback, ...JSON.parse(localStorage.getItem(key) || "{}") };
   } catch (e) {
-    return fallback;
+    return { ...fallback };
   }
 }
 
@@ -759,75 +572,47 @@ function partLabel(part) {
   return side ? `${base} ${side}` : base;
 }
 
-function collectPart(el) {
-  return { id: el.dataset.id, region: el.dataset.region, label: partLabel(el.dataset) };
-}
-
 function calculate() {
   if (!selected.size) return null;
-  const size = sizeOptions[Number($("tamanho").value)];
-  const base = [...selected.values()].reduce((acc, item) => {
+  const total = [...selected.values()].reduce((acc, item) => {
     const data = areas[item.region];
     return { min: acc.min + Number(data?.min || 0), max: acc.max + Number(data?.max || 0) };
   }, { min: 0, max: 0 });
   return {
-    min: Math.round((base.min * size.mult) / 50) * 50,
-    max: Math.round((base.max * size.mult) / 50) * 50
+    min: Math.round(total.min / 50) * 50,
+    max: Math.round(total.max / 50) * 50
   };
 }
 
 function update() {
-  $("tamanhoLabel").innerText = sizeOptions[Number($("tamanho").value)].label;
-
   document.querySelectorAll(".body-part").forEach(part => {
-    const data = areas[part.dataset.region];
-    const active = data?.ativa !== false;
+    const active = areas[part.dataset.region]?.ativa !== false;
     part.classList.toggle("disabled", !active);
     part.classList.toggle("selected", selected.has(part.dataset.id));
   });
 
-  const selectedItems = [...selected.values()];
+  const items = [...selected.values()];
   const estimate = calculate();
-  $("selectionList").innerHTML = selectedItems.map(item => `<button class="pill" type="button" data-remove="${item.id}">${item.label} ×</button>`).join("");
+  $("selectionList").innerHTML = items.map(item => `<button class="pill" type="button" data-remove="${item.id}">${item.label} ×</button>`).join("");
 
-  if (!selectedItems.length || !estimate) {
+  if (!items.length || !estimate) {
     $("titulo").innerText = "Selecione uma área";
     $("preco").innerText = "---";
     $("descricao").innerText = "Clique em uma parte do corpo para montar a estimativa inicial.";
-    $("dor").innerText = "---";
-    $("indicacao").innerText = "---";
-    $("orientacao").innerText = "---";
-    $("minimo").innerText = "---";
-    $("warnings").innerHTML = "";
-    renderGallery();
     updateLinks();
     return;
   }
 
-  const last = selectedItems[selectedItems.length - 1];
+  const last = items[items.length - 1];
   const data = areas[last.region];
-  $("titulo").innerText = selectedItems.length === 1 ? last.label : `${selectedItems.length} áreas selecionadas`;
+  $("titulo").innerText = items.length === 1 ? last.label : `${items.length} áreas selecionadas`;
   $("preco").innerText = `${money(estimate.min)} a ${money(estimate.max)}`;
-  $("descricao").innerText = data.descricao;
-  $("dor").innerText = unique(selectedItems.map(item => areas[item.region]?.dor)).join(" / ");
-  $("indicacao").innerText = data.indicacao;
-  $("orientacao").innerText = data.orientacao;
-  $("minimo").innerText = data.minimo;
-
-  const warnings = unique(selectedItems.map(item => areas[item.region]?.aviso).filter(Boolean));
-  warnings.push("Valor final depende da avaliação da referência, pele e encaixe do desenho.");
-  $("warnings").innerHTML = warnings.map(text => `<div class="warning">${text}</div>`).join("");
-  renderGallery(data);
+  $("descricao").innerText = data.descricao || "Região selecionada para orçamento.";
   updateLinks();
-}
-
-function unique(list) {
-  return [...new Set(list.filter(Boolean))];
 }
 
 function updateLinks() {
   const estimate = calculate();
-  const size = sizeOptions[Number($("tamanho").value)].label;
   const client = $("cliente").value.trim() || "Cliente ainda não informou";
   const textRef = $("referenciaTexto").value.trim() || "Não descreveu ainda";
   const areaText = [...selected.values()].map(item => item.label).join(", ") || "a definir";
@@ -837,39 +622,28 @@ function updateLinks() {
     "Olá! Quero um orçamento de tatuagem.",
     `Nome: ${client}`,
     `Área escolhida: ${areaText}`,
-    `Tamanho: ${size}`,
     `Referência/ideia: ${textRef}`,
     fileLine,
     `Pré-orçamento: ${price}`,
     "Sei que o valor final depende de avaliação."
   ].join("\n");
-  const href = `https://wa.me/${config.whatsapp}?text=${encodeURIComponent(msg)}&utm_source=orcamento_mapa&utm_medium=site&utm_campaign=orcamento`;
+  const href = `https://wa.me/${config.whatsapp || DEFAULT_CONFIG.whatsapp}?text=${encodeURIComponent(msg)}&utm_source=orcamento_mapa&utm_medium=site&utm_campaign=orcamento`;
   $("zap").href = href;
   $("mobileCta").href = href;
   $("zap").innerText = config.cta || DEFAULT_CONFIG.cta;
   $("mobileCta").innerText = config.cta || DEFAULT_CONFIG.cta;
 }
 
-function renderGallery(areaData) {
-  $("portfolioIntro").innerText = areaData
-    ? `Exemplos e ideias recomendadas para ${areaData.titulo}.`
-    : "Selecione uma região para filtrar exemplos, antes/depois e projetos recomendados.";
-
-  const images = Array.isArray(config.gallery) && config.gallery.length ? config.gallery : DEFAULT_CONFIG.gallery;
-  $("gallery").innerHTML = images.slice(0, 6).map((src, index) => `
-    <article class="gallery-card">
-      <img src="${src}" alt="Exemplo de tattoo ${index + 1}" loading="lazy">
-      <div>${areaData ? areaData.titulo : "Exemplo real"} · ${index % 2 ? "referência" : "projeto recomendado"}</div>
-    </article>
-  `).join("");
-}
-
 function selectPart(el) {
-  const part = collectPart(el);
-  if (areas[part.region]?.ativa === false) return;
-  if (selected.has(part.id)) selected.delete(part.id);
-  else selected.set(part.id, part);
-  track("area_click", { area: part.label, region: part.region });
+  const item = {
+    id: el.dataset.id,
+    region: el.dataset.region,
+    label: partLabel(el.dataset)
+  };
+  if (areas[item.region]?.ativa === false) return;
+  if (selected.has(item.id)) selected.delete(item.id);
+  else selected.set(item.id, item);
+  track("area_click", { area: item.label, region: item.region });
   update();
 }
 
@@ -882,8 +656,7 @@ function track(event, payload) {
 document.querySelectorAll(".body-part").forEach(part => {
   part.addEventListener("click", () => selectPart(part));
   part.addEventListener("mousemove", event => {
-    const label = partLabel(part.dataset);
-    $("tooltip").textContent = label;
+    $("tooltip").textContent = partLabel(part.dataset);
     $("tooltip").style.left = `${event.clientX}px`;
     $("tooltip").style.top = `${event.clientY}px`;
     $("tooltip").classList.add("show");
@@ -916,7 +689,7 @@ $("clearSelection").addEventListener("click", () => {
   update();
 });
 
-["cliente", "tamanho", "referenciaTexto"].forEach(id => $(id).addEventListener("input", update));
+["cliente", "referenciaTexto"].forEach(id => $(id).addEventListener("input", update));
 
 $("referenciaFoto").addEventListener("change", event => {
   const file = event.target.files?.[0];
@@ -935,7 +708,6 @@ $("referenciaFoto").addEventListener("change", event => {
 $("zap").addEventListener("click", () => track("whatsapp_click", { areas: [...selected.values()].map(item => item.label).join(", ") }));
 $("mobileCta").addEventListener("click", () => track("whatsapp_mobile_click", { areas: [...selected.values()].map(item => item.label).join(", ") }));
 
-renderGallery();
 $("introText").innerText = config.intro || DEFAULT_CONFIG.intro;
 update();
 </script>
