@@ -46,6 +46,10 @@ body.ficha-body {
   backdrop-filter: blur(18px);
 }
 
+.ficha-agenda-page .ficha-frame {
+  width: min(100%, 1680px);
+}
+
 .ficha-hero {
   padding: 32px 32px 24px;
   border-bottom: 1px solid var(--border);
@@ -364,14 +368,15 @@ body.ficha-body {
 }
 
 .ficha-calendar-shell {
-    display: grid;
-    grid-template-columns: 280px minmax(0, 1fr);
-    gap: 24px;
-  }
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 24px;
+}
 
-  .ficha-calendar-shell-full {
-    grid-template-columns: 1fr;
-  }
+.ficha-calendar-shell-full {
+  display: block;
+  width: 100%;
+}
 
 .ficha-calendar-sidebar {
   display: grid;
@@ -402,6 +407,13 @@ body.ficha-body {
   border: 1px solid var(--border);
   border-radius: 22px;
   padding: 18px;
+  width: 100%;
+  min-width: 0;
+}
+
+.ficha-calendar-panel #calendar,
+.ficha-calendar-panel .fc {
+  width: 100%;
 }
 
 .fc {
