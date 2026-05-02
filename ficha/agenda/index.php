@@ -56,7 +56,6 @@ if (empty($_GET['data'])) {
     <header class="ficha-hero">
         <span class="ficha-kicker">Agenda de tatuagem</span>
       <h1>Agenda de tatuagens</h1>
-      <p>Uma agenda mais apresentavel, com leitura rapida, criacao assistida de horarios e uma camada de detalhes para revisar, editar ou excluir cada agendamento.</p>
       <div class="ficha-nav">
         <a class="btn ficha-btn ficha-btn-secondary" href="../index.php">Nova ficha</a>
         <a class="btn ficha-btn ficha-btn-secondary" href="../public/clientes.php">Clientes</a>
