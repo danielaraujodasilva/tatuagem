@@ -38,6 +38,17 @@ if (empty($_GET['data'])) {
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="../assets/style.css" rel="stylesheet">
+<style>
+  .ficha-agenda-page .ficha-frame { width: min(100%, 1680px); }
+  .ficha-agenda-page .ficha-calendar-shell-full { display: block; width: 100%; }
+  .ficha-agenda-page .ficha-calendar-panel,
+  .ficha-agenda-page #calendar,
+  .ficha-agenda-page .fc { width: 100%; max-width: none; min-width: 0; }
+  .ficha-agenda-page .fc-view-harness,
+  .ficha-agenda-page .fc-scrollgrid,
+  .ficha-agenda-page .fc-daygrid-body,
+  .ficha-agenda-page .fc-daygrid-body table { width: 100% !important; }
+</style>
 </head>
 <body class="ficha-body ficha-agenda-page">
 <main class="ficha-shell">
@@ -444,6 +455,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   calendar.render();
+  setTimeout(() => calendar.updateSize(), 80);
+  window.addEventListener('resize', () => calendar.updateSize());
 
   if (highlightedEventId) {
     openLinkedEvent(highlightedEventId);

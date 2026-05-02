@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require __DIR__ . '/../../config/conexao.php';
 header('Content-Type: application/json; charset=utf-8');
 
@@ -11,19 +11,7 @@ if ($id <= 0) {
 }
 
 try {
-    $clienteTemTelefone = (bool) $conn->query("SHOW COLUMNS FROM clientes LIKE 'telefone'")->fetch_assoc();
-    $telefoneSelect = $clienteTemTelefone ? ', c.telefone AS cliente_telefone' : ', "" AS cliente_telefone';
-
-    $stmt = $conn->prepare(
-        'SELECT
-            t.*,
-            c.nome AS cliente_nome
-            ' . $telefoneSelect . '
-        FROM tatuagens t
-        LEFT JOIN clientes c ON c.id = t.cliente_id
-        WHERE t.id = ?
-        LIMIT 1'
-    );
+    $stmt = $conn->prepare('SELECT * FROM tatuagens WHERE id = ? LIMIT 1');
     $stmt->bind_param('i', $id);
     $stmt->execute();
     $evento = $stmt->get_result()->fetch_assoc();
@@ -35,12 +23,26 @@ try {
         exit;
     }
 
+    $cliente = [];
+    $clienteId = (int)($evento['cliente_id'] ?? 0);
+    if ($clienteId > 0) {
+        try {
+            $stmt = $conn->prepare('SELECT id, nome, telefone FROM clientes WHERE id = ? LIMIT 1');
+            $stmt->bind_param('i', $clienteId);
+            $stmt->execute();
+            $cliente = $stmt->get_result()->fetch_assoc() ?: [];
+            $stmt->close();
+        } catch (Throwable $e) {
+            $cliente = [];
+        }
+    }
+
     $evento['valor'] = $evento['valor'] ?? 0;
     $evento['observacoes'] = $evento['observacoes'] ?? '';
     $evento['pomadas_anestesicas'] = $evento['pomadas_anestesicas'] ?? 0;
     $evento['referencia_arte'] = $evento['referencia_arte'] ?? '';
-    $evento['cliente_nome'] = $evento['cliente_nome'] ?? '';
-    $evento['cliente_telefone'] = $evento['cliente_telefone'] ?? '';
+    $evento['cliente_nome'] = $cliente['nome'] ?? '';
+    $evento['cliente_telefone'] = $cliente['telefone'] ?? '';
 
     echo json_encode($evento, JSON_UNESCAPED_UNICODE);
 } catch (Throwable $e) {
