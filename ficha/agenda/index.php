@@ -115,6 +115,18 @@
               <label class="ficha-form-label" for="eventClientName">Cliente vinculado</label>
               <input type="text" id="eventClientName" class="form-control" disabled>
             </div>
+            <div class="col-md-4">
+              <label class="ficha-form-label" for="eventPomadas">Pomadas anestesicas</label>
+              <input type="number" min="0" step="1" id="eventPomadas" name="pomadas_anestesicas" class="form-control" value="0">
+            </div>
+            <div class="col-md-8">
+              <label class="ficha-form-label" for="eventReference">Arte de referencia</label>
+              <input type="text" id="eventReference" name="referencia_arte" class="form-control" placeholder="Caminho do arquivo ou link">
+            </div>
+            <div class="col-12">
+              <label class="ficha-form-label" for="eventNotes">Observacoes</label>
+              <textarea id="eventNotes" name="observacoes" class="form-control" rows="3"></textarea>
+            </div>
           </div>
         </form>
       </div>
@@ -145,7 +157,10 @@ document.addEventListener('DOMContentLoaded', function () {
     inicio: document.getElementById('eventStart'),
     fim: document.getElementById('eventEnd'),
     valor: document.getElementById('eventValue'),
-    cliente: document.getElementById('eventClientName')
+    cliente: document.getElementById('eventClientName'),
+    observacoes: document.getElementById('eventNotes'),
+    pomadas: document.getElementById('eventPomadas'),
+    referencia: document.getElementById('eventReference')
   };
 
   const summary = {
@@ -218,7 +233,10 @@ document.addEventListener('DOMContentLoaded', function () {
       data_tatuagem: fields.data.value,
       hora_inicio: fields.inicio.value,
       hora_fim: fields.fim.value,
-      valor: fields.valor.value || 0
+      valor: fields.valor.value || 0,
+      observacoes: fields.observacoes.value.trim(),
+      pomadas_anestesicas: fields.pomadas.value || 0,
+      referencia_arte: fields.referencia.value.trim()
     };
 
     const endpoint = payload.id ? 'api/atualizar.php' : 'api/salvar.php';
@@ -272,6 +290,9 @@ document.addEventListener('DOMContentLoaded', function () {
     fields.id.value = '';
     fields.valor.value = '0';
     fields.cliente.value = 'Sem cliente vinculado';
+    fields.observacoes.value = '';
+    fields.pomadas.value = '0';
+    fields.referencia.value = '';
     summary.status.textContent = 'Agendado';
     summary.client.textContent = 'Sem cliente';
     summary.value.textContent = 'R$ 0,00';
@@ -321,6 +342,9 @@ document.addEventListener('DOMContentLoaded', function () {
     fields.fim.value = data.hora_fim ? data.hora_fim.slice(0, 5) : '';
     fields.valor.value = data.valor || 0;
     fields.cliente.value = data.cliente_nome || 'Sem cliente vinculado';
+    fields.observacoes.value = data.observacoes || '';
+    fields.pomadas.value = data.pomadas_anestesicas || 0;
+    fields.referencia.value = data.referencia_arte || '';
 
     summary.title.textContent = data.descricao || 'Detalhes do agendamento';
     summary.subtitle.textContent = 'Revise as informacoes, ajuste o status e salve quando estiver pronto.';
@@ -337,7 +361,10 @@ document.addEventListener('DOMContentLoaded', function () {
       data_tatuagem: event.startStr.slice(0, 10),
       hora_inicio: event.startStr.slice(11, 16),
       hora_fim: event.endStr ? event.endStr.slice(11, 16) : event.startStr.slice(11, 16),
-      valor: event.extendedProps.valor || 0
+      valor: event.extendedProps.valor || 0,
+      observacoes: event.extendedProps.observacoes || '',
+      pomadas_anestesicas: event.extendedProps.pomadas_anestesicas || 0,
+      referencia_arte: event.extendedProps.referencia_arte || ''
     };
 
     const response = await fetch('api/atualizar.php', {

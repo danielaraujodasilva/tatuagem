@@ -10,6 +10,10 @@ $dataTat = trim((string) ($data['data_tatuagem'] ?? ''));
 $horaInicio = trim((string) ($data['hora_inicio'] ?? ''));
 $horaFim = trim((string) ($data['hora_fim'] ?? ''));
 $valor = (float) ($data['valor'] ?? 0);
+$clienteId = isset($data['cliente_id']) ? (int) $data['cliente_id'] : null;
+$observacoes = trim((string) ($data['observacoes'] ?? ''));
+$pomadas = max(0, (int) ($data['pomadas_anestesicas'] ?? 0));
+$referencia = trim((string) ($data['referencia_arte'] ?? ''));
 
 if ($descricao === '' || $dataTat === '' || $horaInicio === '' || $horaFim === '') {
     http_response_code(400);
@@ -17,8 +21,8 @@ if ($descricao === '' || $dataTat === '' || $horaInicio === '' || $horaFim === '
     exit;
 }
 
-$stmt = $conn->prepare('INSERT INTO tatuagens (cliente_id, descricao, valor, data_tatuagem, hora_inicio, hora_fim, status) VALUES (NULL, ?, ?, ?, ?, ?, ?)');
-$stmt->bind_param('sdssss', $descricao, $valor, $dataTat, $horaInicio, $horaFim, $status);
+$stmt = $conn->prepare('INSERT INTO tatuagens (cliente_id, descricao, valor, data_tatuagem, hora_inicio, hora_fim, status, observacoes, pomadas_anestesicas, referencia_arte) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+$stmt->bind_param('isdsssssis', $clienteId, $descricao, $valor, $dataTat, $horaInicio, $horaFim, $status, $observacoes, $pomadas, $referencia);
 $stmt->execute();
 $stmt->close();
 

@@ -10,6 +10,9 @@ $sql = '
         CONCAT(t.data_tatuagem, "T", t.hora_fim) AS end,
         t.status,
         t.valor,
+        t.observacoes,
+        t.pomadas_anestesicas,
+        t.referencia_arte,
         c.nome AS cliente_nome
     FROM tatuagens t
     LEFT JOIN clientes c ON c.id = t.cliente_id
@@ -29,9 +32,12 @@ while ($row = $result->fetch_assoc()) {
     $row['extendedProps'] = [
         'status' => $row['status'],
         'valor' => (float) $row['valor'],
+        'observacoes' => $row['observacoes'],
+        'pomadas_anestesicas' => (int) $row['pomadas_anestesicas'],
+        'referencia_arte' => $row['referencia_arte'],
         'cliente_nome' => $row['cliente_nome']
     ];
-    unset($row['status'], $row['valor'], $row['cliente_nome']);
+    unset($row['status'], $row['valor'], $row['observacoes'], $row['pomadas_anestesicas'], $row['referencia_arte'], $row['cliente_nome']);
     $eventos[] = $row;
 }
 

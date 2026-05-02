@@ -20,6 +20,9 @@ $stmt = $conn->prepare(
         t.hora_inicio,
         t.hora_fim,
         t.status,
+        t.observacoes,
+        t.pomadas_anestesicas,
+        t.referencia_arte,
         c.nome AS cliente_nome
     FROM tatuagens t
     LEFT JOIN clientes c ON c.id = t.cliente_id

@@ -249,7 +249,12 @@ $firstStage = $stageIds[0] ?? '1';
                             </div>
                         </div>
                     </div>
-                    <button onclick="closeChatOverlay()" class="text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="openScheduleOverlay()" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-2xl font-semibold flex items-center gap-2">
+                            <i class="fas fa-calendar-plus"></i> Agendar
+                        </button>
+                        <button onclick="closeChatOverlay()" class="text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+                    </div>
                 </div>
 
                 <div id="chatMessages" class="flex-1 overflow-y-auto px-5 py-5 space-y-3 bg-gray-950"></div>
@@ -285,6 +290,83 @@ $firstStage = $stageIds[0] ?? '1';
                     </div>
                 </div>
             </aside>
+        </div>
+    </div>
+
+    <!-- Overlay Agendamento -->
+    <div id="scheduleOverlay" class="hidden fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-y-auto p-6">
+            <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6">
+                <div>
+                    <h3 class="text-2xl font-bold flex items-center gap-3"><i class="fas fa-calendar-plus text-emerald-400"></i> Agendar tatuagem</h3>
+                    <p class="text-gray-400 mt-1">Busque um cliente existente ou crie o cadastro basico com nome e telefone.</p>
+                </div>
+                <button type="button" onclick="closeScheduleOverlay()" class="text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+            </div>
+
+            <form id="scheduleForm" onsubmit="saveSchedule(event)" class="space-y-5">
+                <input type="hidden" id="scheduleClienteId" name="cliente_id">
+                <div class="bg-gray-950/70 border border-gray-800 rounded-2xl p-4">
+                    <label class="block text-sm mb-2">Pesquisar cliente</label>
+                    <input type="text" id="scheduleClientSearch" placeholder="Digite nome, telefone ou e-mail" class="w-full bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3">
+                    <div id="scheduleClientResults" class="hidden mt-3 space-y-2"></div>
+                    <p id="scheduleClientNotice" class="text-sm text-amber-300 mt-3"></p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-sm mb-1">Nome do cliente *</label>
+                        <input type="text" id="scheduleNome" name="nome" required class="w-full bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3">
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">Telefone *</label>
+                        <input type="tel" id="scheduleTelefone" name="telefone" required class="w-full bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3">
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">Data *</label>
+                        <input type="date" id="scheduleData" name="data_tatuagem" required class="w-full bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm mb-1">Hora inicio *</label>
+                            <input type="time" id="scheduleHoraInicio" name="hora_inicio" required class="w-full bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3">
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1">Hora fim</label>
+                            <input type="time" id="scheduleHoraFim" name="hora_fim" class="w-full bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">Valor da tatuagem (R$)</label>
+                        <input type="number" step="0.01" id="scheduleValor" name="valor" class="w-full bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3">
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">Pomadas anestesicas</label>
+                        <input type="number" min="0" step="1" id="schedulePomadas" name="pomadas_anestesicas" value="0" class="w-full bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm mb-1">Descricao / arte pretendida</label>
+                        <input type="text" id="scheduleDescricao" name="descricao" placeholder="Ex.: Fechamento de braço, fine line, cobertura..." class="w-full bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm mb-1">Observacoes</label>
+                        <textarea id="scheduleObservacoes" name="observacoes" rows="3" class="w-full bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3 resize-none"></textarea>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm mb-1">Arte de referencia (opcional)</label>
+                        <input type="file" id="scheduleReferencia" name="referencia" accept="image/*,.pdf" class="w-full bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3">
+                    </div>
+                </div>
+
+                <div id="scheduleResult" class="hidden bg-emerald-950/40 border border-emerald-700 rounded-2xl p-4 text-sm"></div>
+
+                <div class="flex flex-col md:flex-row gap-3 pt-2">
+                    <button type="button" onclick="closeScheduleOverlay()" class="flex-1 py-4 text-gray-300 hover:text-white font-medium rounded-2xl">Cancelar</button>
+                    <button type="submit" id="scheduleSubmit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 py-4 rounded-2xl font-semibold">
+                        Salvar agendamento
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -762,6 +844,149 @@ $firstStage = $stageIds[0] ?? '1';
             activeChat = null;
         }
 
+        function onlyDigits(value) {
+            return String(value ?? '').replace(/\D+/g, '');
+        }
+
+        function setScheduleNotice(message, tone = 'amber') {
+            const notice = document.getElementById('scheduleClientNotice');
+            notice.textContent = message || '';
+            notice.className = `text-sm mt-3 ${tone === 'green' ? 'text-emerald-300' : 'text-amber-300'}`;
+        }
+
+        function openScheduleOverlay() {
+            if (!activeChat) return;
+
+            const form = document.getElementById('scheduleForm');
+            form.reset();
+            document.getElementById('scheduleClienteId').value = '';
+            document.getElementById('scheduleNome').value = activeChat.nome && activeChat.nome !== 'Cliente WhatsApp' ? activeChat.nome : '';
+            document.getElementById('scheduleTelefone').value = activeChat.telefone || '';
+            document.getElementById('scheduleDescricao').value = activeChat.interesse || '';
+            document.getElementById('schedulePomadas').value = '0';
+            document.getElementById('scheduleClientSearch').value = activeChat.telefone || activeChat.nome || '';
+            document.getElementById('scheduleClientResults').classList.add('hidden');
+            document.getElementById('scheduleClientResults').innerHTML = '';
+            document.getElementById('scheduleResult').classList.add('hidden');
+            document.getElementById('scheduleResult').innerHTML = '';
+            setScheduleNotice('Vou procurar esse telefone na ficha para evitar cadastro duplicado.');
+
+            document.getElementById('scheduleOverlay').classList.remove('hidden');
+            searchScheduleClients(activeChat.telefone || activeChat.nome || '', true);
+            setTimeout(() => document.getElementById('scheduleData').focus(), 80);
+        }
+
+        function closeScheduleOverlay() {
+            document.getElementById('scheduleOverlay').classList.add('hidden');
+        }
+
+        let scheduleSearchTimer = null;
+        function scheduleSearchChanged() {
+            clearTimeout(scheduleSearchTimer);
+            const term = document.getElementById('scheduleClientSearch').value.trim();
+            scheduleSearchTimer = setTimeout(() => searchScheduleClients(term, false), 250);
+        }
+
+        async function searchScheduleClients(term, autoSelectByPhone = false) {
+            const results = document.getElementById('scheduleClientResults');
+            results.innerHTML = '';
+            results.classList.add('hidden');
+
+            if (!term || term.length < 2) {
+                setScheduleNotice('Digite pelo menos 2 caracteres para buscar na ficha.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`agendamento_clientes.php?q=${encodeURIComponent(term)}`);
+                const data = await response.json();
+                const clientes = Array.isArray(data.clientes) ? data.clientes : [];
+
+                if (!clientes.length) {
+                    document.getElementById('scheduleClienteId').value = '';
+                    setScheduleNotice('Cliente nao encontrado. Ao salvar, o sistema cria um cadastro basico com nome e telefone.');
+                    return;
+                }
+
+                const activeDigits = onlyDigits(document.getElementById('scheduleTelefone').value || activeChat?.telefone || '');
+                const exact = clientes.find(c => activeDigits && onlyDigits(c.telefone) === activeDigits);
+                if (autoSelectByPhone && exact) {
+                    selectScheduleClient(exact);
+                    setScheduleNotice('Cliente ja encontrado na ficha. Vou usar esse cadastro para o agendamento.', 'green');
+                    return;
+                }
+
+                results.innerHTML = clientes.map(cliente => `
+                    <button type="button" onclick='selectScheduleClient(${JSON.stringify(cliente).replace(/'/g, '&#039;')})' class="w-full text-left bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-2xl px-4 py-3">
+                        <strong>${escapeHtml(cliente.nome || 'Cliente')}</strong>
+                        <span class="block text-sm text-gray-400">${escapeHtml(cliente.telefone || '')}${cliente.email ? ' · ' + escapeHtml(cliente.email) : ''}</span>
+                    </button>
+                `).join('');
+                results.classList.remove('hidden');
+                setScheduleNotice('Selecione o cliente correto para evitar duplicidade.');
+            } catch (error) {
+                setScheduleNotice('Nao consegui buscar clientes agora. Ainda da para criar cadastro basico ao salvar.');
+            }
+        }
+
+        function selectScheduleClient(cliente) {
+            document.getElementById('scheduleClienteId').value = cliente.id || '';
+            document.getElementById('scheduleNome').value = cliente.nome || '';
+            document.getElementById('scheduleTelefone').value = cliente.telefone || '';
+            document.getElementById('scheduleClientSearch').value = `${cliente.nome || ''} ${cliente.telefone || ''}`.trim();
+            document.getElementById('scheduleClientResults').classList.add('hidden');
+            document.getElementById('scheduleClientResults').innerHTML = '';
+            setScheduleNotice('Cliente existente selecionado. O agendamento ficara vinculado a essa ficha.', 'green');
+        }
+
+        async function saveSchedule(event) {
+            event.preventDefault();
+
+            const form = document.getElementById('scheduleForm');
+            if (!form.reportValidity()) return;
+
+            const submit = document.getElementById('scheduleSubmit');
+            const resultBox = document.getElementById('scheduleResult');
+            const formData = new FormData(form);
+
+            submit.disabled = true;
+            submit.textContent = 'Salvando...';
+
+            try {
+                const response = await fetch('agendamento_salvar.php', { method: 'POST', body: formData });
+                const result = await response.json().catch(() => ({}));
+
+                if (!response.ok || !result.ok) {
+                    alert(result.error || 'Nao foi possivel salvar o agendamento.');
+                    return;
+                }
+
+                const fichaUrl = new URL(result.ficha_url, window.location.href).href;
+                resultBox.classList.remove('hidden');
+                resultBox.innerHTML = `
+                    <strong>${escapeHtml(result.message || 'Agendamento salvo.')}</strong>
+                    <div class="mt-2 text-gray-200">Link para o cliente completar a ficha:</div>
+                    <div class="mt-2 flex flex-col md:flex-row gap-2">
+                        <input id="scheduleFichaLink" readonly value="${escapeHtml(fichaUrl)}" class="flex-1 bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm">
+                        <button type="button" onclick="copyScheduleFichaLink()" class="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-xl">Copiar link</button>
+                    </div>
+                `;
+
+                refreshLeads();
+            } catch (error) {
+                alert('Erro de conexao ao salvar agendamento.');
+            } finally {
+                submit.disabled = false;
+                submit.textContent = 'Salvar agendamento';
+            }
+        }
+
+        function copyScheduleFichaLink() {
+            const input = document.getElementById('scheduleFichaLink');
+            input.select();
+            document.execCommand('copy');
+        }
+
         function toggleEmojiPanel() {
             document.getElementById('emojiPanel').classList.toggle('hidden');
         }
@@ -1094,7 +1319,16 @@ async function refreshLeads() {
                 }
             });
             document.getElementById('chatFile').addEventListener('change', updateAttachmentPreview);
+            document.getElementById('scheduleClientSearch').addEventListener('input', scheduleSearchChanged);
+            document.getElementById('scheduleTelefone').addEventListener('blur', () => {
+                const telefone = document.getElementById('scheduleTelefone').value.trim();
+                if (telefone) searchScheduleClients(telefone, true);
+            });
             document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && !document.getElementById('scheduleOverlay').classList.contains('hidden')) {
+                    closeScheduleOverlay();
+                    return;
+                }
                 if (event.key === 'Escape' && activeChat) {
                     closeChatOverlay();
                 }

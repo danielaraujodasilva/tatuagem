@@ -67,7 +67,10 @@ ALTER TABLE tatuagens
     ADD COLUMN IF NOT EXISTS hora_inicio TIME NULL AFTER data_tatuagem,
     ADD COLUMN IF NOT EXISTS hora_fim TIME NULL AFTER hora_inicio,
     ADD COLUMN IF NOT EXISTS status ENUM('agendado', 'confirmado', 'cancelado', 'concluido') NOT NULL DEFAULT 'agendado' AFTER hora_fim,
-    ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER status;
+    ADD COLUMN IF NOT EXISTS observacoes TEXT NULL AFTER status,
+    ADD COLUMN IF NOT EXISTS pomadas_anestesicas INT UNSIGNED NOT NULL DEFAULT 0 AFTER observacoes,
+    ADD COLUMN IF NOT EXISTS referencia_arte VARCHAR(255) NULL AFTER pomadas_anestesicas,
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER referencia_arte;
 
 CREATE INDEX IF NOT EXISTS idx_tatuagens_cliente ON tatuagens (cliente_id);
 CREATE INDEX IF NOT EXISTS idx_tatuagens_data ON tatuagens (data_tatuagem);
