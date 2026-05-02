@@ -180,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const calendar = new FullCalendar.Calendar(calendarEl, {
     locale: 'pt-br',
-    initialView: window.innerWidth < 900 ? 'listWeek' : 'timeGridWeek',
+    initialView: highlightedEventId ? 'timeGridDay' : (window.innerWidth < 900 ? 'listWeek' : 'timeGridWeek'),
     headerToolbar: {
       left: 'prev,next today',
       center: 'title',
@@ -192,8 +192,8 @@ document.addEventListener('DOMContentLoaded', function () {
       week: 'Semana',
       list: 'Lista'
     },
-    slotMinTime: '08:00:00',
-    slotMaxTime: '23:00:00',
+    slotMinTime: highlightedEventId ? '00:00:00' : '08:00:00',
+    slotMaxTime: '24:00:00',
     initialDate: initialDate,
     nowIndicator: true,
     selectable: true,
@@ -407,6 +407,54 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   calendar.render();
+
+  if (highlightedEventId) {
+    openLinkedEvent(highlightedEventId);
+  }
+
+  async function openLinkedEvent(id) {
+    const response = await fetch('api/detalhes.php?id=' + encodeURIComponent(id));
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok || !data || data.status === 'error') {
+      showAlert('O link abriu a data certa, mas a agenda nao encontrou esse agendamento pelo ID ' + id + '.', 'danger');
+      return;
+    }
+
+    if (!calendar.getEventById(String(data.id))) {
+      calendar.addEvent(buildCalendarEventFromDetails(data));
+    }
+
+    showAlert('Agendamento encontrado no banco e destacado na agenda.', 'success');
+    loadEvent(data.id);
+  }
+
+  function buildCalendarEventFromDetails(data) {
+    const startTime = data.hora_inicio || '00:00:00';
+    const endTime = data.hora_fim || startTime;
+    const colors = {
+      agendado: '#38bdf8',
+      confirmado: '#22c55e',
+      cancelado: '#fb7185',
+      concluido: '#94a3b8'
+    };
+
+    return {
+      id: String(data.id),
+      title: data.descricao || 'Tatuagem',
+      start: `${data.data_tatuagem}T${startTime}`,
+      end: `${data.data_tatuagem}T${endTime}`,
+      color: colors[data.status] || '#38bdf8',
+      extendedProps: {
+        status: data.status || 'agendado',
+        valor: Number(data.valor || 0),
+        observacoes: data.observacoes || '',
+        pomadas_anestesicas: Number(data.pomadas_anestesicas || 0),
+        referencia_arte: data.referencia_arte || '',
+        cliente_nome: data.cliente_nome || ''
+      }
+    };
+  }
 });
 </script>
 </body>
