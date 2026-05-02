@@ -1,4 +1,35 @@
-﻿<!DOCTYPE html>
+<?php
+$agendaInitialDate = '';
+
+if (empty($_GET['data'])) {
+    try {
+        require __DIR__ . '/../config/conexao.php';
+        $result = $conn->query("
+            SELECT data_tatuagem
+            FROM tatuagens
+            WHERE data_tatuagem >= CURDATE()
+            ORDER BY data_tatuagem ASC, hora_inicio ASC, id ASC
+            LIMIT 1
+        ");
+        $row = $result ? $result->fetch_assoc() : null;
+
+        if (!$row) {
+            $result = $conn->query("
+                SELECT data_tatuagem
+                FROM tatuagens
+                ORDER BY data_tatuagem DESC, hora_inicio DESC, id DESC
+                LIMIT 1
+            ");
+            $row = $result ? $result->fetch_assoc() : null;
+        }
+
+        $agendaInitialDate = (string)($row['data_tatuagem'] ?? '');
+    } catch (Throwable $e) {
+        $agendaInitialDate = '';
+    }
+}
+?>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
@@ -121,7 +152,8 @@
             </div>
             <div class="col-md-8">
               <label class="ficha-form-label" for="eventReference">Arte de referencia</label>
-              <input type="text" id="eventReference" name="referencia_arte" class="form-control" placeholder="Caminho do arquivo ou link">
+              <input type="hidden" id="eventReference" name="referencia_arte">
+              <div id="eventReferencePreview" class="mt-3"></div>
             </div>
             <div class="col-12">
               <label class="ficha-form-label" for="eventNotes">Observacoes</label>
@@ -139,6 +171,13 @@
   </div>
 </div>
 
+<div id="referenceOverlay" class="d-none position-fixed top-0 start-0 w-100 h-100 bg-black bg-opacity-75" style="z-index: 2000;">
+  <div class="h-100 d-flex align-items-center justify-content-center p-3">
+    <button type="button" id="referenceOverlayClose" class="btn btn-light position-absolute top-0 end-0 m-3">Fechar</button>
+    <img id="referenceOverlayImage" src="" alt="Arte de referencia" class="img-fluid rounded-4 shadow-lg" style="max-height: 92vh; object-fit: contain;">
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -149,8 +188,11 @@ document.addEventListener('DOMContentLoaded', function () {
   const form = document.getElementById('eventForm');
   const calendarEl = document.getElementById('calendar');
   const urlParams = new URLSearchParams(window.location.search);
-  const initialDate = urlParams.get('data') || undefined;
+  const serverInitialDate = <?= json_encode($agendaInitialDate, JSON_UNESCAPED_UNICODE) ?>;
+  const initialDate = urlParams.get('data') || serverInitialDate || undefined;
   const highlightedEventId = urlParams.get('agendamento_id') || '';
+  const referenceOverlay = document.getElementById('referenceOverlay');
+  const referenceOverlayImage = document.getElementById('referenceOverlayImage');
 
   const fields = {
     id: document.getElementById('eventId'),
@@ -229,6 +271,13 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   form.addEventListener('input', updateSummaryCards);
+  fields.referencia.addEventListener('input', updateReferencePreview);
+  document.getElementById('referenceOverlayClose').addEventListener('click', closeReferenceOverlay);
+  referenceOverlay.addEventListener('click', event => {
+    if (event.target === referenceOverlay) {
+      closeReferenceOverlay();
+    }
+  });
 
   saveBtn.addEventListener('click', async function () {
     if (!form.reportValidity()) {
@@ -302,6 +351,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fields.observacoes.value = '';
     fields.pomadas.value = '0';
     fields.referencia.value = '';
+    updateReferencePreview();
     summary.status.textContent = 'Agendado';
     summary.client.textContent = 'Sem cliente';
     summary.value.textContent = 'R$ 0,00';
@@ -354,6 +404,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fields.observacoes.value = data.observacoes || '';
     fields.pomadas.value = data.pomadas_anestesicas || 0;
     fields.referencia.value = data.referencia_arte || '';
+    updateReferencePreview();
 
     summary.title.textContent = data.descricao || 'Detalhes do agendamento';
     summary.subtitle.textContent = 'Revise as informacoes, ajuste o status e salve quando estiver pronto.';
@@ -491,6 +542,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fields.observacoes.value = data.observacoes || '';
     fields.pomadas.value = data.pomadas_anestesicas || 0;
     fields.referencia.value = data.referencia_arte || '';
+    updateReferencePreview();
 
     summary.title.textContent = data.descricao || 'Detalhes do agendamento';
     summary.subtitle.textContent = 'Revise as informacoes, ajuste o status e salve quando estiver pronto.';
@@ -533,6 +585,62 @@ document.addEventListener('DOMContentLoaded', function () {
     if (nome) return nome;
     if (telefone) return telefone;
     return 'Sem cliente vinculado';
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    }[char]));
+  }
+
+  function referenceUrl(value) {
+    const clean = String(value || '').trim();
+    if (!clean) return '';
+    if (/^(https?:)?\/\//i.test(clean) || clean.startsWith('/')) return clean;
+    if (clean.startsWith('../')) return clean;
+    if (clean.startsWith('uploads/')) return '../' + clean;
+    return clean;
+  }
+
+  function isImageReference(value) {
+    return /\.(jpe?g|png|webp|gif|jfif)$/i.test(String(value || '').split('?')[0]);
+  }
+
+  function updateReferencePreview() {
+    const container = document.getElementById('eventReferencePreview');
+    const raw = fields.referencia.value.trim();
+    const url = referenceUrl(raw);
+
+    if (!raw) {
+      container.innerHTML = '<div class="ficha-muted">Nenhuma arte de referencia vinculada.</div>';
+      return;
+    }
+
+    if (isImageReference(raw)) {
+      container.innerHTML = `
+        <button type="button" class="border-0 bg-transparent p-0 text-start" onclick="openReferenceOverlay('${escapeHtml(url)}')">
+          <img src="${escapeHtml(url)}" alt="Arte de referencia" class="rounded-3 border" style="width: 140px; height: 140px; object-fit: cover;">
+          <div class="ficha-muted mt-2">Clique para ampliar</div>
+        </button>
+      `;
+      return;
+    }
+
+    container.innerHTML = `<a class="btn ficha-btn ficha-btn-secondary" href="${escapeHtml(url)}" target="_blank" rel="noopener">Abrir referencia</a>`;
+  }
+
+  window.openReferenceOverlay = function (url) {
+    referenceOverlayImage.src = url;
+    referenceOverlay.classList.remove('d-none');
+  };
+
+  function closeReferenceOverlay() {
+    referenceOverlay.classList.add('d-none');
+    referenceOverlayImage.src = '';
   }
 });
 </script>
