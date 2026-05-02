@@ -48,15 +48,19 @@ try {
         $horaInicio = $row['hora_inicio'] ?: '00:00:00';
         $horaFim = $row['hora_fim'] ?: date('H:i:s', strtotime($horaInicio . ' +1 hour'));
         $cliente = $clientes[(int)($row['cliente_id'] ?? 0)] ?? [];
+        $clienteNome = trim((string)($cliente['nome'] ?? ''));
 
         $eventos[] = [
             'id' => (string) $row['id'],
-            'title' => $row['descricao'] ?: 'Tatuagem',
+            'title' => $clienteNome !== '' ? $clienteNome : ($row['descricao'] ?: 'Tatuagem'),
             'start' => $row['data_tatuagem'] . 'T' . $horaInicio,
             'end' => $row['data_tatuagem'] . 'T' . $horaFim,
             'color' => $cores[$status] ?? '#38bdf8',
+            'textColor' => '#06111f',
+            'display' => 'block',
             'extendedProps' => [
                 'status' => $status,
+                'descricao' => $row['descricao'] ?? '',
                 'valor' => (float)($row['valor'] ?? 0),
                 'cliente_id' => (int)($row['cliente_id'] ?? 0),
                 'observacoes' => $row['observacoes'] ?? '',

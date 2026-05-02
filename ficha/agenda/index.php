@@ -249,6 +249,8 @@ document.addEventListener('DOMContentLoaded', function () {
     editable: true,
     selectMirror: true,
     eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+    eventDisplay: 'block',
+    dayMaxEventRows: 4,
     height: 'auto',
     events: 'api/listar.php',
     eventSourceFailure: function () {
@@ -258,6 +260,11 @@ document.addEventListener('DOMContentLoaded', function () {
       if (highlightedEventId && String(info.event.id) === String(highlightedEventId)) {
         info.el.style.boxShadow = '0 0 0 3px rgba(16,185,129,.85)';
       }
+    },
+    eventContent: function (info) {
+      const time = info.timeText ? `<span class="agenda-event-time">${escapeHtml(info.timeText)}</span>` : '';
+      const title = `<span class="agenda-event-title">${escapeHtml(info.event.title)}</span>`;
+      return { html: `<div class="agenda-event-card">${time}${title}</div>` };
     },
     select: function (info) {
       resetForm();
@@ -441,7 +448,7 @@ document.addEventListener('DOMContentLoaded', function () {
   async function quickReschedule(event) {
     const payload = {
       id: event.id,
-      descricao: event.title,
+      descricao: event.extendedProps.descricao || event.title,
       status: event.extendedProps.status || 'agendado',
       data_tatuagem: event.startStr.slice(0, 10),
       hora_inicio: event.startStr.slice(11, 16),
@@ -592,12 +599,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     return {
       id: String(data.id),
-      title: data.descricao || 'Tatuagem',
+      title: eventTitle(data),
       start: `${data.data_tatuagem}T${startTime}`,
       end: `${data.data_tatuagem}T${endTime}`,
       color: colors[data.status] || '#38bdf8',
+      textColor: '#06111f',
+      display: 'block',
       extendedProps: {
         status: data.status || 'agendado',
+        descricao: data.descricao || '',
         valor: Number(data.valor || 0),
         cliente_id: data.cliente_id || '',
         observacoes: data.observacoes || '',
@@ -607,6 +617,11 @@ document.addEventListener('DOMContentLoaded', function () {
         cliente_telefone: data.cliente_telefone || ''
       }
     };
+  }
+
+  function eventTitle(data) {
+    const nome = (data.cliente_nome || '').trim();
+    return nome || data.descricao || 'Tatuagem';
   }
 
   function clientLabel(data) {
