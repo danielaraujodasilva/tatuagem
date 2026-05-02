@@ -37,7 +37,7 @@ if (empty($_GET['data'])) {
 <title>Agenda de Tatuagens</title>
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="../assets/style.css" rel="stylesheet">
+<link href="../assets/style.css?v=20260502-agenda-polish-2" rel="stylesheet">
 <style>
   .ficha-agenda-page .ficha-frame { width: min(100%, 1680px); }
   .ficha-agenda-page .ficha-calendar-shell-full { display: block; width: 100%; }
@@ -48,6 +48,29 @@ if (empty($_GET['data'])) {
   .ficha-agenda-page .fc-scrollgrid,
   .ficha-agenda-page .fc-daygrid-body,
   .ficha-agenda-page .fc-daygrid-body table { width: 100% !important; }
+  .ficha-agenda-page .fc a.fc-daygrid-day-number {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin: 8px 8px 2px auto;
+    padding: 0 !important;
+    border-radius: 999px;
+    color: #dbeafe !important;
+    text-decoration: none !important;
+    font-weight: 800;
+    background: rgba(15, 23, 42, 0.62);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+  }
+  .ficha-agenda-page .fc .fc-day-today a.fc-daygrid-day-number {
+    color: #06111f !important;
+    background: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.88);
+    box-shadow: 0 10px 22px rgba(56, 189, 248, 0.22);
+  }
+  .ficha-agenda-page .fc .fc-daygrid-day-frame { padding: 10px !important; }
+  .ficha-agenda-page .fc .fc-daygrid-day-events { gap: 7px; padding: 5px 8px 12px; }
 </style>
 </head>
 <body class="ficha-body ficha-agenda-page">
@@ -263,7 +286,7 @@ document.addEventListener('DOMContentLoaded', function () {
     eventContent: function (info) {
       const time = info.timeText ? `<span class="agenda-event-time">${escapeHtml(info.timeText)}</span>` : '';
       const title = `<span class="agenda-event-title">${escapeHtml(info.event.title)}</span>`;
-      const separator = info.timeText ? '<span class="agenda-event-separator">-</span>' : '';
+      const separator = info.timeText ? '<span class="agenda-event-separator">&nbsp;-&nbsp;</span>' : '';
       return { html: `<div class="agenda-event-card">${time}${separator}${title}</div>` };
     },
     select: function (info) {
