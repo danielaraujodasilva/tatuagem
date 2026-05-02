@@ -350,7 +350,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fields.inicio.value = data.hora_inicio ? data.hora_inicio.slice(0, 5) : '';
     fields.fim.value = data.hora_fim ? data.hora_fim.slice(0, 5) : '';
     fields.valor.value = data.valor || 0;
-    fields.cliente.value = data.cliente_nome || 'Sem cliente vinculado';
+    fields.cliente.value = clientLabel(data);
     fields.observacoes.value = data.observacoes || '';
     fields.pomadas.value = data.pomadas_anestesicas || 0;
     fields.referencia.value = data.referencia_arte || '';
@@ -473,7 +473,8 @@ document.addEventListener('DOMContentLoaded', function () {
       observacoes: data.observacoes || '',
       pomadas_anestesicas: data.pomadas_anestesicas || 0,
       referencia_arte: data.referencia_arte || '',
-      cliente_nome: data.cliente_nome || 'Cliente vinculado'
+      cliente_nome: data.cliente_nome || '',
+      cliente_telefone: data.cliente_telefone || ''
     };
   }
 
@@ -486,7 +487,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fields.inicio.value = data.hora_inicio ? data.hora_inicio.slice(0, 5) : '';
     fields.fim.value = data.hora_fim ? data.hora_fim.slice(0, 5) : '';
     fields.valor.value = data.valor || 0;
-    fields.cliente.value = data.cliente_nome || 'Cliente vinculado';
+    fields.cliente.value = clientLabel(data);
     fields.observacoes.value = data.observacoes || '';
     fields.pomadas.value = data.pomadas_anestesicas || 0;
     fields.referencia.value = data.referencia_arte || '';
@@ -519,9 +520,19 @@ document.addEventListener('DOMContentLoaded', function () {
         observacoes: data.observacoes || '',
         pomadas_anestesicas: Number(data.pomadas_anestesicas || 0),
         referencia_arte: data.referencia_arte || '',
-        cliente_nome: data.cliente_nome || ''
+        cliente_nome: data.cliente_nome || '',
+        cliente_telefone: data.cliente_telefone || ''
       }
     };
+  }
+
+  function clientLabel(data) {
+    const nome = (data.cliente_nome || '').trim();
+    const telefone = (data.cliente_telefone || '').trim();
+    if (nome && telefone) return `${nome} - ${telefone}`;
+    if (nome) return nome;
+    if (telefone) return telefone;
+    return 'Sem cliente vinculado';
   }
 });
 </script>

@@ -24,7 +24,8 @@ try {
             t.observacoes,
             t.pomadas_anestesicas,
             t.referencia_arte,
-            c.nome AS cliente_nome
+            c.nome AS cliente_nome,
+            c.telefone AS cliente_telefone
         FROM tatuagens t
         LEFT JOIN clientes c ON c.id = t.cliente_id
         WHERE t.id = ?

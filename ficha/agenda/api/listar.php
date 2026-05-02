@@ -13,7 +13,8 @@ $sql = '
         t.observacoes,
         t.pomadas_anestesicas,
         t.referencia_arte,
-        c.nome AS cliente_nome
+        c.nome AS cliente_nome,
+        c.telefone AS cliente_telefone
     FROM tatuagens t
     LEFT JOIN clientes c ON c.id = t.cliente_id
     WHERE t.data_tatuagem IS NOT NULL
@@ -38,9 +39,10 @@ while ($row = $result->fetch_assoc()) {
         'observacoes' => $row['observacoes'],
         'pomadas_anestesicas' => (int) $row['pomadas_anestesicas'],
         'referencia_arte' => $row['referencia_arte'],
-        'cliente_nome' => $row['cliente_nome']
+        'cliente_nome' => $row['cliente_nome'],
+        'cliente_telefone' => $row['cliente_telefone']
     ];
-    unset($row['status'], $row['valor'], $row['observacoes'], $row['pomadas_anestesicas'], $row['referencia_arte'], $row['cliente_nome']);
+    unset($row['status'], $row['valor'], $row['observacoes'], $row['pomadas_anestesicas'], $row['referencia_arte'], $row['cliente_nome'], $row['cliente_telefone']);
     $eventos[] = $row;
 }
 

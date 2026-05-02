@@ -31,9 +31,24 @@ try {
 
     if ($id > 0) {
         $stmt = $conn->prepare('
-            SELECT id, cliente_id, descricao, data_tatuagem, hora_inicio, hora_fim, status, created_at
-            FROM tatuagens
-            WHERE id = ?
+            SELECT
+                t.id,
+                t.cliente_id,
+                t.descricao,
+                t.valor,
+                t.data_tatuagem,
+                t.hora_inicio,
+                t.hora_fim,
+                t.status,
+                t.observacoes,
+                t.pomadas_anestesicas,
+                t.referencia_arte,
+                t.created_at,
+                c.nome AS cliente_nome,
+                c.telefone AS cliente_telefone
+            FROM tatuagens t
+            LEFT JOIN clientes c ON c.id = t.cliente_id
+            WHERE t.id = ?
             LIMIT 1
         ');
         $stmt->bind_param('i', $id);
@@ -43,9 +58,21 @@ try {
     }
 
     $result = $conn->query('
-        SELECT id, cliente_id, descricao, data_tatuagem, hora_inicio, hora_fim, status, created_at
-        FROM tatuagens
-        ORDER BY id DESC
+        SELECT
+            t.id,
+            t.cliente_id,
+            t.descricao,
+            t.valor,
+            t.data_tatuagem,
+            t.hora_inicio,
+            t.hora_fim,
+            t.status,
+            t.created_at,
+            c.nome AS cliente_nome,
+            c.telefone AS cliente_telefone
+        FROM tatuagens t
+        LEFT JOIN clientes c ON c.id = t.cliente_id
+        ORDER BY t.id DESC
         LIMIT 8
     ');
 
