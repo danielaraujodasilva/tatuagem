@@ -11,21 +11,14 @@ if ($id <= 0) {
 }
 
 try {
+    $clienteTemTelefone = (bool) $conn->query("SHOW COLUMNS FROM clientes LIKE 'telefone'")->fetch_assoc();
+    $telefoneSelect = $clienteTemTelefone ? ', c.telefone AS cliente_telefone' : ', "" AS cliente_telefone';
+
     $stmt = $conn->prepare(
         'SELECT
-            t.id,
-            t.cliente_id,
-            t.descricao,
-            t.valor,
-            t.data_tatuagem,
-            t.hora_inicio,
-            t.hora_fim,
-            t.status,
-            t.observacoes,
-            t.pomadas_anestesicas,
-            t.referencia_arte,
-            c.nome AS cliente_nome,
-            c.telefone AS cliente_telefone
+            t.*,
+            c.nome AS cliente_nome
+            ' . $telefoneSelect . '
         FROM tatuagens t
         LEFT JOIN clientes c ON c.id = t.cliente_id
         WHERE t.id = ?
@@ -41,6 +34,13 @@ try {
         echo json_encode(['status' => 'error', 'message' => 'Agendamento nao encontrado.']);
         exit;
     }
+
+    $evento['valor'] = $evento['valor'] ?? 0;
+    $evento['observacoes'] = $evento['observacoes'] ?? '';
+    $evento['pomadas_anestesicas'] = $evento['pomadas_anestesicas'] ?? 0;
+    $evento['referencia_arte'] = $evento['referencia_arte'] ?? '';
+    $evento['cliente_nome'] = $evento['cliente_nome'] ?? '';
+    $evento['cliente_telefone'] = $evento['cliente_telefone'] ?? '';
 
     echo json_encode($evento, JSON_UNESCAPED_UNICODE);
 } catch (Throwable $e) {

@@ -56,38 +56,21 @@ if (empty($_GET['data'])) {
     <div class="ficha-content">
       <div id="agendaAlert" class="ficha-alert ficha-alert-info mb-4" style="display:none;"></div>
 
-      <div class="ficha-calendar-shell">
-        <aside class="ficha-calendar-sidebar">
-          <div class="ficha-summary">
-            <h2 class="ficha-panel-title">Guia rapido</h2>
-            <div class="ficha-copy">
-              Clique e arraste no calendario para abrir um novo agendamento. Clique em um evento existente para ver tudo e editar sem sair da agenda.
-            </div>
-          </div>
-
-          <div class="ficha-summary">
-            <h2 class="ficha-panel-title">Legenda de status</h2>
-            <div class="ficha-legend">
-              <div class="ficha-legend-item"><span class="ficha-legend-dot" style="background:#38bdf8;"></span> Agendado</div>
-              <div class="ficha-legend-item"><span class="ficha-legend-dot" style="background:#22c55e;"></span> Confirmado</div>
-              <div class="ficha-legend-item"><span class="ficha-legend-dot" style="background:#fb7185;"></span> Cancelado</div>
-              <div class="ficha-legend-item"><span class="ficha-legend-dot" style="background:#94a3b8;"></span> Concluido</div>
-            </div>
-          </div>
-
-          <div class="ficha-summary">
-            <h2 class="ficha-panel-title">Atalhos de trabalho</h2>
-            <div class="d-grid gap-2">
-              <a class="btn ficha-btn ficha-btn-secondary" href="../public/cadastrar_tatuagem.php">Cadastrar fora da agenda</a>
-              <a class="btn ficha-btn ficha-btn-secondary" href="../public/clientes.php">Ver base de clientes</a>
-            </div>
-          </div>
-        </aside>
-
+      <div class="ficha-calendar-shell ficha-calendar-shell-full">
         <section class="ficha-calendar-panel">
           <div id="calendar"></div>
         </section>
       </div>
+
+      <footer class="ficha-summary mt-4">
+        <h2 class="ficha-panel-title">Legenda de status</h2>
+        <div class="ficha-legend">
+          <div class="ficha-legend-item"><span class="ficha-legend-dot" style="background:#38bdf8;"></span> Agendado</div>
+          <div class="ficha-legend-item"><span class="ficha-legend-dot" style="background:#22c55e;"></span> Confirmado</div>
+          <div class="ficha-legend-item"><span class="ficha-legend-dot" style="background:#fb7185;"></span> Cancelado</div>
+          <div class="ficha-legend-item"><span class="ficha-legend-dot" style="background:#94a3b8;"></span> Concluido</div>
+        </div>
+      </footer>
     </div>
   </section>
 </main>
@@ -222,17 +205,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const calendar = new FullCalendar.Calendar(calendarEl, {
     locale: 'pt-br',
-    initialView: highlightedEventId ? 'timeGridDay' : (window.innerWidth < 900 ? 'listWeek' : 'timeGridWeek'),
+    initialView: highlightedEventId ? 'timeGridDay' : 'dayGridMonth',
     headerToolbar: {
       left: 'prev,next today',
       center: 'title',
-      right: 'dayGridMonth,timeGridWeek,listWeek'
+      right: 'dayGridMonth,timeGridWeek,timeGridDay'
     },
     buttonText: {
       today: 'Hoje',
       month: 'Mes',
       week: 'Semana',
-      list: 'Lista'
+      day: 'Dia'
     },
     slotMinTime: highlightedEventId ? '00:00:00' : '08:00:00',
     slotMaxTime: '24:00:00',
@@ -244,6 +227,9 @@ document.addEventListener('DOMContentLoaded', function () {
     eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
     height: 'auto',
     events: 'api/listar.php',
+    eventSourceFailure: function () {
+      showAlert('Nao foi possivel carregar os agendamentos. Abra o diagnostico ou recarregue a pagina.', 'danger');
+    },
     eventDidMount: function (info) {
       if (highlightedEventId && String(info.event.id) === String(highlightedEventId)) {
         info.el.style.boxShadow = '0 0 0 3px rgba(16,185,129,.85)';

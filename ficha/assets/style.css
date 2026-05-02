@@ -364,10 +364,14 @@ body.ficha-body {
 }
 
 .ficha-calendar-shell {
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: 24px;
-}
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .ficha-calendar-shell-full {
+    grid-template-columns: 1fr;
+  }
 
 .ficha-calendar-sidebar {
   display: grid;
