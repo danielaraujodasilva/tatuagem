@@ -15,8 +15,8 @@ $config = array_merge([
     'host' => getenv('FICHA_DB_HOST') ?: 'localhost',
     'port' => getenv('FICHA_DB_PORT') ?: 3306,
     'database' => getenv('FICHA_DB_NAME') ?: 'tatuagem_novo',
-    'username' => getenv('FICHA_DB_USER') ?: 'tatu_user',
-    'password' => getenv('FICHA_DB_PASS') ?: 'Daniel*123',
+    'username' => getenv('FICHA_DB_USER') ?: '',
+    'password' => getenv('FICHA_DB_PASS') ?: '',
 ], $localConfig);
 
 $missing = [];

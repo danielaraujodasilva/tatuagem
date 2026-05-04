@@ -12,7 +12,12 @@ file_put_contents(
 );
 
 
-$secret = 'Luna*102030';
+$secret = getenv('DEPLOY_WEBHOOK_SECRET') ?: '';
+if ($secret === '') {
+    http_response_code(500);
+    echo 'Deploy nao configurado.';
+    exit;
+}
 
 $headers = getallheaders();
 $signature = $headers['X-Hub-Signature-256'] ?? '';
@@ -26,5 +31,6 @@ if (!hash_equals($hash, $signature)) {
     exit;
 }
 
-$output = shell_exec('cd C:/xampp/htdocs/site && git pull 2>&1');
+$deployPath = getenv('DEPLOY_PATH') ?: __DIR__;
+$output = shell_exec('cd ' . escapeshellarg($deployPath) . ' && git pull 2>&1');
 echo "<pre>$output</pre>";

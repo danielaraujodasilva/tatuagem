@@ -10,3 +10,7 @@
     # Header unset Cross-Origin-Opener-Policy
 </IfModule>
 
+<FilesMatch "(^\.|\.env$|\.local\.php$|\.local\.json$|composer\.(json|lock)$|package(-lock)?\.json$|deploy\.log$)">
+    Require all denied
+</FilesMatch>
+

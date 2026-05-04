@@ -1,9 +1,15 @@
 <?php
 session_start();
 if($_POST){
-    if($_POST['user']=='admin' && $_POST['pass']=='123'){
+    $adminUser = getenv('PROMO_ADMIN_USER') ?: '';
+    $adminPassHash = getenv('PROMO_ADMIN_PASS_HASH') ?: '';
+    $userOk = $adminUser !== '' && hash_equals($adminUser, (string)($_POST['user'] ?? ''));
+    $passOk = $adminPassHash !== '' && password_verify((string)($_POST['pass'] ?? ''), $adminPassHash);
+
+    if($userOk && $passOk){
         $_SESSION['logado'] = true;
         header('Location: dashboard.php');
+        exit;
     }
 }
 ?>

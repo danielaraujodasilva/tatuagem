@@ -1,8 +1,7 @@
-﻿<?php
+<?php
 return [
     'host' => 'localhost',
-    'port' => 3306,
-    'database' => 'tatuagem_novo',
+    'database' => 'crm_simples',
     'username' => 'seu_usuario',
     'password' => 'sua_senha',
 ];

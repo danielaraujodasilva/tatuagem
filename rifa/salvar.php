@@ -1,6 +1,9 @@
 <?php
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *'); // ajuste se quiser mais segurança
+$allowedOrigin = getenv('RIFA_ALLOWED_ORIGIN') ?: '';
+if ($allowedOrigin !== '') {
+    header('Access-Control-Allow-Origin: ' . $allowedOrigin);
+}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   echo json_encode(['ok' => false, 'error' => 'Método inválido']);

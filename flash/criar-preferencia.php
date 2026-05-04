@@ -1,6 +1,9 @@
 <?php
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
+$allowedOrigin = getenv('FLASH_ALLOWED_ORIGIN') ?: '';
+if ($allowedOrigin !== '') {
+    header('Access-Control-Allow-Origin: ' . $allowedOrigin);
+}
 
 $input = json_decode(file_get_contents('php://input'), true);
 
@@ -9,8 +12,12 @@ if (empty($input['nome']) || empty($input['whatsapp']) || empty($input['design']
     exit;
 }
 
-// TROQUE pela sua chave TEST (não use a de produção aqui!)
-$accessToken = 'APP_USR-a4eb5361-7b17-4d43-9e04-8be1ca2225e6';   // ← SUA CHAVE TEST AQUI
+$accessToken = getenv('MP_ACCESS_TOKEN') ?: '';
+if ($accessToken === '') {
+    http_response_code(500);
+    echo json_encode(['error' => 'Pagamento indisponivel no momento.']);
+    exit;
+}
 
 $data = [
     'items' => [[

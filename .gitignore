@@ -1,7 +1,18 @@
 config.js
+*.env
+*.local.php
+*.local.json
+*.bak
+*.tmp
+deploy.log
+crm copy/
+crm/config.local.php
 crm/data/clientes_runtime.json
+crm/data/clientes.json
+crm/data/config.json
 crm/data/clientes_runtime.json.bak
 crm/data/clientes_runtime.json.tmp
 crm/data/status_pending.json
 crm/data/*.log
 crm/data/media/
+ficha/config/conexao.local.php
