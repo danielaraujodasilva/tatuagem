@@ -30,6 +30,8 @@ Alternativa local: copie `crm/config.local.example.php` para `crm/config.local.p
 - `DEPLOY_WEBHOOK_SECRET`
 - `DEPLOY_PATH`
 
+Alternativa local: copie `deploy.local.example.php` para `deploy.local.php` no servidor e preencha o `secret` com o mesmo segredo configurado no webhook do GitHub.
+
 ### Mercado Pago / Flash
 
 - `MP_ACCESS_TOKEN`
