@@ -1,4 +1,9 @@
 <?php require 'config.php'; ?>
+<?php
+require_once __DIR__ . '/../auth/auth.php';
+require_staff();
+?>
+
 
 <?php
 $id = $_GET['id'] ?? 0;

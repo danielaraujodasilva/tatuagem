@@ -13,6 +13,8 @@ Esta pasta recebeu as melhorias da ficha atualizada do projeto `meduri/tools/fic
 ## Estrutura
 
 - `index.php`: cadastro de cliente e anamnese
+- `../auth/`: login, cadastro, recuperacao de senha e gestao de usuarios
+- `minha_conta.php`: area do cliente logado, limitada ao proprio cadastro
 - `public/cadastrar_tatuagem.php`: cadastro de tatuagem e agendamento
 - `public/clientes.php`: lista de clientes e tatuagens
 - `agenda/`: agenda visual com FullCalendar
@@ -23,7 +25,14 @@ Esta pasta recebeu as melhorias da ficha atualizada do projeto `meduri/tools/fic
 
 1. Importe `ficha/database/atualizacao_tatuagem_novo.sql` no phpMyAdmin se o banco atual ainda nao tiver as tabelas/colunas novas.
 2. Ajuste `config/conexao.local.php` apenas se precisar trocar host, banco, usuario ou senha.
-3. Acesse `/ficha/` no navegador.
+3. Acesse `/auth/register.php` para criar o primeiro usuario. O primeiro cadastro vira `adm`; os seguintes entram como `cliente` e podem ser promovidos em `/auth/usuarios.php`.
+4. Acesse `/auth/login.php` no navegador.
+
+## Niveis de acesso
+
+- `cliente`: acessa apenas `/ficha/minha_conta.php`, vinculado por e-mail ou telefone ao cadastro em `clientes`.
+- `funcionario`: acessa CRM, ficha, agenda e operacoes de atendimento.
+- `adm`: acessa tudo que funcionario acessa, alem de configuracoes, diagnosticos e gestao de usuarios.
 
 ## Observacao
 

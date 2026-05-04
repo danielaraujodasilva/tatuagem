@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../auth/auth.php';
+require_staff();
 require 'config.php';
 require_once __DIR__ . '/data_store.php';
 header('Content-Type: application/json; charset=utf-8');

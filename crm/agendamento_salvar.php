@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../auth/auth.php';
+require_staff();
 require __DIR__ . '/../ficha/config/conexao.php';
 header('Content-Type: application/json; charset=utf-8');
 date_default_timezone_set('America/Sao_Paulo');

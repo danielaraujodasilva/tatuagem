@@ -1,4 +1,6 @@
-﻿<?php
+<?php
+require_once __DIR__ . '/../auth/auth.php';
+require_staff();
 require __DIR__ . '/config/conexao.php';
 
 $result = $conn->query('SELECT id, nome, telefone, endereco FROM clientes WHERE endereco IS NOT NULL AND endereco <> "" ORDER BY nome ASC');

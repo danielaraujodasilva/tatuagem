@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../auth/auth.php';
+require_staff();
 require 'config.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

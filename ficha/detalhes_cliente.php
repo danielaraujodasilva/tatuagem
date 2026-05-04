@@ -1,4 +1,6 @@
-﻿<?php
+<?php
+require_once __DIR__ . '/../auth/auth.php';
+require_staff();
 if (!isset($_GET['id'])) {
     die('Cliente nao especificado.');
 }

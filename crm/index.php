@@ -1,5 +1,10 @@
 <?php require 'config.php'; ?>
 <?php
+require_once __DIR__ . '/../auth/auth.php';
+require_staff();
+?>
+
+<?php
 $stages = [];
 
 $result = $conn->query("SELECT * FROM pipelines ORDER BY ordem");
@@ -78,10 +83,20 @@ $firstStage = $stageIds[0] ?? '1';
                 </div>
 
                 <div class="flex flex-wrap gap-3 w-full lg:w-auto">
-                    <a href="configuracoes.php" 
-   class="bg-gray-800 hover:bg-gray-700 px-4 py-3 rounded-2xl flex items-center">
-    <i class="fas fa-gear"></i>
-</a>
+                    <?php if (auth_has_role(['adm'])): ?>
+                    <a href="../auth/usuarios.php"
+                       class="bg-gray-800 hover:bg-gray-700 px-4 py-3 rounded-2xl flex items-center" title="Usuarios">
+                        <i class="fas fa-users"></i>
+                    </a>
+                    <a href="configuracoes.php"
+                       class="bg-gray-800 hover:bg-gray-700 px-4 py-3 rounded-2xl flex items-center" title="Configuracoes">
+                        <i class="fas fa-gear"></i>
+                    </a>
+                    <?php endif; ?>
+                    <a href="../auth/logout.php"
+                       class="bg-gray-800 hover:bg-gray-700 px-4 py-3 rounded-2xl flex items-center" title="Sair">
+                        <i class="fas fa-right-from-bracket"></i>
+                    </a>
                     <input id="search" type="text" placeholder="Buscar nome, telefone ou interesse..." 
                            class="bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3 flex-1 lg:w-80">
 

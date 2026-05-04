@@ -1,4 +1,6 @@
-﻿<?php
+<?php
+require_once __DIR__ . '/../../auth/auth.php';
+require_staff();
 require __DIR__ . '/../config/conexao.php';
 
 $clienteSelecionadoId = isset($_GET['cliente_id']) ? (int) $_GET['cliente_id'] : 0;

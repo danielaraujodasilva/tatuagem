@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../auth/auth.php';
+require_admin();
 
 $data = [
     "mensagem_trigger" => $_POST['mensagem_trigger'] ?? 'oi'

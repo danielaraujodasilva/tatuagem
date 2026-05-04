@@ -45,3 +45,38 @@ CREATE TABLE IF NOT EXISTS tatuagens (
         FOREIGN KEY (cliente_id) REFERENCES clientes(id)
         ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS usuarios (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    cliente_id INT UNSIGNED NULL,
+    username VARCHAR(80) NOT NULL,
+    nome VARCHAR(150) NOT NULL,
+    email VARCHAR(150) NOT NULL DEFAULT '',
+    telefone VARCHAR(40) NOT NULL DEFAULT '',
+    senha_hash VARCHAR(255) NOT NULL,
+    role ENUM('cliente', 'funcionario', 'adm') NOT NULL DEFAULT 'cliente',
+    ativo TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_usuarios_username (username),
+    KEY idx_usuarios_email (email),
+    KEY idx_usuarios_telefone (telefone),
+    KEY idx_usuarios_cliente (cliente_id),
+    CONSTRAINT fk_usuarios_clientes
+        FOREIGN KEY (cliente_id) REFERENCES clientes(id)
+        ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS senha_resets (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT UNSIGNED NOT NULL,
+    token_hash CHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_senha_resets_token (token_hash),
+    KEY idx_senha_resets_usuario (usuario_id),
+    CONSTRAINT fk_senha_resets_usuarios
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+        ON DELETE CASCADE
+);
