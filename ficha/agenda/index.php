@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/../../auth/auth.php';
 require_staff();
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
 $agendaInitialDate = '';
 
 if (empty($_GET['data'])) {
@@ -278,7 +280,7 @@ document.addEventListener('DOMContentLoaded', function () {
     height: 'auto',
     events: async function (fetchInfo, successCallback, failureCallback) {
       try {
-        const response = await fetch('api/listar.php', {
+        const response = await fetch('api/listar.php?v=20260504-agenda-auth-json', {
           headers: { 'Accept': 'application/json' },
           credentials: 'same-origin'
         });
