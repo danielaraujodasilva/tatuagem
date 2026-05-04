@@ -222,6 +222,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const highlightedEventId = urlParams.get('agendamento_id') || '';
   const referenceOverlay = document.getElementById('referenceOverlay');
   const referenceOverlayImage = document.getElementById('referenceOverlayImage');
+  // agenda build: 2026-05-04-bom-safe-json
 
   const fields = {
     id: document.getElementById('eventId'),
