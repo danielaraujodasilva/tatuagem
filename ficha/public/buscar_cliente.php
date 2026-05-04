@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require __DIR__ . '/../config/conexao.php';
 header('Content-Type: application/json; charset=utf-8');
 

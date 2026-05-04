@@ -1,4 +1,5 @@
 <?php
+ob_start();
 require_once __DIR__ . '/../../../auth/auth.php';
 require_staff();
 require __DIR__ . '/../../config/conexao.php';
@@ -74,9 +75,17 @@ try {
         ];
     }
 
+    if (ob_get_length()) {
+        ob_clean();
+    }
+
     echo json_encode($eventos, JSON_UNESCAPED_UNICODE);
 } catch (Throwable $e) {
     http_response_code(500);
+    if (ob_get_length()) {
+        ob_clean();
+    }
+
     echo json_encode([
         'status' => 'error',
         'message' => 'Erro ao listar agendamentos.',

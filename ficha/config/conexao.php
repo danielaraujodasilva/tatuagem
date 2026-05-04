@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 $localConfigPath = __DIR__ . '/conexao.local.php';
