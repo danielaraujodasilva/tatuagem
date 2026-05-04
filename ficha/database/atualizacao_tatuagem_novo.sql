@@ -90,11 +90,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
     UNIQUE KEY uq_usuarios_username (username),
     KEY idx_usuarios_email (email),
     KEY idx_usuarios_telefone (telefone),
-    KEY idx_usuarios_cliente (cliente_id),
-    CONSTRAINT fk_usuarios_clientes
-        FOREIGN KEY (cliente_id) REFERENCES clientes(id)
-        ON DELETE SET NULL
-);
+    KEY idx_usuarios_cliente (cliente_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS senha_resets (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -104,8 +101,5 @@ CREATE TABLE IF NOT EXISTS senha_resets (
     used_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_senha_resets_token (token_hash),
-    KEY idx_senha_resets_usuario (usuario_id),
-    CONSTRAINT fk_senha_resets_usuarios
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-        ON DELETE CASCADE
-);
+    KEY idx_senha_resets_usuario (usuario_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
