@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../auth/auth.php';
 require_staff();
 require __DIR__ . '/../config/conexao.php';
+require_once __DIR__ . '/../../includes/app_menu.php';
 
 $clienteSelecionadoId = isset($_GET['cliente_id']) ? (int) $_GET['cliente_id'] : 0;
 $clienteSelecionadoNome = '';
@@ -59,11 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cliente_id'])) {
         <span class="ficha-kicker">Ficha de cliente</span>
       <h1>Novo agendamento de tatuagem</h1>
       <p>Associe o atendimento a um cliente ja cadastrado, organize horario, valor e status inicial em uma tela mais objetiva.</p>
-      <div class="ficha-nav">
-        <a class="btn ficha-btn ficha-btn-secondary" href="../index.php">Nova ficha</a>
-        <a class="btn ficha-btn ficha-btn-secondary" href="clientes.php">Clientes</a>
-        <a class="btn ficha-btn ficha-btn-warning" href="../agenda/">Agenda</a>
-      </div>
+      <?php app_menu_render('agenda'); ?>
     </header>
 
     <div class="ficha-content">

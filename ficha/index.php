@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../auth/auth.php';
 require_staff();
 require __DIR__ . '/config/conexao.php';
+require_once __DIR__ . '/../includes/app_menu.php';
 
 function posted(string $key, string $default = ''): string
 {
@@ -107,12 +108,7 @@ $proximas = (int) $conn->query("SELECT COUNT(*) AS total FROM tatuagens WHERE da
         <span class="ficha-kicker">Ficha de cliente</span>
         <h1>Cadastro e anamnese de clientes</h1>
         <p>Organize o historico do atendimento, registre observacoes relevantes e acelere o caminho entre a primeira conversa e o agendamento.</p>
-        <div class="ficha-nav">
-          <a class="btn ficha-btn ficha-btn-secondary" href="public/clientes.php">Clientes</a>
-          <a class="btn ficha-btn ficha-btn-secondary" href="public/cadastrar_tatuagem.php">Cadastrar tatuagem</a>
-          <a class="btn ficha-btn ficha-btn-warning" href="agenda/">Agenda</a>
-          <a class="btn ficha-btn ficha-btn-secondary" href="mapa_clientes.php">Mapa de clientes</a>
-        </div>
+        <?php app_menu_render('ficha'); ?>
       </header>
 
       <div class="ficha-content">

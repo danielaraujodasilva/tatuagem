@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../auth/auth.php';
 require_staff();
+require_once __DIR__ . '/../../includes/app_menu.php';
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 $agendaInitialDate = '';
@@ -83,11 +84,7 @@ if (empty($_GET['data'])) {
     <header class="ficha-hero">
         <span class="ficha-kicker">Agenda de tatuagem</span>
       <h1>Agenda de tatuagens</h1>
-      <div class="ficha-nav">
-        <a class="btn ficha-btn ficha-btn-secondary" href="../index.php">Nova ficha</a>
-        <a class="btn ficha-btn ficha-btn-secondary" href="../public/clientes.php">Clientes</a>
-        <a class="btn ficha-btn ficha-btn-primary" href="../public/cadastrar_tatuagem.php">Novo agendamento</a>
-      </div>
+      <?php app_menu_render('agenda'); ?>
     </header>
 
     <div class="ficha-content">

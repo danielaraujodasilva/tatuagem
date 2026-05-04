@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../auth/auth.php';
 require_staff();
 require __DIR__ . '/config/conexao.php';
+require_once __DIR__ . '/../includes/app_menu.php';
 
 $result = $conn->query('SELECT id, nome, telefone, endereco FROM clientes WHERE endereco IS NOT NULL AND endereco <> "" ORDER BY nome ASC');
 $clientes = [];
@@ -26,11 +27,7 @@ while ($row = $result->fetch_assoc()) {
         <span class="ficha-kicker">Mapa de clientes</span>
         <h1>Mapa de clientes</h1>
         <p>Veja onde sua base esta concentrada e abra rapidamente o WhatsApp ou os detalhes de cada cliente a partir do mapa.</p>
-        <div class="ficha-nav">
-          <a class="btn ficha-btn ficha-btn-secondary" href="index.php">Nova ficha</a>
-          <a class="btn ficha-btn ficha-btn-secondary" href="public/clientes.php">Clientes</a>
-          <a class="btn ficha-btn ficha-btn-warning" href="agenda/">Agenda</a>
-        </div>
+        <?php app_menu_render('mapa'); ?>
       </header>
 
       <div class="ficha-content">

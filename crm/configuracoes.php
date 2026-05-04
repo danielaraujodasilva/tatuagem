@@ -2,6 +2,7 @@
 <?php
 require_once __DIR__ . '/../auth/auth.php';
 require_admin();
+require_once __DIR__ . '/../includes/app_menu.php';
 ?>
 
 
@@ -19,17 +20,13 @@ require_admin();
 <div class="max-w-5xl mx-auto p-6">
 
     <!-- HEADER -->
-    <div class="flex justify-between items-center mb-8">
+    <div class="mb-8">
         <div class="flex items-center gap-3">
             <i class="fas fa-gear text-2xl text-emerald-500"></i>
             <h1 class="text-2xl font-bold">Configurações do Pipeline</h1>
         </div>
 
-        <a href="index.php" 
-           class="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-xl flex items-center gap-2">
-            <i class="fas fa-arrow-left"></i>
-            Voltar
-        </a>
+        <?php app_menu_render('config'); ?>
     </div>
 
     <!-- FORM -->

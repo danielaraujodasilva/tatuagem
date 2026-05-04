@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../auth/auth.php';
 require_staff();
+require_once __DIR__ . '/../includes/app_menu.php';
 ?>
 <?php 
 require 'config.php';
@@ -25,11 +26,9 @@ if (!$lead) {
 </head>
 <body class="bg-gray-950 text-gray-100">
     <div class="max-w-4xl mx-auto p-8">
-        <a href="index.php" class="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300 mb-8 font-medium">
-            ← Voltar ao Pipeline
-        </a>
+        <?php app_menu_render('crm'); ?>
 
-        <div class="bg-gray-900 rounded-3xl p-8">
+        <div class="bg-gray-900 rounded-3xl p-8 mt-8">
             <!-- Cabeçalho -->
             <div class="flex flex-col md:flex-row justify-between gap-6 border-b border-gray-700 pb-8">
                 <div>

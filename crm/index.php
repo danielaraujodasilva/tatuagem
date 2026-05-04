@@ -2,6 +2,7 @@
 <?php
 require_once __DIR__ . '/../auth/auth.php';
 require_staff();
+require_once __DIR__ . '/../includes/app_menu.php';
 ?>
 
 <?php
@@ -74,31 +75,17 @@ $firstStage = $stageIds[0] ?? '1';
 </head>
 <body class="bg-gray-950 text-gray-100">
     <div class="w-full mx-auto">
-        <!-- HEADER -->
         <div class="bg-gray-900 border-b border-gray-800 px-6 py-6">
-            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+            <div class="flex flex-col gap-6">
                 <div class="flex items-center gap-3">
                     <i class="fas fa-chart-simple text-3xl text-emerald-500"></i>
                     <h1 class="text-3xl font-bold">CRM Pipeline</h1>
                 </div>
+                <?php app_menu_render('crm'); ?>
 
-                <div class="flex flex-wrap gap-3 w-full lg:w-auto">
-                    <?php if (auth_has_role(['adm'])): ?>
-                    <a href="../auth/usuarios.php"
-                       class="bg-gray-800 hover:bg-gray-700 px-4 py-3 rounded-2xl flex items-center" title="Usuarios">
-                        <i class="fas fa-users"></i>
-                    </a>
-                    <a href="configuracoes.php"
-                       class="bg-gray-800 hover:bg-gray-700 px-4 py-3 rounded-2xl flex items-center" title="Configuracoes">
-                        <i class="fas fa-gear"></i>
-                    </a>
-                    <?php endif; ?>
-                    <a href="../auth/logout.php"
-                       class="bg-gray-800 hover:bg-gray-700 px-4 py-3 rounded-2xl flex items-center" title="Sair">
-                        <i class="fas fa-right-from-bracket"></i>
-                    </a>
+                <div class="flex flex-wrap gap-3 w-full">
                     <input id="search" type="text" placeholder="Buscar nome, telefone ou interesse..." 
-                           class="bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3 flex-1 lg:w-80">
+                           class="bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3 flex-1 min-w-[260px]">
 
                     <select id="filterEtapa" class="bg-gray-800 border border-gray-700 rounded-2xl px-5 py-3">
                         <option value="">Todas as etapas</option>
@@ -115,6 +102,11 @@ $firstStage = $stageIds[0] ?? '1';
                         <i class="fas fa-download"></i> Exportar CSV
                     </button>
 
+                    <a href="relatorios.php"
+                       class="bg-sky-500 hover:bg-sky-400 text-gray-950 px-6 py-3 rounded-2xl font-semibold flex items-center gap-2">
+                        <i class="fas fa-chart-line"></i> Relatorios
+                    </a>
+
                     <button onclick="newLead()" 
                             class="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-2xl font-semibold flex items-center gap-2">
                         <i class="fas fa-plus"></i> Novo Lead
@@ -127,8 +119,8 @@ $firstStage = $stageIds[0] ?? '1';
             </div>
 
             <!-- Dashboard -->
-            <div id="dashboard" onclick="showDashboardModal()" 
-                 class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 mt-10 cursor-pointer hover:opacity-90 transition">
+            <div id="dashboard"
+                 class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 mt-10">
             </div>
         </div>
 
@@ -501,21 +493,19 @@ $firstStage = $stageIds[0] ?? '1';
             const totalV = leads.reduce((sum, l) => sum + (parseFloat(l.valor) || 0), 0);
 
             document.getElementById('dashboard').innerHTML = `
-                <div class="bg-gray-800 rounded-3xl p-6 text-center">
+                <a href="relatorios.php" class="bg-gray-800 hover:bg-gray-700 rounded-3xl p-6 text-center transition">
                     <p class="text-gray-400 text-sm">Total Leads</p>
                     <p class="text-4xl font-bold">${totalL}</p>
-                </div>
-                <div class="bg-gray-800 rounded-3xl p-6 text-center">
+                </a>
+                <a href="relatorios.php?metric=valor" class="bg-gray-800 hover:bg-gray-700 rounded-3xl p-6 text-center transition">
                     <p class="text-gray-400 text-sm">Valor Total</p>
                     <p class="text-4xl font-bold text-emerald-400">R$ ${totalV.toLocaleString('pt-BR')}</p>
-                </div>
+                </a>
             `;
         }
 
         function showDashboardModal() {
-            const totalL = allLeads.length;
-            const totalV = allLeads.reduce((sum, l) => sum + (parseFloat(l.valor) || 0), 0);
-            alert(`📊 Dashboard Detalhado\n\nTotal de Leads: ${totalL}\nValor Total no Pipeline: R$ ${totalV.toLocaleString('pt-BR')}\n\nGráficos completos em breve.`);
+            window.location.href = 'relatorios.php';
         }
 
         function enableDragAndDrop() {
