@@ -276,9 +276,30 @@ document.addEventListener('DOMContentLoaded', function () {
     eventDisplay: 'block',
     dayMaxEventRows: 4,
     height: 'auto',
-    events: 'api/listar.php',
-    eventSourceFailure: function () {
-      showAlert('Nao foi possivel carregar os agendamentos. Abra o diagnostico ou recarregue a pagina.', 'danger');
+    events: async function (fetchInfo, successCallback, failureCallback) {
+      try {
+        const response = await fetch('api/listar.php', {
+          headers: { 'Accept': 'application/json' },
+          credentials: 'same-origin'
+        });
+        const text = await response.text();
+        let data = null;
+
+        try {
+          data = JSON.parse(text);
+        } catch (error) {
+          throw new Error('A API da agenda respondeu em formato invalido.');
+        }
+
+        if (!response.ok || !Array.isArray(data)) {
+          throw new Error(data.message || data.error || 'Nao foi possivel carregar os agendamentos.');
+        }
+
+        successCallback(data);
+      } catch (error) {
+        showAlert((error.message || 'Nao foi possivel carregar os agendamentos.') + ' Recarregue a pagina ou faca login novamente.', 'danger');
+        failureCallback(error);
+      }
     },
     eventDidMount: function (info) {
       if (highlightedEventId && String(info.event.id) === String(highlightedEventId)) {

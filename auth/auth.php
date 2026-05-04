@@ -19,42 +19,62 @@ function auth_db(): mysqli
     return $GLOBALS['authConn'];
 }
 
+function auth_table_exists(string $table): bool
+{
+    $conn = auth_db();
+    $stmt = $conn->prepare('SHOW TABLES LIKE ?');
+    $stmt->bind_param('s', $table);
+    $stmt->execute();
+    $exists = (bool)$stmt->get_result()->fetch_row();
+    $stmt->close();
+
+    return $exists;
+}
+
 function auth_ensure_schema(): void
 {
     $conn = auth_db();
 
-    $conn->query("
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            cliente_id INT UNSIGNED NULL,
-            username VARCHAR(80) NOT NULL,
-            nome VARCHAR(150) NOT NULL,
-            email VARCHAR(150) NOT NULL DEFAULT '',
-            telefone VARCHAR(40) NOT NULL DEFAULT '',
-            senha_hash VARCHAR(255) NOT NULL,
-            role ENUM('cliente', 'funcionario', 'adm') NOT NULL DEFAULT 'cliente',
-            ativo TINYINT(1) NOT NULL DEFAULT 1,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            UNIQUE KEY uq_usuarios_username (username),
-            KEY idx_usuarios_email (email),
-            KEY idx_usuarios_telefone (telefone),
-            KEY idx_usuarios_cliente (cliente_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    ");
+    try {
+        if (!auth_table_exists('usuarios')) {
+            $conn->query("
+                CREATE TABLE usuarios (
+                    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    cliente_id INT UNSIGNED NULL,
+                    username VARCHAR(80) NOT NULL,
+                    nome VARCHAR(150) NOT NULL,
+                    email VARCHAR(150) NOT NULL DEFAULT '',
+                    telefone VARCHAR(40) NOT NULL DEFAULT '',
+                    senha_hash VARCHAR(255) NOT NULL,
+                    role ENUM('cliente', 'funcionario', 'adm') NOT NULL DEFAULT 'cliente',
+                    ativo TINYINT(1) NOT NULL DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY uq_usuarios_username (username),
+                    KEY idx_usuarios_email (email),
+                    KEY idx_usuarios_telefone (telefone),
+                    KEY idx_usuarios_cliente (cliente_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ");
+        }
 
-    $conn->query("
-        CREATE TABLE IF NOT EXISTS senha_resets (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            usuario_id INT UNSIGNED NOT NULL,
-            token_hash CHAR(64) NOT NULL,
-            expires_at DATETIME NOT NULL,
-            used_at DATETIME NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE KEY uq_senha_resets_token (token_hash),
-            KEY idx_senha_resets_usuario (usuario_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    ");
+        if (!auth_table_exists('senha_resets')) {
+            $conn->query("
+                CREATE TABLE senha_resets (
+                    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    usuario_id INT UNSIGNED NOT NULL,
+                    token_hash CHAR(64) NOT NULL,
+                    expires_at DATETIME NOT NULL,
+                    used_at DATETIME NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY uq_senha_resets_token (token_hash),
+                    KEY idx_senha_resets_usuario (usuario_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ");
+        }
+    } catch (Throwable $e) {
+        error_log('Auth schema check failed: ' . $e->getMessage());
+    }
 }
 
 auth_ensure_schema();
@@ -85,6 +105,22 @@ function auth_url(string $path): string
 function auth_redirect(string $path): void
 {
     header('Location: ' . auth_url($path));
+    exit;
+}
+
+function auth_wants_json(): bool
+{
+    $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+    $accept = strtolower((string)($_SERVER['HTTP_ACCEPT'] ?? ''));
+
+    return strpos($script, '/api/') !== false || strpos($accept, 'application/json') !== false;
+}
+
+function auth_json_error(int $status, string $message): void
+{
+    http_response_code($status);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['ok' => false, 'message' => $message], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -143,6 +179,10 @@ function require_login(): array
         return $user;
     }
 
+    if (auth_wants_json()) {
+        auth_json_error(401, 'Sessao expirada. Entre novamente.');
+    }
+
     $next = $_SERVER['REQUEST_URI'] ?? auth_url('/ficha/minha_conta.php');
     auth_redirect('/auth/login.php?next=' . urlencode($next));
 }
@@ -153,6 +193,10 @@ function require_role($roles): array
     $user = require_login();
 
     if (!in_array((string)$user['role'], $roles, true)) {
+        if (auth_wants_json()) {
+            auth_json_error(403, 'Acesso negado para este usuario.');
+        }
+
         http_response_code(403);
         echo 'Acesso negado.';
         exit;
