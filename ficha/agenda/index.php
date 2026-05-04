@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', function () {
         let data = null;
 
         try {
-          data = JSON.parse(text);
+          data = JSON.parse(text.replace(/^\uFEFF/, '').trimStart());
         } catch (error) {
           throw new Error('A API da agenda respondeu em formato invalido.');
         }
