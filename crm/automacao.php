@@ -11,11 +11,14 @@ function automacao_h($value): string
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
-function automacao_redirect(): void
+function automacao_redirect(bool $embedded = false): void
 {
-    header('Location: automacao.php?v=20260505-automation');
+    $query = $embedded ? '?embed=1&v=20260505-automation' : '?v=20260505-automation';
+    header('Location: automacao.php' . $query);
     exit;
 }
+
+$embeddedRequest = !empty($_GET['embed']) || !empty($_POST['embed']);
 
 $eventos = [
     'mensagem_recebida' => 'Mensagem recebida',
@@ -77,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         crmSalvarAutomacoes($automacoes);
-        automacao_redirect();
+        automacao_redirect($embeddedRequest);
     }
 
     if ($action === 'toggle') {
@@ -91,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         unset($automacao);
 
         crmSalvarAutomacoes($automacoes);
-        automacao_redirect();
+        automacao_redirect($embeddedRequest);
     }
 
     if ($action === 'excluir') {
@@ -101,13 +104,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }));
 
         crmSalvarAutomacoes($automacoes);
-        automacao_redirect();
+        automacao_redirect($embeddedRequest);
     }
 }
 
 $automacoes = crmCarregarAutomacoes();
 $clientes = crmCarregarClientes();
-$embedded = !empty($_GET['embed']);
+$embedded = $embeddedRequest;
 $ativas = count(array_filter($automacoes, static fn(array $a): bool => !empty($a['ativo'])));
 $envioAutomatico = count(array_filter($automacoes, static fn(array $a): bool => !empty($a['ativo']) && ($a['acao'] ?? '') === 'enviar_mensagem'));
 $criacaoLead = count(array_filter($automacoes, static fn(array $a): bool => !empty($a['ativo']) && ($a['acao'] ?? '') === 'criar_lead'));
@@ -300,6 +303,9 @@ foreach ($automacoes as $automacao) {
                 <form method="post" class="crm-panel p-5" id="automationForm">
                     <input type="hidden" name="action" value="salvar">
                     <input type="hidden" name="id" id="ruleId">
+                    <?php if ($embedded): ?>
+                        <input type="hidden" name="embed" value="1">
+                    <?php endif; ?>
 
                     <div class="flex items-center justify-between gap-3 mb-5">
                         <h2 class="crm-panel-title"><i class="fa-solid fa-sliders"></i> Regra</h2>
@@ -399,6 +405,9 @@ foreach ($automacoes as $automacao) {
                                             <form method="post">
                                                 <input type="hidden" name="action" value="toggle">
                                                 <input type="hidden" name="id" value="<?= automacao_h($automacao['id'] ?? '') ?>">
+                                                <?php if ($embedded): ?>
+                                                    <input type="hidden" name="embed" value="1">
+                                                <?php endif; ?>
                                                 <button class="crm-button" type="submit" title="Ativar ou pausar">
                                                     <i class="fa-solid <?= !empty($automacao['ativo']) ? 'fa-pause' : 'fa-play' ?>"></i>
                                                 </button>
@@ -406,6 +415,9 @@ foreach ($automacoes as $automacao) {
                                             <form method="post" onsubmit="return confirm('Excluir esta automacao?')">
                                                 <input type="hidden" name="action" value="excluir">
                                                 <input type="hidden" name="id" value="<?= automacao_h($automacao['id'] ?? '') ?>">
+                                                <?php if ($embedded): ?>
+                                                    <input type="hidden" name="embed" value="1">
+                                                <?php endif; ?>
                                                 <button class="crm-button" type="submit" title="Excluir"><i class="fa-solid fa-trash"></i></button>
                                             </form>
                                         </div>
