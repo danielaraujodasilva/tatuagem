@@ -3,6 +3,11 @@
 require_once __DIR__ . '/../auth/auth.php';
 require_admin();
 require_once __DIR__ . '/../includes/app_menu.php';
+require_once __DIR__ . '/../includes/system_settings.php';
+
+$systemSettings = system_settings_load();
+$valorPomada = system_pomada_unit_price();
+$embedded = !empty($_GET['embed']) || !empty($_POST['embed']);
 ?>
 
 
@@ -141,12 +146,20 @@ require_once __DIR__ . '/../includes/app_menu.php';
         .app-menu-panel {
             right: 0;
         }
+
+        .settings-embedded {
+            padding: 0;
+        }
+
+        .settings-embedded .settings-hero {
+            display: none;
+        }
     </style>
 </head>
 
 <body class="settings-body">
 
-<main class="settings-shell mx-auto p-4 md:p-6">
+<main class="settings-shell mx-auto p-4 md:p-6 <?= $embedded ? 'settings-embedded' : '' ?>">
 
     <header class="settings-hero mb-6">
         <div class="flex flex-col gap-3">
@@ -228,16 +241,26 @@ require_once __DIR__ . '/../includes/app_menu.php';
 
     <section class="settings-card p-5 md:p-6 mt-6">
         <form method="POST" action="salvar_config.php">
-            <div class="flex flex-col md:flex-row md:items-end gap-4">
+            <?php if ($embedded): ?><input type="hidden" name="embed" value="1"><?php endif; ?>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="flex-1">
                     <span class="settings-kicker">Automacao</span>
                     <label class="block mt-1 mb-2 text-xl font-black">Mensagem gatilho</label>
                     <input type="text" name="mensagem_trigger"
                            class="settings-input px-4 py-3 w-full"
+                           value="<?= htmlspecialchars((string)($systemSettings['mensagem_trigger'] ?? 'oi'), ENT_QUOTES, 'UTF-8') ?>"
                            placeholder="Ex: oi">
                 </div>
 
-                <button class="settings-button px-5 py-3">
+                <div class="flex-1">
+                    <span class="settings-kicker">Financeiro</span>
+                    <label class="block mt-1 mb-2 text-xl font-black">Valor por pomada anestesica</label>
+                    <input type="number" step="0.01" min="0" name="valor_pomada_anestesica"
+                           class="settings-input px-4 py-3 w-full"
+                           value="<?= htmlspecialchars(number_format($valorPomada, 2, '.', ''), ENT_QUOTES, 'UTF-8') ?>">
+                </div>
+
+                <button class="settings-button px-5 py-3 md:col-span-2">
                     Salvar
                 </button>
             </div>

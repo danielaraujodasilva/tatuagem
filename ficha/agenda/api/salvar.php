@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../../auth/auth.php';
 require_staff();
 require __DIR__ . '/../../config/conexao.php';
+require_once __DIR__ . '/../../../includes/system_settings.php';
 header('Content-Type: application/json; charset=utf-8');
 
 $data = json_decode(file_get_contents('php://input'), true);
@@ -15,6 +16,7 @@ $valor = (float) ($data['valor'] ?? 0);
 $clienteId = isset($data['cliente_id']) && (int)$data['cliente_id'] > 0 ? (int) $data['cliente_id'] : null;
 $observacoes = trim((string) ($data['observacoes'] ?? ''));
 $pomadas = max(0, (int) ($data['pomadas_anestesicas'] ?? 0));
+$valor = system_apply_pomada_total($valor, $pomadas);
 $referencia = trim((string) ($data['referencia_arte'] ?? ''));
 
 if ($descricao === '' || $dataTat === '' || $horaInicio === '' || $horaFim === '') {

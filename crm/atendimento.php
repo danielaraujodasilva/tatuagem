@@ -2,8 +2,10 @@
 require_once __DIR__ . '/../auth/auth.php';
 require_staff();
 require_once __DIR__ . '/data_store.php';
+require_once __DIR__ . '/../includes/system_settings.php';
 
 date_default_timezone_set('America/Sao_Paulo');
+$valorPomadaAnestesica = system_pomada_unit_price();
 
 function atendimento_h($value): string
 {
@@ -438,10 +440,11 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
                 <a class="is-active" href="index.php"><i class="fa-solid fa-comments"></i> Atendimento</a>
                 <a href="respostas_rapidas.php"><i class="fa-solid fa-bolt"></i> Respostas Rapidas</a>
                 <a href="automacao.php?embed=1&v=20260505-automation" data-workspace-link data-title="Automacao" data-subtitle="Regras, alertas e mensagens automaticas" data-src="automacao.php?embed=1&v=20260505-automation"><i class="fa-solid fa-robot"></i> Automacao</a>
+                <a href="financeiro.php?embed=1&v=20260505-financeiro" data-workspace-link data-title="Financeiro" data-subtitle="Faturamento, despesas e valores a receber" data-src="financeiro.php?embed=1&v=20260505-financeiro"><i class="fa-solid fa-wallet"></i> Financeiro</a>
                 <a href="../ficha/agenda/?v=20260505-embedded-redesign" data-workspace-link data-title="Agenda" data-subtitle="Calendario e rotina do estudio" data-src="../ficha/agenda/?v=20260505-embedded-redesign"><i class="fa-regular fa-calendar"></i> Agenda</a>
                 <a href="../ficha/index.php?v=20260505-embedded-redesign" data-workspace-link data-title="Ficha / Anamnese" data-subtitle="Cadastro, saude, autorizacoes e observacoes" data-src="../ficha/index.php?v=20260505-embedded-redesign"><i class="fa-regular fa-clipboard"></i> Ficha / Anamnese</a>
                 <a href="relatorios.php?v=20260505-embedded-redesign" data-workspace-link data-title="Relatorios" data-subtitle="Resultados, origem dos leads e faturamento" data-src="relatorios.php?v=20260505-embedded-redesign"><i class="fa-solid fa-chart-line"></i> Relatorios</a>
-                <a href="configuracoes.php?v=20260505-embedded-redesign" data-workspace-link data-title="Configuracoes" data-subtitle="Pipeline, gatilhos e preferencias do CRM" data-src="configuracoes.php?v=20260505-embedded-redesign"><i class="fa-solid fa-gear"></i> Configuracoes</a>
+                <a href="configuracoes.php?embed=1&v=20260505-financeiro" data-workspace-link data-title="Configuracoes" data-subtitle="Pipeline, gatilhos e preferencias do CRM" data-src="configuracoes.php?embed=1&v=20260505-financeiro"><i class="fa-solid fa-gear"></i> Configuracoes</a>
             </nav>
         </aside>
 
@@ -657,12 +660,17 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
                     </div>
                 </div>
                 <div>
-                    <label class="crm-muted text-sm block mb-2" for="scheduleValor">Valor da tatuagem (R$)</label>
+                    <label class="crm-muted text-sm block mb-2" for="scheduleValor">Valor base da tatuagem (R$)</label>
                     <input type="number" step="0.01" id="scheduleValor" name="valor" class="crm-input">
                 </div>
                 <div>
                     <label class="crm-muted text-sm block mb-2" for="schedulePomadas">Pomadas anestesicas</label>
                     <input type="number" min="0" step="1" id="schedulePomadas" name="pomadas_anestesicas" value="0" class="crm-input">
+                    <div class="crm-muted text-xs mt-1">+ <?= 'R$ ' . number_format($valorPomadaAnestesica, 2, ',', '.') ?> por unidade</div>
+                </div>
+                <div class="md:col-span-2 crm-card p-4">
+                    <div class="crm-muted text-sm">Total com pomadas</div>
+                    <div id="scheduleTotalPreview" class="text-2xl font-black mt-1">R$ 0,00</div>
                 </div>
                 <div class="md:col-span-2">
                     <label class="crm-muted text-sm block mb-2" for="scheduleDescricao">Descricao / arte pretendida</label>
@@ -693,6 +701,7 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
 <script>
 const conversations = <?= json_encode($conversas, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 const quickReplies = <?= json_encode($respostasRapidas, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+const pomadaUnitPrice = <?= json_encode($valorPomadaAnestesica) ?>;
 const statusLabels = {
     novo: 'Novo',
     lead_quente: 'Lead quente',
@@ -1189,6 +1198,7 @@ function openScheduleOverlay() {
     document.getElementById('scheduleTelefone').value = item.numero || '';
     document.getElementById('scheduleDescricao').value = item.interesse || '';
     document.getElementById('schedulePomadas').value = '0';
+    updateScheduleTotalPreview();
     document.getElementById('scheduleClientSearch').value = item.numero || item.nome || '';
     document.getElementById('scheduleClientResults').classList.add('hidden');
     document.getElementById('scheduleClientResults').innerHTML = '';
@@ -1199,6 +1209,13 @@ function openScheduleOverlay() {
     document.getElementById('scheduleOverlay').classList.remove('hidden');
     searchScheduleClients(item.numero || item.nome || '', true);
     setTimeout(() => document.getElementById('scheduleData').focus(), 80);
+}
+
+function updateScheduleTotalPreview() {
+    const valor = Number(document.getElementById('scheduleValor').value || 0);
+    const pomadas = Number(document.getElementById('schedulePomadas').value || 0);
+    const total = valor + (pomadas * Number(pomadaUnitPrice || 0));
+    document.getElementById('scheduleTotalPreview').textContent = formatCurrency(total);
 }
 
 function closeScheduleOverlay() {
@@ -1345,6 +1362,8 @@ document.getElementById('scheduleButton').addEventListener('click', openSchedule
 document.getElementById('closeScheduleButton').addEventListener('click', closeScheduleOverlay);
 document.getElementById('cancelScheduleButton').addEventListener('click', closeScheduleOverlay);
 document.getElementById('scheduleForm').addEventListener('submit', saveSchedule);
+document.getElementById('scheduleValor').addEventListener('input', updateScheduleTotalPreview);
+document.getElementById('schedulePomadas').addEventListener('input', updateScheduleTotalPreview);
 document.getElementById('scheduleClientSearch').addEventListener('input', scheduleSearchChanged);
 document.getElementById('scheduleTelefone').addEventListener('blur', () => {
     const telefone = document.getElementById('scheduleTelefone').value.trim();

@@ -128,6 +128,7 @@ foreach ($respostas as $resposta) {
                 <a href="index.php"><i class="fa-solid fa-comments"></i> Atendimento</a>
                 <a class="is-active" href="respostas_rapidas.php"><i class="fa-solid fa-bolt"></i> Respostas Rapidas</a>
                 <a href="automacao.php"><i class="fa-solid fa-robot"></i> Automacao</a>
+                <a href="financeiro.php"><i class="fa-solid fa-wallet"></i> Financeiro</a>
                 <a href="../ficha/agenda/"><i class="fa-regular fa-calendar"></i> Agenda</a>
                 <a href="../ficha/index.php"><i class="fa-regular fa-clipboard"></i> Ficha / Anamnese</a>
                 <a href="relatorios.php"><i class="fa-solid fa-chart-line"></i> Relatorios</a>

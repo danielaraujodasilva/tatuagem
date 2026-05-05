@@ -2,9 +2,11 @@
 require_once __DIR__ . '/../../auth/auth.php';
 require_staff();
 require_once __DIR__ . '/../../includes/app_menu.php';
+require_once __DIR__ . '/../../includes/system_settings.php';
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 $agendaInitialDate = '';
+$valorPomadaAnestesica = system_pomada_unit_price();
 
 if (empty($_GET['data'])) {
     try {
@@ -157,7 +159,7 @@ if (empty($_GET['data'])) {
               <input type="time" id="eventEnd" name="hora_fim" class="form-control" required>
             </div>
             <div class="col-md-4">
-              <label class="ficha-form-label" for="eventValue">Valor (R$)</label>
+              <label class="ficha-form-label" for="eventValue">Valor base (R$)</label>
               <input type="number" step="0.01" id="eventValue" name="valor" class="form-control" value="0">
             </div>
             <div class="col-md-8">
@@ -174,6 +176,12 @@ if (empty($_GET['data'])) {
             <div class="col-md-4">
               <label class="ficha-form-label" for="eventPomadas">Pomadas anestesicas</label>
               <input type="number" min="0" step="1" id="eventPomadas" name="pomadas_anestesicas" class="form-control" value="0">
+              <div class="form-text">+ <?= 'R$ ' . number_format($valorPomadaAnestesica, 2, ',', '.') ?> por unidade</div>
+            </div>
+            <div class="col-12">
+              <div class="ficha-alert ficha-alert-info mb-0">
+                Total com pomadas: <strong id="eventTotalWithPomadas">R$ 0,00</strong>
+              </div>
             </div>
             <div class="col-md-8">
               <label class="ficha-form-label" for="eventReference">Arte de referencia</label>
@@ -216,9 +224,11 @@ document.addEventListener('DOMContentLoaded', function () {
   const urlParams = new URLSearchParams(window.location.search);
   const serverInitialDate = <?= json_encode($agendaInitialDate, JSON_UNESCAPED_UNICODE) ?>;
   const initialDate = urlParams.get('data') || serverInitialDate || undefined;
+  const pomadaUnitPrice = <?= json_encode($valorPomadaAnestesica) ?>;
   const highlightedEventId = urlParams.get('agendamento_id') || '';
   const referenceOverlay = document.getElementById('referenceOverlay');
   const referenceOverlayImage = document.getElementById('referenceOverlayImage');
+  const totalWithPomadas = document.getElementById('eventTotalWithPomadas');
   // agenda build: 2026-05-04-bom-safe-json
 
   const fields = {
@@ -443,8 +453,20 @@ document.addEventListener('DOMContentLoaded', function () {
   function updateSummaryCards() {
     summary.status.textContent = fields.status.options[fields.status.selectedIndex]?.text || 'Agendado';
     summary.client.textContent = fields.cliente.value || 'Sem cliente';
-    summary.value.textContent = formatCurrency(Number(fields.valor.value || 0));
+    const total = totalValueWithPomadas();
+    summary.value.textContent = formatCurrency(total);
+    if (totalWithPomadas) {
+      totalWithPomadas.textContent = formatCurrency(total);
+    }
     summary.window.textContent = buildWindowText(fields.data.value, fields.inicio.value, fields.fim.value);
+  }
+
+  function totalValueWithPomadas() {
+    return Number(fields.valor.value || 0) + (Number(fields.pomadas.value || 0) * Number(pomadaUnitPrice || 0));
+  }
+
+  function baseValueFromTotal(total, pomadas) {
+    return Math.max(0, Number(total || 0) - (Number(pomadas || 0) * Number(pomadaUnitPrice || 0)));
   }
 
   function buildWindowText(dateValue, startValue, endValue) {
@@ -477,7 +499,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fields.data.value = data.data_tatuagem || '';
     fields.inicio.value = data.hora_inicio ? data.hora_inicio.slice(0, 5) : '';
     fields.fim.value = data.hora_fim ? data.hora_fim.slice(0, 5) : '';
-    fields.valor.value = data.valor || 0;
+    fields.valor.value = baseValueFromTotal(data.valor || 0, data.pomadas_anestesicas || 0).toFixed(2);
     fields.cliente.value = clientLabel(data);
     fields.observacoes.value = data.observacoes || '';
     fields.pomadas.value = data.pomadas_anestesicas || 0;
@@ -620,7 +642,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fields.data.value = data.data_tatuagem || '';
     fields.inicio.value = data.hora_inicio ? data.hora_inicio.slice(0, 5) : '';
     fields.fim.value = data.hora_fim ? data.hora_fim.slice(0, 5) : '';
-    fields.valor.value = data.valor || 0;
+    fields.valor.value = baseValueFromTotal(data.valor || 0, data.pomadas_anestesicas || 0).toFixed(2);
     fields.cliente.value = clientLabel(data);
     fields.observacoes.value = data.observacoes || '';
     fields.pomadas.value = data.pomadas_anestesicas || 0;

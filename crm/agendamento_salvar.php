@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../auth/auth.php';
 require_staff();
 require __DIR__ . '/../ficha/config/conexao.php';
+require_once __DIR__ . '/../includes/system_settings.php';
 header('Content-Type: application/json; charset=utf-8');
 date_default_timezone_set('America/Sao_Paulo');
 
@@ -94,6 +95,7 @@ try {
     $observacoes = agendaPost('observacoes');
     $valor = (float)str_replace(',', '.', agendaPost('valor', '0'));
     $pomadas = max(0, (int)agendaPost('pomadas_anestesicas', '0'));
+    $valor = system_apply_pomada_total($valor, $pomadas);
 
     if ($data === '' || $horaInicio === '') {
         throw new RuntimeException('Informe data e horario para agendar.');
