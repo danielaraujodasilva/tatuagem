@@ -275,3 +275,144 @@ function crmSalvarClientes($clientes) {
         throw $e;
     }
 }
+
+function crmAtualizarClienteWhatsAppPorId($id, array $dados) {
+    $clienteId = preg_replace('/^wa_/', '', (string)$id);
+    if ($clienteId === '') {
+        return null;
+    }
+
+    $clientes = crmCarregarClientes();
+
+    foreach ($clientes as &$cliente) {
+        if ((string)($cliente['id'] ?? '') !== $clienteId) {
+            continue;
+        }
+
+        foreach ($dados as $campo => $valor) {
+            if (in_array($campo, ['id', 'mensagens'], true)) {
+                continue;
+            }
+            $cliente[$campo] = $valor;
+        }
+
+        $cliente['updated_at'] = date('Y-m-d H:i:s');
+        $atualizado = $cliente;
+        crmSalvarClientes($clientes);
+        return $atualizado;
+    }
+
+    return null;
+}
+
+function crmQuickRepliesPath() {
+    return crmDataDir() . '/quick_replies.json';
+}
+
+function crmQuickRepliesPadrao() {
+    return [
+        [
+            'id' => 'orcamento-inicial',
+            'titulo' => 'Orcamento inicial',
+            'categoria' => 'Orcamento',
+            'atalho' => '/orcamento',
+            'texto' => "Oi! Me manda a referencia da tattoo, tamanho aproximado em cm e local do corpo? Com isso eu consigo te passar uma ideia de valor e agenda.",
+            'ativo' => true,
+        ],
+        [
+            'id' => 'pedido-referencia',
+            'titulo' => 'Pedido de referencia',
+            'categoria' => 'Orcamento',
+            'atalho' => '/referencia',
+            'texto' => "Consegue me enviar uma ou duas imagens de referencia? Pode ser algo no estilo que voce gosta, mesmo que nao seja exatamente igual.",
+            'ativo' => true,
+        ],
+        [
+            'id' => 'regras-sinal',
+            'titulo' => 'Regras do sinal',
+            'categoria' => 'Fechamento',
+            'atalho' => '/sinal',
+            'texto' => "Para reservar a data, trabalhamos com sinal. Ele entra como parte do valor total e garante seu horario na agenda.",
+            'ativo' => true,
+        ],
+        [
+            'id' => 'cuidados-pos',
+            'titulo' => 'Cuidados pos-tattoo',
+            'categoria' => 'Pos-atendimento',
+            'atalho' => '/cuidados',
+            'texto' => "Agora e cuidar bem: higienize com sabonete neutro, use a pomada indicada, evite sol, piscina e coçar a regiao. Qualquer duvida me chama por aqui.",
+            'ativo' => true,
+        ],
+        [
+            'id' => 'cliente-sumido',
+            'titulo' => 'Cliente sem retorno',
+            'categoria' => 'Follow-up',
+            'atalho' => '/retorno',
+            'texto' => "Oi! Passando para saber se voce ainda quer seguir com essa ideia de tattoo. Se quiser, posso te ajudar a ajustar tamanho, local ou valor.",
+            'ativo' => true,
+        ],
+        [
+            'id' => 'cover-up',
+            'titulo' => 'Cover-up',
+            'categoria' => 'Orcamento',
+            'atalho' => '/coverup',
+            'texto' => "Para cover-up, preciso ver uma foto bem nítida da tattoo atual e entender o que voce gostaria de cobrir ou transformar. Assim consigo avaliar possibilidades reais.",
+            'ativo' => true,
+        ],
+    ];
+}
+
+function crmCarregarRespostasRapidas() {
+    $path = crmQuickRepliesPath();
+
+    if (!is_file($path)) {
+        crmSalvarRespostasRapidas(crmQuickRepliesPadrao());
+    }
+
+    $dados = json_decode((string)file_get_contents($path), true);
+    if (!is_array($dados)) {
+        $dados = crmQuickRepliesPadrao();
+        crmSalvarRespostasRapidas($dados);
+    }
+
+    return array_values(array_filter($dados, static function ($item) {
+        return is_array($item);
+    }));
+}
+
+function crmSalvarRespostasRapidas(array $respostas) {
+    $path = crmQuickRepliesPath();
+    $tmp = $path . '.tmp';
+    $normalizadas = [];
+
+    foreach ($respostas as $resposta) {
+        if (!is_array($resposta)) {
+            continue;
+        }
+
+        $titulo = trim((string)($resposta['titulo'] ?? ''));
+        $texto = trim((string)($resposta['texto'] ?? ''));
+        if ($titulo === '' || $texto === '') {
+            continue;
+        }
+
+        $id = trim((string)($resposta['id'] ?? ''));
+        if ($id === '') {
+            $id = uniqid('qr_', true);
+        }
+
+        $normalizadas[] = [
+            'id' => $id,
+            'titulo' => $titulo,
+            'categoria' => trim((string)($resposta['categoria'] ?? 'Geral')) ?: 'Geral',
+            'atalho' => trim((string)($resposta['atalho'] ?? '')),
+            'texto' => $texto,
+            'ativo' => !isset($resposta['ativo']) || (bool)$resposta['ativo'],
+        ];
+    }
+
+    $json = json_encode($normalizadas, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    file_put_contents($tmp, $json === false ? "[]" : $json);
+    copy($tmp, $path);
+    unlink($tmp);
+}

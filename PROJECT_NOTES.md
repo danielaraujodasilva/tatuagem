@@ -41,6 +41,10 @@ Este arquivo e o mapa rapido do projeto para orientar trabalhos futuros no Codex
 - Responsavel por clientes, leads, pipeline, agenda, chat, integracoes de mensagem/audio e relatorios.
 - Arquivos de configuracao local esperados em `crm/config.local.php` ou variaveis `CRM_*`.
 - Dados runtime e logs em `crm/data/` devem permanecer fora do Git conforme `.gitignore`.
+- `crm/atendimento.php`: inbox geral de conversas com filtros, assumir conversa, status, chat e respostas rapidas.
+- `crm/respostas_rapidas.php`: cadastro de scripts/mensagens prontas usados pela Central de Atendimento.
+- `crm/data/quick_replies.json`: armazenamento runtime das respostas rapidas, ignorado pelo Git.
+- `crm/assets/crm-theme.css`: base visual dark/vermelha usada nas novas telas do CRM.
 
 ### Ficha
 
