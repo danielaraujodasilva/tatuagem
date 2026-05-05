@@ -13,10 +13,36 @@ function atendimento_json($payload, int $status = 200): void
     exit;
 }
 
-$action = (string)($_POST['action'] ?? '');
-$id = (string)($_POST['id'] ?? '');
+function atendimento_request_data(): array
+{
+    $data = $_POST;
+
+    if (!$data) {
+        $raw = file_get_contents('php://input');
+        $json = json_decode((string)$raw, true);
+        if (is_array($json)) {
+            $data = $json;
+        } else {
+            parse_str((string)$raw, $parsed);
+            if (is_array($parsed)) {
+                $data = $parsed;
+            }
+        }
+    }
+
+    return array_merge($_GET, $data);
+}
+
+$data = atendimento_request_data();
+$action = trim((string)($data['action'] ?? ''));
+$id = trim((string)($data['id'] ?? $data['cliente_id'] ?? ''));
 $user = current_user() ?: [];
 $nomeUsuario = trim((string)($user['nome'] ?? $user['username'] ?? 'Atendente'));
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action === '' && $id === '') {
+    header('Location: atendimento.php');
+    exit;
+}
 
 if ($id === '') {
     atendimento_json(['ok' => false, 'message' => 'Conversa nao informada.'], 422);
@@ -51,7 +77,7 @@ if ($action === 'bot') {
 }
 
 if ($action === 'status') {
-    $status = trim((string)($_POST['status'] ?? ''));
+    $status = trim((string)($data['status'] ?? ''));
     $permitidos = ['novo', 'lead_quente', 'agendado', 'sem_retorno', 'em_atendimento', 'fechado', 'perdido'];
     if (!in_array($status, $permitidos, true)) {
         atendimento_json(['ok' => false, 'message' => 'Status invalido.'], 422);

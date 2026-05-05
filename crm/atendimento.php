@@ -360,7 +360,7 @@ $agendados = count(array_filter($conversas, static fn(array $c): bool => $c['sta
                             <a id="waButton" class="crm-button crm-button-green hidden" target="_blank" rel="noopener">
                                 <i class="fa-brands fa-whatsapp"></i> WhatsApp
                             </a>
-                            <button id="assumeButton" class="crm-button crm-button-primary"><i class="fa-solid fa-user-check"></i> Assumir</button>
+                            <button id="assumeButton" type="button" class="crm-button crm-button-primary"><i class="fa-solid fa-user-check"></i> Assumir</button>
                         </div>
                     </div>
 
@@ -608,6 +608,17 @@ function updateActiveFromPayload(cliente) {
     renderActiveConversation();
 }
 
+function postAttendanceAction(payload) {
+    return fetch('atendimento_acoes.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    }).then(response => response.json());
+}
+
 document.querySelectorAll('.filter-button').forEach(button => {
     button.addEventListener('click', () => {
         activeFilter = button.dataset.filter;
@@ -623,9 +634,7 @@ document.getElementById('replySearch').addEventListener('input', renderReplies);
 document.getElementById('assumeButton').addEventListener('click', () => {
     const item = getActive();
     if (!item) return;
-    const body = new URLSearchParams({ action: 'assumir', id: item.id });
-    fetch('atendimento_acoes.php', { method: 'POST', body })
-        .then(response => response.json())
+    postAttendanceAction({ action: 'assumir', id: item.id })
         .then(data => {
             if (!data.ok) throw new Error(data.message || 'Erro ao assumir conversa');
             updateActiveFromPayload(data.cliente);
@@ -636,9 +645,7 @@ document.getElementById('assumeButton').addEventListener('click', () => {
 document.getElementById('statusSelect').addEventListener('change', event => {
     const item = getActive();
     if (!item) return;
-    const body = new URLSearchParams({ action: 'status', id: item.id, status: event.target.value });
-    fetch('atendimento_acoes.php', { method: 'POST', body })
-        .then(response => response.json())
+    postAttendanceAction({ action: 'status', id: item.id, status: event.target.value })
         .then(data => {
             if (!data.ok) throw new Error(data.message || 'Erro ao atualizar status');
             updateActiveFromPayload(data.cliente);
