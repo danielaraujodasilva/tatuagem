@@ -148,6 +148,13 @@ $proximas = (int) $conn->query("SELECT COUNT(*) AS total FROM tatuagens WHERE da
             <div class="ficha-chip">Fluxo: cadastro > tatuagem > agenda</div>
           </div>
 
+          <div class="ficha-step-strip mb-4" aria-label="Etapas da ficha">
+            <div class="ficha-step is-active"><span>1</span><strong>Contato</strong></div>
+            <div class="ficha-step"><span>2</span><strong>Perfil</strong></div>
+            <div class="ficha-step"><span>3</span><strong>Anamnese</strong></div>
+            <div class="ficha-step"><span>4</span><strong>Autorizacoes</strong></div>
+          </div>
+
           <div class="row g-3">
             <div class="col-md-6">
               <label class="ficha-form-label">Nome</label>

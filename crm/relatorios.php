@@ -310,14 +310,139 @@ $csvUrl = 'relatorios.php?' . http_build_query($queryString);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Relatorios do CRM</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="assets/crm-theme.css?v=20260505-attendance-shell">
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        body.crm-reports-body {
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at 85% 0%, rgba(225, 29, 40, 0.16), transparent 32rem),
+                radial-gradient(circle at 10% 15%, rgba(239, 68, 68, 0.08), transparent 26rem),
+                #050505;
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        .reports-shell {
+            max-width: 1400px;
+        }
+
+        .reports-hero {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(239, 68, 68, 0.24);
+            border-radius: 8px;
+            background:
+                linear-gradient(135deg, rgba(225, 29, 40, 0.2), rgba(14, 15, 18, 0.96)),
+                radial-gradient(circle at 90% 15%, rgba(239, 68, 68, 0.22), transparent 24rem);
+            padding: 22px;
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.36);
+        }
+
+        .reports-hero::after {
+            content: "";
+            position: absolute;
+            inset: auto 24px 0 auto;
+            width: 46%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.8));
+        }
+
+        .reports-page .bg-gray-900,
+        .reports-page .bg-gray-800 {
+            background: linear-gradient(180deg, rgba(18, 19, 23, 0.97), rgba(10, 10, 12, 0.97)) !important;
+        }
+
+        .reports-page .border-gray-800,
+        .reports-page .border-gray-700 {
+            border-color: rgba(255, 255, 255, 0.09) !important;
+        }
+
+        .reports-page .rounded-2xl,
+        .reports-page .rounded-xl,
+        .reports-page .rounded-full {
+            border-radius: 8px !important;
+        }
+
+        .reports-page form,
+        .reports-page section > div,
+        .reports-page section.bg-gray-900 {
+            box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+        }
+
+        .reports-page input,
+        .reports-page select {
+            background: rgba(5, 5, 5, 0.68) !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            border-radius: 8px !important;
+            color: #f6f7fb !important;
+            outline: none;
+        }
+
+        .reports-page input:focus,
+        .reports-page select:focus {
+            border-color: rgba(239, 68, 68, 0.74) !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.16);
+        }
+
+        .reports-page input::placeholder {
+            color: #777b84;
+        }
+
+        .reports-page button.bg-sky-400 {
+            background: linear-gradient(180deg, #ef4444, #b91420) !important;
+            color: #ffffff !important;
+            box-shadow: 0 14px 30px rgba(225, 29, 40, 0.24);
+        }
+
+        .reports-page .text-sky-300 {
+            color: #ef4444 !important;
+        }
+
+        .reports-page .bg-sky-400 {
+            background: linear-gradient(90deg, #ef4444, #b91420) !important;
+        }
+
+        .reports-page table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .reports-page tbody tr:hover {
+            background: rgba(239, 68, 68, 0.06);
+        }
+
+        .reports-page th {
+            text-transform: uppercase;
+            font-size: 0.72rem;
+            letter-spacing: 0.04em;
+        }
+
+        .reports-page td,
+        .reports-page th {
+            border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        .reports-page .app-menu-panel {
+            right: 0;
+        }
+
+        @media (max-width: 768px) {
+            .reports-hero {
+                padding: 18px;
+            }
+        }
+    </style>
 </head>
-<body class="bg-gray-950 text-gray-100">
-    <main class="max-w-7xl mx-auto px-4 py-8">
-        <header class="mb-8">
+<body class="crm-reports-body text-gray-100">
+    <main class="reports-page reports-shell mx-auto px-4 py-6">
+        <header class="reports-hero mb-6">
             <div class="flex flex-col gap-3">
-                <span class="text-sm font-bold uppercase tracking-wide text-sky-300">CRM</span>
-                <h1 class="text-3xl md:text-4xl font-bold">Relatorios</h1>
-                <p class="max-w-3xl text-gray-400">Analise funil, origem, status, valores, contatos frios, desempenho por periodo e exporte a base filtrada.</p>
+                <span class="text-sm font-bold uppercase tracking-wide text-sky-300">Visao de resultados</span>
+                <h1 class="text-3xl md:text-4xl font-black">Relatorios</h1>
+                <p class="max-w-3xl text-gray-400">Funil, origem, status, valores, contatos frios e oportunidades em uma leitura rapida para decidir o proximo movimento.</p>
             </div>
             <?php app_menu_render('relatorios'); ?>
         </header>

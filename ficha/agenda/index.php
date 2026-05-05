@@ -61,18 +61,18 @@ if (empty($_GET['data'])) {
     height: 32px;
     margin: 8px 8px 2px auto;
     padding: 0 !important;
-    border-radius: 999px;
-    color: #dbeafe !important;
+    border-radius: 8px;
+    color: #f6f7fb !important;
     text-decoration: none !important;
     font-weight: 800;
-    background: rgba(15, 23, 42, 0.62);
-    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid rgba(255, 255, 255, 0.09);
   }
   .ficha-agenda-page .fc .fc-day-today a.fc-daygrid-day-number {
-    color: #06111f !important;
-    background: #38bdf8;
-    border-color: rgba(56, 189, 248, 0.88);
-    box-shadow: 0 10px 22px rgba(56, 189, 248, 0.22);
+    color: #ffffff !important;
+    background: linear-gradient(180deg, #ef4444, #b91420);
+    border-color: rgba(239, 68, 68, 0.88);
+    box-shadow: 0 10px 22px rgba(225, 29, 40, 0.24);
   }
   .ficha-agenda-page .fc .fc-daygrid-day-frame { padding: 10px !important; }
   .ficha-agenda-page .fc .fc-daygrid-day-events { gap: 7px; padding: 5px 8px 12px; }
@@ -99,7 +99,7 @@ if (empty($_GET['data'])) {
       <footer class="ficha-summary mt-4">
         <h2 class="ficha-panel-title">Legenda de status</h2>
         <div class="ficha-legend">
-          <div class="ficha-legend-item"><span class="ficha-legend-dot" style="background:#38bdf8;"></span> Agendado</div>
+          <div class="ficha-legend-item"><span class="ficha-legend-dot" style="background:#ef4444;"></span> Agendado</div>
           <div class="ficha-legend-item"><span class="ficha-legend-dot" style="background:#22c55e;"></span> Confirmado</div>
           <div class="ficha-legend-item"><span class="ficha-legend-dot" style="background:#fb7185;"></span> Cancelado</div>
           <div class="ficha-legend-item"><span class="ficha-legend-dot" style="background:#94a3b8;"></span> Concluido</div>
@@ -637,7 +637,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const startTime = data.hora_inicio || '00:00:00';
     const endTime = data.hora_fim || startTime;
     const colors = {
-      agendado: '#38bdf8',
+      agendado: '#ef4444',
       confirmado: '#22c55e',
       cancelado: '#fb7185',
       concluido: '#94a3b8'
@@ -648,8 +648,8 @@ document.addEventListener('DOMContentLoaded', function () {
       title: eventTitle(data),
       start: `${data.data_tatuagem}T${startTime}`,
       end: `${data.data_tatuagem}T${endTime}`,
-      color: colors[data.status] || '#38bdf8',
-      textColor: '#06111f',
+      color: colors[data.status] || '#ef4444',
+      textColor: '#ffffff',
       display: 'block',
       extendedProps: {
         status: data.status || 'agendado',
