@@ -439,7 +439,7 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
                 <a href="../ficha/agenda/?v=20260505-embedded-redesign" data-workspace-link data-title="Agenda" data-subtitle="Calendario e rotina do estudio" data-src="../ficha/agenda/?v=20260505-embedded-redesign"><i class="fa-regular fa-calendar"></i> Agenda</a>
                 <a href="../ficha/index.php?v=20260505-embedded-redesign" data-workspace-link data-title="Ficha / Anamnese" data-subtitle="Cadastro, saude, autorizacoes e observacoes" data-src="../ficha/index.php?v=20260505-embedded-redesign"><i class="fa-regular fa-clipboard"></i> Ficha / Anamnese</a>
                 <a href="relatorios.php?v=20260505-embedded-redesign" data-workspace-link data-title="Relatorios" data-subtitle="Resultados, origem dos leads e faturamento" data-src="relatorios.php?v=20260505-embedded-redesign"><i class="fa-solid fa-chart-line"></i> Relatorios</a>
-                <a href="configuracoes.php"><i class="fa-solid fa-gear"></i> Configuracoes</a>
+                <a href="configuracoes.php?v=20260505-embedded-redesign" data-workspace-link data-title="Configuracoes" data-subtitle="Pipeline, gatilhos e preferencias do CRM" data-src="configuracoes.php?v=20260505-embedded-redesign"><i class="fa-solid fa-gear"></i> Configuracoes</a>
             </nav>
         </aside>
 
