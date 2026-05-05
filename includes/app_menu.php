@@ -6,8 +6,8 @@ if (!function_exists('app_menu_render')) {
         $user = function_exists('current_user') ? current_user() : null;
         $isAdmin = function_exists('auth_has_role') && auth_has_role(['adm']);
         $items = [
-            ['key' => 'crm', 'label' => 'CRM Pipeline', 'url' => auth_url('/crm/index.php'), 'roles' => ['funcionario', 'adm']],
-            ['key' => 'atendimento', 'label' => 'Atendimento', 'url' => auth_url('/crm/atendimento.php'), 'roles' => ['funcionario', 'adm']],
+            ['key' => 'atendimento', 'label' => 'Atendimento', 'url' => auth_url('/crm/index.php'), 'roles' => ['funcionario', 'adm']],
+            ['key' => 'crm', 'label' => 'Dashboard', 'url' => auth_url('/crm/dashboard.php'), 'roles' => ['funcionario', 'adm']],
             ['key' => 'respostas', 'label' => 'Respostas Rapidas', 'url' => auth_url('/crm/respostas_rapidas.php'), 'roles' => ['funcionario', 'adm']],
             ['key' => 'relatorios', 'label' => 'Relatorios', 'url' => auth_url('/crm/relatorios.php'), 'roles' => ['funcionario', 'adm']],
             ['key' => 'ficha', 'label' => 'Nova ficha', 'url' => auth_url('/ficha/index.php'), 'roles' => ['funcionario', 'adm']],

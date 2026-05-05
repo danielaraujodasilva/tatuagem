@@ -112,8 +112,8 @@ foreach ($respostas as $resposta) {
             <p class="crm-subtitle">Mensagens prontas para orçamento, referência, sinal, cuidados e follow-up.</p>
         </div>
         <div class="flex flex-wrap gap-2">
-            <a class="crm-button" href="atendimento.php"><i class="fa-solid fa-comments"></i> Atendimento</a>
-            <a class="crm-button" href="index.php"><i class="fa-solid fa-table-columns"></i> Pipeline</a>
+            <a class="crm-button" href="index.php"><i class="fa-solid fa-comments"></i> Atendimento</a>
+            <a class="crm-button" href="dashboard.php"><i class="fa-solid fa-table-columns"></i> Dashboard</a>
         </div>
     </header>
 
@@ -124,8 +124,8 @@ foreach ($respostas as $resposta) {
                 <small>Scripts para ganhar tempo sem perder tom</small>
             </div>
             <nav class="crm-nav" aria-label="Menu CRM">
-                <a href="index.php"><i class="fa-solid fa-chart-simple"></i> Dashboard / CRM</a>
-                <a href="atendimento.php"><i class="fa-solid fa-comments"></i> Atendimento</a>
+                <a href="dashboard.php"><i class="fa-solid fa-chart-simple"></i> Dashboard</a>
+                <a href="index.php"><i class="fa-solid fa-comments"></i> Atendimento</a>
                 <a class="is-active" href="respostas_rapidas.php"><i class="fa-solid fa-bolt"></i> Respostas Rapidas</a>
                 <a href="../ficha/agenda/"><i class="fa-regular fa-calendar"></i> Agenda</a>
                 <a href="../ficha/index.php"><i class="fa-regular fa-clipboard"></i> Ficha / Anamnese</a>

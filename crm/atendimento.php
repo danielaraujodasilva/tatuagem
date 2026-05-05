@@ -139,10 +139,15 @@ foreach ($clientesRaw as $cliente) {
                 'data' => $data,
                 'hora' => $data ? date('H:i', strtotime($data)) : '',
                 'fromMe' => atendimento_from_me($msg),
+                'messageId' => (string)($msg['messageId'] ?? ''),
+                'status' => (string)($msg['status'] ?? ''),
+                'status_updated_at' => (string)($msg['status_updated_at'] ?? ''),
                 'tipo' => (string)($msg['tipo'] ?? 'texto'),
                 'mediaUrl' => (string)($msg['mediaUrl'] ?? ''),
                 'mediaMime' => (string)($msg['mediaMime'] ?? ''),
+                'mediaFileName' => (string)($msg['mediaFileName'] ?? ''),
                 'transcricao' => (string)($msg['transcricao'] ?? ''),
+                'transcricao_erro' => (string)($msg['transcricao_erro'] ?? ''),
             ];
         }, $mensagens),
     ];
@@ -156,6 +161,9 @@ $totalConversas = count($conversas);
 $naoRespondidas = count(array_filter($conversas, static fn(array $c): bool => $c['semResposta']));
 $leadsQuentes = count(array_filter($conversas, static fn(array $c): bool => $c['status'] === 'lead_quente'));
 $agendados = count(array_filter($conversas, static fn(array $c): bool => $c['status'] === 'agendado'));
+$emHumano = count(array_filter($conversas, static fn(array $c): bool => $c['modo'] === 'humano'));
+$emBot = max(0, $totalConversas - $emHumano);
+$valorPotencial = array_reduce($conversas, static fn(float $total, array $c): float => $total + (float)$c['valor'], 0.0);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -263,6 +271,107 @@ $agendados = count(array_filter($conversas, static fn(array $c): bool => $c['sta
             padding: 16px;
         }
 
+        .crm-icon-button {
+            width: 42px;
+            height: 42px;
+            flex: 0 0 42px;
+            padding: 0;
+        }
+
+        .attendance-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            min-height: 42px;
+            padding: 4px;
+            border: 1px solid var(--crm-border);
+            border-radius: 7px;
+            background: #0b0c10;
+        }
+
+        .attendance-toggle button {
+            min-height: 32px;
+            padding: 0 10px;
+            border: 0;
+            border-radius: 5px;
+            color: var(--crm-muted);
+            background: transparent;
+            font-size: 0.82rem;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .attendance-toggle button.is-active {
+            color: #fff;
+            background: linear-gradient(180deg, var(--crm-red), var(--crm-red-2));
+        }
+
+        .chat-tool-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+        }
+
+        .chat-attachment-preview {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 11px 13px;
+            border: 1px solid var(--crm-border);
+            border-radius: 7px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #e5e7eb;
+            font-size: 0.88rem;
+        }
+
+        .chat-attachment-preview.hidden,
+        .crm-modal.hidden,
+        .emoji-panel.hidden {
+            display: none;
+        }
+
+        .emoji-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 12px 16px;
+            border-top: 1px solid var(--crm-border);
+            background: rgba(10, 11, 14, 0.96);
+        }
+
+        .emoji-panel button {
+            width: 34px;
+            height: 34px;
+            border: 1px solid var(--crm-border);
+            border-radius: 7px;
+            background: rgba(255, 255, 255, 0.04);
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+
+        .crm-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 80;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            background: rgba(0, 0, 0, 0.78);
+        }
+
+        .crm-modal-panel {
+            width: min(920px, 100%);
+            max-height: 92vh;
+            overflow-y: auto;
+            border: 1px solid var(--crm-border-strong);
+            border-radius: 8px;
+            background: #101114;
+            box-shadow: 0 30px 90px rgba(0, 0, 0, 0.58);
+        }
+
         @media (max-width: 1280px) {
             .attendance-layout {
                 grid-template-columns: minmax(270px, 340px) minmax(0, 1fr);
@@ -289,7 +398,7 @@ $agendados = count(array_filter($conversas, static fn(array $c): bool => $c['sta
             <p class="crm-subtitle">Inbox geral para responder, assumir e priorizar conversas quentes.</p>
         </div>
         <div class="flex flex-wrap gap-2">
-            <a class="crm-button" href="index.php"><i class="fa-solid fa-table-columns"></i> Pipeline</a>
+            <a class="crm-button" href="dashboard.php"><i class="fa-solid fa-table-columns"></i> Dashboard</a>
             <a class="crm-button crm-button-primary" href="respostas_rapidas.php"><i class="fa-solid fa-bolt"></i> Respostas</a>
         </div>
     </header>
@@ -301,8 +410,8 @@ $agendados = count(array_filter($conversas, static fn(array $c): bool => $c['sta
                 <small>Atendimento, leads e fechamento</small>
             </div>
             <nav class="crm-nav" aria-label="Menu CRM">
-                <a href="index.php"><i class="fa-solid fa-chart-simple"></i> Dashboard / CRM</a>
-                <a class="is-active" href="atendimento.php"><i class="fa-solid fa-comments"></i> Atendimento</a>
+                <a href="dashboard.php"><i class="fa-solid fa-chart-simple"></i> Dashboard</a>
+                <a class="is-active" href="index.php"><i class="fa-solid fa-comments"></i> Atendimento</a>
                 <a href="respostas_rapidas.php"><i class="fa-solid fa-bolt"></i> Respostas Rapidas</a>
                 <a href="../ficha/agenda/"><i class="fa-regular fa-calendar"></i> Agenda</a>
                 <a href="../ficha/index.php"><i class="fa-regular fa-clipboard"></i> Ficha / Anamnese</a>
@@ -328,6 +437,29 @@ $agendados = count(array_filter($conversas, static fn(array $c): bool => $c['sta
                 <div class="crm-card metric-card">
                     <div class="crm-muted text-sm">Agendados</div>
                     <div class="text-3xl font-black mt-1 text-green-400"><?= $agendados ?></div>
+                </div>
+            </section>
+
+            <section class="crm-panel mb-4">
+                <div class="crm-panel-header">
+                    <h2 class="crm-panel-title"><i class="fa-solid fa-chart-line"></i> Resumo do atendimento</h2>
+                    <a class="crm-button" href="relatorios.php"><i class="fa-solid fa-arrow-up-right-from-square"></i> Relatorios</a>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 p-4">
+                    <div class="crm-card p-4">
+                        <div class="crm-muted text-sm">Humano / bot</div>
+                        <div class="mt-2 text-2xl font-black"><?= $emHumano ?> / <?= $emBot ?></div>
+                    </div>
+                    <div class="crm-card p-4">
+                        <div class="crm-muted text-sm">Potencial das conversas</div>
+                        <div class="mt-2 text-2xl font-black">R$ <?= number_format($valorPotencial, 2, ',', '.') ?></div>
+                    </div>
+                    <div class="crm-card p-4">
+                        <div class="crm-muted text-sm">Pressao da fila</div>
+                        <div class="mt-2 text-2xl font-black <?= $naoRespondidas > 0 ? 'text-red-300' : 'text-green-300' ?>">
+                            <?= $naoRespondidas > 0 ? $naoRespondidas . ' aguardando' : 'Em dia' ?>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -360,6 +492,11 @@ $agendados = count(array_filter($conversas, static fn(array $c): bool => $c['sta
                             <a id="waButton" class="crm-button crm-button-green hidden" target="_blank" rel="noopener">
                                 <i class="fa-brands fa-whatsapp"></i> WhatsApp
                             </a>
+                            <button id="scheduleButton" type="button" class="crm-button"><i class="fa-regular fa-calendar-plus"></i> Agendar</button>
+                            <div class="attendance-toggle" aria-label="Modo de atendimento">
+                                <button id="botModeButton" type="button">Bot</button>
+                                <button id="humanModeButton" type="button">Humano</button>
+                            </div>
                             <button id="assumeButton" type="button" class="crm-button crm-button-primary"><i class="fa-solid fa-user-check"></i> Assumir</button>
                         </div>
                     </div>
@@ -389,8 +526,24 @@ $agendados = count(array_filter($conversas, static fn(array $c): bool => $c['sta
 
                     <div id="chatMessages" class="chat-messages"></div>
 
+                    <div id="emojiPanel" class="emoji-panel hidden">
+                        <button type="button" data-emoji="😀">😀</button>
+                        <button type="button" data-emoji="😂">😂</button>
+                        <button type="button" data-emoji="😍">😍</button>
+                        <button type="button" data-emoji="🙏">🙏</button>
+                        <button type="button" data-emoji="👍">👍</button>
+                        <button type="button" data-emoji="🔥">🔥</button>
+                        <button type="button" data-emoji="✨">✨</button>
+                        <button type="button" data-emoji="❤️">❤️</button>
+                    </div>
+
                     <form id="messageForm" class="p-4 border-t border-white/10">
-                        <div class="flex gap-2">
+                        <div id="attachmentPreview" class="chat-attachment-preview hidden"></div>
+                        <div class="chat-tool-row">
+                            <button id="emojiButton" class="crm-button crm-icon-button" type="button" title="Emoji"><i class="fa-regular fa-face-smile"></i></button>
+                            <input id="chatFile" type="file" class="hidden" accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.txt">
+                            <button id="fileButton" class="crm-button crm-icon-button" type="button" title="Anexar"><i class="fa-solid fa-paperclip"></i></button>
+                            <button id="recordAudioBtn" class="crm-button crm-icon-button" type="button" title="Gravar audio"><i class="fa-solid fa-microphone"></i></button>
                             <textarea id="messageInput" class="crm-textarea min-h-[54px]" placeholder="Digite uma mensagem ou clique em uma resposta pronta..."></textarea>
                             <button class="crm-button crm-button-primary self-stretch px-5" type="submit" title="Enviar">
                                 <i class="fa-solid fa-paper-plane"></i>
@@ -414,6 +567,84 @@ $agendados = count(array_filter($conversas, static fn(array $c): bool => $c['sta
     </div>
 </div>
 
+<div id="scheduleOverlay" class="crm-modal hidden">
+    <div class="crm-modal-panel">
+        <div class="crm-panel-header">
+            <div>
+                <h3 class="crm-panel-title"><i class="fa-regular fa-calendar-plus"></i> Agendar tatuagem</h3>
+                <p class="crm-muted text-sm mt-2">Busque um cliente existente ou crie um cadastro basico com nome e telefone.</p>
+            </div>
+            <button type="button" id="closeScheduleButton" class="crm-button crm-icon-button" title="Fechar">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form id="scheduleForm" class="p-5 space-y-5">
+            <input type="hidden" id="scheduleClienteId" name="cliente_id">
+            <div class="crm-card p-4">
+                <label class="crm-muted text-sm block mb-2" for="scheduleClientSearch">Pesquisar cliente</label>
+                <input type="text" id="scheduleClientSearch" placeholder="Digite nome, telefone ou e-mail" class="crm-input">
+                <div id="scheduleClientResults" class="hidden mt-3 space-y-2"></div>
+                <p id="scheduleClientNotice" class="text-sm text-amber-300 mt-3"></p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="crm-muted text-sm block mb-2" for="scheduleNome">Nome do cliente *</label>
+                    <input type="text" id="scheduleNome" name="nome" required class="crm-input">
+                </div>
+                <div>
+                    <label class="crm-muted text-sm block mb-2" for="scheduleTelefone">Telefone *</label>
+                    <input type="tel" id="scheduleTelefone" name="telefone" required class="crm-input">
+                </div>
+                <div>
+                    <label class="crm-muted text-sm block mb-2" for="scheduleData">Data *</label>
+                    <input type="date" id="scheduleData" name="data_tatuagem" required class="crm-input">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="crm-muted text-sm block mb-2" for="scheduleHoraInicio">Hora inicio *</label>
+                        <input type="time" id="scheduleHoraInicio" name="hora_inicio" required class="crm-input">
+                    </div>
+                    <div>
+                        <label class="crm-muted text-sm block mb-2" for="scheduleHoraFim">Hora fim</label>
+                        <input type="time" id="scheduleHoraFim" name="hora_fim" class="crm-input">
+                    </div>
+                </div>
+                <div>
+                    <label class="crm-muted text-sm block mb-2" for="scheduleValor">Valor da tatuagem (R$)</label>
+                    <input type="number" step="0.01" id="scheduleValor" name="valor" class="crm-input">
+                </div>
+                <div>
+                    <label class="crm-muted text-sm block mb-2" for="schedulePomadas">Pomadas anestesicas</label>
+                    <input type="number" min="0" step="1" id="schedulePomadas" name="pomadas_anestesicas" value="0" class="crm-input">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="crm-muted text-sm block mb-2" for="scheduleDescricao">Descricao / arte pretendida</label>
+                    <input type="text" id="scheduleDescricao" name="descricao" placeholder="Ex.: Fechamento de braço, fine line, cobertura..." class="crm-input">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="crm-muted text-sm block mb-2" for="scheduleObservacoes">Observacoes</label>
+                    <textarea id="scheduleObservacoes" name="observacoes" rows="3" class="crm-textarea"></textarea>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="crm-muted text-sm block mb-2" for="scheduleReferencia">Arte de referencia (opcional)</label>
+                    <input type="file" id="scheduleReferencia" name="referencia" accept="image/*,.pdf" class="crm-input pt-2">
+                </div>
+            </div>
+
+            <div id="scheduleResult" class="hidden crm-card p-4 text-sm"></div>
+
+            <div class="flex flex-col md:flex-row gap-3 pt-2">
+                <button type="button" id="cancelScheduleButton" class="crm-button flex-1">Cancelar</button>
+                <button type="submit" id="scheduleSubmit" class="crm-button crm-button-primary flex-1">
+                    Salvar agendamento
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 const conversations = <?= json_encode($conversas, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 const quickReplies = <?= json_encode($respostasRapidas, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
@@ -429,6 +660,14 @@ const statusLabels = {
 
 let activeFilter = 'todas';
 let activeId = conversations[0]?.id || '';
+const pendingTranscriptions = {};
+let mediaRecorder = null;
+let recordedAudioChunks = [];
+let recordedAudioFile = null;
+let recordingTimer = null;
+let recordingStartedAt = 0;
+let scheduleSearchTimer = null;
+let chatPollTimer = null;
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -505,22 +744,147 @@ function renderMessages(messages) {
         return;
     }
 
+    messages.forEach(msg => {
+        const key = transcriptionKey(msg.messageId || '', msg.mediaUrl || '');
+        if (pendingTranscriptions[key] && (msg.transcricao || msg.transcricao_erro)) {
+            clearInterval(pendingTranscriptions[key].timer);
+            delete pendingTranscriptions[key];
+        }
+    });
+
     box.innerHTML = messages.map(msg => `
         <div class="message-row ${msg.fromMe ? 'is-me' : ''}">
             <div class="message-bubble">
-                ${msg.mediaUrl ? `<div class="mb-2 text-xs text-gray-300"><i class="fa-solid fa-paperclip"></i> ${escapeHtml(msg.mediaMime || 'anexo')}</div>` : ''}
-                <div>${escapeHtml(msg.texto || msg.transcricao || '[midia]')}</div>
-                <div class="text-[11px] text-gray-300 mt-2 text-right">${escapeHtml(msg.hora || '')}</div>
+                ${renderChatMedia(msg)}
+                ${msg.texto ? `<div class="whitespace-pre-wrap break-words ${msg.mediaUrl ? 'mt-2' : ''}">${escapeHtml(msg.texto)}</div>` : ''}
+                ${msg.transcricao ? `<div class="mt-3 bg-black/25 rounded-md px-3 py-2 text-sm"><strong>Transcricao:</strong> ${escapeHtml(msg.transcricao)}</div>` : ''}
+                ${msg.transcricao_erro ? `<div class="mt-3 bg-red-950/40 border border-red-800/60 rounded-md px-3 py-2 text-sm text-red-100"><strong>Erro na transcricao:</strong> ${escapeHtml(msg.transcricao_erro)}</div>` : ''}
+                <div class="text-[11px] text-gray-300 mt-2 text-right">${escapeHtml(msg.hora || '')} ${renderMessageStatus(msg)}</div>
             </div>
         </div>
     `).join('');
     box.scrollTop = box.scrollHeight;
 }
 
+function renderMessageStatus(msg) {
+    if (!msg.fromMe && !msg.status) return '';
+
+    const status = msg.status || 'sent';
+    const icons = {
+        pending: '<i class="fas fa-clock text-gray-300" title="Enviando"></i>',
+        sent: '<i class="fas fa-check text-gray-300" title="Enviada"></i>',
+        delivered: '<span class="text-gray-300" title="Entregue">✓✓</span>',
+        read: '<span class="text-sky-300 font-semibold" title="Visualizada">✓✓</span>',
+        played: '<span class="text-sky-300 font-semibold" title="Reproduzida">✓✓</span>',
+        error: '<i class="fas fa-triangle-exclamation text-red-300" title="Erro"></i>'
+    };
+
+    return icons[status] || icons.sent;
+}
+
+function renderChatMedia(msg) {
+    if (!msg.mediaUrl) return '';
+
+    const url = escapeHtml(msg.mediaUrl);
+    const mime = msg.mediaMime || '';
+    const fileName = escapeHtml(msg.mediaFileName || 'arquivo');
+    const pending = pendingTranscriptions[transcriptionKey(msg.messageId || '', msg.mediaUrl || '')];
+
+    if (mime.startsWith('image/')) {
+        return `<a href="${url}" target="_blank"><img src="${url}" class="max-h-72 rounded-md object-contain bg-black/20"></a>`;
+    }
+    if (mime.startsWith('video/')) {
+        return `<video src="${url}" controls class="max-h-72 rounded-md bg-black/20"></video>`;
+    }
+    if (mime.startsWith('audio/') || msg.tipo === 'audio') {
+        return `
+            <div class="space-y-2">
+                <audio src="${url}" controls class="w-72 max-w-full"></audio>
+                ${pending ? renderTranscriptionProgress(pending) : `<button type="button" onclick="transcribeAudio(this, '${escapeHtml(msg.messageId || '')}', '${url}')" class="crm-button text-xs min-h-[34px]">Transcrever audio</button>`}
+            </div>
+        `;
+    }
+
+    return `<a href="${url}" target="_blank" class="flex items-center gap-3 bg-black/25 hover:bg-black/35 rounded-md px-3 py-3"><i class="fas fa-file"></i><span class="break-all">${fileName}</span></a>`;
+}
+
+function transcriptionKey(messageId, url) {
+    return messageId || url;
+}
+
+function renderTranscriptionProgress(state) {
+    const progress = Number(state?.progress) || 5;
+    const elapsed = Math.max(0, Math.floor((Date.now() - (state?.startedAt || Date.now())) / 1000));
+    const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0');
+    const seconds = String(elapsed % 60).padStart(2, '0');
+    const safeProgress = Math.max(5, Math.min(95, progress));
+    let phase = 'Preparando audio...';
+    if (elapsed >= 10) phase = 'Carregando modelo small...';
+    if (elapsed >= 45) phase = 'Transcrevendo com mais qualidade...';
+    if (elapsed >= 120) phase = 'Ainda trabalhando. A primeira vez pode demorar.';
+
+    return `
+        <div class="bg-black/30 rounded-md px-3 py-2 w-72 max-w-full">
+            <div class="flex justify-between text-[11px] text-gray-200 mb-1">
+                <span>${phase}</span>
+                <span>${minutes}:${seconds}</span>
+            </div>
+            <div class="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                <div class="h-full bg-red-500 rounded-full transition-all" style="width: ${safeProgress}%"></div>
+            </div>
+            <div class="text-[10px] text-gray-400 mt-1">${safeProgress}% estimado</div>
+        </div>
+    `;
+}
+
+function transcribeAudio(button, messageId, url) {
+    const key = transcriptionKey(messageId, url);
+    const oldText = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Transcrevendo...';
+    pendingTranscriptions[key] = {
+        progress: 8,
+        startedAt: Date.now(),
+        timer: setInterval(() => {
+            const current = pendingTranscriptions[key];
+            if (!current) return;
+            const elapsed = Math.floor((Date.now() - current.startedAt) / 1000);
+            current.progress = Math.min(95, current.progress + (elapsed < 30 ? 6 : 2));
+            renderActiveConversation();
+        }, 2000)
+    };
+    renderActiveConversation();
+
+    fetch('transcrever_audio.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId, mediaUrl: url, model: 'small' })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.ok) throw new Error(data.error || 'Nao foi possivel transcrever o audio');
+            return fetch(`api_chat.php?id=${encodeURIComponent(getActive()?.id || '')}`);
+        })
+        .then(response => response.json())
+        .then(data => {
+            const item = getActive();
+            if (item && data.ok) item.mensagens = data.mensagens;
+        })
+        .catch(error => alert(error.message))
+        .finally(() => {
+            clearInterval(pendingTranscriptions[key]?.timer);
+            delete pendingTranscriptions[key];
+            button.disabled = false;
+            button.textContent = oldText;
+            renderActiveConversation();
+        });
+}
+
 function renderActiveConversation(fetchFresh = false) {
     const item = getActive();
     const assumeButton = document.getElementById('assumeButton');
     const statusSelect = document.getElementById('statusSelect');
+    const scheduleButton = document.getElementById('scheduleButton');
 
     if (!item) {
         document.getElementById('chatName').textContent = 'Nenhuma conversa';
@@ -528,11 +892,13 @@ function renderActiveConversation(fetchFresh = false) {
         document.getElementById('chatMessages').innerHTML = '<div class="h-full grid place-items-center crm-muted">Sem conversas.</div>';
         assumeButton.disabled = true;
         statusSelect.disabled = true;
+        scheduleButton.disabled = true;
         return;
     }
 
     assumeButton.disabled = false;
     statusSelect.disabled = false;
+    scheduleButton.disabled = false;
     document.getElementById('chatName').textContent = item.nome;
     document.getElementById('chatMeta').textContent = `${item.numero || 'sem telefone'} • ${item.origem || 'WhatsApp'} • ${item.interesse || 'sem interesse definido'}`;
     document.getElementById('modeBadge').textContent = item.modo === 'humano' ? `Humano: ${item.atendente}` : 'Bot em atendimento';
@@ -540,6 +906,8 @@ function renderActiveConversation(fetchFresh = false) {
     document.getElementById('delayBadge').textContent = item.semResposta ? `${item.tempoSemResposta} sem resposta` : 'Respondido';
     document.getElementById('delayBadge').className = `mt-2 crm-status ${item.semResposta ? 'crm-status-hot' : 'crm-status-green'}`;
     statusSelect.value = item.status in statusLabels ? item.status : 'novo';
+    document.getElementById('botModeButton').classList.toggle('is-active', item.modo !== 'humano');
+    document.getElementById('humanModeButton').classList.toggle('is-active', item.modo === 'humano');
 
     const waButton = document.getElementById('waButton');
     if (item.numeroLimpo) {
@@ -619,6 +987,261 @@ function postAttendanceAction(payload) {
     }).then(response => response.json());
 }
 
+function insertEmoji(emoji) {
+    const input = document.getElementById('messageInput');
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    input.value = input.value.slice(0, start) + emoji + input.value.slice(end);
+    input.focus();
+    input.selectionStart = input.selectionEnd = start + emoji.length;
+}
+
+function updateAttachmentPreview() {
+    const input = document.getElementById('chatFile');
+    const preview = document.getElementById('attachmentPreview');
+    const file = recordedAudioFile || input.files?.[0];
+
+    if (!file) {
+        preview.classList.add('hidden');
+        preview.innerHTML = '';
+        return;
+    }
+
+    preview.classList.remove('hidden');
+    preview.innerHTML = `
+        <span class="truncate"><i class="fas fa-paperclip mr-2"></i>${escapeHtml(file.name)}</span>
+        <button type="button" onclick="removeAttachment()" class="text-gray-300 hover:text-white"><i class="fas fa-times"></i></button>
+    `;
+}
+
+function removeAttachment() {
+    const input = document.getElementById('chatFile');
+    if (input) input.value = '';
+    recordedAudioFile = null;
+    const preview = document.getElementById('attachmentPreview');
+    preview.classList.add('hidden');
+    preview.innerHTML = '';
+}
+
+function updateRecordingPreview() {
+    const preview = document.getElementById('attachmentPreview');
+    const elapsed = Math.max(0, Math.floor((Date.now() - recordingStartedAt) / 1000));
+    const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0');
+    const seconds = String(elapsed % 60).padStart(2, '0');
+    preview.classList.remove('hidden');
+    preview.innerHTML = `
+        <span class="flex items-center gap-2 text-red-200"><i class="fas fa-circle text-red-400 text-[10px]"></i> Gravando ${minutes}:${seconds}</span>
+        <button type="button" onclick="stopAudioRecording(true)" class="text-red-200 hover:text-white text-xs">Cancelar</button>
+    `;
+}
+
+async function toggleAudioRecording() {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        stopAudioRecording(false);
+        return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+        alert('Seu navegador nao liberou gravacao de audio aqui.');
+        return;
+    }
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const options = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+            ? { mimeType: 'audio/webm;codecs=opus' }
+            : {};
+        mediaRecorder = new MediaRecorder(stream, options);
+        recordedAudioChunks = [];
+        recordedAudioFile = null;
+
+        mediaRecorder.ondataavailable = event => {
+            if (event.data && event.data.size > 0) recordedAudioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+            stream.getTracks().forEach(track => track.stop());
+            clearInterval(recordingTimer);
+            recordingTimer = null;
+            document.getElementById('recordAudioBtn').classList.remove('crm-button-primary');
+        };
+
+        recordingStartedAt = Date.now();
+        mediaRecorder.start();
+        document.getElementById('recordAudioBtn').classList.add('crm-button-primary');
+        updateRecordingPreview();
+        recordingTimer = setInterval(updateRecordingPreview, 500);
+    } catch (error) {
+        alert('Nao consegui acessar o microfone: ' + (error.message || error));
+    }
+}
+
+function stopAudioRecording(cancel = false) {
+    if (!mediaRecorder || mediaRecorder.state !== 'recording') return;
+
+    const recorder = mediaRecorder;
+    recorder.addEventListener('stop', () => {
+        if (!cancel && recordedAudioChunks.length) {
+            const mime = recorder.mimeType || 'audio/webm';
+            const blob = new Blob(recordedAudioChunks, { type: mime });
+            recordedAudioFile = new File([blob], `audio_${Date.now()}.webm`, { type: mime });
+            updateAttachmentPreview();
+        } else {
+            recordedAudioFile = null;
+            updateAttachmentPreview();
+        }
+        recordedAudioChunks = [];
+    }, { once: true });
+
+    recorder.stop();
+}
+
+function onlyDigits(value) {
+    return String(value ?? '').replace(/\D+/g, '');
+}
+
+function setScheduleNotice(message, tone = 'amber') {
+    const notice = document.getElementById('scheduleClientNotice');
+    notice.textContent = message || '';
+    notice.className = `text-sm mt-3 ${tone === 'green' ? 'text-emerald-300' : 'text-amber-300'}`;
+}
+
+function openScheduleOverlay() {
+    const item = getActive();
+    if (!item) return;
+
+    const form = document.getElementById('scheduleForm');
+    form.reset();
+    document.getElementById('scheduleClienteId').value = '';
+    document.getElementById('scheduleNome').value = item.nome && item.nome !== 'Cliente WhatsApp' ? item.nome : '';
+    document.getElementById('scheduleTelefone').value = item.numero || '';
+    document.getElementById('scheduleDescricao').value = item.interesse || '';
+    document.getElementById('schedulePomadas').value = '0';
+    document.getElementById('scheduleClientSearch').value = item.numero || item.nome || '';
+    document.getElementById('scheduleClientResults').classList.add('hidden');
+    document.getElementById('scheduleClientResults').innerHTML = '';
+    document.getElementById('scheduleResult').classList.add('hidden');
+    document.getElementById('scheduleResult').innerHTML = '';
+    setScheduleNotice('Vou procurar esse telefone na ficha para evitar cadastro duplicado.');
+
+    document.getElementById('scheduleOverlay').classList.remove('hidden');
+    searchScheduleClients(item.numero || item.nome || '', true);
+    setTimeout(() => document.getElementById('scheduleData').focus(), 80);
+}
+
+function closeScheduleOverlay() {
+    document.getElementById('scheduleOverlay').classList.add('hidden');
+}
+
+function scheduleSearchChanged() {
+    clearTimeout(scheduleSearchTimer);
+    const term = document.getElementById('scheduleClientSearch').value.trim();
+    scheduleSearchTimer = setTimeout(() => searchScheduleClients(term, false), 250);
+}
+
+async function searchScheduleClients(term, autoSelectByPhone = false) {
+    const results = document.getElementById('scheduleClientResults');
+    results.innerHTML = '';
+    results.classList.add('hidden');
+
+    if (!term || term.length < 2) {
+        setScheduleNotice('Digite pelo menos 2 caracteres para buscar na ficha.');
+        return;
+    }
+
+    try {
+        const response = await fetch(`agendamento_clientes.php?q=${encodeURIComponent(term)}`);
+        const data = await response.json();
+        const clientes = Array.isArray(data.clientes) ? data.clientes : [];
+
+        if (!clientes.length) {
+            document.getElementById('scheduleClienteId').value = '';
+            setScheduleNotice('Cliente nao encontrado. Ao salvar, o sistema cria um cadastro basico com nome e telefone.');
+            return;
+        }
+
+        const activeDigits = onlyDigits(document.getElementById('scheduleTelefone').value || getActive()?.numero || '');
+        const exact = clientes.find(c => activeDigits && onlyDigits(c.telefone) === activeDigits);
+        if (autoSelectByPhone && exact) {
+            selectScheduleClient(exact);
+            setScheduleNotice('Cliente ja encontrado na ficha. Vou usar esse cadastro para o agendamento.', 'green');
+            return;
+        }
+
+        results.innerHTML = clientes.map((cliente, index) => `
+            <button type="button" data-index="${index}" class="schedule-client-option w-full text-left crm-card px-4 py-3">
+                <strong>${escapeHtml(cliente.nome || 'Cliente')}</strong>
+                <span class="block text-sm text-gray-400">${escapeHtml(cliente.telefone || '')}${cliente.email ? ' · ' + escapeHtml(cliente.email) : ''}</span>
+            </button>
+        `).join('');
+        results.querySelectorAll('.schedule-client-option').forEach(button => {
+            button.addEventListener('click', () => selectScheduleClient(clientes[Number(button.dataset.index)]));
+        });
+        results.classList.remove('hidden');
+        setScheduleNotice('Selecione o cliente correto para evitar duplicidade.');
+    } catch (error) {
+        setScheduleNotice('Nao consegui buscar clientes agora. Ainda da para criar cadastro basico ao salvar.');
+    }
+}
+
+function selectScheduleClient(cliente) {
+    document.getElementById('scheduleClienteId').value = cliente.id || '';
+    document.getElementById('scheduleNome').value = cliente.nome || '';
+    document.getElementById('scheduleTelefone').value = cliente.telefone || '';
+    document.getElementById('scheduleClientSearch').value = `${cliente.nome || ''} ${cliente.telefone || ''}`.trim();
+    document.getElementById('scheduleClientResults').classList.add('hidden');
+    document.getElementById('scheduleClientResults').innerHTML = '';
+    setScheduleNotice('Cliente existente selecionado. O agendamento ficara vinculado a essa ficha.', 'green');
+}
+
+async function saveSchedule(event) {
+    event.preventDefault();
+
+    const form = document.getElementById('scheduleForm');
+    if (!form.reportValidity()) return;
+
+    const submit = document.getElementById('scheduleSubmit');
+    const resultBox = document.getElementById('scheduleResult');
+    const formData = new FormData(form);
+
+    submit.disabled = true;
+    submit.textContent = 'Salvando...';
+
+    try {
+        const response = await fetch('agendamento_salvar.php', { method: 'POST', body: formData });
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok || !result.ok) {
+            alert(result.error || 'Nao foi possivel salvar o agendamento.');
+            return;
+        }
+
+        const fichaUrl = new URL(result.ficha_url, window.location.href).href;
+        const agendaUrl = result.agenda_url ? new URL(result.agenda_url, window.location.href).href : '';
+        resultBox.classList.remove('hidden');
+        resultBox.innerHTML = `
+            <strong>${escapeHtml(result.message || 'Agendamento salvo.')}</strong>
+            ${agendaUrl ? `<div class="mt-3"><a href="${escapeHtml(agendaUrl)}" target="_blank" class="crm-button crm-button-primary"><i class="fas fa-calendar-days"></i> Abrir na agenda</a></div>` : ''}
+            <div class="mt-3 text-gray-200">Link para o cliente completar a ficha:</div>
+            <div class="mt-2 flex flex-col md:flex-row gap-2">
+                <input id="scheduleFichaLink" readonly value="${escapeHtml(fichaUrl)}" class="crm-input flex-1">
+                <button type="button" onclick="copyScheduleFichaLink()" class="crm-button">Copiar link</button>
+            </div>
+        `;
+    } catch (error) {
+        alert('Erro de conexao ao salvar agendamento.');
+    } finally {
+        submit.disabled = false;
+        submit.textContent = 'Salvar agendamento';
+    }
+}
+
+function copyScheduleFichaLink() {
+    const input = document.getElementById('scheduleFichaLink');
+    input.select();
+    document.execCommand('copy');
+}
+
 document.querySelectorAll('.filter-button').forEach(button => {
     button.addEventListener('click', () => {
         activeFilter = button.dataset.filter;
@@ -630,6 +1253,26 @@ document.querySelectorAll('.filter-button').forEach(button => {
 
 document.getElementById('searchInput').addEventListener('input', renderConversationList);
 document.getElementById('replySearch').addEventListener('input', renderReplies);
+document.getElementById('emojiButton').addEventListener('click', () => document.getElementById('emojiPanel').classList.toggle('hidden'));
+document.querySelectorAll('#emojiPanel button').forEach(button => button.addEventListener('click', () => insertEmoji(button.dataset.emoji || '')));
+document.getElementById('fileButton').addEventListener('click', () => document.getElementById('chatFile').click());
+document.getElementById('chatFile').addEventListener('change', updateAttachmentPreview);
+document.getElementById('recordAudioBtn').addEventListener('click', toggleAudioRecording);
+document.getElementById('scheduleButton').addEventListener('click', openScheduleOverlay);
+document.getElementById('closeScheduleButton').addEventListener('click', closeScheduleOverlay);
+document.getElementById('cancelScheduleButton').addEventListener('click', closeScheduleOverlay);
+document.getElementById('scheduleForm').addEventListener('submit', saveSchedule);
+document.getElementById('scheduleClientSearch').addEventListener('input', scheduleSearchChanged);
+document.getElementById('scheduleTelefone').addEventListener('blur', () => {
+    const telefone = document.getElementById('scheduleTelefone').value.trim();
+    if (telefone) searchScheduleClients(telefone, true);
+});
+document.getElementById('messageInput').addEventListener('keydown', event => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        document.getElementById('messageForm').requestSubmit();
+    }
+});
 
 document.getElementById('assumeButton').addEventListener('click', () => {
     const item = getActive();
@@ -637,6 +1280,28 @@ document.getElementById('assumeButton').addEventListener('click', () => {
     postAttendanceAction({ action: 'assumir', id: item.id })
         .then(data => {
             if (!data.ok) throw new Error(data.message || 'Erro ao assumir conversa');
+            updateActiveFromPayload(data.cliente);
+        })
+        .catch(error => alert(error.message));
+});
+
+document.getElementById('humanModeButton').addEventListener('click', () => {
+    const item = getActive();
+    if (!item) return;
+    postAttendanceAction({ action: 'assumir', id: item.id })
+        .then(data => {
+            if (!data.ok) throw new Error(data.message || 'Erro ao alternar atendimento');
+            updateActiveFromPayload(data.cliente);
+        })
+        .catch(error => alert(error.message));
+});
+
+document.getElementById('botModeButton').addEventListener('click', () => {
+    const item = getActive();
+    if (!item) return;
+    postAttendanceAction({ action: 'bot', id: item.id })
+        .then(data => {
+            if (!data.ok) throw new Error(data.message || 'Erro ao alternar atendimento');
             updateActiveFromPayload(data.cliente);
         })
         .catch(error => alert(error.message));
@@ -657,18 +1322,28 @@ document.getElementById('messageForm').addEventListener('submit', event => {
     event.preventDefault();
     const item = getActive();
     const input = document.getElementById('messageInput');
+    const fileInput = document.getElementById('chatFile');
     const text = input.value.trim();
-    if (!item || !text) return;
+    const file = recordedAudioFile || fileInput.files?.[0];
+    if (!item || (!text && !file)) return;
 
-    fetch('enviar.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ numero: item.numero, mensagem: text })
-    })
+    const formData = new FormData();
+    formData.append('numero', item.numero);
+    formData.append('mensagem', text);
+    if (file) {
+        formData.append('arquivo', file);
+        if (recordedAudioFile) {
+            formData.append('ptt', '1');
+        }
+    }
+
+    input.disabled = true;
+    fetch('enviar.php', { method: 'POST', body: formData })
         .then(response => response.json())
         .then(data => {
             if (!data.ok) throw new Error(data.erro || 'Erro ao enviar mensagem');
             input.value = '';
+            removeAttachment();
             return fetch(`api_chat.php?id=${encodeURIComponent(item.id)}`);
         })
         .then(response => response.json())
@@ -680,12 +1355,28 @@ document.getElementById('messageForm').addEventListener('submit', event => {
             renderConversationList();
             renderActiveConversation();
         })
-        .catch(error => alert(error.message));
+        .catch(error => alert(error.message))
+        .finally(() => {
+            input.disabled = false;
+            input.focus();
+        });
 });
 
 renderConversationList();
 renderReplies();
 renderActiveConversation();
+chatPollTimer = setInterval(() => {
+    const item = getActive();
+    if (!item) return;
+    fetch(`api_chat.php?id=${encodeURIComponent(item.id)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.ok) return;
+            item.mensagens = data.mensagens;
+            renderActiveConversation();
+        })
+        .catch(() => {});
+}, 3000);
 </script>
 </body>
 </html>
