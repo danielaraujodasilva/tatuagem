@@ -42,7 +42,7 @@ if (empty($_GET['data'])) {
 <title>Agenda de Tatuagens</title>
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="../assets/style.css?v=20260502-agenda-polish-2" rel="stylesheet">
+<link href="../assets/style.css?v=20260505-embedded-redesign" rel="stylesheet">
 <style>
   .ficha-agenda-page .ficha-frame { width: min(100%, 1680px); }
   .ficha-agenda-page .ficha-calendar-shell-full { display: block; width: 100%; }

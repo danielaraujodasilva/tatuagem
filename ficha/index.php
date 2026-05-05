@@ -99,7 +99,7 @@ $proximas = (int) $conn->query("SELECT COUNT(*) AS total FROM tatuagens WHERE da
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ficha de Cliente</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="assets/style.css" rel="stylesheet">
+  <link href="assets/style.css?v=20260505-embedded-redesign" rel="stylesheet">
 </head>
 <body class="ficha-body">
   <main class="ficha-shell">

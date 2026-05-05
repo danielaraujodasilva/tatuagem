@@ -173,7 +173,7 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
     <title>Central de Atendimento</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="assets/crm-theme.css">
+    <link rel="stylesheet" href="assets/crm-theme.css?v=20260505-embedded-redesign">
     <style>
         .attendance-layout {
             display: grid;
@@ -436,9 +436,9 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
                 <a href="dashboard.php"><i class="fa-solid fa-chart-simple"></i> Dashboard</a>
                 <a class="is-active" href="index.php"><i class="fa-solid fa-comments"></i> Atendimento</a>
                 <a href="respostas_rapidas.php"><i class="fa-solid fa-bolt"></i> Respostas Rapidas</a>
-                <a href="../ficha/agenda/" data-workspace-link data-title="Agenda" data-subtitle="Calendario e rotina do estudio" data-src="../ficha/agenda/"><i class="fa-regular fa-calendar"></i> Agenda</a>
-                <a href="../ficha/index.php" data-workspace-link data-title="Ficha / Anamnese" data-subtitle="Cadastro, saude, autorizacoes e observacoes" data-src="../ficha/index.php"><i class="fa-regular fa-clipboard"></i> Ficha / Anamnese</a>
-                <a href="relatorios.php" data-workspace-link data-title="Relatorios" data-subtitle="Resultados, origem dos leads e faturamento" data-src="relatorios.php"><i class="fa-solid fa-chart-line"></i> Relatorios</a>
+                <a href="../ficha/agenda/?v=20260505-embedded-redesign" data-workspace-link data-title="Agenda" data-subtitle="Calendario e rotina do estudio" data-src="../ficha/agenda/?v=20260505-embedded-redesign"><i class="fa-regular fa-calendar"></i> Agenda</a>
+                <a href="../ficha/index.php?v=20260505-embedded-redesign" data-workspace-link data-title="Ficha / Anamnese" data-subtitle="Cadastro, saude, autorizacoes e observacoes" data-src="../ficha/index.php?v=20260505-embedded-redesign"><i class="fa-regular fa-clipboard"></i> Ficha / Anamnese</a>
+                <a href="relatorios.php?v=20260505-embedded-redesign" data-workspace-link data-title="Relatorios" data-subtitle="Resultados, origem dos leads e faturamento" data-src="relatorios.php?v=20260505-embedded-redesign"><i class="fa-solid fa-chart-line"></i> Relatorios</a>
                 <a href="configuracoes.php"><i class="fa-solid fa-gear"></i> Configuracoes</a>
             </nav>
         </aside>
@@ -467,7 +467,7 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
             <section class="crm-panel mb-4">
                 <div class="crm-panel-header">
                     <h2 class="crm-panel-title"><i class="fa-solid fa-chart-line"></i> Resumo do atendimento</h2>
-                    <button class="crm-button" type="button" data-workspace-trigger data-title="Relatorios" data-subtitle="Resultados, origem dos leads e faturamento" data-src="relatorios.php">
+                    <button class="crm-button" type="button" data-workspace-trigger data-title="Relatorios" data-subtitle="Resultados, origem dos leads e faturamento" data-src="relatorios.php?v=20260505-embedded-redesign">
                         <i class="fa-solid fa-chart-line"></i> Relatorios
                     </button>
                 </div>
