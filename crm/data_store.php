@@ -416,3 +416,191 @@ function crmSalvarRespostasRapidas(array $respostas) {
     copy($tmp, $path);
     unlink($tmp);
 }
+
+function crmAutomationRulesPath() {
+    return crmDataDir() . '/automation_rules.json';
+}
+
+function crmAutomacoesPadrao() {
+    return [
+        [
+            'id' => 'lead-orcamento',
+            'titulo' => 'Criar lead por palavra-chave',
+            'evento' => 'mensagem_recebida',
+            'acao' => 'criar_lead',
+            'palavras_chave' => 'orcamento, orçamento, valor, preço, preco, tattoo, tatuagem',
+            'atraso_horas' => 0,
+            'status_destino' => 'novo',
+            'mensagem' => 'Quando a mensagem recebida tiver uma dessas palavras, o webhook cria o lead e coloca o atendimento com o bot.',
+            'ativo' => true,
+        ],
+        [
+            'id' => 'alerta-sem-resposta',
+            'titulo' => 'Alertar conversa sem resposta',
+            'evento' => 'sem_resposta',
+            'acao' => 'alerta',
+            'palavras_chave' => '',
+            'atraso_horas' => 24,
+            'status_destino' => 'sem_retorno',
+            'mensagem' => 'Cliente aguardando resposta ha mais de 24h. Priorizar atendimento humano.',
+            'ativo' => true,
+        ],
+        [
+            'id' => 'follow-up-orcamento',
+            'titulo' => 'Follow-up de orcamento parado',
+            'evento' => 'orcamento_sem_retorno',
+            'acao' => 'enviar_mensagem',
+            'palavras_chave' => '',
+            'atraso_horas' => 48,
+            'status_destino' => 'sem_retorno',
+            'mensagem' => 'Oi! Passando para saber se voce ainda quer seguir com essa ideia de tattoo. Posso ajustar tamanho, local ou valor.',
+            'ativo' => true,
+        ],
+        [
+            'id' => 'cuidados-pos-tattoo',
+            'titulo' => 'Enviar cuidados pos-tattoo',
+            'evento' => 'sessao_concluida',
+            'acao' => 'enviar_mensagem',
+            'palavras_chave' => '',
+            'atraso_horas' => 0,
+            'status_destino' => 'fechado',
+            'mensagem' => 'Sessao concluida: enviar cuidados pos-tattoo e registrar retorno se necessario.',
+            'ativo' => true,
+        ],
+        [
+            'id' => 'avaliacao-30-dias',
+            'titulo' => 'Pedir avaliacao e foto cicatrizada',
+            'evento' => 'dias_apos_sessao',
+            'acao' => 'enviar_mensagem',
+            'palavras_chave' => '',
+            'atraso_horas' => 720,
+            'status_destino' => '',
+            'mensagem' => 'Ja fazem 30 dias da tattoo. Pedir avaliacao, foto cicatrizada e nova ideia de tattoo.',
+            'ativo' => true,
+        ],
+        [
+            'id' => 'lembrete-24h-agenda',
+            'titulo' => 'Lembrete 24h antes da sessao',
+            'evento' => 'antes_da_sessao',
+            'acao' => 'enviar_mensagem',
+            'palavras_chave' => '',
+            'atraso_horas' => 24,
+            'status_destino' => 'agendado',
+            'mensagem' => 'Lembrar cliente da sessao de amanha, horario, sinal e orientacoes pre-tattoo.',
+            'ativo' => true,
+        ],
+    ];
+}
+
+function crmCarregarAutomacoes() {
+    $path = crmAutomationRulesPath();
+
+    if (!is_file($path)) {
+        crmSalvarAutomacoes(crmAutomacoesPadrao());
+    }
+
+    $dados = json_decode((string)file_get_contents($path), true);
+    if (!is_array($dados)) {
+        $dados = crmAutomacoesPadrao();
+        crmSalvarAutomacoes($dados);
+    }
+
+    return array_values(array_filter($dados, static function ($item) {
+        return is_array($item);
+    }));
+}
+
+function crmSalvarAutomacoes(array $automacoes) {
+    $path = crmAutomationRulesPath();
+    $tmp = $path . '.tmp';
+    $normalizadas = [];
+
+    foreach ($automacoes as $automacao) {
+        if (!is_array($automacao)) {
+            continue;
+        }
+
+        $titulo = trim((string)($automacao['titulo'] ?? ''));
+        if ($titulo === '') {
+            continue;
+        }
+
+        $id = trim((string)($automacao['id'] ?? ''));
+        if ($id === '') {
+            $id = uniqid('auto_', true);
+        }
+
+        $normalizadas[] = [
+            'id' => $id,
+            'titulo' => $titulo,
+            'evento' => trim((string)($automacao['evento'] ?? 'mensagem_recebida')) ?: 'mensagem_recebida',
+            'acao' => trim((string)($automacao['acao'] ?? 'alerta')) ?: 'alerta',
+            'palavras_chave' => trim((string)($automacao['palavras_chave'] ?? '')),
+            'atraso_horas' => max(0, (int)($automacao['atraso_horas'] ?? 0)),
+            'status_destino' => trim((string)($automacao['status_destino'] ?? '')),
+            'mensagem' => trim((string)($automacao['mensagem'] ?? '')),
+            'ativo' => !empty($automacao['ativo']),
+        ];
+    }
+
+    $json = json_encode($normalizadas, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    file_put_contents($tmp, $json === false ? "[]" : $json);
+    copy($tmp, $path);
+    unlink($tmp);
+}
+
+function crmNormalizarTextoAutomacao($texto) {
+    $texto = trim((string)$texto);
+    if (function_exists('mb_strtolower')) {
+        $texto = mb_strtolower($texto, 'UTF-8');
+    } else {
+        $texto = strtolower($texto);
+    }
+
+    return preg_replace('/\s+/u', ' ', $texto);
+}
+
+function crmPalavrasAutomacao(array $automacao) {
+    $texto = (string)($automacao['palavras_chave'] ?? '');
+    $partes = preg_split('/[,;\n]+/', $texto) ?: [];
+    $palavras = [];
+
+    foreach ($partes as $parte) {
+        $palavra = crmNormalizarTextoAutomacao($parte);
+        if ($palavra !== '') {
+            $palavras[] = $palavra;
+        }
+    }
+
+    return array_values(array_unique($palavras));
+}
+
+function crmAutomacaoDisparaLead($mensagem) {
+    $mensagem = crmNormalizarTextoAutomacao($mensagem);
+    if ($mensagem === '') {
+        return null;
+    }
+
+    foreach (crmCarregarAutomacoes() as $automacao) {
+        if (empty($automacao['ativo']) || ($automacao['evento'] ?? '') !== 'mensagem_recebida' || ($automacao['acao'] ?? '') !== 'criar_lead') {
+            continue;
+        }
+
+        $palavras = crmPalavrasAutomacao($automacao);
+        if (!$palavras) {
+            return $automacao;
+        }
+
+        foreach ($palavras as $palavra) {
+            if (function_exists('mb_strpos')) {
+                if (mb_strpos($mensagem, $palavra) !== false) {
+                    return $automacao;
+                }
+            } elseif (strpos($mensagem, $palavra) !== false) {
+                return $automacao;
+            }
+        }
+    }
+
+    return null;
+}

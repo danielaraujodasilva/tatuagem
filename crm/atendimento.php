@@ -423,6 +423,7 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
         <div class="flex flex-wrap gap-2">
             <a class="crm-button" href="dashboard.php"><i class="fa-solid fa-table-columns"></i> Dashboard</a>
             <a class="crm-button crm-button-primary" href="respostas_rapidas.php"><i class="fa-solid fa-bolt"></i> Respostas</a>
+            <a class="crm-button" href="automacao.php"><i class="fa-solid fa-robot"></i> Automacao</a>
         </div>
     </header>
 
@@ -436,6 +437,7 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
                 <a href="dashboard.php"><i class="fa-solid fa-chart-simple"></i> Dashboard</a>
                 <a class="is-active" href="index.php"><i class="fa-solid fa-comments"></i> Atendimento</a>
                 <a href="respostas_rapidas.php"><i class="fa-solid fa-bolt"></i> Respostas Rapidas</a>
+                <a href="automacao.php?embed=1&v=20260505-automation" data-workspace-link data-title="Automacao" data-subtitle="Regras, alertas e mensagens automaticas" data-src="automacao.php?embed=1&v=20260505-automation"><i class="fa-solid fa-robot"></i> Automacao</a>
                 <a href="../ficha/agenda/?v=20260505-embedded-redesign" data-workspace-link data-title="Agenda" data-subtitle="Calendario e rotina do estudio" data-src="../ficha/agenda/?v=20260505-embedded-redesign"><i class="fa-regular fa-calendar"></i> Agenda</a>
                 <a href="../ficha/index.php?v=20260505-embedded-redesign" data-workspace-link data-title="Ficha / Anamnese" data-subtitle="Cadastro, saude, autorizacoes e observacoes" data-src="../ficha/index.php?v=20260505-embedded-redesign"><i class="fa-regular fa-clipboard"></i> Ficha / Anamnese</a>
                 <a href="relatorios.php?v=20260505-embedded-redesign" data-workspace-link data-title="Relatorios" data-subtitle="Resultados, origem dos leads e faturamento" data-src="relatorios.php?v=20260505-embedded-redesign"><i class="fa-solid fa-chart-line"></i> Relatorios</a>

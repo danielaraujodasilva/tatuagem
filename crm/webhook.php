@@ -233,8 +233,13 @@ if (!$numero || (!$mensagem && !$mediaBase64)) {
     exit;
 }
 
-$config = json_decode(file_get_contents("data/config.json"), true);
+$configPath = __DIR__ . "/data/config.json";
+$config = is_file($configPath) ? json_decode((string)file_get_contents($configPath), true) : [];
+if (!is_array($config)) {
+    $config = [];
+}
 $mensagem_trigger = normalizarTextoMensagem($config['mensagem_trigger'] ?? 'oi');
+$automacaoLead = crmAutomacaoDisparaLead($mensagem);
 
 function normalizarTextoMensagem($texto) {
     $texto = trim((string)$texto);
@@ -338,7 +343,7 @@ foreach ($clientes as $index => $c) {
 if ($clienteIndex === null) {
 
     // só cria se for mensagem gatilho
-    if ($fromMe || !mensagemDisparaLead($mensagem, $mensagem_trigger)) {
+    if ($fromMe || (!$automacaoLead && !mensagemDisparaLead($mensagem, $mensagem_trigger))) {
         logDebug('webhook_debug.log', [
             'ignored' => true,
             'reason' => $fromMe ? 'mensagem_enviada_pelo_atendente' : 'mensagem_nao_e_gatilho',
@@ -346,6 +351,7 @@ if ($clienteIndex === null) {
             'mensagem' => $mensagemOriginal,
             'mensagem_normalizada' => $mensagem,
             'gatilho' => $mensagem_trigger,
+            'automacao_lead' => $automacaoLead['titulo'] ?? '',
             'messageId' => $messageId,
             'remoteJid' => $remoteJid,
         ]);
@@ -356,9 +362,11 @@ if ($clienteIndex === null) {
         "id" => uniqid(),
         "numero" => $numero,
         "nome" => "Cliente",
-        "status" => "novo",
+        "status" => $automacaoLead['status_destino'] ?? "novo",
         "etapa" => primeiraEtapaDoFunil($conn),
         "atendente" => "bot",
+        "origem" => "WhatsApp",
+        "interesse" => $automacaoLead ? ($automacaoLead['titulo'] ?? 'Automacao') : '',
         "mensagens" => []
     ];
 
@@ -371,6 +379,7 @@ if ($clienteIndex === null) {
         'messageId' => $messageId,
         'remoteJid' => $remoteJid,
         'etapa' => $novo['etapa'],
+        'automacao' => $automacaoLead['titulo'] ?? '',
     ]);
 }
 

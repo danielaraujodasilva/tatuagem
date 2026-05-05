@@ -14,6 +14,7 @@ crm/data/clientes_runtime.json.bak
 crm/data/clientes_runtime.json.tmp
 crm/data/status_pending.json
 crm/data/quick_replies.json
+crm/data/automation_rules.json
 crm/data/*.log
 crm/data/media/
 ficha/config/conexao.local.php
