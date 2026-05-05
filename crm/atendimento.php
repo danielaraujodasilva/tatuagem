@@ -372,6 +372,29 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
             box-shadow: 0 30px 90px rgba(0, 0, 0, 0.58);
         }
 
+        .workspace-view.hidden {
+            display: none;
+        }
+
+        .embedded-workspace {
+            min-height: calc(100vh - 150px);
+        }
+
+        .embedded-frame-wrap {
+            height: min(980px, calc(100vh - 270px));
+            min-height: 660px;
+            overflow: hidden;
+            border-top: 1px solid var(--crm-border);
+            background: #07080a;
+        }
+
+        .embedded-frame {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            background: #050505;
+        }
+
         @media (max-width: 1280px) {
             .attendance-layout {
                 grid-template-columns: minmax(270px, 340px) minmax(0, 1fr);
@@ -413,14 +436,15 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
                 <a href="dashboard.php"><i class="fa-solid fa-chart-simple"></i> Dashboard</a>
                 <a class="is-active" href="index.php"><i class="fa-solid fa-comments"></i> Atendimento</a>
                 <a href="respostas_rapidas.php"><i class="fa-solid fa-bolt"></i> Respostas Rapidas</a>
-                <a href="../ficha/agenda/"><i class="fa-regular fa-calendar"></i> Agenda</a>
-                <a href="../ficha/index.php"><i class="fa-regular fa-clipboard"></i> Ficha / Anamnese</a>
-                <a href="relatorios.php"><i class="fa-solid fa-chart-line"></i> Relatorios</a>
+                <a href="../ficha/agenda/" data-workspace-link data-title="Agenda" data-subtitle="Calendario e rotina do estudio" data-src="../ficha/agenda/"><i class="fa-regular fa-calendar"></i> Agenda</a>
+                <a href="../ficha/index.php" data-workspace-link data-title="Ficha / Anamnese" data-subtitle="Cadastro, saude, autorizacoes e observacoes" data-src="../ficha/index.php"><i class="fa-regular fa-clipboard"></i> Ficha / Anamnese</a>
+                <a href="relatorios.php" data-workspace-link data-title="Relatorios" data-subtitle="Resultados, origem dos leads e faturamento" data-src="relatorios.php"><i class="fa-solid fa-chart-line"></i> Relatorios</a>
                 <a href="configuracoes.php"><i class="fa-solid fa-gear"></i> Configuracoes</a>
             </nav>
         </aside>
 
         <main class="crm-main">
+            <div id="attendanceView" class="workspace-view">
             <section class="crm-grid-4 mb-4">
                 <div class="crm-card metric-card">
                     <div class="crm-muted text-sm">Conversas</div>
@@ -443,7 +467,9 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
             <section class="crm-panel mb-4">
                 <div class="crm-panel-header">
                     <h2 class="crm-panel-title"><i class="fa-solid fa-chart-line"></i> Resumo do atendimento</h2>
-                    <a class="crm-button" href="relatorios.php"><i class="fa-solid fa-arrow-up-right-from-square"></i> Relatorios</a>
+                    <button class="crm-button" type="button" data-workspace-trigger data-title="Relatorios" data-subtitle="Resultados, origem dos leads e faturamento" data-src="relatorios.php">
+                        <i class="fa-solid fa-chart-line"></i> Relatorios
+                    </button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 p-4">
                     <div class="crm-card p-4">
@@ -562,6 +588,23 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
                     </div>
                     <div id="quickReplyList" class="quick-reply-list"></div>
                 </aside>
+            </section>
+            </div>
+
+            <section id="embeddedView" class="workspace-view hidden crm-panel embedded-workspace">
+                <div class="crm-panel-header">
+                    <div>
+                        <h2 id="embeddedTitle" class="crm-panel-title"><i class="fa-solid fa-window-maximize"></i> Painel</h2>
+                        <p id="embeddedSubtitle" class="crm-muted text-sm mt-2">Carregado dentro da Central de Atendimento.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="backToAttendanceButton" type="button" class="crm-button"><i class="fa-solid fa-comments"></i> Atendimento</button>
+                        <a id="openEmbeddedButton" class="crm-button" href="#" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir separado</a>
+                    </div>
+                </div>
+                <div class="embedded-frame-wrap">
+                    <iframe id="embeddedFrame" class="embedded-frame" title="Painel integrado"></iframe>
+                </div>
             </section>
         </main>
     </div>
@@ -987,6 +1030,33 @@ function postAttendanceAction(payload) {
     }).then(response => response.json());
 }
 
+function showAttendanceWorkspace() {
+    document.getElementById('attendanceView').classList.remove('hidden');
+    document.getElementById('embeddedView').classList.add('hidden');
+    document.getElementById('embeddedFrame').removeAttribute('src');
+    document.querySelectorAll('[data-workspace-link]').forEach(link => link.classList.remove('is-active'));
+    const attendanceLink = document.querySelector('.crm-nav a[href="index.php"]');
+    if (attendanceLink) attendanceLink.classList.add('is-active');
+}
+
+function showEmbeddedWorkspace({ title, subtitle, src }) {
+    document.getElementById('attendanceView').classList.add('hidden');
+    document.getElementById('embeddedView').classList.remove('hidden');
+    document.getElementById('embeddedTitle').innerHTML = `<i class="fa-solid fa-window-maximize"></i> ${escapeHtml(title || 'Painel')}`;
+    document.getElementById('embeddedSubtitle').textContent = subtitle || 'Carregado dentro da Central de Atendimento.';
+    document.getElementById('embeddedFrame').src = src;
+    document.getElementById('openEmbeddedButton').href = src;
+
+    document.querySelectorAll('.crm-nav a').forEach(link => link.classList.remove('is-active'));
+    const attendanceLink = document.querySelector('.crm-nav a[href="index.php"]');
+    if (attendanceLink) attendanceLink.classList.remove('is-active');
+    document.querySelectorAll('[data-workspace-link]').forEach(link => {
+        if (link.dataset.src === src) {
+            link.classList.add('is-active');
+        }
+    });
+}
+
 function insertEmoji(emoji) {
     const input = document.getElementById('messageInput');
     const start = input.selectionStart;
@@ -1253,6 +1323,17 @@ document.querySelectorAll('.filter-button').forEach(button => {
 
 document.getElementById('searchInput').addEventListener('input', renderConversationList);
 document.getElementById('replySearch').addEventListener('input', renderReplies);
+document.querySelectorAll('[data-workspace-link], [data-workspace-trigger]').forEach(link => {
+    link.addEventListener('click', event => {
+        event.preventDefault();
+        showEmbeddedWorkspace({
+            title: link.dataset.title,
+            subtitle: link.dataset.subtitle,
+            src: link.dataset.src || link.getAttribute('href')
+        });
+    });
+});
+document.getElementById('backToAttendanceButton').addEventListener('click', showAttendanceWorkspace);
 document.getElementById('emojiButton').addEventListener('click', () => document.getElementById('emojiPanel').classList.toggle('hidden'));
 document.querySelectorAll('#emojiPanel button').forEach(button => button.addEventListener('click', () => insertEmoji(button.dataset.emoji || '')));
 document.getElementById('fileButton').addEventListener('click', () => document.getElementById('chatFile').click());
