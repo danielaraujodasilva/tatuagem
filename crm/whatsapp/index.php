@@ -1037,6 +1037,12 @@ $valorPomadaAnestesica = system_pomada_unit_price();
             return new URL(path, new URL('../', window.location.href)).href;
         }
 
+        function mediaSource(path) {
+            const value = String(path ?? '');
+            if (/^(https?:|blob:|data:)/i.test(value)) return value;
+            return crmRelativeUrl('media.php?path=' + encodeURIComponent(value));
+        }
+
         function statusLabel(status) {
             const labels = {
                 novo: 'Novo',
@@ -1293,7 +1299,7 @@ $valorPomadaAnestesica = system_pomada_unit_price();
         }
 
         function renderMedia(msg) {
-            const url = msg.mediaUrl ? '../' + String(msg.mediaUrl).replace(/^\/+/, '') : '';
+            const url = msg.mediaUrl ? mediaSource(msg.mediaUrl) : '';
             const mime = String(msg.mediaMime || '');
             if (!url) return '';
             if (mime.startsWith('image/')) {

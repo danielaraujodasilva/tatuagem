@@ -733,6 +733,12 @@ function escapeHtml(value) {
     }[char]));
 }
 
+function mediaSource(path) {
+    const value = String(path ?? '');
+    if (/^(https?:|blob:|data:)/i.test(value)) return value;
+    return 'media.php?path=' + encodeURIComponent(value);
+}
+
 function getActive() {
     return conversations.find(item => item.id === activeId) || conversations[0] || null;
 }
@@ -839,7 +845,9 @@ function renderMessageStatus(msg) {
 function renderChatMedia(msg) {
     if (!msg.mediaUrl) return '';
 
-    const url = escapeHtml(msg.mediaUrl);
+    const rawUrl = String(msg.mediaUrl || '');
+    const url = escapeHtml(mediaSource(rawUrl));
+    const transcribeUrl = escapeHtml(rawUrl);
     const mime = msg.mediaMime || '';
     const fileName = escapeHtml(msg.mediaFileName || 'arquivo');
     const pending = pendingTranscriptions[transcriptionKey(msg.messageId || '', msg.mediaUrl || '')];
@@ -854,7 +862,7 @@ function renderChatMedia(msg) {
         return `
             <div class="space-y-2">
                 <audio src="${url}" controls class="w-72 max-w-full"></audio>
-                ${pending ? renderTranscriptionProgress(pending) : `<button type="button" onclick="transcribeAudio(this, '${escapeHtml(msg.messageId || '')}', '${url}')" class="crm-button text-xs min-h-[34px]">Transcrever audio</button>`}
+                ${pending ? renderTranscriptionProgress(pending) : `<button type="button" onclick="transcribeAudio(this, '${escapeHtml(msg.messageId || '')}', '${transcribeUrl}')" class="crm-button text-xs min-h-[34px]">Transcrever audio</button>`}
             </div>
         `;
     }
