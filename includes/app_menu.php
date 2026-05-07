@@ -7,6 +7,7 @@ if (!function_exists('app_menu_render')) {
         $isAdmin = function_exists('auth_has_role') && auth_has_role(['adm']);
         $items = [
             ['key' => 'atendimento', 'label' => 'Atendimento', 'url' => auth_url('/crm/index.php'), 'roles' => ['funcionario', 'adm']],
+            ['key' => 'whatsapp', 'label' => 'WhatsApp', 'url' => auth_url('/crm/whatsapp/'), 'roles' => ['funcionario', 'adm']],
             ['key' => 'crm', 'label' => 'Dashboard', 'url' => auth_url('/crm/dashboard.php'), 'roles' => ['funcionario', 'adm']],
             ['key' => 'respostas', 'label' => 'Respostas Rapidas', 'url' => auth_url('/crm/respostas_rapidas.php'), 'roles' => ['funcionario', 'adm']],
             ['key' => 'automacao', 'label' => 'Automacao', 'url' => auth_url('/crm/automacao.php'), 'roles' => ['funcionario', 'adm']],
