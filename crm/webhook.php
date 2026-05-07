@@ -1,6 +1,7 @@
 <?php
 require 'config.php';
 require_once __DIR__ . '/data_store.php';
+require_once __DIR__ . '/audio_transcription.php';
 date_default_timezone_set('America/Sao_Paulo');
 
 $data = json_decode(file_get_contents("php://input"), true);
@@ -413,6 +414,18 @@ $novaMensagem = [
     "mediaMime" => $mediaMime,
     "mediaFileName" => $mediaFileName
 ];
+
+if (!$fromMe && crm_transcription_is_audio($tipoMensagem, $mediaMime, $mediaUrl)) {
+    $resultadoTranscricao = crm_transcription_run(crm_transcription_media_path((string)$mediaUrl), 'small');
+    $novaMensagem['transcrito_em'] = date('Y-m-d H:i:s');
+
+    if (!empty($resultadoTranscricao['ok'])) {
+        $novaMensagem['transcricao'] = trim((string)($resultadoTranscricao['text'] ?? ''));
+        $novaMensagem['transcricao_engine'] = (string)($resultadoTranscricao['engine'] ?? '');
+    } else {
+        $novaMensagem['transcricao_erro'] = (string)($resultadoTranscricao['error'] ?? 'Nao foi possivel transcrever audio automaticamente');
+    }
+}
 
 aplicarStatusPendenteMensagem($novaMensagem);
 $clientes[$clienteIndex]['mensagens'][] = $novaMensagem;
