@@ -311,9 +311,9 @@ async function startBot() {
 // ENVIO DE MENSAGEM
 // ==========================
 app.post("/enviar", async (req, res) => {
-    const { numero, mensagem, media } = req.body;
+    const { numero, jid, mensagem, media } = req.body;
 
-    if (!numero || (!mensagem && !media?.base64)) {
+    if ((!numero && !jid) || (!mensagem && !media?.base64)) {
         return res.json({ ok: false, erro: "Número e mensagem obrigatórios" });
     }
 
@@ -322,17 +322,28 @@ app.post("/enviar", async (req, res) => {
     }
 
     try {
-        let numeroLimpo = numero.replace(/\D/g, '');
-        if (!numeroLimpo.startsWith('55')) numeroLimpo = '55' + numeroLimpo;
+        const jidDireto = String(jid || "").trim();
+        let destinoJid = "";
 
-        const [resultado] = await sock.onWhatsApp(numeroLimpo);
-
-        if (!resultado?.jid) {
-            console.log("⚠️ Número não encontrado:", numeroLimpo);
-            return res.json({ ok: false, erro: "Número não tem WhatsApp" });
+        if (/@(s\.whatsapp\.net|lid)$/.test(jidDireto)) {
+            destinoJid = jidDireto.replace(/:\d+(?=@)/, "");
         }
 
-        console.log(`📤 Enviando para: ${resultado.jid}`);
+        if (!destinoJid) {
+            let numeroLimpo = String(numero || "").replace(/\D/g, '');
+            if (!numeroLimpo.startsWith('55')) numeroLimpo = '55' + numeroLimpo;
+
+            const [resultado] = await sock.onWhatsApp(numeroLimpo);
+
+            if (!resultado?.jid) {
+                console.log("⚠️ Número não encontrado:", numeroLimpo);
+                return res.json({ ok: false, erro: "Número não tem WhatsApp" });
+            }
+
+            destinoJid = resultado.jid;
+        }
+
+        console.log(`📤 Enviando para: ${destinoJid}`);
 
         let payload = { text: mensagem };
         let mediaSize = 0;
@@ -365,7 +376,7 @@ app.post("/enviar", async (req, res) => {
             size: mediaSize
         });
 
-        const result = await sock.sendMessage(resultado.jid, payload);
+        const result = await sock.sendMessage(destinoJid, payload);
         console.log("✅ Mensagem enviada! ID:", result?.key?.id);
 
         res.json({ ok: true, messageId: result?.key?.id, remoteJid: result?.key?.remoteJid });

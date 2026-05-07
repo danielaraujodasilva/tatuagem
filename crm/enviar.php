@@ -31,6 +31,36 @@ function numerosIguais($a, $b) {
     return $min >= 10 && substr($a, -$min) === substr($b, -$min);
 }
 
+function normalizarRemoteJidEnvio($jid) {
+    $jid = trim((string)$jid);
+    if ($jid === '') {
+        return '';
+    }
+
+    $jid = preg_replace('/:\d+(?=@)/', '', $jid);
+    return preg_match('/@(s\.whatsapp\.net|lid)$/', $jid) ? $jid : '';
+}
+
+function encontrarDestinoWhatsApp(array $clientes, string $numeroLimpo): array {
+    foreach ($clientes as $cliente) {
+        if (!numerosIguais($cliente['numero'] ?? '', $numeroLimpo)) {
+            continue;
+        }
+
+        $mensagens = array_reverse($cliente['mensagens'] ?? []);
+        foreach ($mensagens as $msg) {
+            $jid = normalizarRemoteJidEnvio($msg['remoteJid'] ?? '');
+            if ($jid !== '') {
+                return ['jid' => $jid, 'cliente' => $cliente];
+            }
+        }
+
+        return ['jid' => '', 'cliente' => $cliente];
+    }
+
+    return ['jid' => '', 'cliente' => null];
+}
+
 function salvarAnexoLocal($tmp, $mime, $fileName) {
     $dir = __DIR__ . '/data/media';
     if (!is_dir($dir)) {
@@ -216,11 +246,14 @@ if (!empty($_FILES['arquivo']) && is_uploaded_file($_FILES['arquivo']['tmp_name'
 }
 
 $numeroLimpo = normalizarNumero($numero);
+$clientes = crmCarregarClientes();
+$destinoWhatsApp = encontrarDestinoWhatsApp($clientes, $numeroLimpo);
 
 $ch = curl_init("http://localhost:3001/enviar");
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
     "numero" => $numeroLimpo,
+    "jid" => $destinoWhatsApp['jid'],
     "mensagem" => $mensagem,
     "media" => $media,
 ]));
@@ -237,6 +270,7 @@ curl_close($ch);
 $res = json_decode($response, true);
 logEnvioWhatsApp([
     'numero' => $numeroLimpo,
+    'jid' => $destinoWhatsApp['jid'],
     'ptt' => $ptt,
     'mediaMime' => $media['mime'] ?? '',
     'mediaFileName' => $media['fileName'] ?? '',
@@ -248,8 +282,6 @@ logEnvioWhatsApp([
 if (!empty($res['ok'])) {
     $messageId = trim((string)($res['messageId'] ?? ''));
     $remoteJid = trim((string)($res['remoteJid'] ?? ''));
-
-    $clientes = crmCarregarClientes();
 
     $mensagemSalva = [
         "de" => "atendente",
