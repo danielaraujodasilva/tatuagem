@@ -441,7 +441,7 @@ $valorPomadaAnestesica = system_pomada_unit_price();
             background: var(--wa-bubble-in);
             box-shadow: 0 1px 1px rgba(0,0,0,0.18);
             line-height: 1.42;
-            white-space: pre-wrap;
+            white-space: normal;
             overflow-wrap: anywhere;
             font-size: 14.6px;
         }
@@ -462,6 +462,7 @@ $valorPomadaAnestesica = system_pomada_unit_price();
 
         .wa-bubble-text {
             padding-right: 42px;
+            white-space: pre-wrap;
         }
 
         .wa-transcription {
@@ -949,6 +950,7 @@ $valorPomadaAnestesica = system_pomada_unit_price();
         const state = {
             clientes: [],
             filtered: [],
+            readState: {},
             activeId: '',
             activeFilter: 'all',
             polling: null,
@@ -1079,6 +1081,12 @@ $valorPomadaAnestesica = system_pomada_unit_price();
             return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         }
 
+        function parseDate(dateValue) {
+            if (!dateValue) return null;
+            const date = new Date(String(dateValue).replace(' ', 'T'));
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+
         function toDay(dateValue) {
             if (!dateValue) return '';
             const date = new Date(String(dateValue).replace(' ', 'T'));
@@ -1110,12 +1118,48 @@ $valorPomadaAnestesica = system_pomada_unit_price();
 
         function unreadCount(cliente) {
             const messages = getMessages(cliente);
+            const lastRead = parseDate(state.readState[String(cliente?.id ?? '')] || '');
             let count = 0;
-            for (let i = messages.length - 1; i >= 0; i--) {
-                if (isFromMe(messages[i])) break;
-                count++;
+            for (const msg of messages) {
+                if (isFromMe(msg)) continue;
+                const msgDate = parseDate(msg.data);
+                if (!lastRead || !msgDate || msgDate > lastRead) {
+                    count++;
+                }
             }
             return count;
+        }
+
+        async function loadReadState() {
+            const response = await fetch('read_state.php', { cache: 'no-store' });
+            if (!response.ok) return;
+            const data = await response.json().catch(() => null);
+            if (data?.ok && data.read && typeof data.read === 'object') {
+                state.readState = data.read;
+            }
+        }
+
+        async function markConversationRead(id) {
+            const normalizedId = String(id || '').replace(/^wa_/, '');
+            if (!normalizedId) return;
+
+            state.readState[normalizedId] = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            applyFilters();
+
+            try {
+                const response = await fetch('read_state.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ id: normalizedId }),
+                });
+                const data = await response.json().catch(() => null);
+                if (data?.ok && data.read_at) {
+                    state.readState[normalizedId] = data.read_at;
+                    applyFilters();
+                }
+            } catch (error) {
+                // Mantem a leitura visual local mesmo que a persistencia falhe momentaneamente.
+            }
         }
 
         function previewMessage(msg) {
@@ -1218,6 +1262,7 @@ $valorPomadaAnestesica = system_pomada_unit_price();
             el.chatPanel.classList.remove('wa-hidden');
             el.app.classList.add('chat-open');
             loadMessages(true);
+            markConversationRead(cliente.id);
             startMessagePolling();
             el.input.focus();
         }
@@ -1244,6 +1289,7 @@ $valorPomadaAnestesica = system_pomada_unit_price();
             const data = await response.json();
             if (!data.ok || !Array.isArray(data.mensagens)) return;
             renderMessages(data.mensagens, stick);
+            markConversationRead(state.activeId);
         }
 
         function renderMedia(msg) {
@@ -1766,9 +1812,13 @@ $valorPomadaAnestesica = system_pomada_unit_price();
                 .catch(error => alert(error.message));
         });
 
-        loadClientes(false).catch(error => {
-            el.chatList.innerHTML = `<div class="wa-loading">${escapeHtml(error.message)}</div>`;
-        });
+        loadReadState()
+            .catch(() => {})
+            .finally(() => {
+                loadClientes(false).catch(error => {
+                    el.chatList.innerHTML = `<div class="wa-loading">${escapeHtml(error.message)}</div>`;
+                });
+            });
         renderReplies();
         state.listPolling = setInterval(() => loadClientes(true).catch(() => {}), 8000);
     </script>
