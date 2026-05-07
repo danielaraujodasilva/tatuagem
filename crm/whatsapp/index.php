@@ -483,9 +483,24 @@ $valorPomadaAnestesica = system_pomada_unit_price();
             display: block;
             max-width: 280px;
             max-height: 240px;
-            margin-bottom: 6px;
             border-radius: 7px;
             object-fit: cover;
+        }
+
+        .wa-media-button {
+            display: block;
+            max-width: 280px;
+            margin: 0 0 6px;
+            padding: 0;
+            border: 0;
+            border-radius: 7px;
+            background: transparent;
+            cursor: zoom-in;
+            overflow: hidden;
+        }
+
+        .wa-media-button:hover .wa-media {
+            filter: brightness(1.08);
         }
 
         .wa-doc {
@@ -741,6 +756,51 @@ $valorPomadaAnestesica = system_pomada_unit_price();
             margin-top: 16px;
         }
 
+        .wa-image-viewer {
+            position: fixed;
+            inset: 0;
+            z-index: 60;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            background: rgba(11, 20, 26, 0.94);
+            backdrop-filter: blur(4px);
+        }
+
+        .wa-image-viewer-head {
+            min-height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 12px 18px;
+            background: rgba(32, 44, 51, 0.82);
+        }
+
+        .wa-image-viewer-title {
+            min-width: 0;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            color: var(--wa-text);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .wa-image-viewer-stage {
+            min-height: 0;
+            display: grid;
+            place-items: center;
+            padding: 18px;
+        }
+
+        .wa-image-viewer-stage img {
+            max-width: 100%;
+            max-height: calc(100vh - 108px);
+            border-radius: 8px;
+            object-fit: contain;
+            box-shadow: 0 22px 70px rgba(0, 0, 0, 0.5);
+        }
+
         .wa-mobile-back { display: none; }
 
         @media (max-width: 880px) {
@@ -944,6 +1004,19 @@ $valorPomadaAnestesica = system_pomada_unit_price();
         </div>
     </div>
 
+    <div id="imageOverlay" class="wa-image-viewer wa-hidden">
+        <header class="wa-image-viewer-head">
+            <div id="imageTitle" class="wa-image-viewer-title"></div>
+            <div class="wa-actions">
+                <a id="imageOpenLink" class="wa-icon-btn" href="#" target="_blank" rel="noopener" title="Abrir em nova aba"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                <button id="closeImageBtn" type="button" class="wa-icon-btn" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </header>
+        <div class="wa-image-viewer-stage">
+            <img id="imagePreview" src="" alt="">
+        </div>
+    </div>
+
     <script>
         const quickReplies = <?= json_encode($quickReplies, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
         const pomadaUnitPrice = <?= json_encode($valorPomadaAnestesica) ?>;
@@ -1013,6 +1086,11 @@ $valorPomadaAnestesica = system_pomada_unit_price();
             scheduleTotal: document.getElementById('scheduleTotalPreview'),
             scheduleResult: document.getElementById('scheduleResult'),
             scheduleSubmit: document.getElementById('scheduleSubmit'),
+            imageOverlay: document.getElementById('imageOverlay'),
+            imagePreview: document.getElementById('imagePreview'),
+            imageTitle: document.getElementById('imageTitle'),
+            imageOpen: document.getElementById('imageOpenLink'),
+            closeImage: document.getElementById('closeImageBtn'),
         };
 
         function escapeHtml(value) {
@@ -1303,7 +1381,12 @@ $valorPomadaAnestesica = system_pomada_unit_price();
             const mime = String(msg.mediaMime || '');
             if (!url) return '';
             if (mime.startsWith('image/')) {
-                return `<img class="wa-media" src="${escapeHtml(url)}" alt="${escapeHtml(msg.mediaFileName || 'Imagem')}">`;
+                const fileName = msg.mediaFileName || 'Imagem';
+                return `
+                    <button type="button" class="wa-media-button" data-image-src="${escapeHtml(url)}" data-image-name="${escapeHtml(fileName)}" title="Ampliar imagem">
+                        <img class="wa-media" src="${escapeHtml(url)}" alt="${escapeHtml(fileName)}">
+                    </button>
+                `;
             }
             if (mime.startsWith('audio/')) {
                 const key = transcriptionKey(msg.messageId || '', msg.mediaUrl || '');
@@ -1583,6 +1666,21 @@ $valorPomadaAnestesica = system_pomada_unit_price();
             el.scheduleOverlay.classList.add('wa-hidden');
         }
 
+        function openImageOverlay(src, name) {
+            if (!src) return;
+            el.imagePreview.src = src;
+            el.imagePreview.alt = name || 'Imagem';
+            el.imageTitle.textContent = name || 'Imagem';
+            el.imageOpen.href = src;
+            el.imageOverlay.classList.remove('wa-hidden');
+        }
+
+        function closeImageOverlay() {
+            el.imageOverlay.classList.add('wa-hidden');
+            el.imagePreview.removeAttribute('src');
+            el.imageOpen.href = '#';
+        }
+
         function scheduleSearchChanged() {
             clearTimeout(state.scheduleSearchTimer);
             const term = el.scheduleSearch.value.trim();
@@ -1712,6 +1810,11 @@ $valorPomadaAnestesica = system_pomada_unit_price();
             const item = event.target.closest('.wa-chat-item');
             if (item) openChat(item.dataset.id);
 
+            const imageButton = event.target.closest('.wa-media-button');
+            if (imageButton) {
+                openImageOverlay(imageButton.dataset.imageSrc || '', imageButton.dataset.imageName || '');
+            }
+
             const reply = event.target.closest('.wa-reply-card');
             if (reply) {
                 const found = quickReplies.find(item => String(item.id) === String(reply.dataset.id));
@@ -1760,6 +1863,11 @@ $valorPomadaAnestesica = system_pomada_unit_price();
                 el.composer.requestSubmit();
             }
         });
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !el.imageOverlay.classList.contains('wa-hidden')) {
+                closeImageOverlay();
+            }
+        });
         el.attach.addEventListener('click', () => el.file.click());
         el.file.addEventListener('change', updateAttachmentPreview);
         el.record.addEventListener('click', toggleAudioRecording);
@@ -1770,6 +1878,10 @@ $valorPomadaAnestesica = system_pomada_unit_price();
         el.scheduleOverlay.addEventListener('click', event => {
             if (event.target === el.scheduleOverlay) closeScheduleOverlay();
         });
+        el.imageOverlay.addEventListener('click', event => {
+            if (event.target === el.imageOverlay || event.target.classList.contains('wa-image-viewer-stage')) closeImageOverlay();
+        });
+        el.closeImage.addEventListener('click', closeImageOverlay);
         el.scheduleForm.addEventListener('submit', saveSchedule);
         el.scheduleSearch.addEventListener('input', scheduleSearchChanged);
         el.scheduleTelefone.addEventListener('blur', () => {
