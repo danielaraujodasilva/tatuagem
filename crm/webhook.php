@@ -2,6 +2,7 @@
 require 'config.php';
 require_once __DIR__ . '/data_store.php';
 require_once __DIR__ . '/audio_transcription.php';
+require_once __DIR__ . '/openai_assistant.php';
 date_default_timezone_set('America/Sao_Paulo');
 
 $data = json_decode(file_get_contents("php://input"), true);
@@ -366,6 +367,7 @@ if ($clienteIndex === null) {
         "status" => $automacaoLead['status_destino'] ?? "novo",
         "etapa" => primeiraEtapaDoFunil($conn),
         "atendente" => "bot",
+        "modo_atendimento" => "bot",
         "origem" => "WhatsApp",
         "interesse" => $automacaoLead ? ($automacaoLead['titulo'] ?? 'Automacao') : '',
         "mensagens" => []
@@ -441,4 +443,17 @@ logDebug('webhook_debug.log', [
     'remoteJid' => $remoteJid,
     'tipoMensagem' => $tipoMensagem,
 ]);
-echo json_encode(['ok' => true, 'clienteId' => $clientes[$clienteIndex]['id'] ?? null], JSON_UNESCAPED_UNICODE);
+
+$aiResult = crm_ai_responder_se_aplicavel($clientes, (int)$clienteIndex, $novaMensagem);
+if (empty($aiResult['ok']) || !empty($aiResult['sent'])) {
+    logDebug('webhook_debug.log', [
+        'ai' => $aiResult,
+        'clienteId' => $clientes[$clienteIndex]['id'] ?? '',
+    ]);
+}
+
+echo json_encode([
+    'ok' => true,
+    'clienteId' => $clientes[$clienteIndex]['id'] ?? null,
+    'ai' => $aiResult,
+], JSON_UNESCAPED_UNICODE);

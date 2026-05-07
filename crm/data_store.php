@@ -60,6 +60,33 @@ function crmTabelasChatDisponiveis() {
     return $ok;
 }
 
+function crmDbColumnExists(string $table, string $column): bool {
+    try {
+        $stmt = crmDb()->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
+        $stmt->execute([$column]);
+        return (bool)$stmt->fetchColumn();
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+function crmEnsureChatSchema(): void {
+    static $done = false;
+    if ($done || !crmTabelasChatDisponiveis()) {
+        return;
+    }
+
+    try {
+        if (!crmDbColumnExists('crm_whatsapp_clientes', 'modo_atendimento')) {
+            crmDb()->exec("ALTER TABLE crm_whatsapp_clientes ADD COLUMN modo_atendimento VARCHAR(20) NOT NULL DEFAULT 'bot' AFTER atendente");
+        }
+    } catch (Throwable $e) {
+        error_log('CRM chat schema check failed: ' . $e->getMessage());
+    }
+
+    $done = true;
+}
+
 function crmNormalizarBoolean($valor) {
     return !empty($valor) ? 1 : 0;
 }
@@ -102,6 +129,7 @@ function crmCarregarClientes() {
     if (!crmTabelasChatDisponiveis()) {
         return crmCarregarClientesJsonFallback();
     }
+    crmEnsureChatSchema();
 
     $sql = "
         SELECT
@@ -147,6 +175,7 @@ function crmCarregarClientes() {
                 'status' => $row['status'] ?? 'novo',
                 'etapa' => $row['etapa'] ?? '',
                 'atendente' => $row['atendente'] ?? '',
+                'modo_atendimento' => $row['modo_atendimento'] ?? '',
                 'interesse' => $row['interesse'] ?? '',
                 'valor' => $row['valor'] ?? 0,
                 'origem' => $row['origem'] ?? 'WhatsApp',
@@ -186,6 +215,7 @@ function crmSalvarClientes($clientes) {
         crmSalvarClientesJsonFallback($clientes);
         return;
     }
+    crmEnsureChatSchema();
 
     $pdo = crmDb();
     $pdo->beginTransaction();
@@ -193,15 +223,16 @@ function crmSalvarClientes($clientes) {
     try {
         $clienteStmt = $pdo->prepare("
             INSERT INTO crm_whatsapp_clientes
-                (id, numero, nome, status, etapa, atendente, interesse, valor, origem, data_ultimo_contato, created_at, updated_at)
+                (id, numero, nome, status, etapa, atendente, modo_atendimento, interesse, valor, origem, data_ultimo_contato, created_at, updated_at)
             VALUES
-                (:id, :numero, :nome, :status, :etapa, :atendente, :interesse, :valor, :origem, :data_ultimo_contato, :created_at, NOW())
+                (:id, :numero, :nome, :status, :etapa, :atendente, :modo_atendimento, :interesse, :valor, :origem, :data_ultimo_contato, :created_at, NOW())
             ON DUPLICATE KEY UPDATE
                 numero = VALUES(numero),
                 nome = VALUES(nome),
                 status = VALUES(status),
                 etapa = VALUES(etapa),
                 atendente = VALUES(atendente),
+                modo_atendimento = VALUES(modo_atendimento),
                 interesse = VALUES(interesse),
                 valor = VALUES(valor),
                 origem = VALUES(origem),
@@ -232,6 +263,7 @@ function crmSalvarClientes($clientes) {
                 ':status' => (string)($cliente['status'] ?? 'novo'),
                 ':etapa' => (string)($cliente['etapa'] ?? ''),
                 ':atendente' => (string)($cliente['atendente'] ?? ''),
+                ':modo_atendimento' => trim((string)($cliente['modo_atendimento'] ?? '')) ?: ((string)($cliente['atendente'] ?? '') === 'bot' || (string)($cliente['atendente'] ?? '') === '' ? 'bot' : 'humano'),
                 ':interesse' => (string)($cliente['interesse'] ?? ''),
                 ':valor' => (float)($cliente['valor'] ?? 0),
                 ':origem' => (string)($cliente['origem'] ?? 'WhatsApp'),

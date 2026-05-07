@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS crm_whatsapp_clientes (
     status VARCHAR(40) NOT NULL DEFAULT 'novo',
     etapa VARCHAR(40) NULL,
     atendente VARCHAR(80) NULL,
+    modo_atendimento VARCHAR(20) NOT NULL DEFAULT 'bot',
     interesse TEXT NULL,
     valor DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     origem VARCHAR(80) NOT NULL DEFAULT 'WhatsApp',
@@ -21,6 +22,9 @@ CREATE TABLE IF NOT EXISTS crm_whatsapp_clientes (
     KEY idx_crm_whatsapp_etapa (etapa),
     KEY idx_crm_whatsapp_updated (updated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE crm_whatsapp_clientes
+    ADD COLUMN IF NOT EXISTS modo_atendimento VARCHAR(20) NOT NULL DEFAULT 'bot' AFTER atendente;
 
 CREATE TABLE IF NOT EXISTS crm_whatsapp_mensagens (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,

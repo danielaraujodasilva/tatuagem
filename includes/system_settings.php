@@ -13,6 +13,11 @@ if (!function_exists('system_settings_defaults')) {
         return [
             'mensagem_trigger' => 'oi',
             'valor_pomada_anestesica' => 100.0,
+            'openai_enabled' => false,
+            'openai_api_key' => '',
+            'openai_model' => 'gpt-5-mini',
+            'openai_max_history' => 20,
+            'openai_business_prompt' => "Você é o assistente de atendimento de um estúdio de tatuagem. Responda em português do Brasil, de forma natural, curta e acolhedora. Ajude a entender a ideia da tatuagem, peça referência, tamanho aproximado em cm e local do corpo quando faltar informação. Não invente preço fechado, data disponível ou política que não esteja no contexto. Quando fizer sentido, conduza o cliente para orçamento e agendamento com um atendente.",
         ];
     }
 }
