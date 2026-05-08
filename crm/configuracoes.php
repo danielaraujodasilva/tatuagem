@@ -267,6 +267,10 @@ $openaiKeyConfigured = trim((string)($systemSettings['openai_api_key'] ?? '')) !
                             <span class="settings-kicker">OpenAI</span>
                             <h2 class="text-xl font-black mt-1">IA de atendimento</h2>
                             <p class="settings-muted text-sm mt-1">Quando uma conversa estiver em modo IA/Bot, novas mensagens do cliente podem receber uma resposta automatica usando o historico do chat.</p>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <a class="settings-action px-3 py-2 text-sm" href="ia_diagnostico.php" target="_blank">Ver diagnostico</a>
+                                <a class="settings-action px-3 py-2 text-sm" href="ia_diagnostico.php?testar=1" target="_blank">Testar OpenAI</a>
+                            </div>
                         </div>
                         <label class="inline-flex items-center gap-2 font-bold">
                             <input type="checkbox" name="openai_enabled" value="1" <?= !empty($systemSettings['openai_enabled']) ? 'checked' : '' ?>>

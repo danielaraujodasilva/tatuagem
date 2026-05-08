@@ -241,19 +241,33 @@ function crm_ai_enviar_whatsapp(string $numero, string $jid, string $mensagem): 
 function crm_ai_responder_se_aplicavel(array &$clientes, int $clienteIndex, array $mensagemAtual): array
 {
     $settings = system_settings_load();
+    crm_ai_log([
+        'event' => 'decision_start',
+        'clienteIndex' => $clienteIndex,
+        'enabled' => !empty($settings['openai_enabled']),
+        'keyConfigured' => trim((string)($settings['openai_api_key'] ?? '')) !== '',
+        'fromMe' => !empty($mensagemAtual['fromMe']),
+        'modo' => $clientes[$clienteIndex]['modo_atendimento'] ?? '',
+        'atendente' => $clientes[$clienteIndex]['atendente'] ?? '',
+        'messageId' => $mensagemAtual['messageId'] ?? '',
+    ]);
+
     if (empty($settings['openai_enabled'])) {
+        crm_ai_log(['event' => 'decision_skip', 'reason' => 'disabled']);
         return ['ok' => true, 'skipped' => 'disabled'];
     }
     if (!empty($mensagemAtual['fromMe'])) {
+        crm_ai_log(['event' => 'decision_skip', 'reason' => 'from_me']);
         return ['ok' => true, 'skipped' => 'from_me'];
     }
     if (empty($clientes[$clienteIndex]) || !crm_ai_cliente_em_modo_bot($clientes[$clienteIndex])) {
+        crm_ai_log(['event' => 'decision_skip', 'reason' => 'human_mode']);
         return ['ok' => true, 'skipped' => 'human_mode'];
     }
 
     $gerada = crm_ai_gerar_resposta($clientes[$clienteIndex], $mensagemAtual, $settings);
     if (empty($gerada['ok'])) {
-        crm_ai_log(['skipped' => 'generation_failed', 'error' => $gerada['error'] ?? '']);
+        crm_ai_log(['event' => 'decision_failed', 'stage' => 'generation', 'error' => $gerada['error'] ?? '']);
         return $gerada;
     }
 
@@ -265,6 +279,7 @@ function crm_ai_responder_se_aplicavel(array &$clientes, int $clienteIndex, arra
     $jid = crm_ai_encontrar_jid($clientes[$clienteIndex], $mensagemAtual);
     $envio = crm_ai_enviar_whatsapp((string)($clientes[$clienteIndex]['numero'] ?? ''), $jid, $texto);
     if (empty($envio['ok'])) {
+        crm_ai_log(['event' => 'decision_failed', 'stage' => 'send', 'error' => $envio['erro'] ?? '']);
         return ['ok' => false, 'error' => $envio['erro'] ?? 'Nao foi possivel enviar resposta da IA.'];
     }
 
@@ -282,6 +297,11 @@ function crm_ai_responder_se_aplicavel(array &$clientes, int $clienteIndex, arra
     $clientes[$clienteIndex]['modo_atendimento'] = 'bot';
     $clientes[$clienteIndex]['data_ultimo_contato'] = date('Y-m-d H:i:s');
     crmSalvarClientes($clientes);
+    crm_ai_log([
+        'event' => 'decision_sent',
+        'model' => $gerada['model'] ?? '',
+        'messageId' => $envio['messageId'] ?? '',
+    ]);
 
     return ['ok' => true, 'sent' => true, 'model' => $gerada['model'] ?? ''];
 }
