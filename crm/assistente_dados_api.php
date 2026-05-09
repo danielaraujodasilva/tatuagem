@@ -12,7 +12,7 @@ if (($_GET['diagnostico'] ?? '') === '1') {
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && ($_GET['debug'] ?? '') !== '1') {
     http_response_code(405);
     echo json_encode(['ok' => false, 'error' => 'Metodo nao permitido.'], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
     exit;
@@ -25,6 +25,9 @@ if (!is_array($input)) {
 }
 
 $question = trim((string)($input['pergunta'] ?? $input['question'] ?? ''));
+if ($question === '' && isset($_GET['pergunta'])) {
+    $question = trim((string)$_GET['pergunta']);
+}
 
 try {
     $result = data_ai_ask($question);
@@ -44,7 +47,33 @@ try {
     ];
 }
 
+if (!is_array($result)) {
+    $result = [
+        'ok' => false,
+        'error' => 'O assistente retornou uma resposta interna em formato inesperado.',
+        'error_type' => 'api_resultado_invalido',
+        'stage' => 'api_normalizacao',
+        'details' => [
+            'tipo_resultado' => gettype($result),
+            'valor' => (string)$result,
+        ],
+    ];
+}
+
 if (empty($result['ok'])) {
+    if (empty($result['error'])) {
+        $result['error'] = 'A API marcou a resposta como falha, mas nao informou a mensagem do erro.';
+    }
+    if (empty($result['error_type'])) {
+        $result['error_type'] = 'api_falha_sem_mensagem';
+    }
+    if (empty($result['stage'])) {
+        $result['stage'] = 'api_normalizacao';
+    }
+    $result['details'] = array_merge([
+        'resultado_bruto' => $result,
+    ], is_array($result['details'] ?? null) ? $result['details'] : []);
+
     http_response_code(400);
 }
 

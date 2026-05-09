@@ -533,6 +533,19 @@ function showFailure(payload) {
     if (!safePayload.details || typeof safePayload.details !== 'object') {
         safePayload.details = { details: stringifyValue(safePayload.details) };
     }
+    if (!safePayload.error) {
+        safePayload.error = 'Falha sem mensagem retornada pela API.';
+        safePayload.details.payload_completo = debugDump(payload);
+    }
+    if (!safePayload.error_type) {
+        safePayload.error_type = 'frontend_payload_sem_error';
+    }
+    if (!safePayload.stage) {
+        safePayload.stage = 'browser_payload';
+    }
+    if (!safePayload.details.payload_completo) {
+        safePayload.details.payload_completo = debugDump(payload);
+    }
 
     const stage = safePayload.stage ? ` na etapa ${safePayload.stage}` : '';
     const type = safePayload.error_type ? ` (${safePayload.error_type})` : '';
@@ -619,7 +632,12 @@ form.addEventListener('submit', async (event) => {
             };
         }
         if (!data.ok) {
-            throw { payload: data };
+            throw { payload: Object.assign({
+                error: data.error || 'A API retornou ok=false sem mensagem.',
+                error_type: data.error_type || 'api_ok_false_sem_error',
+                stage: data.stage || 'api_response',
+                details: Object.assign({ resposta_completa: data }, data.details || {})
+            }, data) };
         }
 
         answer.textContent = data.answer || '';
