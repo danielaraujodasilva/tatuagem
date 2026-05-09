@@ -109,6 +109,8 @@ function crm_ai_extrair_texto(array $resposta): string
 function crm_ai_limpar_resposta_local(string $texto): string
 {
     $texto = preg_replace('/<think>.*?<\/think>/is', '', $texto) ?? $texto;
+    $texto = preg_replace('/Thinking\.\.\..*?done thinking\.\s*/is', '', $texto) ?? $texto;
+    $texto = preg_replace('/^\s*(Okay|Alright),?\s+/i', '', $texto) ?? $texto;
     $texto = preg_replace('/^\s*(IA|Assistente|Bot)\s*:\s*/i', '', $texto) ?? $texto;
     return trim($texto);
 }
@@ -187,7 +189,7 @@ function crm_ai_gerar_resposta(array $cliente, array $mensagemAtual, array $sett
         . "Status: " . (string)($cliente['status'] ?? '') . "\n"
         . "Interesse: " . (string)($cliente['interesse'] ?? '') . "\n\n"
         . "Historico recente:\n" . ($historico !== '' ? $historico : 'Sem historico anterior.') . "\n\n"
-        . "Responda agora a ultima mensagem do cliente. Retorne somente a mensagem que deve ser enviada no WhatsApp.";
+        . "Responda agora a ultima mensagem do cliente. Escreva obrigatoriamente em portugues do Brasil. Retorne somente a mensagem final que deve ser enviada no WhatsApp.";
 
     $payload = [
         'model' => $model,
@@ -195,7 +197,7 @@ function crm_ai_gerar_resposta(array $cliente, array $mensagemAtual, array $sett
         'messages' => [
             [
                 'role' => 'system',
-                'content' => $prompt . "\n\nNao mostre raciocinio interno, etapas de pensamento, tags <think> ou explicacoes tecnicas. Responda somente com a mensagem final para o WhatsApp.",
+                'content' => $prompt . "\n\nRegras obrigatorias: responda sempre em portugues do Brasil; nao mostre raciocinio interno; nao use tags <think>; nao escreva Thinking, done thinking, analise, explicacoes tecnicas ou bastidores; responda somente com a mensagem final para o WhatsApp.",
             ],
             [
                 'role' => 'user',
@@ -205,6 +207,7 @@ function crm_ai_gerar_resposta(array $cliente, array $mensagemAtual, array $sett
         'options' => [
             'temperature' => 0.6,
             'num_predict' => $numPredict,
+            'stop' => ['<think>', '</think>', 'Thinking...', '...done thinking.'],
         ],
     ];
 

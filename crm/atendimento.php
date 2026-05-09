@@ -214,6 +214,28 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
             box-shadow: inset 3px 0 0 var(--crm-red);
         }
 
+        .conversation-item.is-unread {
+            background: rgba(225, 29, 40, 0.08);
+        }
+
+        .conversation-item.is-unread .conversation-title {
+            color: #fff;
+        }
+
+        .conversation-unread-badge {
+            min-width: 21px;
+            height: 21px;
+            padding: 0 6px;
+            border-radius: 999px;
+            display: inline-grid;
+            place-items: center;
+            background: var(--crm-red);
+            color: #fff;
+            font-size: 0.72rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+
         .chat-messages {
             height: 492px;
             overflow-y: auto;
@@ -714,6 +736,7 @@ const statusLabels = {
 
 let activeFilter = 'todas';
 let activeId = conversations[0]?.id || '';
+let readState = {};
 const pendingTranscriptions = {};
 let mediaRecorder = null;
 let recordedAudioChunks = [];
@@ -741,6 +764,71 @@ function mediaSource(path) {
 
 function getActive() {
     return conversations.find(item => item.id === activeId) || conversations[0] || null;
+}
+
+function parseChatDate(value) {
+    if (!value) return null;
+    const date = new Date(String(value).replace(' ', 'T'));
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function conversationReadKey(itemOrId) {
+    const raw = typeof itemOrId === 'object'
+        ? (itemOrId?.clienteId || itemOrId?.id || '')
+        : itemOrId;
+    return String(raw || '').replace(/^wa_/, '');
+}
+
+function unreadCount(item) {
+    const messages = Array.isArray(item?.mensagens) ? item.mensagens : [];
+    const lastRead = parseChatDate(readState[conversationReadKey(item)] || '');
+    let count = 0;
+
+    for (const msg of messages) {
+        if (msg.fromMe) continue;
+        const msgDate = parseChatDate(msg.data);
+        if (!lastRead || !msgDate || msgDate > lastRead) {
+            count++;
+        }
+    }
+
+    return count;
+}
+
+async function loadReadState() {
+    try {
+        const response = await fetch('whatsapp/read_state.php', { cache: 'no-store' });
+        if (!response.ok) return;
+        const data = await response.json().catch(() => null);
+        if (data?.ok && data.read && typeof data.read === 'object') {
+            readState = data.read;
+        }
+    } catch (error) {
+        // Sem estado remoto, a tela continua funcionando com o estado local vazio.
+    }
+}
+
+async function markConversationRead(itemOrId) {
+    const id = conversationReadKey(itemOrId);
+    if (!id) return;
+
+    readState[id] = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    renderConversationList();
+
+    try {
+        const response = await fetch('whatsapp/read_state.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ id }),
+        });
+        const data = await response.json().catch(() => null);
+        if (data?.ok && data.read_at) {
+            readState[id] = data.read_at;
+            renderConversationList();
+        }
+    } catch (error) {
+        // Mantem a leitura visual local mesmo que a gravacao falhe por instante.
+    }
 }
 
 function statusClass(status) {
@@ -771,28 +859,41 @@ function renderConversationList() {
         return;
     }
 
-    list.innerHTML = filtered.map(item => `
-        <button class="conversation-item ${item.id === activeId ? 'is-active' : ''}" data-id="${escapeHtml(item.id)}">
+    list.innerHTML = filtered.map(item => {
+        const unread = unreadCount(item);
+        const itemClasses = [
+            'conversation-item',
+            item.id === activeId ? 'is-active' : '',
+            unread ? 'is-unread' : ''
+        ].filter(Boolean).join(' ');
+
+        return `
+        <button class="${itemClasses}" data-id="${escapeHtml(item.id)}">
             <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                    <div class="font-black truncate">${escapeHtml(item.nome)}</div>
+                    <div class="conversation-title font-black truncate">${escapeHtml(item.nome)}</div>
                     <div class="crm-muted text-xs mt-1">${escapeHtml(item.numero || 'Sem telefone')}</div>
                 </div>
-                <span class="crm-status ${item.modo === 'humano' ? 'crm-status-green' : ''}">${item.modo === 'humano' ? 'Humano' : 'Bot'}</span>
+                <div class="flex items-center gap-2 shrink-0">
+                    ${unread ? `<span class="conversation-unread-badge">${unread}</span>` : ''}
+                    <span class="crm-status ${item.modo === 'humano' ? 'crm-status-green' : ''}">${item.modo === 'humano' ? 'Humano' : 'Bot'}</span>
+                </div>
             </div>
             <p class="text-sm text-gray-300 mt-3 line-clamp-2">${escapeHtml(item.ultimaMensagem || 'Sem mensagens')}</p>
             <div class="flex items-center justify-between gap-2 mt-3">
                 <span class="crm-status ${statusClass(item.status)}">${escapeHtml(item.statusLabel)}</span>
-                <span class="text-xs ${item.semResposta ? 'text-red-300' : 'text-gray-500'}">${item.semResposta ? item.tempoSemResposta + ' sem resposta' : item.ultimaData}</span>
+                <span class="text-xs ${unread ? 'text-red-300' : (item.semResposta ? 'text-amber-300' : 'text-gray-500')}">${unread ? 'Nao lida' : (item.semResposta ? item.tempoSemResposta + ' sem resposta' : item.ultimaData)}</span>
             </div>
         </button>
-    `).join('');
+    `;
+    }).join('');
 
     list.querySelectorAll('.conversation-item').forEach(button => {
         button.addEventListener('click', () => {
             activeId = button.dataset.id;
             renderConversationList();
             renderActiveConversation(true);
+            markConversationRead(activeId);
         });
     });
 }
@@ -988,6 +1089,7 @@ function renderActiveConversation(fetchFresh = false) {
                 if (!data.ok) return;
                 item.mensagens = data.mensagens;
                 renderMessages(item.mensagens);
+                if (unreadCount(item) > 0) markConversationRead(item);
             })
             .catch(() => {});
     }
@@ -1472,9 +1574,17 @@ document.getElementById('messageForm').addEventListener('submit', event => {
         });
 });
 
-renderConversationList();
-renderReplies();
-renderActiveConversation();
+async function initializeAttendanceChat() {
+    await loadReadState();
+    renderConversationList();
+    renderReplies();
+    renderActiveConversation();
+    const item = getActive();
+    if (item && unreadCount(item) > 0) markConversationRead(item);
+}
+
+initializeAttendanceChat();
+
 chatPollTimer = setInterval(() => {
     const item = getActive();
     if (!item) return;
@@ -1484,6 +1594,7 @@ chatPollTimer = setInterval(() => {
             if (!data.ok) return;
             item.mensagens = data.mensagens;
             renderActiveConversation();
+            if (unreadCount(item) > 0) markConversationRead(item);
         })
         .catch(() => {});
 }, 3000);
