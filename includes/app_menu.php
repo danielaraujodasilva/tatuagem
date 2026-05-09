@@ -13,6 +13,7 @@ if (!function_exists('app_menu_render')) {
             ['key' => 'automacao', 'label' => 'Automacao', 'url' => auth_url('/crm/automacao.php'), 'roles' => ['funcionario', 'adm']],
             ['key' => 'financeiro', 'label' => 'Financeiro', 'url' => auth_url('/crm/financeiro.php'), 'roles' => ['funcionario', 'adm']],
             ['key' => 'relatorios', 'label' => 'Relatorios', 'url' => auth_url('/crm/relatorios.php'), 'roles' => ['funcionario', 'adm']],
+            ['key' => 'assistente_dados', 'label' => 'Assistente IA', 'url' => auth_url('/crm/assistente_dados.php'), 'roles' => ['adm']],
             ['key' => 'ficha', 'label' => 'Nova ficha', 'url' => auth_url('/ficha/index.php'), 'roles' => ['funcionario', 'adm']],
             ['key' => 'clientes', 'label' => 'Clientes', 'url' => auth_url('/ficha/public/clientes.php'), 'roles' => ['funcionario', 'adm']],
             ['key' => 'agenda', 'label' => 'Agenda', 'url' => auth_url('/ficha/agenda/'), 'roles' => ['funcionario', 'adm']],

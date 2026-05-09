@@ -318,6 +318,36 @@ $embedded = !empty($_GET['embed']) || !empty($_POST['embed']);
                             <textarea name="openai_business_prompt" rows="6"
                                       class="settings-input px-4 py-3 w-full"><?= htmlspecialchars((string)($systemSettings['openai_business_prompt'] ?? ''), ENT_QUOTES, 'UTF-8') ?></textarea>
                         </div>
+
+                        <div class="md:col-span-3 border border-white/10 rounded-lg p-4 bg-black/20">
+                            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                                <div>
+                                    <span class="settings-kicker">Assistente de dados</span>
+                                    <p class="settings-muted text-sm mt-1">Modulo separado para perguntas internas. Ele apenas le consultas controladas do banco e continua funcionando mesmo com respostas automaticas do WhatsApp desativadas.</p>
+                                </div>
+                                <a class="settings-action px-3 py-2 text-sm" href="assistente_dados.php">Abrir assistente</a>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block mb-2 font-bold">Modelo do assistente</label>
+                                    <input type="text" name="data_ai_model"
+                                           class="settings-input px-4 py-3 w-full"
+                                           value="<?= htmlspecialchars((string)($systemSettings['data_ai_model'] ?? 'qwen3:14b'), ENT_QUOTES, 'UTF-8') ?>">
+                                </div>
+                                <div>
+                                    <label class="block mb-2 font-bold">Timeout do assistente (s)</label>
+                                    <input type="number" min="30" max="420" name="data_ai_timeout_seconds"
+                                           class="settings-input px-4 py-3 w-full"
+                                           value="<?= htmlspecialchars((string)($systemSettings['data_ai_timeout_seconds'] ?? 240), ENT_QUOTES, 'UTF-8') ?>">
+                                </div>
+                                <div>
+                                    <label class="block mb-2 font-bold">Tamanho da analise</label>
+                                    <input type="number" min="120" max="1600" name="data_ai_num_predict"
+                                           class="settings-input px-4 py-3 w-full"
+                                           value="<?= htmlspecialchars((string)($systemSettings['data_ai_num_predict'] ?? 900), ENT_QUOTES, 'UTF-8') ?>">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
