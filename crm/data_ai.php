@@ -26,6 +26,47 @@ function data_ai_clean_answer(string $text): string
     return trim($text);
 }
 
+function data_ai_parse_json_response(string $text): ?array
+{
+    $clean = data_ai_clean_answer($text);
+    $clean = preg_replace('/^```(?:json)?\s*|\s*```$/i', '', $clean) ?? $clean;
+    $first = strpos($clean, '{');
+    $last = strrpos($clean, '}');
+    if ($first === false || $last === false || $last <= $first) {
+        return null;
+    }
+
+    $json = substr($clean, $first, $last - $first + 1);
+    $decoded = json_decode($json, true);
+
+    return is_array($decoded) ? $decoded : null;
+}
+
+function data_ai_context_notes(array $context): array
+{
+    $notes = ['Modo somente leitura: o assistente recebeu apenas consultas controladas e nao pode alterar dados.'];
+    $crm = $context['fontes']['crm'] ?? [];
+    $ficha = $context['fontes']['ficha_agenda'] ?? [];
+    $financeiro = $context['fontes']['financeiro'] ?? [];
+
+    if (!empty($crm['ok'])) {
+        $leads = $crm['data']['leads']['resumo'] ?? [];
+        $whatsapp = $crm['data']['whatsapp']['resumo'] ?? [];
+        $notes[] = 'CRM lido: ' . (int)($leads['total'] ?? 0) . ' leads e ' . (int)($whatsapp['total'] ?? 0) . ' conversas de WhatsApp.';
+    }
+    if (!empty($ficha['ok'])) {
+        $clientes = $ficha['data']['clientes']['resumo'] ?? [];
+        $tatuagens = $ficha['data']['tatuagens']['resumo'] ?? [];
+        $notes[] = 'Ficha/agenda lida: ' . (int)($clientes['total'] ?? 0) . ' clientes e ' . (int)($tatuagens['total'] ?? 0) . ' tatuagens/agendamentos.';
+    }
+    if (!empty($financeiro['ok'])) {
+        $resumo = $financeiro['data']['resumo'] ?? [];
+        $notes[] = 'Financeiro lido: ' . (int)($resumo['total_despesas_cadastradas'] ?? 0) . ' despesas cadastradas.';
+    }
+
+    return array_slice($notes, 0, 5);
+}
+
 function data_ai_crm_pdo(): PDO
 {
     global $conn;
@@ -454,14 +495,13 @@ function data_ai_ask(string $question): array
         'model' => $model,
         'stream' => false,
         'messages' => [
-            ['role' => 'system', 'content' => $system . "\n\nNao mostre raciocinio interno, tags <think>, bastidores tecnicos ou JSON bruto, a menos que seja pedido explicitamente."],
+            ['role' => 'system', 'content' => $system . "\n\nRetorne exclusivamente um JSON valido neste formato: {\"resposta\":\"texto final para o gestor\",\"transparencia\":[\"resumo curto da fonte/evidencia usada\",\"outro resumo curto\"]}. O campo transparencia deve ter no maximo 5 itens, explicando quais fontes e evidencias voce usou, sem raciocinio interno passo a passo, sem tags <think>, sem bastidores tecnicos e sem JSON bruto dentro dos textos."],
             ['role' => 'user', 'content' => $user],
         ],
         'options' => [
             'temperature' => 0.2,
             'num_predict' => $numPredict,
             'num_ctx' => 12000,
-            'stop' => ['<think>', '</think>', 'Thinking...', '...done thinking.'],
         ],
     ];
 
@@ -487,7 +527,18 @@ function data_ai_ask(string $question): array
         return ['ok' => false, 'error' => is_string($message) ? $message : json_encode($message, JSON_UNESCAPED_UNICODE)];
     }
 
-    $answer = data_ai_clean_answer((string)($json['message']['content'] ?? ''));
+    $rawAnswer = (string)($json['message']['content'] ?? '');
+    $structured = data_ai_parse_json_response($rawAnswer);
+    $answer = data_ai_clean_answer((string)($structured['resposta'] ?? $rawAnswer));
+    $transparency = $structured['transparencia'] ?? [];
+    if (!is_array($transparency)) {
+        $transparency = [];
+    }
+    $transparency = array_values(array_filter(array_map(static fn($item): string => data_ai_preview($item, 260), $transparency)));
+    if (!$transparency) {
+        $transparency = data_ai_context_notes($context);
+    }
+
     if ($answer === '') {
         return ['ok' => false, 'error' => 'Ollama nao retornou texto.'];
     }
@@ -495,6 +546,7 @@ function data_ai_ask(string $question): array
     return [
         'ok' => true,
         'answer' => $answer,
+        'transparency' => $transparency,
         'model' => $model,
         'read_only' => true,
         'generated_at' => $context['gerado_em'],

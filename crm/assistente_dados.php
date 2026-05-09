@@ -96,6 +96,30 @@ function data_ai_h($value): string
             line-height: 1.68;
         }
         .answer strong { color: #f8fafc; }
+        .thinking {
+            margin-bottom: 18px;
+            padding: 14px 16px;
+            border: 1px solid rgba(103, 232, 249, 0.18);
+            border-radius: 14px;
+            color: rgba(226, 232, 240, 0.72);
+            background: rgba(2, 6, 23, 0.34);
+        }
+        .thinking-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            color: rgba(186, 230, 253, 0.78);
+            font-size: 0.82rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0;
+        }
+        .thinking ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+        .thinking li + li { margin-top: 6px; }
         .dot {
             width: 8px;
             height: 8px;
@@ -140,6 +164,10 @@ function data_ai_h($value): string
                     <h2 class="text-xl font-black">Resposta</h2>
                     <span id="answerMeta" class="muted text-sm"></span>
                 </div>
+                <div id="thinkingPanel" class="thinking hidden">
+                    <div class="thinking-title">Transparencia da analise</div>
+                    <ul id="thinkingList"></ul>
+                </div>
                 <div id="answer" class="answer text-slate-100"></div>
             </div>
         </div>
@@ -172,6 +200,8 @@ const statusText = document.getElementById('statusText');
 const answerPanel = document.getElementById('answerPanel');
 const answer = document.getElementById('answer');
 const answerMeta = document.getElementById('answerMeta');
+const thinkingPanel = document.getElementById('thinkingPanel');
+const thinkingList = document.getElementById('thinkingList');
 
 document.querySelectorAll('.example').forEach((item) => {
     item.addEventListener('click', () => {
@@ -192,6 +222,8 @@ form.addEventListener('submit', async (event) => {
     button.disabled = true;
     statusText.textContent = 'Lendo dados e consultando a IA... modelos maiores podem demorar um pouco.';
     answerPanel.classList.add('hidden');
+    thinkingPanel.classList.add('hidden');
+    thinkingList.innerHTML = '';
     answer.textContent = '';
     answerMeta.textContent = '';
 
@@ -210,6 +242,14 @@ form.addEventListener('submit', async (event) => {
         }
 
         answer.textContent = data.answer || '';
+        const notes = Array.isArray(data.transparency) ? data.transparency.filter(Boolean) : [];
+        thinkingList.innerHTML = '';
+        notes.forEach((note) => {
+            const item = document.createElement('li');
+            item.textContent = note;
+            thinkingList.appendChild(item);
+        });
+        thinkingPanel.classList.toggle('hidden', notes.length === 0);
         answerMeta.textContent = `${data.model || 'IA'} - ${data.generated_at || ''}`;
         answerPanel.classList.remove('hidden');
         statusText.textContent = 'Resposta gerada com dados somente-leitura.';
