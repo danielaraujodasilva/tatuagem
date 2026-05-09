@@ -752,3 +752,111 @@ function data_ai_ask(string $question): array
         'generated_at' => $context['gerado_em'],
     ];
 }
+
+function data_ai_ollama_diagnostic(): array
+{
+    $settings = system_settings_load();
+    $ollamaUrl = rtrim(trim((string)($settings['ollama_url'] ?? 'http://localhost:11434')), '/') ?: 'http://localhost:11434';
+    $model = trim((string)($settings['data_ai_model'] ?? 'qwen3:14b')) ?: 'qwen3:14b';
+    $timeout = max(30, min(420, (int)($settings['data_ai_timeout_seconds'] ?? 240)));
+    $numPredict = max(120, min(6000, (int)($settings['data_ai_num_predict'] ?? 2400)));
+    $result = [
+        'ok' => true,
+        'stage' => 'diagnostico_ollama',
+        'ollama_url' => $ollamaUrl,
+        'model' => $model,
+        'timeout_seconds' => $timeout,
+        'num_predict' => $numPredict,
+        'php_curl' => function_exists('curl_init'),
+    ];
+
+    if (!function_exists('curl_init')) {
+        $result['ok'] = false;
+        $result['error'] = 'Extensao cURL do PHP nao esta disponivel.';
+        return $result;
+    }
+
+    $tagsStarted = microtime(true);
+    $ch = curl_init($ollamaUrl . '/api/tags');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+    $tagsRaw = curl_exec($ch);
+    $tagsError = curl_error($ch);
+    $tagsErrno = curl_errno($ch);
+    $tagsHttp = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    curl_close($ch);
+
+    $tagsJson = json_decode((string)$tagsRaw, true);
+    $models = [];
+    foreach (($tagsJson['models'] ?? []) as $item) {
+        if (!empty($item['name'])) {
+            $models[] = (string)$item['name'];
+        }
+    }
+
+    $result['tags'] = [
+        'ok' => $tagsRaw !== false && $tagsError === '' && $tagsHttp >= 200 && $tagsHttp < 300,
+        'http_code' => $tagsHttp,
+        'curl_errno' => $tagsErrno,
+        'curl_error' => $tagsError,
+        'seconds' => round(microtime(true) - $tagsStarted, 3),
+        'models' => $models,
+        'model_found' => in_array($model, $models, true),
+        'raw_preview' => data_ai_preview((string)$tagsRaw, 1200),
+    ];
+
+    $chatStarted = microtime(true);
+    $payload = [
+        'model' => $model,
+        'stream' => false,
+        'think' => true,
+        'messages' => [
+            ['role' => 'user', 'content' => 'Responda apenas OK.'],
+        ],
+        'options' => [
+            'num_predict' => 800,
+            'num_ctx' => 12000,
+        ],
+    ];
+    $ch = curl_init($ollamaUrl . '/api/chat');
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 8);
+    curl_setopt($ch, CURLOPT_TIMEOUT, min($timeout, 180));
+    $chatRaw = curl_exec($ch);
+    $chatError = curl_error($ch);
+    $chatErrno = curl_errno($ch);
+    $chatHttp = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $chatCurlSeconds = curl_getinfo($ch, CURLINFO_TOTAL_TIME);
+    curl_close($ch);
+
+    $chatJson = json_decode((string)$chatRaw, true);
+    $content = (string)($chatJson['message']['content'] ?? '');
+    $thinking = (string)($chatJson['message']['thinking'] ?? '');
+    $result['chat'] = [
+        'ok' => $chatRaw !== false && $chatError === '' && $chatHttp >= 200 && $chatHttp < 300 && is_array($chatJson),
+        'http_code' => $chatHttp,
+        'curl_errno' => $chatErrno,
+        'curl_error' => $chatError,
+        'seconds' => round(microtime(true) - $chatStarted, 3),
+        'curl_seconds' => $chatCurlSeconds,
+        'done' => $chatJson['done'] ?? null,
+        'done_reason' => $chatJson['done_reason'] ?? null,
+        'prompt_eval_count' => $chatJson['prompt_eval_count'] ?? null,
+        'eval_count' => $chatJson['eval_count'] ?? null,
+        'content' => $content,
+        'content_chars' => strlen($content),
+        'thinking_preview' => data_ai_preview($thinking, 1800),
+        'thinking_chars' => strlen($thinking),
+        'raw_preview' => data_ai_preview((string)$chatRaw, 2200),
+    ];
+
+    if (!$result['tags']['ok'] || !$result['chat']['ok'] || empty($result['tags']['model_found'])) {
+        $result['ok'] = false;
+    }
+
+    return $result;
+}

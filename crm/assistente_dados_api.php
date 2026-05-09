@@ -7,6 +7,11 @@ require_once __DIR__ . '/data_ai.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
+if (($_GET['diagnostico'] ?? '') === '1') {
+    echo json_encode(data_ai_ollama_diagnostic(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['ok' => false, 'error' => 'Metodo nao permitido.'], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);

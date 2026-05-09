@@ -448,8 +448,8 @@ function stringifyValue(value) {
 }
 
 function renderDiagnostic(data, failed = false) {
-    const diagnostic = data.diagnostic || {};
-    const details = data.details || {};
+    const diagnostic = data && typeof data.diagnostic === 'object' && data.diagnostic !== null ? data.diagnostic : {};
+    const details = data && typeof data.details === 'object' && data.details !== null ? data.details : {};
     const items = [];
 
     if (failed) {
@@ -467,7 +467,7 @@ function renderDiagnostic(data, failed = false) {
         item.className = 'diagnostic-item';
         const labelEl = document.createElement('div');
         labelEl.className = 'diagnostic-label';
-        labelEl.textContent = label.replaceAll('_', ' ');
+        labelEl.textContent = String(label).replace(/_/g, ' ');
         const valueEl = document.createElement('div');
         valueEl.className = 'diagnostic-value';
         valueEl.textContent = stringifyValue(value);
@@ -482,6 +482,7 @@ function renderDiagnostic(data, failed = false) {
     rawOutputBlock.classList.toggle('hidden', !(data.raw_model_output || details.raw_preview));
     diagnosticSummary.textContent = failed ? 'Diagnostico tecnico do erro' : 'Diagnostico tecnico da resposta';
     diagnosticPanel.classList.toggle('hidden', items.length === 0 && !data.thinking && !data.raw_model_output && !details.raw_preview);
+    diagnosticPanel.open = failed;
 }
 
 function renderQueries(queries) {
@@ -501,6 +502,60 @@ function renderQueries(queries) {
     });
     querySummary.textContent = `Consultas completas usadas (${queries.length})`;
     queryPanel.classList.toggle('hidden', queries.length === 0);
+    queryPanel.open = queries.length > 0;
+}
+
+function debugDump(value) {
+    try {
+        if (value instanceof Error) {
+            return {
+                name: value.name,
+                message: value.message,
+                stack: value.stack || ''
+            };
+        }
+        return JSON.parse(JSON.stringify(value));
+    } catch (dumpError) {
+        return String(value);
+    }
+}
+
+function showFailure(payload) {
+    const safePayload = payload && typeof payload === 'object' ? payload : {
+        ok: false,
+        error: 'Falha desconhecida no navegador.',
+        error_type: 'frontend_unknown',
+        stage: 'browser',
+        details: { payload: debugDump(payload) }
+    };
+
+    if (!safePayload.details || typeof safePayload.details !== 'object') {
+        safePayload.details = { details: stringifyValue(safePayload.details) };
+    }
+
+    const stage = safePayload.stage ? ` na etapa ${safePayload.stage}` : '';
+    const type = safePayload.error_type ? ` (${safePayload.error_type})` : '';
+    answer.textContent = `${safePayload.error || 'Falha sem mensagem.'}${type}${stage}`;
+    answerMeta.textContent = 'Falha';
+    renderQueries(Array.isArray(safePayload.queries) ? safePayload.queries : []);
+
+    try {
+        renderDiagnostic(safePayload, true);
+    } catch (diagnosticError) {
+        diagnosticGrid.innerHTML = '';
+        rawOutput.textContent = JSON.stringify({
+            erro_renderizando_diagnostico: debugDump(diagnosticError),
+            payload_original: debugDump(safePayload)
+        }, null, 2);
+        rawOutputBlock.classList.remove('hidden');
+        thinkingFullBlock.classList.add('hidden');
+        diagnosticSummary.textContent = 'Diagnostico tecnico do erro';
+        diagnosticPanel.classList.remove('hidden');
+        diagnosticPanel.open = true;
+    }
+
+    answerPanel.classList.remove('hidden');
+    statusText.textContent = 'Nao foi possivel consultar a IA agora.';
 }
 
 document.querySelectorAll('.example').forEach((item) => {
@@ -583,21 +638,14 @@ form.addEventListener('submit', async (event) => {
         statusText.textContent = 'Resposta gerada com dados somente-leitura.';
         finishProgress(true);
     } catch (error) {
-        const payload = error.payload || {
+        const payload = error && error.payload ? error.payload : {
             ok: false,
-            error: error.message || 'Erro inesperado.',
+            error: error && error.message ? error.message : 'Erro inesperado no navegador.',
             error_type: 'frontend_exception',
             stage: 'browser',
-            details: {}
+            details: debugDump(error)
         };
-        const stage = payload.stage ? ` na etapa ${payload.stage}` : '';
-        const type = payload.error_type ? ` (${payload.error_type})` : '';
-        answer.textContent = `${payload.error || 'Erro inesperado.'}${type}${stage}`;
-        answerMeta.textContent = 'Falha';
-        renderQueries(Array.isArray(payload.queries) ? payload.queries : []);
-        renderDiagnostic(payload, true);
-        answerPanel.classList.remove('hidden');
-        statusText.textContent = 'Nao foi possivel consultar a IA agora.';
+        showFailure(payload);
         finishProgress(false);
     } finally {
         button.disabled = false;
