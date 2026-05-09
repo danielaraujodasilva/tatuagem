@@ -176,6 +176,141 @@ function data_ai_public_queries(): array
     }, array_slice($queries, 0, 40));
 }
 
+function data_ai_jobs_dir(): string
+{
+    $dir = __DIR__ . '/data/ai_jobs';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0775, true);
+    }
+
+    return $dir;
+}
+
+function data_ai_job_path(string $jobId): string
+{
+    if (!preg_match('/^[a-f0-9]{32}$/', $jobId)) {
+        throw new InvalidArgumentException('Job invalido.');
+    }
+
+    return data_ai_jobs_dir() . '/' . $jobId . '.json';
+}
+
+function data_ai_job_write(string $jobId, array $data): void
+{
+    $path = data_ai_job_path($jobId);
+    $data['updated_at'] = date('Y-m-d H:i:s');
+    $tmp = $path . '.tmp';
+    file_put_contents($tmp, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE));
+    copy($tmp, $path);
+    unlink($tmp);
+}
+
+function data_ai_job_read(string $jobId): ?array
+{
+    $path = data_ai_job_path($jobId);
+    if (!is_file($path)) {
+        return null;
+    }
+
+    $data = json_decode((string)file_get_contents($path), true);
+    return is_array($data) ? $data : null;
+}
+
+function data_ai_job_update(string $jobId, array $patch): void
+{
+    $current = data_ai_job_read($jobId) ?? [];
+    data_ai_job_write($jobId, array_merge($current, $patch));
+}
+
+function data_ai_php_binary(): string
+{
+    $suffix = stripos(PHP_OS_FAMILY, 'Windows') === 0 ? 'php.exe' : 'php';
+    $candidates = [
+        PHP_BINDIR . DIRECTORY_SEPARATOR . $suffix,
+        dirname(PHP_BINDIR) . DIRECTORY_SEPARATOR . 'php' . DIRECTORY_SEPARATOR . $suffix,
+        'C:\\xampp\\php\\php.exe',
+    ];
+    if (stripos(basename(PHP_BINARY), 'php') === 0) {
+        $candidates[] = PHP_BINARY;
+    }
+    $candidates[] = 'php';
+
+    foreach ($candidates as $candidate) {
+        if ($candidate === 'php' || is_file($candidate)) {
+            return $candidate;
+        }
+    }
+
+    return 'php';
+}
+
+function data_ai_start_worker(string $jobId): array
+{
+    $php = data_ai_php_binary();
+    $script = __DIR__ . '/assistente_dados_worker.php';
+
+    if (stripos(PHP_OS_FAMILY, 'Windows') === 0) {
+        $cmd = 'cmd /C start "" /B ' . escapeshellarg($php) . ' ' . escapeshellarg($script) . ' ' . escapeshellarg($jobId);
+        $handle = @popen($cmd, 'r');
+        if (is_resource($handle)) {
+            pclose($handle);
+            return ['ok' => true, 'cmd' => $cmd, 'php' => $php];
+        }
+
+        return ['ok' => false, 'error' => 'Nao foi possivel iniciar o worker no Windows.', 'cmd' => $cmd, 'php' => $php];
+    }
+
+    $cmd = escapeshellarg($php) . ' ' . escapeshellarg($script) . ' ' . escapeshellarg($jobId) . ' > /dev/null 2>&1 &';
+    @exec($cmd, $output, $exitCode);
+
+    return ['ok' => $exitCode === 0, 'cmd' => $cmd, 'php' => $php, 'exit_code' => $exitCode];
+}
+
+function data_ai_create_job(string $question, array $user = []): array
+{
+    $question = trim($question);
+    if ($question === '') {
+        return data_ai_error('validacao', 'validacao', 'Digite uma pergunta para o assistente.');
+    }
+
+    $jobId = bin2hex(random_bytes(16));
+    $job = [
+        'ok' => true,
+        'job_id' => $jobId,
+        'status' => 'queued',
+        'stage' => 'queued',
+        'stage_label' => 'Na fila para processamento.',
+        'progress' => 5,
+        'question' => $question,
+        'user_id' => (int)($user['id'] ?? 0),
+        'created_at' => date('Y-m-d H:i:s'),
+        'updated_at' => date('Y-m-d H:i:s'),
+    ];
+    data_ai_job_write($jobId, $job);
+
+    $worker = data_ai_start_worker($jobId);
+    if (empty($worker['ok'])) {
+        data_ai_job_update($jobId, [
+            'ok' => false,
+            'status' => 'error',
+            'stage' => 'worker_start',
+            'stage_label' => 'Falha ao iniciar o processamento em segundo plano.',
+            'progress' => 100,
+            'error' => $worker['error'] ?? 'Nao foi possivel iniciar worker.',
+            'error_type' => 'worker_start_failed',
+            'details' => $worker,
+        ]);
+    } else {
+        data_ai_job_update($jobId, [
+            'worker' => [
+                'php' => $worker['php'] ?? '',
+            ],
+        ]);
+    }
+
+    return data_ai_job_read($jobId) ?? $job;
+}
+
 function data_ai_crm_pdo(): PDO
 {
     global $conn;
@@ -275,7 +410,20 @@ function data_ai_safe_section(callable $callback): array
     }
 }
 
-function data_ai_summarize_messages(array $messages, int $limit = 8): array
+function data_ai_question_days(string $question): int
+{
+    $question = strtolower($question);
+    if (preg_match('/ultim[oa]s?\s+(\d{1,3})\s+dias/u', $question, $match)) {
+        return max(1, min(180, (int)$match[1]));
+    }
+    if (preg_match('/últim[oa]s?\s+(\d{1,3})\s+dias/u', $question, $match)) {
+        return max(1, min(180, (int)$match[1]));
+    }
+
+    return 0;
+}
+
+function data_ai_summarize_messages(array $messages, int $limit = 5): array
 {
     $items = array_slice($messages, -$limit);
 
@@ -343,7 +491,7 @@ function data_ai_whatsapp_context(PDO $pdo): array
             SELECT id, numero, nome, status, etapa, atendente, modo_atendimento, interesse, valor, origem, data_ultimo_contato, updated_at
             FROM crm_whatsapp_clientes
             ORDER BY COALESCE(data_ultimo_contato, updated_at) DESC
-            LIMIT 35
+            LIMIT 18
         ");
         $ids = array_map(static fn(array $row): string => (string)$row['id'], $clients);
         $messagesByClient = [];
@@ -366,7 +514,7 @@ function data_ai_whatsapp_context(PDO $pdo): array
             foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $message) {
                 $clientId = (string)$message['cliente_id'];
                 $messagesByClient[$clientId] ??= [];
-                if (count($messagesByClient[$clientId]) < 8) {
+                if (count($messagesByClient[$clientId]) < 5) {
                     $messagesByClient[$clientId][] = $message;
                 }
             }
@@ -374,7 +522,7 @@ function data_ai_whatsapp_context(PDO $pdo): array
 
         foreach ($clients as &$client) {
             $messages = array_reverse($messagesByClient[(string)$client['id']] ?? []);
-            $client['mensagens_recentes'] = data_ai_summarize_messages($messages);
+            $client['mensagens_recentes'] = data_ai_summarize_messages($messages, 5);
             $client['interesse'] = data_ai_preview($client['interesse'] ?? '', 500);
         }
         unset($client);
@@ -421,7 +569,7 @@ function data_ai_whatsapp_context(PDO $pdo): array
         'fonte' => 'crm_whatsapp_json',
         'resumo' => $summary,
         'por_status' => array_values($byStatus),
-        'conversas_recentes' => array_slice($clients, 0, 35),
+        'conversas_recentes' => array_slice($clients, 0, 18),
     ];
 }
 
@@ -442,7 +590,7 @@ function data_ai_crm_context(): array
                 'por_status' => data_ai_pdo_rows($pdo, 'SELECT status, COUNT(*) AS qtd, COALESCE(SUM(valor), 0) AS valor FROM leads GROUP BY status ORDER BY qtd DESC LIMIT 20'),
                 'por_origem' => data_ai_pdo_rows($pdo, 'SELECT origem, COUNT(*) AS qtd, COALESCE(SUM(valor), 0) AS valor FROM leads GROUP BY origem ORDER BY qtd DESC LIMIT 20'),
                 'por_etapa' => data_ai_pdo_rows($pdo, 'SELECT etapa_funil AS etapa, COUNT(*) AS qtd, COALESCE(SUM(valor), 0) AS valor FROM leads GROUP BY etapa_funil ORDER BY qtd DESC LIMIT 20'),
-                'recentes' => data_ai_pdo_rows($pdo, 'SELECT id, nome, telefone, interesse, valor, origem, status, etapa_funil AS etapa, data_ultimo_contato, created_at FROM leads ORDER BY created_at DESC, id DESC LIMIT 40'),
+                'recentes' => data_ai_pdo_rows($pdo, 'SELECT id, nome, telefone, interesse, valor, origem, status, etapa_funil AS etapa, data_ultimo_contato, created_at FROM leads ORDER BY created_at DESC, id DESC LIMIT 20'),
             ];
         }
 
@@ -450,13 +598,17 @@ function data_ai_crm_context(): array
     });
 }
 
-function data_ai_ficha_context(): array
+function data_ai_ficha_context(string $question = ''): array
 {
-    return data_ai_safe_section(static function (): array {
+    return data_ai_safe_section(static function () use ($question): array {
         $conn = data_ai_ficha_mysqli();
+        $requestedDays = data_ai_question_days($question);
         $data = [
             'clientes' => ['disponivel' => false],
             'tatuagens' => ['disponivel' => false],
+            'periodo_perguntado' => [
+                'ultimos_dias' => $requestedDays,
+            ],
         ];
 
         if (data_ai_mysqli_table_exists($conn, 'clientes')) {
@@ -464,7 +616,7 @@ function data_ai_ficha_context(): array
                 SELECT id, nome, email, telefone, data_nascimento, genero, profissao, endereco, estilo_tatuagem, instagram_cliente, vai_tatuar, created_at
                 FROM clientes
                 ORDER BY id DESC
-                LIMIT 40
+                LIMIT 20
             ");
             foreach ($recentClients as &$client) {
                 $client['endereco'] = data_ai_preview($client['endereco'] ?? '', 220);
@@ -479,6 +631,18 @@ function data_ai_ficha_context(): array
         }
 
         if (data_ai_mysqli_table_exists($conn, 'tatuagens')) {
+            $periodRows = [];
+            if ($requestedDays > 0) {
+                $periodRows = data_ai_mysqli_rows($conn, "
+                    SELECT t.id, t.cliente_id, c.nome AS cliente_nome, c.telefone AS cliente_telefone, t.descricao, t.valor, t.data_tatuagem, t.hora_inicio, t.hora_fim, t.status, t.pomadas_anestesicas, t.observacoes
+                    FROM tatuagens t
+                    LEFT JOIN clientes c ON c.id = t.cliente_id
+                    WHERE t.data_tatuagem BETWEEN DATE_SUB(CURDATE(), INTERVAL " . (int)$requestedDays . " DAY) AND CURDATE()
+                    ORDER BY t.data_tatuagem DESC, t.hora_inicio DESC, t.id DESC
+                    LIMIT 80
+                ");
+            }
+
             $data['tatuagens'] = [
                 'disponivel' => true,
                 'resumo' => data_ai_mysqli_row($conn, "
@@ -504,15 +668,16 @@ function data_ai_ficha_context(): array
                     LEFT JOIN clientes c ON c.id = t.cliente_id
                     WHERE t.data_tatuagem >= CURDATE()
                     ORDER BY t.data_tatuagem ASC, t.hora_inicio ASC, t.id ASC
-                    LIMIT 50
+                    LIMIT 30
                 "),
                 'recentes' => data_ai_mysqli_rows($conn, "
                     SELECT t.id, t.cliente_id, c.nome AS cliente_nome, c.telefone AS cliente_telefone, t.descricao, t.valor, t.data_tatuagem, t.hora_inicio, t.hora_fim, t.status, t.pomadas_anestesicas, t.observacoes
                     FROM tatuagens t
                     LEFT JOIN clientes c ON c.id = t.cliente_id
                     ORDER BY t.id DESC
-                    LIMIT 40
+                    LIMIT 25
                 "),
+                'periodo_perguntado' => $periodRows,
             ];
         }
 
@@ -580,15 +745,22 @@ function data_ai_build_context(string $question): array
         ],
         'fontes' => [
             'crm' => data_ai_crm_context(),
-            'ficha_agenda' => data_ai_ficha_context(),
+            'ficha_agenda' => data_ai_ficha_context($question),
             'financeiro' => data_ai_finance_context(),
         ],
     ];
 }
 
-function data_ai_ask(string $question): array
+function data_ai_ask(string $question, ?callable $progress = null): array
 {
     data_ai_query_log([]);
+    $emitProgress = static function (string $stage, string $label, int $percent, array $details = []) use ($progress): void {
+        if ($progress) {
+            $progress($stage, $label, $percent, $details);
+        }
+    };
+    $emitProgress('validacao', 'Validando pergunta e configuracao.', 8);
+
     $question = trim($question);
     if ($question === '') {
         return data_ai_error('validacao', 'validacao', 'Digite uma pergunta para o assistente.');
@@ -607,9 +779,18 @@ function data_ai_ask(string $question): array
     if (function_exists('set_time_limit')) {
         @set_time_limit($timeout + 45);
     }
+    $emitProgress('montagem_contexto', 'Lendo CRM, ficha, agenda e financeiro.', 18, [
+        'model' => $model,
+        'timeout' => $timeout,
+        'num_predict' => $numPredict,
+    ]);
     $contextStartedAt = microtime(true);
     $context = data_ai_build_context($question);
     $contextSeconds = round(microtime(true) - $contextStartedAt, 3);
+    $emitProgress('contexto_pronto', 'Contexto pronto. Preparando chamada para o Ollama.', 42, [
+        'context_seconds' => $contextSeconds,
+        'queries' => count(data_ai_public_queries()),
+    ]);
 
     $system = "Voce e um analista interno do estudio de tatuagem. Responda em portugues do Brasil, com objetividade e clareza. Use somente os dados fornecidos no JSON de contexto. Nao invente numeros, datas, nomes ou conclusoes que nao estejam apoiadas nos dados. Se a pergunta exigir algo fora do contexto, diga exatamente o que faltou. Voce nao executa SQL e nao altera dados; o sistema ja enviou apenas consultas de leitura.";
     $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE;
@@ -646,6 +827,9 @@ function data_ai_ask(string $question): array
         ]);
     }
 
+    $emitProgress('consulta_ollama', 'Consultando qwen3:14b em segundo plano.', 55, [
+        'url' => $ollamaUrl . '/api/chat',
+    ]);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $payloadJson);
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -658,6 +842,11 @@ function data_ai_ask(string $question): array
     $httpCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
     $totalTime = curl_getinfo($ch, CURLINFO_TOTAL_TIME);
     curl_close($ch);
+    $emitProgress('resposta_ollama', 'Ollama respondeu. Interpretando retorno.', 82, [
+        'http_code' => $httpCode,
+        'curl_errno' => $curlErrno,
+        'seconds' => $totalTime,
+    ]);
 
     $json = json_decode((string)$raw, true);
     if ($raw === false || $curlError !== '') {
@@ -722,6 +911,7 @@ function data_ai_ask(string $question): array
             'model' => $model,
         ]);
     }
+    $emitProgress('concluido', 'Resposta pronta.', 100);
 
     return [
         'ok' => true,

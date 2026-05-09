@@ -7,9 +7,62 @@ require_once __DIR__ . '/data_ai.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-if (($_GET['diagnostico'] ?? '') === '1') {
-    echo json_encode(data_ai_ollama_diagnostic(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+function data_ai_api_send(array $payload, int $status = 200): void
+{
+    http_response_code($status);
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
     exit;
+}
+
+if (($_GET['diagnostico'] ?? '') === '1') {
+    data_ai_api_send(data_ai_ollama_diagnostic());
+}
+
+$jobId = trim((string)($_GET['job'] ?? ''));
+if ($jobId !== '') {
+    try {
+        $job = data_ai_job_read($jobId);
+    } catch (Throwable $e) {
+        data_ai_api_send([
+            'ok' => false,
+            'error' => 'Job invalido.',
+            'error_type' => 'job_invalido',
+            'stage' => 'job_read',
+            'details' => ['message' => $e->getMessage()],
+        ], 400);
+    }
+
+    if (!$job) {
+        data_ai_api_send([
+            'ok' => false,
+            'error' => 'Job nao encontrado.',
+            'error_type' => 'job_nao_encontrado',
+            'stage' => 'job_read',
+        ], 404);
+    }
+
+    $updatedAt = strtotime((string)($job['updated_at'] ?? '')) ?: time();
+    $age = time() - $updatedAt;
+    $status = (string)($job['status'] ?? '');
+    if ($status === 'queued' && $age > 30) {
+        data_ai_job_update($jobId, [
+            'ok' => false,
+            'status' => 'error',
+            'stage' => 'worker_sem_resposta',
+            'stage_label' => 'O worker nao iniciou dentro do tempo esperado.',
+            'progress' => 100,
+            'error' => 'O processamento em segundo plano nao iniciou. Verifique se o PHP CLI pode ser executado pelo Apache.',
+            'error_type' => 'worker_not_started',
+            'details' => [
+                'seconds_since_update' => $age,
+                'job' => $job,
+            ],
+            'finished_at' => date('Y-m-d H:i:s'),
+        ]);
+        $job = data_ai_job_read($jobId) ?? $job;
+    }
+
+    data_ai_api_send($job);
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' && ($_GET['debug'] ?? '') !== '1') {
@@ -30,7 +83,10 @@ if ($question === '' && isset($_GET['pergunta'])) {
 }
 
 try {
-    $result = data_ai_ask($question);
+    $result = data_ai_create_job($question, current_user() ?? []);
+    if (!empty($result['job_id'])) {
+        $result['poll_url'] = 'assistente_dados_api.php?job=' . rawurlencode((string)$result['job_id']);
+    }
 } catch (Throwable $e) {
     $result = [
         'ok' => false,
@@ -74,7 +130,7 @@ if (empty($result['ok'])) {
         'resultado_bruto' => $result,
     ], is_array($result['details'] ?? null) ? $result['details'] : []);
 
-    http_response_code(400);
+    data_ai_api_send($result, 400);
 }
 
-echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+data_ai_api_send($result);

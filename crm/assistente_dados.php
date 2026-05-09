@@ -394,6 +394,7 @@ const rawOutputBlock = document.getElementById('rawOutputBlock');
 const rawOutput = document.getElementById('rawOutput');
 
 let progressInterval = null;
+let pollInterval = null;
 const progressPhases = [
     { after: 0, step: 0, width: 12, title: 'Validando pergunta...' },
     { after: 2, step: 1, width: 32, title: 'Lendo dados do sistema...' },
@@ -432,10 +433,28 @@ function startProgress() {
 function finishProgress(success) {
     clearInterval(progressInterval);
     progressInterval = null;
+    clearInterval(pollInterval);
+    pollInterval = null;
     progressBar.style.width = '100%';
     progressTitle.textContent = success ? 'Resposta pronta.' : 'Consulta encerrada.';
     updateProgressStep(success ? 4 : 3);
     window.setTimeout(() => progressPanel.classList.add('hidden'), 900);
+}
+
+function applyJobProgress(job) {
+    progressPanel.classList.remove('hidden');
+    const progress = Math.max(1, Math.min(100, Number(job.progress || 1)));
+    progressBar.style.width = `${progress}%`;
+    progressTitle.textContent = job.stage_label || job.stage || 'Processando em segundo plano...';
+    if (progress < 25) {
+        updateProgressStep(1);
+    } else if (progress < 50) {
+        updateProgressStep(2);
+    } else if (progress < 90) {
+        updateProgressStep(3);
+    } else {
+        updateProgressStep(4);
+    }
 }
 
 function stringifyValue(value) {
@@ -504,6 +523,84 @@ function renderQueries(queries) {
     querySummary.textContent = `Consultas completas usadas (${queries.length})`;
     queryPanel.classList.toggle('hidden', queries.length === 0);
     queryPanel.open = queries.length > 0;
+}
+
+function renderSuccess(data) {
+    answer.textContent = data.answer || '';
+    const notes = Array.isArray(data.transparency) ? data.transparency.filter(Boolean) : [];
+    thinkingList.innerHTML = '';
+    notes.forEach((note) => {
+        const item = document.createElement('li');
+        item.textContent = note;
+        thinkingList.appendChild(item);
+    });
+    thinkingPanel.classList.toggle('hidden', notes.length === 0);
+    renderQueries(Array.isArray(data.queries) ? data.queries : []);
+    renderDiagnostic(data, false);
+    answerMeta.textContent = `${data.model || 'IA'} - ${data.generated_at || ''}`;
+    answerPanel.classList.remove('hidden');
+    statusText.textContent = 'Resposta gerada com dados somente-leitura.';
+}
+
+function waitForJob(jobId) {
+    const startedAt = Date.now();
+
+    return new Promise((resolve, reject) => {
+        const poll = async () => {
+            try {
+                const response = await fetch(`assistente_dados_api.php?job=${encodeURIComponent(jobId)}`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                const raw = await response.text();
+                let job = null;
+                try {
+                    job = JSON.parse(raw);
+                } catch (parseError) {
+                    reject({
+                        ok: false,
+                        error: `Resposta invalida consultando job. HTTP ${response.status}.`,
+                        error_type: 'job_json_invalido',
+                        stage: 'job_poll',
+                        details: {
+                            parse_error: parseError.message,
+                            raw_preview: raw.slice(0, 2500)
+                        }
+                    });
+                    return;
+                }
+
+                if (!job.ok && !job.status) {
+                    reject(job);
+                    return;
+                }
+
+                applyJobProgress(job);
+                const seconds = Math.floor((Date.now() - startedAt) / 1000);
+                progressTimer.textContent = `${seconds}s`;
+                statusText.textContent = job.stage_label || 'Processando em segundo plano...';
+
+                if (job.status === 'done') {
+                    resolve(job.result || job);
+                    return;
+                }
+                if (job.status === 'error') {
+                    reject(job.result || job);
+                    return;
+                }
+            } catch (error) {
+                reject({
+                    ok: false,
+                    error: error && error.message ? error.message : 'Falha ao consultar job.',
+                    error_type: 'job_poll_exception',
+                    stage: 'job_poll',
+                    details: debugDump(error)
+                });
+            }
+        };
+
+        poll();
+        pollInterval = setInterval(poll, 2500);
+    });
 }
 
 function debugDump(value) {
@@ -640,21 +737,16 @@ form.addEventListener('submit', async (event) => {
             }, data) };
         }
 
-        answer.textContent = data.answer || '';
-        const notes = Array.isArray(data.transparency) ? data.transparency.filter(Boolean) : [];
-        thinkingList.innerHTML = '';
-        notes.forEach((note) => {
-            const item = document.createElement('li');
-            item.textContent = note;
-            thinkingList.appendChild(item);
-        });
-        thinkingPanel.classList.toggle('hidden', notes.length === 0);
-        const queries = Array.isArray(data.queries) ? data.queries : [];
-        renderQueries(queries);
-        renderDiagnostic(data, false);
-        answerMeta.textContent = `${data.model || 'IA'} - ${data.generated_at || ''}`;
-        answerPanel.classList.remove('hidden');
-        statusText.textContent = 'Resposta gerada com dados somente-leitura.';
+        if (data.job_id && data.status) {
+            clearInterval(progressInterval);
+            progressInterval = null;
+            applyJobProgress(data);
+            statusText.textContent = data.stage_label || 'Processando em segundo plano...';
+            const result = await waitForJob(data.job_id);
+            renderSuccess(result);
+        } else {
+            renderSuccess(data);
+        }
         finishProgress(true);
     } catch (error) {
         const payload = error && error.payload ? error.payload : {
