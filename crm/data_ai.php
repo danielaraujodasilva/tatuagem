@@ -26,6 +26,28 @@ function data_ai_clean_answer(string $text): string
     return trim($text);
 }
 
+function data_ai_extract_thinking(string $text): string
+{
+    $parts = [];
+    if (preg_match_all('/<think>(.*?)<\/think>/is', $text, $matches)) {
+        foreach ($matches[1] as $match) {
+            $clean = trim((string)$match);
+            if ($clean !== '') {
+                $parts[] = $clean;
+            }
+        }
+    }
+
+    if (!$parts && preg_match('/Thinking\.\.\.(.*?)(?:\.\.\.done thinking\.|$)/is', $text, $match)) {
+        $clean = trim((string)($match[1] ?? ''));
+        if ($clean !== '') {
+            $parts[] = $clean;
+        }
+    }
+
+    return trim(implode("\n\n", $parts));
+}
+
 function data_ai_parse_json_response(string $text): ?array
 {
     $clean = data_ai_clean_answer($text);
@@ -40,6 +62,18 @@ function data_ai_parse_json_response(string $text): ?array
     $decoded = json_decode($json, true);
 
     return is_array($decoded) ? $decoded : null;
+}
+
+function data_ai_error(string $type, string $stage, string $message, array $details = []): array
+{
+    return [
+        'ok' => false,
+        'error' => $message,
+        'error_type' => $type,
+        'stage' => $stage,
+        'details' => $details,
+        'queries' => data_ai_public_queries(),
+    ];
 }
 
 function data_ai_context_notes(array $context): array
@@ -78,8 +112,37 @@ function data_ai_query_log(?array $set = null): array
     return $queries;
 }
 
-function data_ai_record_query(string $source, string $sql): void
+function data_ai_query_value($value): string
 {
+    if ($value === null) {
+        return 'NULL';
+    }
+    if (is_bool($value)) {
+        return $value ? '1' : '0';
+    }
+    if (is_int($value) || is_float($value)) {
+        return (string)$value;
+    }
+
+    return "'" . str_replace("'", "''", (string)$value) . "'";
+}
+
+function data_ai_interpolate_query(string $sql, array $params): string
+{
+    foreach ($params as $param) {
+        $pos = strpos($sql, '?');
+        if ($pos === false) {
+            break;
+        }
+        $sql = substr($sql, 0, $pos) . data_ai_query_value($param) . substr($sql, $pos + 1);
+    }
+
+    return $sql;
+}
+
+function data_ai_record_query(string $source, string $sql, array $params = []): void
+{
+    $sql = $params ? data_ai_interpolate_query($sql, $params) : $sql;
     $normalized = trim(preg_replace('/\s+/', ' ', $sql) ?? $sql);
     if ($normalized === '') {
         return;
@@ -97,6 +160,7 @@ function data_ai_record_query(string $source, string $sql): void
         'key' => $key,
         'fonte' => $source,
         'sql' => $normalized,
+        'params' => $params,
     ];
     data_ai_query_log($queries);
 }
@@ -184,7 +248,7 @@ function data_ai_mysqli_row(mysqli $conn, string $sql): array
 
 function data_ai_pdo_table_exists(PDO $pdo, string $table): bool
 {
-    data_ai_record_query('CRM', 'SHOW TABLES LIKE "' . $table . '"');
+    data_ai_record_query('CRM', 'SHOW TABLES LIKE ?', [$table]);
     $stmt = $pdo->prepare('SHOW TABLES LIKE ?');
     $stmt->execute([$table]);
     return (bool)$stmt->fetchColumn();
@@ -192,7 +256,7 @@ function data_ai_pdo_table_exists(PDO $pdo, string $table): bool
 
 function data_ai_mysqli_table_exists(mysqli $conn, string $table): bool
 {
-    data_ai_record_query('Ficha/Agenda', 'SHOW TABLES LIKE "' . $table . '"');
+    data_ai_record_query('Ficha/Agenda', 'SHOW TABLES LIKE ?', [$table]);
     $stmt = $conn->prepare('SHOW TABLES LIKE ?');
     $stmt->bind_param('s', $table);
     $stmt->execute();
@@ -291,7 +355,7 @@ function data_ai_whatsapp_context(PDO $pdo): array
                 FROM crm_whatsapp_mensagens
                 WHERE cliente_id IN ($placeholders)
                 ORDER BY data DESC, id DESC
-            ");
+            ", $ids);
             $stmt = $pdo->prepare("
                 SELECT cliente_id, texto, data, from_me, tipo, media_url, transcricao
                 FROM crm_whatsapp_mensagens
@@ -527,25 +591,33 @@ function data_ai_ask(string $question): array
     data_ai_query_log([]);
     $question = trim($question);
     if ($question === '') {
-        return ['ok' => false, 'error' => 'Digite uma pergunta para o assistente.'];
+        return data_ai_error('validacao', 'validacao', 'Digite uma pergunta para o assistente.');
     }
 
     if (!function_exists('curl_init')) {
-        return ['ok' => false, 'error' => 'Extensao cURL do PHP nao esta disponivel.'];
+        return data_ai_error('php_sem_curl', 'ambiente_php', 'A extensao cURL do PHP nao esta disponivel.');
     }
 
+    $startedAt = microtime(true);
     $settings = system_settings_load();
     $ollamaUrl = rtrim(trim((string)($settings['ollama_url'] ?? 'http://localhost:11434')), '/') ?: 'http://localhost:11434';
     $model = trim((string)($settings['data_ai_model'] ?? 'qwen3:14b')) ?: 'qwen3:14b';
     $timeout = max(30, min(420, (int)($settings['data_ai_timeout_seconds'] ?? 240)));
     $numPredict = max(120, min(1600, (int)($settings['data_ai_num_predict'] ?? 900)));
+    if (function_exists('set_time_limit')) {
+        @set_time_limit($timeout + 45);
+    }
+    $contextStartedAt = microtime(true);
     $context = data_ai_build_context($question);
+    $contextSeconds = round(microtime(true) - $contextStartedAt, 3);
 
     $system = "Voce e um analista interno do estudio de tatuagem. Responda em portugues do Brasil, com objetividade e clareza. Use somente os dados fornecidos no JSON de contexto. Nao invente numeros, datas, nomes ou conclusoes que nao estejam apoiadas nos dados. Se a pergunta exigir algo fora do contexto, diga exatamente o que faltou. Voce nao executa SQL e nao altera dados; o sistema ja enviou apenas consultas de leitura.";
     $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE;
     $contextJson = json_encode($context, $jsonFlags);
     if ($contextJson === false) {
-        return ['ok' => false, 'error' => 'Nao foi possivel preparar os dados para a IA.'];
+        return data_ai_error('contexto_json_invalido', 'montagem_contexto', 'Nao foi possivel converter o contexto dos dados para JSON.', [
+            'json_error' => json_last_error_msg(),
+        ]);
     }
 
     $user = "Pergunta do gestor:\n" . $question . "\n\nDados disponiveis em JSON:\n" . $contextJson;
@@ -566,7 +638,14 @@ function data_ai_ask(string $question): array
 
     $ch = curl_init($ollamaUrl . '/api/chat');
     curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload, $jsonFlags));
+    $payloadJson = json_encode($payload, $jsonFlags);
+    if ($payloadJson === false) {
+        return data_ai_error('payload_json_invalido', 'preparacao_ollama', 'Nao foi possivel montar o payload para o Ollama.', [
+            'json_error' => json_last_error_msg(),
+        ]);
+    }
+
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $payloadJson);
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 8);
@@ -574,19 +653,39 @@ function data_ai_ask(string $question): array
 
     $raw = curl_exec($ch);
     $curlError = curl_error($ch);
+    $curlErrno = curl_errno($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $totalTime = curl_getinfo($ch, CURLINFO_TOTAL_TIME);
     curl_close($ch);
 
     $json = json_decode((string)$raw, true);
     if ($raw === false || $curlError !== '') {
-        return ['ok' => false, 'error' => 'Erro de conexao com Ollama: ' . $curlError];
+        $isTimeout = $curlErrno === 28 || stripos($curlError, 'timed out') !== false;
+        return data_ai_error($isTimeout ? 'ollama_timeout' : 'ollama_conexao', 'consulta_ollama', $isTimeout ? 'Timeout aguardando resposta do Ollama.' : 'Erro de conexao com Ollama.', [
+            'curl_errno' => $curlErrno,
+            'curl_error' => $curlError,
+            'timeout_configurado_segundos' => $timeout,
+            'tempo_total_curl_segundos' => $totalTime,
+            'url' => $ollamaUrl . '/api/chat',
+            'model' => $model,
+            'contexto_segundos' => $contextSeconds,
+        ]);
     }
     if ($httpCode < 200 || $httpCode >= 300 || !is_array($json)) {
         $message = $json['error'] ?? ('Ollama retornou HTTP ' . $httpCode);
-        return ['ok' => false, 'error' => is_string($message) ? $message : json_encode($message, JSON_UNESCAPED_UNICODE)];
+        return data_ai_error(!is_array($json) ? 'ollama_json_invalido' : 'ollama_http', 'resposta_ollama', is_string($message) ? $message : json_encode($message, JSON_UNESCAPED_UNICODE), [
+            'http_code' => $httpCode,
+            'curl_errno' => $curlErrno,
+            'curl_error' => $curlError,
+            'tempo_total_curl_segundos' => $totalTime,
+            'raw_preview' => data_ai_preview((string)$raw, 2500),
+            'url' => $ollamaUrl . '/api/chat',
+            'model' => $model,
+        ]);
     }
 
     $rawAnswer = (string)($json['message']['content'] ?? '');
+    $thinking = data_ai_extract_thinking($rawAnswer);
     $structured = data_ai_parse_json_response($rawAnswer);
     $answer = data_ai_clean_answer((string)($structured['resposta'] ?? $rawAnswer));
     $transparency = $structured['transparencia'] ?? [];
@@ -603,7 +702,12 @@ function data_ai_ask(string $question): array
     }
 
     if ($answer === '') {
-        return ['ok' => false, 'error' => 'Ollama nao retornou texto.'];
+        return data_ai_error('ollama_resposta_vazia', 'interpretacao_resposta', 'Ollama respondeu, mas nao retornou texto aproveitavel.', [
+            'http_code' => $httpCode,
+            'tempo_total_curl_segundos' => $totalTime,
+            'raw_preview' => data_ai_preview($rawAnswer, 2500),
+            'model' => $model,
+        ]);
     }
 
     return [
@@ -611,6 +715,22 @@ function data_ai_ask(string $question): array
         'answer' => $answer,
         'transparency' => $transparency,
         'queries' => $queries,
+        'thinking' => $thinking,
+        'raw_model_output' => $rawAnswer,
+        'diagnostic' => [
+            'stage' => 'concluido',
+            'http_code' => $httpCode,
+            'ollama_total_seconds' => $totalTime,
+            'context_seconds' => $contextSeconds,
+            'total_seconds' => round(microtime(true) - $startedAt, 3),
+            'timeout_seconds' => $timeout,
+            'num_predict' => $numPredict,
+            'model' => $model,
+            'url' => $ollamaUrl . '/api/chat',
+            'structured_json' => $structured !== null,
+            'raw_chars' => strlen($rawAnswer),
+            'thinking_chars' => strlen($thinking),
+        ],
         'model' => $model,
         'read_only' => true,
         'generated_at' => $context['gerado_em'],

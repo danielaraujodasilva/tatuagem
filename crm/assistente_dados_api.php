@@ -20,7 +20,24 @@ if (!is_array($input)) {
 }
 
 $question = trim((string)($input['pergunta'] ?? $input['question'] ?? ''));
-$result = data_ai_ask($question);
+
+try {
+    $result = data_ai_ask($question);
+} catch (Throwable $e) {
+    $result = [
+        'ok' => false,
+        'error' => 'Erro interno no PHP ao processar o assistente.',
+        'error_type' => 'php_exception',
+        'stage' => 'php_runtime',
+        'details' => [
+            'exception' => get_class($e),
+            'message' => $e->getMessage(),
+            'file' => basename($e->getFile()),
+            'line' => $e->getLine(),
+        ],
+        'queries' => function_exists('data_ai_public_queries') ? data_ai_public_queries() : [],
+    ];
+}
 
 if (empty($result['ok'])) {
     http_response_code(400);

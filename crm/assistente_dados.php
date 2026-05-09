@@ -179,7 +179,8 @@ function data_ai_h($value): string
             border-radius: 14px;
             background: rgba(15, 23, 42, 0.42);
         }
-        .query-panel summary {
+        .query-panel summary,
+        .diagnostic-panel summary {
             cursor: pointer;
             padding: 12px 14px;
             color: rgba(219, 234, 254, 0.84);
@@ -187,7 +188,8 @@ function data_ai_h($value): string
             font-weight: 900;
             list-style: none;
         }
-        .query-panel summary::-webkit-details-marker { display: none; }
+        .query-panel summary::-webkit-details-marker,
+        .diagnostic-panel summary::-webkit-details-marker { display: none; }
         .query-list {
             display: grid;
             gap: 10px;
@@ -213,6 +215,51 @@ function data_ai_h($value): string
             color: rgba(226, 232, 240, 0.76);
             font-size: 0.82rem;
             line-height: 1.5;
+        }
+        .diagnostic-panel {
+            margin-bottom: 18px;
+            border: 1px solid rgba(251, 191, 36, 0.22);
+            border-radius: 14px;
+            background: rgba(2, 6, 23, 0.34);
+        }
+        .diagnostic-body {
+            display: grid;
+            gap: 12px;
+            padding: 0 14px 14px;
+        }
+        .diagnostic-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 8px;
+        }
+        .diagnostic-item {
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.58);
+            padding: 10px 11px;
+        }
+        .diagnostic-label {
+            color: rgba(148, 163, 184, 0.92);
+            font-size: 0.72rem;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+        .diagnostic-value {
+            margin-top: 4px;
+            color: #f8fafc;
+            word-break: break-word;
+            font-size: 0.88rem;
+        }
+        .raw-output {
+            max-height: 420px;
+            overflow: auto;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.26);
+            padding: 12px;
+            color: rgba(226, 232, 240, 0.78);
+            font-size: 0.82rem;
+            line-height: 1.55;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
         .dot {
             width: 8px;
@@ -281,6 +328,20 @@ function data_ai_h($value): string
                     <summary id="querySummary">Consultas usadas</summary>
                     <div id="queryList" class="query-list"></div>
                 </details>
+                <details id="diagnosticPanel" class="diagnostic-panel hidden">
+                    <summary id="diagnosticSummary">Diagnostico tecnico</summary>
+                    <div class="diagnostic-body">
+                        <div id="diagnosticGrid" class="diagnostic-grid"></div>
+                        <div id="thinkingFullBlock" class="hidden">
+                            <div class="diagnostic-label mb-2">Thinking completo retornado pelo modelo</div>
+                            <div id="thinkingFull" class="raw-output"></div>
+                        </div>
+                        <div id="rawOutputBlock" class="hidden">
+                            <div class="diagnostic-label mb-2">Saida bruta do modelo</div>
+                            <div id="rawOutput" class="raw-output"></div>
+                        </div>
+                    </div>
+                </details>
                 <div id="answer" class="answer text-slate-100"></div>
             </div>
         </div>
@@ -323,6 +384,13 @@ const progressSteps = Array.from(document.querySelectorAll('.progress-step'));
 const queryPanel = document.getElementById('queryPanel');
 const querySummary = document.getElementById('querySummary');
 const queryList = document.getElementById('queryList');
+const diagnosticPanel = document.getElementById('diagnosticPanel');
+const diagnosticSummary = document.getElementById('diagnosticSummary');
+const diagnosticGrid = document.getElementById('diagnosticGrid');
+const thinkingFullBlock = document.getElementById('thinkingFullBlock');
+const thinkingFull = document.getElementById('thinkingFull');
+const rawOutputBlock = document.getElementById('rawOutputBlock');
+const rawOutput = document.getElementById('rawOutput');
 
 let progressInterval = null;
 const progressPhases = [
@@ -369,6 +437,72 @@ function finishProgress(success) {
     window.setTimeout(() => progressPanel.classList.add('hidden'), 900);
 }
 
+function stringifyValue(value) {
+    if (value === null || value === undefined || value === '') {
+        return '-';
+    }
+    if (typeof value === 'object') {
+        return JSON.stringify(value, null, 2);
+    }
+    return String(value);
+}
+
+function renderDiagnostic(data, failed = false) {
+    const diagnostic = data.diagnostic || {};
+    const details = data.details || {};
+    const items = [];
+
+    if (failed) {
+        items.push(['Tipo do erro', data.error_type || 'erro_desconhecido']);
+        items.push(['Etapa', data.stage || diagnostic.stage || '-']);
+        items.push(['Mensagem', data.error || '-']);
+    }
+
+    Object.entries(diagnostic).forEach(([key, value]) => items.push([key, value]));
+    Object.entries(details).forEach(([key, value]) => items.push([key, value]));
+
+    diagnosticGrid.innerHTML = '';
+    items.forEach(([label, value]) => {
+        const item = document.createElement('div');
+        item.className = 'diagnostic-item';
+        const labelEl = document.createElement('div');
+        labelEl.className = 'diagnostic-label';
+        labelEl.textContent = label.replaceAll('_', ' ');
+        const valueEl = document.createElement('div');
+        valueEl.className = 'diagnostic-value';
+        valueEl.textContent = stringifyValue(value);
+        item.appendChild(labelEl);
+        item.appendChild(valueEl);
+        diagnosticGrid.appendChild(item);
+    });
+
+    thinkingFull.textContent = data.thinking || '';
+    thinkingFullBlock.classList.toggle('hidden', !data.thinking);
+    rawOutput.textContent = data.raw_model_output || details.raw_preview || '';
+    rawOutputBlock.classList.toggle('hidden', !(data.raw_model_output || details.raw_preview));
+    diagnosticSummary.textContent = failed ? 'Diagnostico tecnico do erro' : 'Diagnostico tecnico da resposta';
+    diagnosticPanel.classList.toggle('hidden', items.length === 0 && !data.thinking && !data.raw_model_output && !details.raw_preview);
+}
+
+function renderQueries(queries) {
+    queryList.innerHTML = '';
+    queries.forEach((query, index) => {
+        const item = document.createElement('div');
+        item.className = 'query-item';
+        const source = document.createElement('div');
+        source.className = 'query-source';
+        source.textContent = `${index + 1}. ${query.fonte || 'Fonte'}`;
+        const sql = document.createElement('div');
+        sql.className = 'query-sql';
+        sql.textContent = query.sql || '';
+        item.appendChild(source);
+        item.appendChild(sql);
+        queryList.appendChild(item);
+    });
+    querySummary.textContent = `Consultas completas usadas (${queries.length})`;
+    queryPanel.classList.toggle('hidden', queries.length === 0);
+}
+
 document.querySelectorAll('.example').forEach((item) => {
     item.addEventListener('click', () => {
         question.value = item.textContent.trim();
@@ -393,6 +527,10 @@ form.addEventListener('submit', async (event) => {
     thinkingList.innerHTML = '';
     queryPanel.classList.add('hidden');
     queryList.innerHTML = '';
+    diagnosticPanel.classList.add('hidden');
+    diagnosticGrid.innerHTML = '';
+    thinkingFull.textContent = '';
+    rawOutput.textContent = '';
     answer.textContent = '';
     answerMeta.textContent = '';
 
@@ -405,9 +543,27 @@ form.addEventListener('submit', async (event) => {
             },
             body: JSON.stringify({ pergunta })
         });
-        const data = await response.json();
+        const rawResponse = await response.text();
+        let data = null;
+        try {
+            data = JSON.parse(rawResponse);
+        } catch (parseError) {
+            throw {
+                payload: {
+                    ok: false,
+                    error: `Resposta invalida do servidor. HTTP ${response.status}.`,
+                    error_type: 'api_json_invalido',
+                    stage: 'api_response',
+                    details: {
+                        http_status: response.status,
+                        parse_error: parseError.message,
+                        raw_preview: rawResponse.slice(0, 2500)
+                    }
+                }
+            };
+        }
         if (!data.ok) {
-            throw new Error(data.error || 'Nao foi possivel gerar a resposta.');
+            throw { payload: data };
         }
 
         answer.textContent = data.answer || '';
@@ -420,29 +576,26 @@ form.addEventListener('submit', async (event) => {
         });
         thinkingPanel.classList.toggle('hidden', notes.length === 0);
         const queries = Array.isArray(data.queries) ? data.queries : [];
-        queryList.innerHTML = '';
-        queries.forEach((query, index) => {
-            const item = document.createElement('div');
-            item.className = 'query-item';
-            const source = document.createElement('div');
-            source.className = 'query-source';
-            source.textContent = `${index + 1}. ${query.fonte || 'Fonte'}`;
-            const sql = document.createElement('div');
-            sql.className = 'query-sql';
-            sql.textContent = query.sql || '';
-            item.appendChild(source);
-            item.appendChild(sql);
-            queryList.appendChild(item);
-        });
-        querySummary.textContent = `Consultas usadas (${queries.length})`;
-        queryPanel.classList.toggle('hidden', queries.length === 0);
+        renderQueries(queries);
+        renderDiagnostic(data, false);
         answerMeta.textContent = `${data.model || 'IA'} - ${data.generated_at || ''}`;
         answerPanel.classList.remove('hidden');
         statusText.textContent = 'Resposta gerada com dados somente-leitura.';
         finishProgress(true);
     } catch (error) {
-        answer.textContent = error.message || 'Erro inesperado.';
+        const payload = error.payload || {
+            ok: false,
+            error: error.message || 'Erro inesperado.',
+            error_type: 'frontend_exception',
+            stage: 'browser',
+            details: {}
+        };
+        const stage = payload.stage ? ` na etapa ${payload.stage}` : '';
+        const type = payload.error_type ? ` (${payload.error_type})` : '';
+        answer.textContent = `${payload.error || 'Erro inesperado.'}${type}${stage}`;
         answerMeta.textContent = 'Falha';
+        renderQueries(Array.isArray(payload.queries) ? payload.queries : []);
+        renderDiagnostic(payload, true);
         answerPanel.classList.remove('hidden');
         statusText.textContent = 'Nao foi possivel consultar a IA agora.';
         finishProgress(false);
