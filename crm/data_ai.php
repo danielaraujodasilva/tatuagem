@@ -625,7 +625,7 @@ function data_ai_ask(string $question): array
     $payload = [
         'model' => $model,
         'stream' => false,
-        'think' => true,
+        'think' => false,
         'messages' => [
             ['role' => 'system', 'content' => $system . "\n\nRetorne exclusivamente um JSON valido neste formato: {\"resposta\":\"texto final para o gestor\",\"transparencia\":[\"resumo curto da fonte/evidencia usada\",\"outro resumo curto\"]}. O campo transparencia deve ter no maximo 5 itens, explicando quais fontes e evidencias voce usou, sem raciocinio interno passo a passo, sem tags <think>, sem bastidores tecnicos e sem JSON bruto dentro dos textos."],
             ['role' => 'user', 'content' => $user],
@@ -738,6 +738,7 @@ function data_ai_ask(string $question): array
             'total_seconds' => round(microtime(true) - $startedAt, 3),
             'timeout_seconds' => $timeout,
             'num_predict' => $numPredict,
+            'think_enabled' => false,
             'model' => $model,
             'url' => $ollamaUrl . '/api/chat',
             'done_reason' => $json['done_reason'] ?? null,
@@ -810,13 +811,13 @@ function data_ai_ollama_diagnostic(): array
     $payload = [
         'model' => $model,
         'stream' => false,
-        'think' => true,
+        'think' => false,
         'messages' => [
             ['role' => 'user', 'content' => 'Responda apenas OK.'],
         ],
         'options' => [
-            'num_predict' => 800,
-            'num_ctx' => 12000,
+            'num_predict' => 60,
+            'num_ctx' => 4096,
         ],
     ];
     $ch = curl_init($ollamaUrl . '/api/chat');

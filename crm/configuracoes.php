@@ -323,7 +323,7 @@ $embedded = !empty($_GET['embed']) || !empty($_POST['embed']);
                             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
                                 <div>
                                     <span class="settings-kicker">Assistente de dados</span>
-                                    <p class="settings-muted text-sm mt-1">Modulo separado para perguntas internas. Ele apenas le consultas controladas do banco e continua funcionando mesmo com respostas automaticas do WhatsApp desativadas.</p>
+                                    <p class="settings-muted text-sm mt-1">Modulo separado para perguntas internas. Ele apenas le consultas controladas do banco e continua funcionando mesmo com respostas automaticas do WhatsApp desativadas. O thinking profundo fica desligado para evitar timeout no servidor.</p>
                                 </div>
                                 <a class="settings-action px-3 py-2 text-sm" href="assistente_dados.php">Abrir assistente</a>
                             </div>

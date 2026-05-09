@@ -281,6 +281,7 @@ function data_ai_h($value): string
                     <div class="flex flex-wrap gap-2 mb-3">
                         <span class="chip"><span class="dot"></span> Somente leitura</span>
                         <span class="chip">Modelo: <?= data_ai_h($model) ?></span>
+                        <span class="chip">Thinking: desligado</span>
                         <span class="chip">Timeout: <?= data_ai_h($timeout) ?>s</span>
                     </div>
                     <h1 class="text-3xl md:text-4xl font-black tracking-tight">Assistente IA de dados</h1>
