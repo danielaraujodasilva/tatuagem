@@ -8,7 +8,6 @@ require_once __DIR__ . '/../includes/system_settings.php';
 $systemSettings = system_settings_load();
 $valorPomada = system_pomada_unit_price();
 $embedded = !empty($_GET['embed']) || !empty($_POST['embed']);
-$openaiKeyConfigured = trim((string)($systemSettings['openai_api_key'] ?? '')) !== '';
 ?>
 
 
@@ -264,12 +263,12 @@ $openaiKeyConfigured = trim((string)($systemSettings['openai_api_key'] ?? '')) !
                 <div class="md:col-span-2 border border-white/10 rounded-lg p-4 bg-black/20">
                     <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4">
                         <div>
-                            <span class="settings-kicker">OpenAI</span>
+                            <span class="settings-kicker">Ollama local</span>
                             <h2 class="text-xl font-black mt-1">IA de atendimento</h2>
-                            <p class="settings-muted text-sm mt-1">Quando uma conversa estiver em modo IA/Bot, novas mensagens do cliente podem receber uma resposta automatica usando o historico do chat.</p>
+                            <p class="settings-muted text-sm mt-1">Quando uma conversa estiver em modo IA/Bot, novas mensagens do cliente podem receber uma resposta automatica usando o modelo local do Ollama.</p>
                             <div class="mt-3 flex flex-wrap gap-2">
                                 <a class="settings-action px-3 py-2 text-sm" href="ia_diagnostico.php" target="_blank">Ver diagnostico</a>
-                                <a class="settings-action px-3 py-2 text-sm" href="ia_diagnostico.php?testar=1" target="_blank">Testar OpenAI</a>
+                                <a class="settings-action px-3 py-2 text-sm" href="ia_diagnostico.php?testar=1" target="_blank">Testar IA local</a>
                             </div>
                         </div>
                         <label class="inline-flex items-center gap-2 font-bold">
@@ -280,23 +279,17 @@ $openaiKeyConfigured = trim((string)($systemSettings['openai_api_key'] ?? '')) !
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block mb-2 font-bold">API key</label>
-                            <input type="password" name="openai_api_key"
+                            <label class="block mb-2 font-bold">URL do Ollama</label>
+                            <input type="text" name="ollama_url"
                                    class="settings-input px-4 py-3 w-full"
-                                   placeholder="<?= $openaiKeyConfigured ? 'Chave configurada - preencha para trocar' : 'sk-...' ?>">
-                            <?php if ($openaiKeyConfigured): ?>
-                                <label class="inline-flex items-center gap-2 mt-2 text-sm settings-muted">
-                                    <input type="checkbox" name="openai_clear_key" value="1">
-                                    Remover chave salva
-                                </label>
-                            <?php endif; ?>
+                                   value="<?= htmlspecialchars((string)($systemSettings['ollama_url'] ?? 'http://localhost:11434'), ENT_QUOTES, 'UTF-8') ?>">
                         </div>
 
                         <div>
                             <label class="block mb-2 font-bold">Modelo</label>
-                            <input type="text" name="openai_model"
+                            <input type="text" name="ollama_model"
                                    class="settings-input px-4 py-3 w-full"
-                                   value="<?= htmlspecialchars((string)($systemSettings['openai_model'] ?? 'gpt-5-mini'), ENT_QUOTES, 'UTF-8') ?>">
+                                   value="<?= htmlspecialchars((string)($systemSettings['ollama_model'] ?? 'qwen3:14b'), ENT_QUOTES, 'UTF-8') ?>">
                         </div>
 
                         <div>

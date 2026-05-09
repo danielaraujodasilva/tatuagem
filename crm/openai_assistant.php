@@ -10,7 +10,7 @@ function crm_ai_log(array $dados): void
     }
 
     file_put_contents(
-        $dir . '/openai_debug.log',
+        $dir . '/ia_debug.log',
         '[' . date('Y-m-d H:i:s') . '] ' . json_encode($dados, JSON_UNESCAPED_UNICODE) . PHP_EOL,
         FILE_APPEND
     );
@@ -106,17 +106,21 @@ function crm_ai_extrair_texto(array $resposta): string
     return trim(implode("\n", $partes));
 }
 
+function crm_ai_limpar_resposta_local(string $texto): string
+{
+    $texto = preg_replace('/<think>.*?<\/think>/is', '', $texto) ?? $texto;
+    $texto = preg_replace('/^\s*(IA|Assistente|Bot)\s*:\s*/i', '', $texto) ?? $texto;
+    return trim($texto);
+}
+
 function crm_ai_gerar_resposta(array $cliente, array $mensagemAtual, array $settings): array
 {
-    $apiKey = trim((string)($settings['openai_api_key'] ?? ''));
-    if ($apiKey === '') {
-        return ['ok' => false, 'error' => 'OpenAI API key nao configurada.'];
-    }
     if (!function_exists('curl_init')) {
         return ['ok' => false, 'error' => 'Extensao cURL do PHP nao esta disponivel.'];
     }
 
-    $model = trim((string)($settings['openai_model'] ?? 'gpt-5-mini')) ?: 'gpt-5-mini';
+    $ollamaUrl = rtrim(trim((string)($settings['ollama_url'] ?? 'http://localhost:11434')), '/') ?: 'http://localhost:11434';
+    $model = trim((string)($settings['ollama_model'] ?? 'qwen3:14b')) ?: 'qwen3:14b';
     $prompt = trim((string)($settings['openai_business_prompt'] ?? ''));
     if ($prompt === '') {
         $prompt = (string)(system_settings_defaults()['openai_business_prompt'] ?? '');
@@ -138,21 +142,30 @@ function crm_ai_gerar_resposta(array $cliente, array $mensagemAtual, array $sett
 
     $payload = [
         'model' => $model,
-        'instructions' => $prompt,
-        'input' => $input,
-        'max_output_tokens' => 450,
+        'stream' => false,
+        'messages' => [
+            [
+                'role' => 'system',
+                'content' => $prompt . "\n\nNao mostre raciocinio interno, etapas de pensamento, tags <think> ou explicacoes tecnicas. Responda somente com a mensagem final para o WhatsApp.",
+            ],
+            [
+                'role' => 'user',
+                'content' => $input,
+            ],
+        ],
+        'options' => [
+            'temperature' => 0.6,
+            'num_predict' => 450,
+        ],
     ];
 
-    $ch = curl_init('https://api.openai.com/v1/responses');
+    $ch = curl_init($ollamaUrl . '/api/chat');
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload, JSON_UNESCAPED_UNICODE));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/json',
-        'Authorization: Bearer ' . $apiKey,
-    ]);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 12);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 80);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 8);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 180);
 
     $raw = curl_exec($ch);
     $curlError = curl_error($ch);
@@ -161,6 +174,8 @@ function crm_ai_gerar_resposta(array $cliente, array $mensagemAtual, array $sett
 
     $json = json_decode((string)$raw, true);
     crm_ai_log([
+        'provider' => 'ollama',
+        'url' => $ollamaUrl,
         'model' => $model,
         'httpCode' => $httpCode,
         'curlError' => $curlError,
@@ -168,16 +183,19 @@ function crm_ai_gerar_resposta(array $cliente, array $mensagemAtual, array $sett
     ]);
 
     if ($raw === false || $curlError !== '') {
-        return ['ok' => false, 'error' => 'Erro de conexao com OpenAI: ' . $curlError];
+        return ['ok' => false, 'error' => 'Erro de conexao com Ollama: ' . $curlError];
     }
     if ($httpCode < 200 || $httpCode >= 300 || !is_array($json)) {
-        $message = $json['error']['message'] ?? ('OpenAI retornou HTTP ' . $httpCode);
+        $message = $json['error'] ?? ('Ollama retornou HTTP ' . $httpCode);
+        if (is_array($message)) {
+            $message = json_encode($message, JSON_UNESCAPED_UNICODE);
+        }
         return ['ok' => false, 'error' => $message];
     }
 
-    $texto = crm_ai_extrair_texto($json);
+    $texto = crm_ai_limpar_resposta_local((string)($json['message']['content'] ?? ''));
     if ($texto === '') {
-        return ['ok' => false, 'error' => 'OpenAI nao retornou texto.'];
+        return ['ok' => false, 'error' => 'Ollama nao retornou texto.'];
     }
 
     return ['ok' => true, 'texto' => $texto, 'model' => $model];
@@ -245,7 +263,9 @@ function crm_ai_responder_se_aplicavel(array &$clientes, int $clienteIndex, arra
         'event' => 'decision_start',
         'clienteIndex' => $clienteIndex,
         'enabled' => !empty($settings['openai_enabled']),
-        'keyConfigured' => trim((string)($settings['openai_api_key'] ?? '')) !== '',
+        'provider' => $settings['ai_provider'] ?? 'ollama',
+        'ollamaUrl' => $settings['ollama_url'] ?? '',
+        'ollamaModel' => $settings['ollama_model'] ?? '',
         'fromMe' => !empty($mensagemAtual['fromMe']),
         'modo' => $clientes[$clienteIndex]['modo_atendimento'] ?? '',
         'atendente' => $clientes[$clienteIndex]['atendente'] ?? '',

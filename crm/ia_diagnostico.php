@@ -10,12 +10,13 @@ $testar = !empty($_GET['testar']);
 
 $resultado = [
     'ok' => true,
-    'openai_enabled' => !empty($settings['openai_enabled']),
-    'openai_key_configurada' => trim((string)($settings['openai_api_key'] ?? '')) !== '',
-    'openai_model' => (string)($settings['openai_model'] ?? ''),
-    'openai_max_history' => (int)($settings['openai_max_history'] ?? 0),
+    'ia_ativada' => !empty($settings['openai_enabled']),
+    'provedor' => (string)($settings['ai_provider'] ?? 'ollama'),
+    'ollama_url' => (string)($settings['ollama_url'] ?? 'http://localhost:11434'),
+    'ollama_model' => (string)($settings['ollama_model'] ?? 'qwen3:14b'),
+    'mensagens_contexto' => (int)($settings['openai_max_history'] ?? 0),
     'php_curl_disponivel' => function_exists('curl_init'),
-    'log' => 'crm/data/openai_debug.log',
+    'log' => 'crm/data/ia_debug.log',
 ];
 
 if ($testar) {
@@ -38,7 +39,7 @@ if ($testar) {
     ];
     $mensagem = $cliente['mensagens'][0];
     $teste = crm_ai_gerar_resposta($cliente, $mensagem, $settings);
-    $resultado['teste_openai'] = $teste;
+    $resultado['teste_ia_local'] = $teste;
 }
 
 echo json_encode($resultado, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
