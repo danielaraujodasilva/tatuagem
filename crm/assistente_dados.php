@@ -476,8 +476,8 @@ function renderDiagnostic(data, failed = false) {
         diagnosticGrid.appendChild(item);
     });
 
-    thinkingFull.textContent = data.thinking || '';
-    thinkingFullBlock.classList.toggle('hidden', !data.thinking);
+    thinkingFull.textContent = data.thinking || details.thinking_preview || '';
+    thinkingFullBlock.classList.toggle('hidden', !(data.thinking || details.thinking_preview));
     rawOutput.textContent = data.raw_model_output || details.raw_preview || '';
     rawOutputBlock.classList.toggle('hidden', !(data.raw_model_output || details.raw_preview));
     diagnosticSummary.textContent = failed ? 'Diagnostico tecnico do erro' : 'Diagnostico tecnico da resposta';

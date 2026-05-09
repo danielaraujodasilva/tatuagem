@@ -603,7 +603,7 @@ function data_ai_ask(string $question): array
     $ollamaUrl = rtrim(trim((string)($settings['ollama_url'] ?? 'http://localhost:11434')), '/') ?: 'http://localhost:11434';
     $model = trim((string)($settings['data_ai_model'] ?? 'qwen3:14b')) ?: 'qwen3:14b';
     $timeout = max(30, min(420, (int)($settings['data_ai_timeout_seconds'] ?? 240)));
-    $numPredict = max(120, min(1600, (int)($settings['data_ai_num_predict'] ?? 900)));
+    $numPredict = max(120, min(6000, (int)($settings['data_ai_num_predict'] ?? 2400)));
     if (function_exists('set_time_limit')) {
         @set_time_limit($timeout + 45);
     }
@@ -625,6 +625,7 @@ function data_ai_ask(string $question): array
     $payload = [
         'model' => $model,
         'stream' => false,
+        'think' => true,
         'messages' => [
             ['role' => 'system', 'content' => $system . "\n\nRetorne exclusivamente um JSON valido neste formato: {\"resposta\":\"texto final para o gestor\",\"transparencia\":[\"resumo curto da fonte/evidencia usada\",\"outro resumo curto\"]}. O campo transparencia deve ter no maximo 5 itens, explicando quais fontes e evidencias voce usou, sem raciocinio interno passo a passo, sem tags <think>, sem bastidores tecnicos e sem JSON bruto dentro dos textos."],
             ['role' => 'user', 'content' => $user],
@@ -668,6 +669,7 @@ function data_ai_ask(string $question): array
             'tempo_total_curl_segundos' => $totalTime,
             'url' => $ollamaUrl . '/api/chat',
             'model' => $model,
+            'num_predict' => $numPredict,
             'contexto_segundos' => $contextSeconds,
         ]);
     }
@@ -681,11 +683,16 @@ function data_ai_ask(string $question): array
             'raw_preview' => data_ai_preview((string)$raw, 2500),
             'url' => $ollamaUrl . '/api/chat',
             'model' => $model,
+            'done_reason' => $json['done_reason'] ?? null,
+            'num_predict' => $numPredict,
         ]);
     }
 
     $rawAnswer = (string)($json['message']['content'] ?? '');
-    $thinking = data_ai_extract_thinking($rawAnswer);
+    $thinking = (string)($json['message']['thinking'] ?? '');
+    if ($thinking === '') {
+        $thinking = data_ai_extract_thinking($rawAnswer);
+    }
     $structured = data_ai_parse_json_response($rawAnswer);
     $answer = data_ai_clean_answer((string)($structured['resposta'] ?? $rawAnswer));
     $transparency = $structured['transparencia'] ?? [];
@@ -705,6 +712,12 @@ function data_ai_ask(string $question): array
         return data_ai_error('ollama_resposta_vazia', 'interpretacao_resposta', 'Ollama respondeu, mas nao retornou texto aproveitavel.', [
             'http_code' => $httpCode,
             'tempo_total_curl_segundos' => $totalTime,
+            'done_reason' => $json['done_reason'] ?? null,
+            'eval_count' => $json['eval_count'] ?? null,
+            'prompt_eval_count' => $json['prompt_eval_count'] ?? null,
+            'num_predict' => $numPredict,
+            'thinking_chars' => strlen($thinking),
+            'thinking_preview' => data_ai_preview($thinking, 2500),
             'raw_preview' => data_ai_preview($rawAnswer, 2500),
             'model' => $model,
         ]);
@@ -727,6 +740,9 @@ function data_ai_ask(string $question): array
             'num_predict' => $numPredict,
             'model' => $model,
             'url' => $ollamaUrl . '/api/chat',
+            'done_reason' => $json['done_reason'] ?? null,
+            'eval_count' => $json['eval_count'] ?? null,
+            'prompt_eval_count' => $json['prompt_eval_count'] ?? null,
             'structured_json' => $structured !== null,
             'raw_chars' => strlen($rawAnswer),
             'thinking_chars' => strlen($thinking),

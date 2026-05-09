@@ -342,9 +342,9 @@ $embedded = !empty($_GET['embed']) || !empty($_POST['embed']);
                                 </div>
                                 <div>
                                     <label class="block mb-2 font-bold">Tamanho da analise</label>
-                                    <input type="number" min="120" max="1600" name="data_ai_num_predict"
+                                    <input type="number" min="120" max="6000" name="data_ai_num_predict"
                                            class="settings-input px-4 py-3 w-full"
-                                           value="<?= htmlspecialchars((string)($systemSettings['data_ai_num_predict'] ?? 900), ENT_QUOTES, 'UTF-8') ?>">
+                                           value="<?= htmlspecialchars((string)($systemSettings['data_ai_num_predict'] ?? 2400), ENT_QUOTES, 'UTF-8') ?>">
                                 </div>
                             </div>
                         </div>
