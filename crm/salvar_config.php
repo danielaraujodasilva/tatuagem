@@ -12,6 +12,8 @@ $data = [
     'openai_model' => '',
     'ollama_url' => rtrim(trim((string)($_POST['ollama_url'] ?? 'http://localhost:11434')), '/') ?: 'http://localhost:11434',
     'ollama_model' => trim((string)($_POST['ollama_model'] ?? 'qwen3:14b')) ?: 'qwen3:14b',
+    'ai_timeout_seconds' => max(20, min(180, (int)($_POST['ai_timeout_seconds'] ?? 120))),
+    'ai_num_predict' => max(40, min(450, (int)($_POST['ai_num_predict'] ?? 220))),
     'openai_max_history' => max(4, min(60, (int)($_POST['openai_max_history'] ?? 20))),
     'openai_business_prompt' => trim((string)($_POST['openai_business_prompt'] ?? '')),
 ];

@@ -113,14 +113,63 @@ function crm_ai_limpar_resposta_local(string $texto): string
     return trim($texto);
 }
 
-function crm_ai_gerar_resposta(array $cliente, array $mensagemAtual, array $settings): array
+function crm_ai_ollama_url(array $settings): string
+{
+    return rtrim(trim((string)($settings['ollama_url'] ?? 'http://localhost:11434')), '/') ?: 'http://localhost:11434';
+}
+
+function crm_ai_ollama_model(array $settings): string
+{
+    return trim((string)($settings['ollama_model'] ?? 'qwen3:14b')) ?: 'qwen3:14b';
+}
+
+function crm_ai_ollama_status(array $settings): array
 {
     if (!function_exists('curl_init')) {
         return ['ok' => false, 'error' => 'Extensao cURL do PHP nao esta disponivel.'];
     }
 
-    $ollamaUrl = rtrim(trim((string)($settings['ollama_url'] ?? 'http://localhost:11434')), '/') ?: 'http://localhost:11434';
-    $model = trim((string)($settings['ollama_model'] ?? 'qwen3:14b')) ?: 'qwen3:14b';
+    $ollamaUrl = crm_ai_ollama_url($settings);
+    $model = crm_ai_ollama_model($settings);
+    $ch = curl_init($ollamaUrl . '/api/tags');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 8);
+
+    $raw = curl_exec($ch);
+    $curlError = curl_error($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    curl_close($ch);
+
+    $json = json_decode((string)$raw, true);
+    $models = [];
+    foreach (($json['models'] ?? []) as $item) {
+        if (!empty($item['name'])) {
+            $models[] = (string)$item['name'];
+        }
+    }
+
+    return [
+        'ok' => $raw !== false && $curlError === '' && $httpCode >= 200 && $httpCode < 300,
+        'url' => $ollamaUrl,
+        'model' => $model,
+        'model_found' => in_array($model, $models, true),
+        'models' => $models,
+        'http_code' => $httpCode,
+        'curl_error' => $curlError,
+    ];
+}
+
+function crm_ai_gerar_resposta(array $cliente, array $mensagemAtual, array $settings, ?int $timeoutSeconds = null, ?int $numPredict = null): array
+{
+    if (!function_exists('curl_init')) {
+        return ['ok' => false, 'error' => 'Extensao cURL do PHP nao esta disponivel.'];
+    }
+
+    $ollamaUrl = crm_ai_ollama_url($settings);
+    $model = crm_ai_ollama_model($settings);
+    $timeoutSeconds = $timeoutSeconds ?? max(20, min(180, (int)($settings['ai_timeout_seconds'] ?? 120)));
+    $numPredict = $numPredict ?? max(40, min(450, (int)($settings['ai_num_predict'] ?? 220)));
     $prompt = trim((string)($settings['openai_business_prompt'] ?? ''));
     if ($prompt === '') {
         $prompt = (string)(system_settings_defaults()['openai_business_prompt'] ?? '');
@@ -155,7 +204,7 @@ function crm_ai_gerar_resposta(array $cliente, array $mensagemAtual, array $sett
         ],
         'options' => [
             'temperature' => 0.6,
-            'num_predict' => 450,
+            'num_predict' => $numPredict,
         ],
     ];
 
@@ -165,7 +214,7 @@ function crm_ai_gerar_resposta(array $cliente, array $mensagemAtual, array $sett
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 8);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 180);
+    curl_setopt($ch, CURLOPT_TIMEOUT, $timeoutSeconds);
 
     $raw = curl_exec($ch);
     $curlError = curl_error($ch);
@@ -177,6 +226,8 @@ function crm_ai_gerar_resposta(array $cliente, array $mensagemAtual, array $sett
         'provider' => 'ollama',
         'url' => $ollamaUrl,
         'model' => $model,
+        'timeoutSeconds' => $timeoutSeconds,
+        'numPredict' => $numPredict,
         'httpCode' => $httpCode,
         'curlError' => $curlError,
         'response' => crm_ai_text_preview((string)$raw, 2500),

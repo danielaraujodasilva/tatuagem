@@ -299,6 +299,20 @@ $embedded = !empty($_GET['embed']) || !empty($_POST['embed']);
                                    value="<?= htmlspecialchars((string)($systemSettings['openai_max_history'] ?? 20), ENT_QUOTES, 'UTF-8') ?>">
                         </div>
 
+                        <div>
+                            <label class="block mb-2 font-bold">Timeout da IA (s)</label>
+                            <input type="number" min="20" max="180" name="ai_timeout_seconds"
+                                   class="settings-input px-4 py-3 w-full"
+                                   value="<?= htmlspecialchars((string)($systemSettings['ai_timeout_seconds'] ?? 120), ENT_QUOTES, 'UTF-8') ?>">
+                        </div>
+
+                        <div>
+                            <label class="block mb-2 font-bold">Tamanho da resposta</label>
+                            <input type="number" min="40" max="450" name="ai_num_predict"
+                                   class="settings-input px-4 py-3 w-full"
+                                   value="<?= htmlspecialchars((string)($systemSettings['ai_num_predict'] ?? 220), ENT_QUOTES, 'UTF-8') ?>">
+                        </div>
+
                         <div class="md:col-span-3">
                             <label class="block mb-2 font-bold">Instrucoes da IA</label>
                             <textarea name="openai_business_prompt" rows="6"
