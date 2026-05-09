@@ -67,6 +67,51 @@ function data_ai_context_notes(array $context): array
     return array_slice($notes, 0, 5);
 }
 
+function data_ai_query_log(?array $set = null): array
+{
+    static $queries = [];
+
+    if ($set !== null) {
+        $queries = $set;
+    }
+
+    return $queries;
+}
+
+function data_ai_record_query(string $source, string $sql): void
+{
+    $normalized = trim(preg_replace('/\s+/', ' ', $sql) ?? $sql);
+    if ($normalized === '') {
+        return;
+    }
+
+    $queries = data_ai_query_log();
+    $key = $source . '|' . $normalized;
+    foreach ($queries as $query) {
+        if (($query['key'] ?? '') === $key) {
+            return;
+        }
+    }
+
+    $queries[] = [
+        'key' => $key,
+        'fonte' => $source,
+        'sql' => $normalized,
+    ];
+    data_ai_query_log($queries);
+}
+
+function data_ai_public_queries(): array
+{
+    $queries = data_ai_query_log();
+    return array_map(static function (array $query): array {
+        return [
+            'fonte' => (string)($query['fonte'] ?? ''),
+            'sql' => (string)($query['sql'] ?? ''),
+        ];
+    }, array_slice($queries, 0, 40));
+}
+
 function data_ai_crm_pdo(): PDO
 {
     global $conn;
@@ -111,23 +156,27 @@ function data_ai_ficha_mysqli(): mysqli
 
 function data_ai_pdo_rows(PDO $pdo, string $sql): array
 {
+    data_ai_record_query('CRM', $sql);
     return $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
 }
 
 function data_ai_pdo_value(PDO $pdo, string $sql, string $key = 'total')
 {
+    data_ai_record_query('CRM', $sql);
     $row = $pdo->query($sql)->fetch(PDO::FETCH_ASSOC);
     return is_array($row) ? ($row[$key] ?? null) : null;
 }
 
 function data_ai_mysqli_rows(mysqli $conn, string $sql): array
 {
+    data_ai_record_query('Ficha/Agenda', $sql);
     $result = $conn->query($sql);
     return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
 }
 
 function data_ai_mysqli_row(mysqli $conn, string $sql): array
 {
+    data_ai_record_query('Ficha/Agenda', $sql);
     $result = $conn->query($sql);
     $row = $result ? $result->fetch_assoc() : null;
     return is_array($row) ? $row : [];
@@ -135,6 +184,7 @@ function data_ai_mysqli_row(mysqli $conn, string $sql): array
 
 function data_ai_pdo_table_exists(PDO $pdo, string $table): bool
 {
+    data_ai_record_query('CRM', 'SHOW TABLES LIKE "' . $table . '"');
     $stmt = $pdo->prepare('SHOW TABLES LIKE ?');
     $stmt->execute([$table]);
     return (bool)$stmt->fetchColumn();
@@ -142,6 +192,7 @@ function data_ai_pdo_table_exists(PDO $pdo, string $table): bool
 
 function data_ai_mysqli_table_exists(mysqli $conn, string $table): bool
 {
+    data_ai_record_query('Ficha/Agenda', 'SHOW TABLES LIKE "' . $table . '"');
     $stmt = $conn->prepare('SHOW TABLES LIKE ?');
     $stmt->bind_param('s', $table);
     $stmt->execute();
@@ -235,6 +286,12 @@ function data_ai_whatsapp_context(PDO $pdo): array
 
         if ($ids) {
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            data_ai_record_query('CRM', "
+                SELECT cliente_id, texto, data, from_me, tipo, media_url, transcricao
+                FROM crm_whatsapp_mensagens
+                WHERE cliente_id IN ($placeholders)
+                ORDER BY data DESC, id DESC
+            ");
             $stmt = $pdo->prepare("
                 SELECT cliente_id, texto, data, from_me, tipo, media_url, transcricao
                 FROM crm_whatsapp_mensagens
@@ -403,6 +460,7 @@ function data_ai_finance_context(): array
 {
     return data_ai_safe_section(static function (): array {
         $path = __DIR__ . '/data/finance_expenses.json';
+        data_ai_record_query('Financeiro', 'READ JSON crm/data/finance_expenses.json');
         $expenses = [];
         if (is_file($path) && filesize($path) > 2) {
             $decoded = json_decode((string)file_get_contents($path), true);
@@ -466,6 +524,7 @@ function data_ai_build_context(string $question): array
 
 function data_ai_ask(string $question): array
 {
+    data_ai_query_log([]);
     $question = trim($question);
     if ($question === '') {
         return ['ok' => false, 'error' => 'Digite uma pergunta para o assistente.'];
@@ -538,6 +597,10 @@ function data_ai_ask(string $question): array
     if (!$transparency) {
         $transparency = data_ai_context_notes($context);
     }
+    $queries = data_ai_public_queries();
+    if ($queries) {
+        $transparency[] = 'Consultas de leitura registradas para estudo: ' . count($queries) . '.';
+    }
 
     if ($answer === '') {
         return ['ok' => false, 'error' => 'Ollama nao retornou texto.'];
@@ -547,6 +610,7 @@ function data_ai_ask(string $question): array
         'ok' => true,
         'answer' => $answer,
         'transparency' => $transparency,
+        'queries' => $queries,
         'model' => $model,
         'read_only' => true,
         'generated_at' => $context['gerado_em'],

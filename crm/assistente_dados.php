@@ -120,6 +120,100 @@ function data_ai_h($value): string
             padding-left: 18px;
         }
         .thinking li + li { margin-top: 6px; }
+        .progress-panel {
+            margin-top: 18px;
+            padding: 16px;
+            border: 1px solid rgba(56, 189, 248, 0.22);
+            border-radius: 16px;
+            background: rgba(2, 6, 23, 0.42);
+        }
+        .progress-track {
+            overflow: hidden;
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.18);
+        }
+        .progress-bar {
+            width: 18%;
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #67e8f9, #22c55e);
+            transition: width 0.35s ease;
+        }
+        .progress-steps {
+            display: grid;
+            gap: 8px;
+            margin-top: 14px;
+        }
+        .progress-step {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            color: rgba(226, 232, 240, 0.58);
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+        .progress-step::before {
+            content: "";
+            width: 9px;
+            height: 9px;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.36);
+        }
+        .progress-step.is-active {
+            color: #e0f2fe;
+        }
+        .progress-step.is-active::before {
+            background: #38bdf8;
+            box-shadow: 0 0 0 5px rgba(56, 189, 248, 0.14);
+        }
+        .progress-step.is-done {
+            color: rgba(187, 247, 208, 0.76);
+        }
+        .progress-step.is-done::before {
+            background: #22c55e;
+        }
+        .query-panel {
+            margin-bottom: 18px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 14px;
+            background: rgba(15, 23, 42, 0.42);
+        }
+        .query-panel summary {
+            cursor: pointer;
+            padding: 12px 14px;
+            color: rgba(219, 234, 254, 0.84);
+            font-size: 0.86rem;
+            font-weight: 900;
+            list-style: none;
+        }
+        .query-panel summary::-webkit-details-marker { display: none; }
+        .query-list {
+            display: grid;
+            gap: 10px;
+            max-height: 360px;
+            overflow: auto;
+            padding: 0 14px 14px;
+        }
+        .query-item {
+            border-radius: 12px;
+            background: rgba(2, 6, 23, 0.52);
+            padding: 11px 12px;
+        }
+        .query-source {
+            color: #93c5fd;
+            font-size: 0.78rem;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+        .query-sql {
+            margin-top: 6px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: rgba(226, 232, 240, 0.76);
+            font-size: 0.82rem;
+            line-height: 1.5;
+        }
         .dot {
             width: 8px;
             height: 8px;
@@ -159,6 +253,21 @@ function data_ai_h($value): string
                 </div>
             </form>
 
+            <div id="progressPanel" class="progress-panel hidden">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                    <strong id="progressTitle">Preparando consulta...</strong>
+                    <span id="progressTimer" class="muted text-sm">0s</span>
+                </div>
+                <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
+                <div class="progress-steps">
+                    <div class="progress-step" data-step="0">Validando pergunta</div>
+                    <div class="progress-step" data-step="1">Lendo CRM, WhatsApp, ficha e agenda</div>
+                    <div class="progress-step" data-step="2">Montando contexto somente leitura</div>
+                    <div class="progress-step" data-step="3">Consultando o modelo local</div>
+                    <div class="progress-step" data-step="4">Organizando resposta e transparência</div>
+                </div>
+            </div>
+
             <div id="answerPanel" class="mt-6 panel p-5 hidden">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                     <h2 class="text-xl font-black">Resposta</h2>
@@ -168,6 +277,10 @@ function data_ai_h($value): string
                     <div class="thinking-title">Transparencia da analise</div>
                     <ul id="thinkingList"></ul>
                 </div>
+                <details id="queryPanel" class="query-panel hidden">
+                    <summary id="querySummary">Consultas usadas</summary>
+                    <div id="queryList" class="query-list"></div>
+                </details>
                 <div id="answer" class="answer text-slate-100"></div>
             </div>
         </div>
@@ -202,6 +315,59 @@ const answer = document.getElementById('answer');
 const answerMeta = document.getElementById('answerMeta');
 const thinkingPanel = document.getElementById('thinkingPanel');
 const thinkingList = document.getElementById('thinkingList');
+const progressPanel = document.getElementById('progressPanel');
+const progressTitle = document.getElementById('progressTitle');
+const progressTimer = document.getElementById('progressTimer');
+const progressBar = document.getElementById('progressBar');
+const progressSteps = Array.from(document.querySelectorAll('.progress-step'));
+const queryPanel = document.getElementById('queryPanel');
+const querySummary = document.getElementById('querySummary');
+const queryList = document.getElementById('queryList');
+
+let progressInterval = null;
+const progressPhases = [
+    { after: 0, step: 0, width: 12, title: 'Validando pergunta...' },
+    { after: 2, step: 1, width: 32, title: 'Lendo dados do sistema...' },
+    { after: 5, step: 2, width: 52, title: 'Montando contexto somente leitura...' },
+    { after: 9, step: 3, width: 76, title: 'Consultando o modelo local...' },
+    { after: 35, step: 3, width: 86, title: 'Modelo ainda trabalhando, sem travar...' },
+    { after: 75, step: 3, width: 92, title: 'Ainda aguardando resposta do modelo...' }
+];
+
+function updateProgressStep(activeStep) {
+    progressSteps.forEach((step) => {
+        const index = Number(step.dataset.step || 0);
+        step.classList.toggle('is-done', index < activeStep);
+        step.classList.toggle('is-active', index === activeStep);
+    });
+}
+
+function setProgress(seconds) {
+    const phase = progressPhases.reduce((selected, item) => seconds >= item.after ? item : selected, progressPhases[0]);
+    progressTitle.textContent = phase.title;
+    progressTimer.textContent = `${seconds}s`;
+    progressBar.style.width = `${phase.width}%`;
+    updateProgressStep(phase.step);
+}
+
+function startProgress() {
+    const startedAt = Date.now();
+    clearInterval(progressInterval);
+    progressPanel.classList.remove('hidden');
+    setProgress(0);
+    progressInterval = setInterval(() => {
+        setProgress(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+}
+
+function finishProgress(success) {
+    clearInterval(progressInterval);
+    progressInterval = null;
+    progressBar.style.width = '100%';
+    progressTitle.textContent = success ? 'Resposta pronta.' : 'Consulta encerrada.';
+    updateProgressStep(success ? 4 : 3);
+    window.setTimeout(() => progressPanel.classList.add('hidden'), 900);
+}
 
 document.querySelectorAll('.example').forEach((item) => {
     item.addEventListener('click', () => {
@@ -221,9 +387,12 @@ form.addEventListener('submit', async (event) => {
 
     button.disabled = true;
     statusText.textContent = 'Lendo dados e consultando a IA... modelos maiores podem demorar um pouco.';
+    startProgress();
     answerPanel.classList.add('hidden');
     thinkingPanel.classList.add('hidden');
     thinkingList.innerHTML = '';
+    queryPanel.classList.add('hidden');
+    queryList.innerHTML = '';
     answer.textContent = '';
     answerMeta.textContent = '';
 
@@ -250,14 +419,33 @@ form.addEventListener('submit', async (event) => {
             thinkingList.appendChild(item);
         });
         thinkingPanel.classList.toggle('hidden', notes.length === 0);
+        const queries = Array.isArray(data.queries) ? data.queries : [];
+        queryList.innerHTML = '';
+        queries.forEach((query, index) => {
+            const item = document.createElement('div');
+            item.className = 'query-item';
+            const source = document.createElement('div');
+            source.className = 'query-source';
+            source.textContent = `${index + 1}. ${query.fonte || 'Fonte'}`;
+            const sql = document.createElement('div');
+            sql.className = 'query-sql';
+            sql.textContent = query.sql || '';
+            item.appendChild(source);
+            item.appendChild(sql);
+            queryList.appendChild(item);
+        });
+        querySummary.textContent = `Consultas usadas (${queries.length})`;
+        queryPanel.classList.toggle('hidden', queries.length === 0);
         answerMeta.textContent = `${data.model || 'IA'} - ${data.generated_at || ''}`;
         answerPanel.classList.remove('hidden');
         statusText.textContent = 'Resposta gerada com dados somente-leitura.';
+        finishProgress(true);
     } catch (error) {
         answer.textContent = error.message || 'Erro inesperado.';
         answerMeta.textContent = 'Falha';
         answerPanel.classList.remove('hidden');
         statusText.textContent = 'Nao foi possivel consultar a IA agora.';
+        finishProgress(false);
     } finally {
         button.disabled = false;
     }
