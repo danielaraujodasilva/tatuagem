@@ -784,7 +784,8 @@ function getActive() {
 }
 
 function assignmentOwner(item) {
-    if ((item?.modo || '').toLowerCase() !== 'humano') return { id: '', nome: '' };
+    const mode = String(item?.modo || item?.modo_atendimento || '').toLowerCase();
+    if (mode !== 'humano') return { id: '', nome: '' };
     return {
         id: String(item?.atendenteId || item?.atendente_id || '').trim(),
         nome: String(item?.atendente || '').trim(),
@@ -822,6 +823,12 @@ function conversationReadKey(itemOrId) {
     return String(raw || '').replace(/^wa_/, '');
 }
 
+function conversationByReadKey(itemOrId) {
+    if (typeof itemOrId === 'object' && itemOrId !== null) return itemOrId;
+    const id = conversationReadKey(itemOrId);
+    return conversations.find(item => conversationReadKey(item) === id) || null;
+}
+
 function unreadCount(item) {
     const messages = Array.isArray(item?.mensagens) ? item.mensagens : [];
     const lastRead = parseChatDate(readState[conversationReadKey(item)] || '');
@@ -852,7 +859,10 @@ async function loadReadState() {
 }
 
 async function markConversationRead(itemOrId) {
-    const id = conversationReadKey(itemOrId);
+    const item = conversationByReadKey(itemOrId);
+    if (!item || !canInteract(item)) return;
+
+    const id = conversationReadKey(item);
     if (!id) return;
 
     readState[id] = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -1568,6 +1578,7 @@ document.getElementById('assumeButton').addEventListener('click', () => {
         .then(data => {
             if (!data.ok) throw new Error(data.message || 'Erro ao assumir conversa');
             updateActiveFromPayload(data.cliente);
+            markConversationRead(data.cliente || item);
         })
         .catch(error => alert(error.message));
 });
@@ -1580,6 +1591,7 @@ document.getElementById('humanModeButton').addEventListener('click', () => {
         .then(data => {
             if (!data.ok) throw new Error(data.message || 'Erro ao alternar atendimento');
             updateActiveFromPayload(data.cliente);
+            markConversationRead(data.cliente || item);
         })
         .catch(error => alert(error.message));
 });

@@ -6,7 +6,8 @@ if (!function_exists('team_default_tattoo_artists')) {
     function team_default_tattoo_artists(): array
     {
         return [[
-            'id' => 'daniel',
+            'id' => 'user-1',
+            'usuario_id' => 1,
             'nome' => 'Daniel Araujo',
             'cor' => '#ef4444',
             'ativo' => true,
@@ -89,7 +90,7 @@ if (!function_exists('team_normalize_people')) {
             $userId = (int)($person['usuario_id'] ?? $person['user_id'] ?? 0);
             $id = trim((string)($person['id'] ?? ''));
             if ($id === '') {
-                $id = $kind === 'attendant' && $userId > 0
+                $id = in_array($kind, ['attendant', 'tattoo_artist'], true) && $userId > 0
                     ? 'user-' . $userId
                     : team_person_id($kind === 'tattoo_artist' ? 'tattoo' : 'attendant', $name, $email);
             }
@@ -101,6 +102,8 @@ if (!function_exists('team_normalize_people')) {
             ];
 
             if ($kind === 'tattoo_artist') {
+                $item['usuario_id'] = $userId;
+                $item['email'] = $email;
                 $item['cor'] = team_color($person['cor'] ?? '', $index);
             } else {
                 $item['usuario_id'] = $userId;
@@ -179,6 +182,32 @@ if (!function_exists('team_default_tattoo_artist')) {
     function team_default_tattoo_artist(): array
     {
         return team_active_tattoo_artists()[0] ?? team_default_tattoo_artists()[0];
+    }
+}
+
+if (!function_exists('team_current_tattoo_artist')) {
+    function team_current_tattoo_artist(?array $user = null): ?array
+    {
+        $user = $user ?: (function_exists('current_user') ? (current_user() ?: []) : []);
+        $userId = (int)($user['id'] ?? 0);
+        $email = strtolower(trim((string)($user['email'] ?? '')));
+        $name = strtolower(trim((string)($user['nome'] ?? $user['username'] ?? '')));
+
+        foreach (team_active_tattoo_artists() as $artist) {
+            if ($userId > 0 && ((int)($artist['usuario_id'] ?? 0) === $userId || (string)($artist['id'] ?? '') === 'user-' . $userId)) {
+                return $artist;
+            }
+
+            if ($email !== '' && strtolower(trim((string)($artist['email'] ?? ''))) === $email) {
+                return $artist;
+            }
+
+            if ($name !== '' && strtolower(trim((string)($artist['nome'] ?? ''))) === $name) {
+                return $artist;
+            }
+        }
+
+        return null;
     }
 }
 

@@ -299,16 +299,42 @@ $embedded = !empty($_GET['embed']) || !empty($_POST['embed']);
                         <div>
                             <span class="settings-kicker">Agenda</span>
                             <h2 class="text-xl font-black mt-1">Tatuadores</h2>
-                            <p class="settings-muted text-sm mt-1">Esses nomes aparecem na agenda e no agendamento pelo WhatsApp. Horarios iguais sao permitidos quando o tatuador e diferente.</p>
+                            <p class="settings-muted text-sm mt-1">Selecione os usuarios cadastrados que tatuam. Isso libera agenda por tatuador e evita conflitos apenas dentro da agenda de cada pessoa.</p>
                         </div>
                         <button type="button" class="settings-mini-button" data-add-team-row="tattooArtistsList">+ Tatuador</button>
                     </div>
 
                     <div id="tattooArtistsList" class="space-y-3" data-team-kind="tattoo_artist">
                         <?php foreach ($tattooArtists as $artist): ?>
-                            <div class="settings-row settings-team-row p-3 grid grid-cols-1 md:grid-cols-[1fr_72px_auto_auto] gap-3 items-center" data-team-row>
+                            <div class="settings-row settings-team-row p-3 grid grid-cols-1 md:grid-cols-[1.4fr_1fr_72px_auto_auto] gap-3 items-center" data-team-row>
                                 <input type="hidden" data-field="id" value="<?= htmlspecialchars((string)$artist['id'], ENT_QUOTES, 'UTF-8') ?>">
-                                <input type="text" data-field="nome" class="settings-input px-3 py-2" value="<?= htmlspecialchars((string)$artist['nome'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Nome do tatuador">
+                                <input type="hidden" data-field="usuario_id" value="<?= htmlspecialchars((string)($artist['usuario_id'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                                <input type="hidden" data-field="nome" value="<?= htmlspecialchars((string)$artist['nome'], ENT_QUOTES, 'UTF-8') ?>">
+                                <input type="hidden" data-field="email" value="<?= htmlspecialchars((string)($artist['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                                <select class="settings-input px-3 py-2" data-user-select>
+                                    <option value="">Selecione um funcionario</option>
+                                    <?php foreach ($staffUsers as $staff): ?>
+                                        <?php
+                                            $staffId = (int)($staff['id'] ?? 0);
+                                            $staffEmail = (string)($staff['email'] ?: $staff['username'] ?? '');
+                                            $staffName = (string)($staff['nome'] ?: $staff['username'] ?? $staffEmail);
+                                            $selected = (int)($artist['usuario_id'] ?? 0) === $staffId
+                                                || (string)($artist['id'] ?? '') === 'user-' . $staffId
+                                                || strtolower((string)($artist['email'] ?? '')) === strtolower($staffEmail)
+                                                || strtolower((string)($artist['nome'] ?? '')) === strtolower($staffName);
+                                        ?>
+                                        <option value="<?= $staffId ?>"
+                                                data-id="user-<?= $staffId ?>"
+                                                data-nome="<?= htmlspecialchars($staffName, ENT_QUOTES, 'UTF-8') ?>"
+                                                data-email="<?= htmlspecialchars($staffEmail, ENT_QUOTES, 'UTF-8') ?>"
+                                                <?= $selected ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($staffName . ' - ' . $staffEmail, ENT_QUOTES, 'UTF-8') ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="settings-muted text-sm" data-user-summary>
+                                    <?= htmlspecialchars((string)$artist['nome'] . (($artist['email'] ?? '') ? ' - ' . (string)$artist['email'] : ''), ENT_QUOTES, 'UTF-8') ?>
+                                </div>
                                 <input type="color" data-field="cor" class="settings-input h-[44px] w-full p-1" value="<?= htmlspecialchars((string)($artist['cor'] ?? '#ef4444'), ENT_QUOTES, 'UTF-8') ?>">
                                 <label class="inline-flex items-center gap-2 font-bold text-sm">
                                     <input type="checkbox" data-field="ativo" class="settings-checkbox" <?= !empty($artist['ativo']) ? 'checked' : '' ?>>
@@ -513,9 +539,16 @@ const staffOptionsHtml = staffUsers.map(user => `
 `).join('');
 const teamTemplates = {
     tattooArtistsList: `
-        <div class="settings-row settings-team-row p-3 grid grid-cols-1 md:grid-cols-[1fr_72px_auto_auto] gap-3 items-center" data-team-row>
+        <div class="settings-row settings-team-row p-3 grid grid-cols-1 md:grid-cols-[1.4fr_1fr_72px_auto_auto] gap-3 items-center" data-team-row>
             <input type="hidden" data-field="id" value="">
-            <input type="text" data-field="nome" class="settings-input px-3 py-2" value="" placeholder="Nome do tatuador">
+            <input type="hidden" data-field="usuario_id" value="">
+            <input type="hidden" data-field="nome" value="">
+            <input type="hidden" data-field="email" value="">
+            <select class="settings-input px-3 py-2" data-user-select>
+                <option value="">Selecione um funcionario</option>
+                ${staffOptionsHtml}
+            </select>
+            <div class="settings-muted text-sm" data-user-summary>Sem funcionario selecionado</div>
             <input type="color" data-field="cor" class="settings-input h-[44px] w-full p-1" value="#ef4444">
             <label class="inline-flex items-center gap-2 font-bold text-sm">
                 <input type="checkbox" data-field="ativo" class="settings-checkbox" checked>
@@ -620,7 +653,7 @@ document.addEventListener('change', event => {
     }
 });
 
-document.querySelectorAll('#attendantsList [data-team-row]').forEach(syncAttendantRow);
+document.querySelectorAll('#attendantsList [data-team-row], #tattooArtistsList [data-team-row]').forEach(syncAttendantRow);
 
 if (settingsForm) {
     settingsForm.addEventListener('submit', () => {

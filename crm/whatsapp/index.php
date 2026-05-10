@@ -1305,8 +1305,13 @@ $currentAttendant = team_current_attendant($currentUser);
             }
         }
 
-        async function markConversationRead(id) {
-            const normalizedId = String(id || '').replace(/^wa_/, '');
+        async function markConversationRead(clienteOrId) {
+            const cliente = typeof clienteOrId === 'object' && clienteOrId !== null
+                ? clienteOrId
+                : state.clientes.find(item => String(item.id) === String(clienteOrId || '').replace(/^wa_/, ''));
+            if (!cliente || !canInteract(cliente)) return;
+
+            const normalizedId = String(cliente.id || clienteOrId || '').replace(/^wa_/, '');
             if (!normalizedId) return;
 
             state.readState[normalizedId] = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -1431,7 +1436,7 @@ $currentAttendant = team_current_attendant($currentUser);
             el.chatPanel.classList.remove('wa-hidden');
             el.app.classList.add('chat-open');
             loadMessages(true);
-            markConversationRead(cliente.id);
+            markConversationRead(cliente);
             startMessagePolling();
             if (canInteract(cliente)) el.input.focus();
         }
@@ -1502,7 +1507,7 @@ $currentAttendant = team_current_attendant($currentUser);
             const data = await response.json();
             if (!data.ok || !Array.isArray(data.mensagens)) return;
             renderMessages(data.mensagens, stick);
-            markConversationRead(state.activeId);
+            markConversationRead(findActive());
         }
 
         function renderMedia(msg) {
@@ -2040,6 +2045,7 @@ $currentAttendant = team_current_attendant($currentUser);
                 .then(data => {
                     if (!data.ok) throw new Error(data.message || 'Erro ao assumir conversa');
                     normalizeClientPayload(data.cliente);
+                    markConversationRead(data.cliente || cliente);
                     el.input.focus();
                 })
                 .catch(error => alert(error.message));
@@ -2052,6 +2058,7 @@ $currentAttendant = team_current_attendant($currentUser);
                 .then(data => {
                     if (!data.ok) throw new Error(data.message || 'Erro ao alternar atendimento');
                     normalizeClientPayload(data.cliente);
+                    markConversationRead(data.cliente || cliente);
                     el.input.focus();
                 })
                 .catch(error => alert(error.message));

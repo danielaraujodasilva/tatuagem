@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../auth/auth.php';
-require_staff();
+$currentUser = require_staff();
 require_once __DIR__ . '/../../includes/app_menu.php';
 require_once __DIR__ . '/../../includes/system_settings.php';
 require_once __DIR__ . '/../../includes/team_settings.php';
@@ -10,6 +10,7 @@ $agendaInitialDate = '';
 $valorPomadaAnestesica = system_pomada_unit_price();
 $tattooArtists = team_active_tattoo_artists();
 $defaultTattooArtist = team_default_tattoo_artist();
+$currentTattooArtist = team_current_tattoo_artist($currentUser);
 
 if (empty($_GET['data'])) {
     try {
@@ -81,6 +82,17 @@ if (empty($_GET['data'])) {
   }
   .ficha-agenda-page .fc .fc-daygrid-day-frame { padding: 10px !important; }
   .ficha-agenda-page .fc .fc-daygrid-day-events { gap: 7px; padding: 5px 8px 12px; }
+  .agenda-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .agenda-toolbar .form-select {
+    width: min(100%, 320px);
+  }
 </style>
 </head>
 <body class="ficha-body ficha-agenda-page">
@@ -94,6 +106,25 @@ if (empty($_GET['data'])) {
 
     <div class="ficha-content">
       <div id="agendaAlert" class="ficha-alert ficha-alert-info mb-4" style="display:none;"></div>
+
+      <div class="agenda-toolbar">
+        <div>
+          <div class="ficha-kicker">Filtro</div>
+          <h2 class="ficha-panel-title mb-0">Agenda por tatuador</h2>
+        </div>
+        <select id="artistFilter" class="form-select" aria-label="Filtrar agenda por tatuador">
+          <option value="all">Todos os tatuadores</option>
+          <?php if ($currentTattooArtist): ?>
+            <option value="<?= htmlspecialchars((string)$currentTattooArtist['id'], ENT_QUOTES, 'UTF-8') ?>">Minha agenda</option>
+          <?php endif; ?>
+          <?php foreach ($tattooArtists as $artist): ?>
+            <?php if ($currentTattooArtist && (string)$currentTattooArtist['id'] === (string)$artist['id']) { continue; } ?>
+            <option value="<?= htmlspecialchars((string)$artist['id'], ENT_QUOTES, 'UTF-8') ?>">
+              <?= htmlspecialchars((string)$artist['nome'], ENT_QUOTES, 'UTF-8') ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
 
       <div class="ficha-calendar-shell ficha-calendar-shell-full">
         <section class="ficha-calendar-panel">
@@ -235,12 +266,14 @@ document.addEventListener('DOMContentLoaded', function () {
   const modal = new bootstrap.Modal(modalElement);
   const form = document.getElementById('eventForm');
   const calendarEl = document.getElementById('calendar');
+  const artistFilter = document.getElementById('artistFilter');
   const urlParams = new URLSearchParams(window.location.search);
   const serverInitialDate = <?= json_encode($agendaInitialDate, JSON_UNESCAPED_UNICODE) ?>;
   const initialDate = urlParams.get('data') || serverInitialDate || undefined;
   const pomadaUnitPrice = <?= json_encode($valorPomadaAnestesica) ?>;
   const tattooArtists = <?= json_encode($tattooArtists, JSON_UNESCAPED_UNICODE) ?>;
   const defaultTattooArtistId = <?= json_encode((string)($defaultTattooArtist['id'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
+  const currentTattooArtistId = <?= json_encode((string)($currentTattooArtist['id'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
   const highlightedEventId = urlParams.get('agendamento_id') || '';
   const referenceOverlay = document.getElementById('referenceOverlay');
   const referenceOverlayImage = document.getElementById('referenceOverlayImage');
@@ -323,7 +356,11 @@ document.addEventListener('DOMContentLoaded', function () {
           throw new Error(data.message || data.error || 'Nao foi possivel carregar os agendamentos.');
         }
 
-        successCallback(data);
+        const selectedArtist = artistFilter?.value || 'all';
+        const filtered = selectedArtist === 'all'
+          ? data
+          : data.filter(event => String(event.extendedProps?.tatuador_id || '') === String(selectedArtist));
+        successCallback(filtered);
       } catch (error) {
         showAlert((error.message || 'Nao foi possivel carregar os agendamentos.') + ' Recarregue a pagina ou faca login novamente.', 'danger');
         failureCallback(error);
@@ -362,6 +399,12 @@ document.addEventListener('DOMContentLoaded', function () {
       quickReschedule(info.event);
     }
   });
+
+  const requestedArtist = urlParams.get('tatuador') || '';
+  if (artistFilter && requestedArtist && Array.from(artistFilter.options).some(option => option.value === requestedArtist)) {
+    artistFilter.value = requestedArtist;
+  }
+  artistFilter?.addEventListener('change', () => calendar.refetchEvents());
 
   form.addEventListener('input', updateSummaryCards);
   fields.clienteBusca.addEventListener('input', searchEventClients);

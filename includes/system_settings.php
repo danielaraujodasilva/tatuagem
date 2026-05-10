@@ -27,8 +27,10 @@ if (!function_exists('system_settings_defaults')) {
             'openai_max_history' => 20,
             'tattoo_artists' => [
                 [
-                    'id' => 'daniel',
+                    'id' => 'user-1',
+                    'usuario_id' => 1,
                     'nome' => 'Daniel Araujo',
+                    'email' => 'danielaraujodasilva@gmail.com',
                     'cor' => '#ef4444',
                     'ativo' => true,
                 ],

@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/../../auth/auth.php';
 require_staff();
+require_once __DIR__ . '/../data_store.php';
+require_once __DIR__ . '/../../includes/team_settings.php';
 
 header('Content-Type: application/json; charset=utf-8');
 date_default_timezone_set('America/Sao_Paulo');
@@ -35,6 +37,17 @@ function read_state_save(array $state): void
     unlink($tmp);
 }
 
+function read_state_cliente_por_id(string $id): ?array
+{
+    foreach (crmCarregarClientes() as $cliente) {
+        if ((string)($cliente['id'] ?? '') === $id) {
+            return $cliente;
+        }
+    }
+
+    return null;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     echo json_encode(['ok' => true, 'read' => read_state_load()], JSON_UNESCAPED_UNICODE);
     exit;
@@ -55,6 +68,14 @@ $id = preg_replace('/^wa_/', '', trim((string)($payload['id'] ?? '')));
 if ($id === '') {
     http_response_code(422);
     echo json_encode(['ok' => false, 'error' => 'Conversa nao informada'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+$cliente = read_state_cliente_por_id($id);
+$atendenteAtual = team_current_attendant(current_user() ?: []);
+if (!$cliente || !team_conversation_owned_by($cliente, $atendenteAtual)) {
+    http_response_code(403);
+    echo json_encode(['ok' => false, 'error' => 'Assuma a conversa antes de marcar como lida.'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
