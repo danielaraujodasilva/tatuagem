@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS clientes (
 CREATE TABLE IF NOT EXISTS tatuagens (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     cliente_id INT UNSIGNED NULL,
+    tatuador_id VARCHAR(80) NULL,
+    tatuador_nome VARCHAR(150) NULL,
     descricao VARCHAR(255) NOT NULL,
     valor DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     data_tatuagem DATE NOT NULL,
@@ -40,6 +42,7 @@ CREATE TABLE IF NOT EXISTS tatuagens (
     referencia_arte VARCHAR(255) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     KEY idx_tatuagens_cliente (cliente_id),
+    KEY idx_tatuagens_tatuador_data (tatuador_id, data_tatuagem, hora_inicio),
     KEY idx_tatuagens_data (data_tatuagem),
     CONSTRAINT fk_tatuagens_clientes
         FOREIGN KEY (cliente_id) REFERENCES clientes(id)

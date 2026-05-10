@@ -1,11 +1,15 @@
 <?php
 require_once __DIR__ . '/../auth/auth.php';
-require_staff();
+$currentUser = require_staff();
 require_once __DIR__ . '/data_store.php';
 require_once __DIR__ . '/../includes/system_settings.php';
+require_once __DIR__ . '/../includes/team_settings.php';
 
 date_default_timezone_set('America/Sao_Paulo');
 $valorPomadaAnestesica = system_pomada_unit_price();
+$tattooArtists = team_active_tattoo_artists();
+$defaultTattooArtist = team_default_tattoo_artist();
+$currentAttendant = team_current_attendant($currentUser);
 
 function atendimento_h($value): string
 {
@@ -123,6 +127,7 @@ foreach ($clientesRaw as $cliente) {
         'numeroLimpo' => atendimento_numero_limpo((string)($cliente['numero'] ?? '')),
         'status' => $status,
         'statusLabel' => atendimento_status_label($status),
+        'atendenteId' => (string)($cliente['atendente_id'] ?? ''),
         'atendente' => $atendente !== '' ? $atendente : 'Bot',
         'modo' => $modo,
         'interesse' => (string)($cliente['interesse'] ?? ''),
@@ -577,6 +582,8 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
                         </div>
                     </div>
 
+                    <div id="assignmentNotice" class="hidden mx-4 mt-4 crm-card p-3 text-sm font-bold"></div>
+
                     <div id="chatMessages" class="chat-messages"></div>
 
                     <div id="emojiPanel" class="emoji-panel hidden">
@@ -671,6 +678,14 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
                     <label class="crm-muted text-sm block mb-2" for="scheduleData">Data *</label>
                     <input type="date" id="scheduleData" name="data_tatuagem" required class="crm-input">
                 </div>
+                <div>
+                    <label class="crm-muted text-sm block mb-2" for="scheduleArtist">Tatuador *</label>
+                    <select id="scheduleArtist" name="tatuador_id" required class="crm-select">
+                        <?php foreach ($tattooArtists as $artist): ?>
+                            <option value="<?= atendimento_h((string)$artist['id']) ?>"><?= atendimento_h((string)$artist['nome']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="crm-muted text-sm block mb-2" for="scheduleHoraInicio">Hora inicio *</label>
@@ -724,6 +739,8 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
 const conversations = <?= json_encode($conversas, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 const quickReplies = <?= json_encode($respostasRapidas, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 const pomadaUnitPrice = <?= json_encode($valorPomadaAnestesica) ?>;
+const currentAttendant = <?= json_encode($currentAttendant, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+const defaultTattooArtistId = <?= json_encode((string)($defaultTattooArtist['id'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
 const statusLabels = {
     novo: 'Novo',
     lead_quente: 'Lead quente',
@@ -764,6 +781,32 @@ function mediaSource(path) {
 
 function getActive() {
     return conversations.find(item => item.id === activeId) || conversations[0] || null;
+}
+
+function assignmentOwner(item) {
+    if ((item?.modo || '').toLowerCase() !== 'humano') return { id: '', nome: '' };
+    return {
+        id: String(item?.atendenteId || item?.atendente_id || '').trim(),
+        nome: String(item?.atendente || '').trim(),
+    };
+}
+
+function isAssignedToMe(item) {
+    const owner = assignmentOwner(item);
+    if (!owner.id && !owner.nome) return false;
+    const myId = String(currentAttendant?.id || '').trim();
+    const myName = String(currentAttendant?.nome || '').trim().toLowerCase();
+    if (owner.id && myId && owner.id === myId) return true;
+    return !owner.id && owner.nome && owner.nome.toLowerCase() === myName;
+}
+
+function isAssignedToOther(item) {
+    const owner = assignmentOwner(item);
+    return Boolean((owner.id || owner.nome) && !isAssignedToMe(item));
+}
+
+function canInteract(item) {
+    return isAssignedToMe(item);
 }
 
 function parseChatDate(value) {
@@ -1048,6 +1091,8 @@ function renderActiveConversation(fetchFresh = false) {
     const assumeButton = document.getElementById('assumeButton');
     const statusSelect = document.getElementById('statusSelect');
     const scheduleButton = document.getElementById('scheduleButton');
+    const assignmentNotice = document.getElementById('assignmentNotice');
+    const input = document.getElementById('messageInput');
 
     if (!item) {
         document.getElementById('chatName').textContent = 'Nenhuma conversa';
@@ -1056,12 +1101,30 @@ function renderActiveConversation(fetchFresh = false) {
         assumeButton.disabled = true;
         statusSelect.disabled = true;
         scheduleButton.disabled = true;
+        assignmentNotice.classList.add('hidden');
         return;
     }
 
-    assumeButton.disabled = false;
-    statusSelect.disabled = false;
-    scheduleButton.disabled = false;
+    const owner = assignmentOwner(item);
+    const mine = isAssignedToMe(item);
+    const other = isAssignedToOther(item);
+    assumeButton.disabled = mine || other;
+    statusSelect.disabled = !mine;
+    scheduleButton.disabled = !mine;
+    input.disabled = !mine;
+    input.placeholder = mine ? 'Digite uma mensagem ou clique em uma resposta pronta...' : (other ? 'Conversa atribuida a outro atendente' : 'Assuma a conversa para responder');
+    document.getElementById('emojiButton').disabled = !mine;
+    document.getElementById('fileButton').disabled = !mine;
+    document.getElementById('recordAudioBtn').disabled = !mine;
+    document.querySelector('#messageForm button[type="submit"]').disabled = !mine;
+    document.getElementById('botModeButton').disabled = !mine;
+    document.getElementById('humanModeButton').disabled = other;
+    assumeButton.innerHTML = mine ? '<i class="fa-solid fa-user-check"></i> Assumido' : '<i class="fa-solid fa-user-check"></i> Assumir';
+    assignmentNotice.classList.remove('hidden');
+    assignmentNotice.classList.toggle('border-amber-500/30', other || !mine);
+    assignmentNotice.textContent = mine
+        ? 'Conversa assumida por voce. Outros atendentes visualizam, mas nao interagem.'
+        : (other ? `Somente visualizacao: ${owner.nome || 'outro atendente'} ja assumiu esta conversa.` : 'Conversa disponivel. Clique em Assumir para responder e alterar dados.');
     document.getElementById('chatName').textContent = item.nome;
     document.getElementById('chatMeta').textContent = `${item.numero || 'sem telefone'} • ${item.origem || 'WhatsApp'} • ${item.interesse || 'sem interesse definido'}`;
     document.getElementById('modeBadge').textContent = item.modo === 'humano' ? `Humano: ${item.atendente}` : 'Bot em atendimento';
@@ -1120,6 +1183,7 @@ function renderReplies() {
 
     list.querySelectorAll('.reply-card').forEach(button => {
         button.addEventListener('click', () => {
+            if (!canInteract(getActive())) return;
             const reply = quickReplies.find(item => item.id === button.dataset.replyId);
             const input = document.getElementById('messageInput');
             input.value = reply?.texto || '';
@@ -1133,6 +1197,7 @@ function updateActiveFromPayload(cliente) {
     if (!item || !cliente) return;
 
     item.atendente = cliente.atendente || item.atendente;
+    item.atendenteId = cliente.atendente_id || cliente.atendenteId || '';
     item.modo = cliente.modo_atendimento || (item.atendente && item.atendente !== 'bot' ? 'humano' : 'bot');
     item.status = cliente.status || item.status;
     item.statusLabel = statusLabels[item.status] || item.status;
@@ -1300,6 +1365,10 @@ function setScheduleNotice(message, tone = 'amber') {
 function openScheduleOverlay() {
     const item = getActive();
     if (!item) return;
+    if (!canInteract(item)) {
+        alert(isAssignedToOther(item) ? 'Esta conversa ja foi assumida por outro atendente.' : 'Assuma a conversa antes de agendar.');
+        return;
+    }
 
     const form = document.getElementById('scheduleForm');
     form.reset();
@@ -1308,6 +1377,7 @@ function openScheduleOverlay() {
     document.getElementById('scheduleTelefone').value = item.numero || '';
     document.getElementById('scheduleDescricao').value = item.interesse || '';
     document.getElementById('schedulePomadas').value = '0';
+    document.getElementById('scheduleArtist').value = defaultTattooArtistId;
     updateScheduleTotalPreview();
     document.getElementById('scheduleClientSearch').value = item.numero || item.nome || '';
     document.getElementById('scheduleClientResults').classList.add('hidden');
@@ -1395,6 +1465,11 @@ function selectScheduleClient(cliente) {
 
 async function saveSchedule(event) {
     event.preventDefault();
+    const item = getActive();
+    if (!item || !canInteract(item)) {
+        alert('Assuma a conversa antes de salvar agendamento.');
+        return;
+    }
 
     const form = document.getElementById('scheduleForm');
     if (!form.reportValidity()) return;
@@ -1500,6 +1575,7 @@ document.getElementById('assumeButton').addEventListener('click', () => {
 document.getElementById('humanModeButton').addEventListener('click', () => {
     const item = getActive();
     if (!item) return;
+    if (isAssignedToOther(item)) return;
     postAttendanceAction({ action: 'assumir', id: item.id })
         .then(data => {
             if (!data.ok) throw new Error(data.message || 'Erro ao alternar atendimento');
@@ -1511,6 +1587,7 @@ document.getElementById('humanModeButton').addEventListener('click', () => {
 document.getElementById('botModeButton').addEventListener('click', () => {
     const item = getActive();
     if (!item) return;
+    if (!canInteract(item)) return;
     postAttendanceAction({ action: 'bot', id: item.id })
         .then(data => {
             if (!data.ok) throw new Error(data.message || 'Erro ao alternar atendimento');
@@ -1522,6 +1599,10 @@ document.getElementById('botModeButton').addEventListener('click', () => {
 document.getElementById('statusSelect').addEventListener('change', event => {
     const item = getActive();
     if (!item) return;
+    if (!canInteract(item)) {
+        renderActiveConversation();
+        return;
+    }
     postAttendanceAction({ action: 'status', id: item.id, status: event.target.value })
         .then(data => {
             if (!data.ok) throw new Error(data.message || 'Erro ao atualizar status');
@@ -1538,6 +1619,10 @@ document.getElementById('messageForm').addEventListener('submit', event => {
     const text = input.value.trim();
     const file = recordedAudioFile || fileInput.files?.[0];
     if (!item || (!text && !file)) return;
+    if (!canInteract(item)) {
+        alert(isAssignedToOther(item) ? 'Esta conversa ja foi assumida por outro atendente.' : 'Assuma a conversa antes de responder.');
+        return;
+    }
 
     const formData = new FormData();
     formData.append('numero', item.numero);

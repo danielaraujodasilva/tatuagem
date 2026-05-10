@@ -366,6 +366,7 @@ if ($clienteIndex === null) {
         "nome" => "Cliente",
         "status" => $automacaoLead['status_destino'] ?? "novo",
         "etapa" => primeiraEtapaDoFunil($conn),
+        "atendente_id" => "",
         "atendente" => "bot",
         "modo_atendimento" => "bot",
         "origem" => "WhatsApp",

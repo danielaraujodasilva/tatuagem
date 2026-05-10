@@ -3,6 +3,7 @@ require_once __DIR__ . '/../auth/auth.php';
 require_staff();
 require __DIR__ . '/../ficha/config/conexao.php';
 require_once __DIR__ . '/../includes/system_settings.php';
+require_once __DIR__ . '/../includes/team_settings.php';
 header('Content-Type: application/json; charset=utf-8');
 date_default_timezone_set('America/Sao_Paulo');
 
@@ -85,6 +86,8 @@ function agendaFindClientePorTelefone(mysqli $conn, string $telefone): ?array
 }
 
 try {
+    team_ensure_tatuagens_team_schema($conn);
+
     $clienteId = (int)agendaPost('cliente_id', '0');
     $nome = agendaPost('nome');
     $telefone = agendaPost('telefone');
@@ -96,6 +99,9 @@ try {
     $valor = (float)str_replace(',', '.', agendaPost('valor', '0'));
     $pomadas = max(0, (int)agendaPost('pomadas_anestesicas', '0'));
     $valor = system_apply_pomada_total($valor, $pomadas);
+    $artist = team_resolve_tattoo_artist(agendaPost('tatuador_id'), agendaPost('tatuador_nome'));
+    $artistId = (string)($artist['id'] ?? '');
+    $artistName = (string)($artist['nome'] ?? '');
 
     if ($data === '' || $horaInicio === '') {
         throw new RuntimeException('Informe data e horario para agendar.');
@@ -132,16 +138,22 @@ try {
 
     $referencia = agendaSalvarReferencia();
     $descricaoCompleta = $descricao !== '' ? $descricao : 'Tatuagem';
+    $conflict = team_validate_tattoo_schedule($conn, null, $artistId, $data, $horaInicio, $horaFim);
+    if ($conflict !== null) {
+        throw new RuntimeException($conflict);
+    }
 
     $stmt = $conn->prepare('
         INSERT INTO tatuagens
-            (cliente_id, descricao, valor, data_tatuagem, hora_inicio, hora_fim, status, observacoes, pomadas_anestesicas, referencia_arte)
+            (cliente_id, tatuador_id, tatuador_nome, descricao, valor, data_tatuagem, hora_inicio, hora_fim, status, observacoes, pomadas_anestesicas, referencia_arte)
         VALUES
-            (?, ?, ?, ?, ?, ?, "agendado", ?, ?, ?)
+            (?, ?, ?, ?, ?, ?, ?, ?, "agendado", ?, ?, ?)
     ');
     $stmt->bind_param(
-        'isdssssis',
+        'isssdssssis',
         $clienteId,
+        $artistId,
+        $artistName,
         $descricaoCompleta,
         $valor,
         $data,
@@ -167,6 +179,8 @@ try {
             t.hora_inicio,
             t.hora_fim,
             t.status,
+            t.tatuador_id,
+            t.tatuador_nome,
             c.nome AS cliente_nome
         FROM tatuagens t
         LEFT JOIN clientes c ON c.id = t.cliente_id
@@ -189,6 +203,8 @@ try {
         'agendamento_id' => $agendamentoId,
         'cliente_id' => $clienteId,
         'cliente_criado' => $clienteCriado,
+        'tatuador_id' => $artistId,
+        'tatuador_nome' => $artistName,
         'ficha_url' => '../ficha/cadastro_publico.php?cliente_id=' . $clienteId,
         'agenda_url' => '../ficha/agenda/?data=' . urlencode($data) . '&agendamento_id=' . $agendamentoId,
         'agenda_evento' => $agendaEvento,

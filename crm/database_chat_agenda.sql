@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS crm_whatsapp_clientes (
     status VARCHAR(40) NOT NULL DEFAULT 'novo',
     etapa VARCHAR(40) NULL,
     atendente VARCHAR(80) NULL,
+    atendente_id VARCHAR(80) NULL,
     modo_atendimento VARCHAR(20) NOT NULL DEFAULT 'bot',
     interesse TEXT NULL,
     valor DECIMAL(10,2) NOT NULL DEFAULT 0.00,
@@ -24,7 +25,8 @@ CREATE TABLE IF NOT EXISTS crm_whatsapp_clientes (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 ALTER TABLE crm_whatsapp_clientes
-    ADD COLUMN IF NOT EXISTS modo_atendimento VARCHAR(20) NOT NULL DEFAULT 'bot' AFTER atendente;
+    ADD COLUMN IF NOT EXISTS atendente_id VARCHAR(80) NULL AFTER atendente,
+    ADD COLUMN IF NOT EXISTS modo_atendimento VARCHAR(20) NOT NULL DEFAULT 'bot' AFTER atendente_id;
 
 CREATE TABLE IF NOT EXISTS crm_whatsapp_mensagens (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -57,9 +59,12 @@ CREATE DATABASE IF NOT EXISTS tatuagem_novo CHARACTER SET utf8mb4 COLLATE utf8mb
 USE tatuagem_novo;
 
 ALTER TABLE tatuagens
+    ADD COLUMN IF NOT EXISTS tatuador_id VARCHAR(80) NULL AFTER cliente_id,
+    ADD COLUMN IF NOT EXISTS tatuador_nome VARCHAR(150) NULL AFTER tatuador_id,
     ADD COLUMN IF NOT EXISTS observacoes TEXT NULL AFTER status,
     ADD COLUMN IF NOT EXISTS pomadas_anestesicas INT UNSIGNED NOT NULL DEFAULT 0 AFTER observacoes,
     ADD COLUMN IF NOT EXISTS referencia_arte VARCHAR(255) NULL AFTER pomadas_anestesicas;
 
 CREATE INDEX IF NOT EXISTS idx_tatuagens_status ON tatuagens (status);
+CREATE INDEX IF NOT EXISTS idx_tatuagens_tatuador_data ON tatuagens (tatuador_id, data_tatuagem, hora_inicio);
 CREATE INDEX IF NOT EXISTS idx_tatuagens_referencia_cliente ON tatuagens (cliente_id, data_tatuagem);

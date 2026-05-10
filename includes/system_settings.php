@@ -25,6 +25,22 @@ if (!function_exists('system_settings_defaults')) {
             'data_ai_timeout_seconds' => 240,
             'data_ai_num_predict' => 2400,
             'openai_max_history' => 20,
+            'tattoo_artists' => [
+                [
+                    'id' => 'daniel',
+                    'nome' => 'Daniel Araujo',
+                    'cor' => '#ef4444',
+                    'ativo' => true,
+                ],
+            ],
+            'attendants' => [
+                [
+                    'id' => 'daniel',
+                    'nome' => 'Daniel Araujo',
+                    'email' => 'danielaraujodasilva@gmail.com',
+                    'ativo' => true,
+                ],
+            ],
             'openai_business_prompt' => "Você é o assistente de atendimento de um estúdio de tatuagem. Responda em português do Brasil, de forma natural, curta e acolhedora. Ajude a entender a ideia da tatuagem, peça referência, tamanho aproximado em cm e local do corpo quando faltar informação. Não invente preço fechado, data disponível ou política que não esteja no contexto. Quando fizer sentido, conduza o cliente para orçamento e agendamento com um atendente.",
         ];
     }

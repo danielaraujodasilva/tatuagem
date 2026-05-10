@@ -50,6 +50,8 @@ CREATE INDEX IF NOT EXISTS idx_clientes_telefone ON clientes (telefone);
 CREATE TABLE IF NOT EXISTS tatuagens (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     cliente_id INT UNSIGNED NULL,
+    tatuador_id VARCHAR(80) NULL,
+    tatuador_nome VARCHAR(150) NULL,
     descricao VARCHAR(255) NOT NULL,
     valor DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     data_tatuagem DATE NOT NULL,
@@ -61,7 +63,9 @@ CREATE TABLE IF NOT EXISTS tatuagens (
 
 ALTER TABLE tatuagens
     ADD COLUMN IF NOT EXISTS cliente_id INT UNSIGNED NULL AFTER id,
-    ADD COLUMN IF NOT EXISTS descricao VARCHAR(255) NOT NULL DEFAULT '' AFTER cliente_id,
+    ADD COLUMN IF NOT EXISTS tatuador_id VARCHAR(80) NULL AFTER cliente_id,
+    ADD COLUMN IF NOT EXISTS tatuador_nome VARCHAR(150) NULL AFTER tatuador_id,
+    ADD COLUMN IF NOT EXISTS descricao VARCHAR(255) NOT NULL DEFAULT '' AFTER tatuador_nome,
     ADD COLUMN IF NOT EXISTS valor DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER descricao,
     ADD COLUMN IF NOT EXISTS data_tatuagem DATE NULL AFTER valor,
     ADD COLUMN IF NOT EXISTS hora_inicio TIME NULL AFTER data_tatuagem,
@@ -73,6 +77,7 @@ ALTER TABLE tatuagens
     ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER referencia_arte;
 
 CREATE INDEX IF NOT EXISTS idx_tatuagens_cliente ON tatuagens (cliente_id);
+CREATE INDEX IF NOT EXISTS idx_tatuagens_tatuador_data ON tatuagens (tatuador_id, data_tatuagem, hora_inicio);
 CREATE INDEX IF NOT EXISTS idx_tatuagens_data ON tatuagens (data_tatuagem);
 
 CREATE TABLE IF NOT EXISTS usuarios (

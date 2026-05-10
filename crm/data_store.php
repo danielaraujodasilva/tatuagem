@@ -80,6 +80,10 @@ function crmEnsureChatSchema(): void {
         if (!crmDbColumnExists('crm_whatsapp_clientes', 'modo_atendimento')) {
             crmDb()->exec("ALTER TABLE crm_whatsapp_clientes ADD COLUMN modo_atendimento VARCHAR(20) NOT NULL DEFAULT 'bot' AFTER atendente");
         }
+
+        if (!crmDbColumnExists('crm_whatsapp_clientes', 'atendente_id')) {
+            crmDb()->exec("ALTER TABLE crm_whatsapp_clientes ADD COLUMN atendente_id VARCHAR(80) NULL AFTER atendente");
+        }
     } catch (Throwable $e) {
         error_log('CRM chat schema check failed: ' . $e->getMessage());
     }
@@ -174,6 +178,7 @@ function crmCarregarClientes() {
                 'nome' => $row['nome'] ?? 'Cliente',
                 'status' => $row['status'] ?? 'novo',
                 'etapa' => $row['etapa'] ?? '',
+                'atendente_id' => $row['atendente_id'] ?? '',
                 'atendente' => $row['atendente'] ?? '',
                 'modo_atendimento' => $row['modo_atendimento'] ?? '',
                 'interesse' => $row['interesse'] ?? '',
@@ -223,15 +228,16 @@ function crmSalvarClientes($clientes) {
     try {
         $clienteStmt = $pdo->prepare("
             INSERT INTO crm_whatsapp_clientes
-                (id, numero, nome, status, etapa, atendente, modo_atendimento, interesse, valor, origem, data_ultimo_contato, created_at, updated_at)
+                (id, numero, nome, status, etapa, atendente, atendente_id, modo_atendimento, interesse, valor, origem, data_ultimo_contato, created_at, updated_at)
             VALUES
-                (:id, :numero, :nome, :status, :etapa, :atendente, :modo_atendimento, :interesse, :valor, :origem, :data_ultimo_contato, :created_at, NOW())
+                (:id, :numero, :nome, :status, :etapa, :atendente, :atendente_id, :modo_atendimento, :interesse, :valor, :origem, :data_ultimo_contato, :created_at, NOW())
             ON DUPLICATE KEY UPDATE
                 numero = VALUES(numero),
                 nome = VALUES(nome),
                 status = VALUES(status),
                 etapa = VALUES(etapa),
                 atendente = VALUES(atendente),
+                atendente_id = VALUES(atendente_id),
                 modo_atendimento = VALUES(modo_atendimento),
                 interesse = VALUES(interesse),
                 valor = VALUES(valor),
@@ -263,6 +269,7 @@ function crmSalvarClientes($clientes) {
                 ':status' => (string)($cliente['status'] ?? 'novo'),
                 ':etapa' => (string)($cliente['etapa'] ?? ''),
                 ':atendente' => (string)($cliente['atendente'] ?? ''),
+                ':atendente_id' => (string)($cliente['atendente_id'] ?? ''),
                 ':modo_atendimento' => trim((string)($cliente['modo_atendimento'] ?? '')) ?: ((string)($cliente['atendente'] ?? '') === 'bot' || (string)($cliente['atendente'] ?? '') === '' ? 'bot' : 'humano'),
                 ':interesse' => (string)($cliente['interesse'] ?? ''),
                 ':valor' => (float)($cliente['valor'] ?? 0),

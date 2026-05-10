@@ -3,10 +3,13 @@ require_once __DIR__ . '/../../auth/auth.php';
 require_staff();
 require_once __DIR__ . '/../../includes/app_menu.php';
 require_once __DIR__ . '/../../includes/system_settings.php';
+require_once __DIR__ . '/../../includes/team_settings.php';
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 $agendaInitialDate = '';
 $valorPomadaAnestesica = system_pomada_unit_price();
+$tattooArtists = team_active_tattoo_artists();
+$defaultTattooArtist = team_default_tattoo_artist();
 
 if (empty($_GET['data'])) {
     try {
@@ -125,6 +128,7 @@ if (empty($_GET['data'])) {
         <div class="ficha-detail-grid mb-4">
           <div class="ficha-detail-card"><span>Status atual</span><div id="eventCurrentStatus">Agendado</div></div>
           <div class="ficha-detail-card"><span>Cliente vinculado</span><div id="eventCurrentClient">Sem cliente</div></div>
+          <div class="ficha-detail-card"><span>Tatuador</span><div id="eventCurrentArtist"><?= htmlspecialchars((string)($defaultTattooArtist['nome'] ?? 'Tatuador'), ENT_QUOTES, 'UTF-8') ?></div></div>
           <div class="ficha-detail-card"><span>Valor</span><div id="eventCurrentValue">R$ 0,00</div></div>
           <div class="ficha-detail-card"><span>Janela do atendimento</span><div id="eventCurrentWindow">-</div></div>
         </div>
@@ -144,6 +148,16 @@ if (empty($_GET['data'])) {
                 <option value="confirmado">Confirmado</option>
                 <option value="cancelado">Cancelado</option>
                 <option value="concluido">Concluido</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="ficha-form-label" for="eventArtist">Tatuador</label>
+              <select id="eventArtist" name="tatuador_id" class="form-select" required>
+                <?php foreach ($tattooArtists as $artist): ?>
+                  <option value="<?= htmlspecialchars((string)$artist['id'], ENT_QUOTES, 'UTF-8') ?>">
+                    <?= htmlspecialchars((string)$artist['nome'], ENT_QUOTES, 'UTF-8') ?>
+                  </option>
+                <?php endforeach; ?>
               </select>
             </div>
             <div class="col-md-4">
@@ -225,6 +239,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const serverInitialDate = <?= json_encode($agendaInitialDate, JSON_UNESCAPED_UNICODE) ?>;
   const initialDate = urlParams.get('data') || serverInitialDate || undefined;
   const pomadaUnitPrice = <?= json_encode($valorPomadaAnestesica) ?>;
+  const tattooArtists = <?= json_encode($tattooArtists, JSON_UNESCAPED_UNICODE) ?>;
+  const defaultTattooArtistId = <?= json_encode((string)($defaultTattooArtist['id'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
   const highlightedEventId = urlParams.get('agendamento_id') || '';
   const referenceOverlay = document.getElementById('referenceOverlay');
   const referenceOverlayImage = document.getElementById('referenceOverlayImage');
@@ -238,6 +254,7 @@ document.addEventListener('DOMContentLoaded', function () {
     clienteResultados: document.getElementById('eventClientResults'),
     descricao: document.getElementById('eventDescription'),
     status: document.getElementById('eventStatus'),
+    tatuador: document.getElementById('eventArtist'),
     data: document.getElementById('eventDate'),
     inicio: document.getElementById('eventStart'),
     fim: document.getElementById('eventEnd'),
@@ -254,6 +271,7 @@ document.addEventListener('DOMContentLoaded', function () {
     subtitle: document.getElementById('eventModalSubtitle'),
     status: document.getElementById('eventCurrentStatus'),
     client: document.getElementById('eventCurrentClient'),
+    artist: document.getElementById('eventCurrentArtist'),
     value: document.getElementById('eventCurrentValue'),
     window: document.getElementById('eventCurrentWindow')
   };
@@ -318,9 +336,11 @@ document.addEventListener('DOMContentLoaded', function () {
     },
     eventContent: function (info) {
       const time = info.timeText ? `<span class="agenda-event-time">${escapeHtml(info.timeText)}</span>` : '';
+      const artist = info.event.extendedProps.tatuador_nome ? `<span class="agenda-event-time">${escapeHtml(info.event.extendedProps.tatuador_nome)}</span>` : '';
+      const artistSeparator = artist ? '<span class="agenda-event-separator">&nbsp;-&nbsp;</span>' : '';
       const title = `<span class="agenda-event-title">${escapeHtml(info.event.title)}</span>`;
       const separator = info.timeText ? '<span class="agenda-event-separator">&nbsp;-&nbsp;</span>' : '';
-      return { html: `<div class="agenda-event-card">${time}${separator}${title}</div>` };
+      return { html: `<div class="agenda-event-card">${time}${separator}${artist}${artistSeparator}${title}</div>` };
     },
     select: function (info) {
       resetForm();
@@ -368,6 +388,7 @@ document.addEventListener('DOMContentLoaded', function () {
       id: fields.id.value,
       descricao: fields.descricao.value.trim(),
       status: fields.status.value,
+      tatuador_id: fields.tatuador.value,
       data_tatuagem: fields.data.value,
       hora_inicio: fields.inicio.value,
       hora_fim: fields.fim.value,
@@ -432,6 +453,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fields.clienteResultados.style.display = 'none';
     fields.clienteResultados.innerHTML = '';
     fields.valor.value = '0';
+    fields.tatuador.value = defaultTattooArtistId;
     fields.cliente.value = 'Sem cliente vinculado';
     fields.observacoes.value = '';
     fields.pomadas.value = '0';
@@ -440,6 +462,7 @@ document.addEventListener('DOMContentLoaded', function () {
     updateReferencePreview();
     summary.status.textContent = 'Agendado';
     summary.client.textContent = 'Sem cliente';
+    summary.artist.textContent = artistName(defaultTattooArtistId);
     summary.value.textContent = 'R$ 0,00';
     summary.window.textContent = '-';
   }
@@ -453,6 +476,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function updateSummaryCards() {
     summary.status.textContent = fields.status.options[fields.status.selectedIndex]?.text || 'Agendado';
     summary.client.textContent = fields.cliente.value || 'Sem cliente';
+    summary.artist.textContent = artistName(fields.tatuador.value);
     const total = totalValueWithPomadas();
     summary.value.textContent = formatCurrency(total);
     if (totalWithPomadas) {
@@ -467,6 +491,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function baseValueFromTotal(total, pomadas) {
     return Math.max(0, Number(total || 0) - (Number(pomadas || 0) * Number(pomadaUnitPrice || 0)));
+  }
+
+  function artistName(id) {
+    const found = tattooArtists.find(artist => String(artist.id) === String(id));
+    return found?.nome || 'Tatuador';
   }
 
   function buildWindowText(dateValue, startValue, endValue) {
@@ -496,6 +525,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fields.clienteBusca.value = '';
     fields.descricao.value = data.descricao || '';
     fields.status.value = data.status || 'agendado';
+    fields.tatuador.value = data.tatuador_id || defaultTattooArtistId;
     fields.data.value = data.data_tatuagem || '';
     fields.inicio.value = data.hora_inicio ? data.hora_inicio.slice(0, 5) : '';
     fields.fim.value = data.hora_fim ? data.hora_fim.slice(0, 5) : '';
@@ -518,6 +548,7 @@ document.addEventListener('DOMContentLoaded', function () {
       id: event.id,
       descricao: event.extendedProps.descricao || event.title,
       status: event.extendedProps.status || 'agendado',
+      tatuador_id: event.extendedProps.tatuador_id || defaultTattooArtistId,
       data_tatuagem: event.startStr.slice(0, 10),
       hora_inicio: event.startStr.slice(11, 16),
       hora_fim: event.endStr ? event.endStr.slice(11, 16) : event.startStr.slice(11, 16),
@@ -624,6 +655,9 @@ document.addEventListener('DOMContentLoaded', function () {
       hora_inicio: data.hora_inicio || '00:00:00',
       hora_fim: data.hora_fim || data.hora_inicio || '01:00:00',
       status: data.status || 'agendado',
+      tatuador_id: data.tatuador_id || defaultTattooArtistId,
+      tatuador_nome: data.tatuador_nome || artistName(data.tatuador_id || defaultTattooArtistId),
+      tatuador_cor: data.tatuador_cor || '',
       observacoes: data.observacoes || '',
       pomadas_anestesicas: data.pomadas_anestesicas || 0,
       referencia_arte: data.referencia_arte || '',
@@ -639,6 +673,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fields.clienteBusca.value = '';
     fields.descricao.value = data.descricao || '';
     fields.status.value = data.status || 'agendado';
+    fields.tatuador.value = data.tatuador_id || defaultTattooArtistId;
     fields.data.value = data.data_tatuagem || '';
     fields.inicio.value = data.hora_inicio ? data.hora_inicio.slice(0, 5) : '';
     fields.fim.value = data.hora_fim ? data.hora_fim.slice(0, 5) : '';
@@ -671,6 +706,7 @@ document.addEventListener('DOMContentLoaded', function () {
       start: `${data.data_tatuagem}T${startTime}`,
       end: `${data.data_tatuagem}T${endTime}`,
       color: colors[data.status] || '#ef4444',
+      borderColor: data.tatuador_cor || undefined,
       textColor: '#ffffff',
       display: 'block',
       extendedProps: {
@@ -678,6 +714,9 @@ document.addEventListener('DOMContentLoaded', function () {
         descricao: data.descricao || '',
         valor: Number(data.valor || 0),
         cliente_id: data.cliente_id || '',
+        tatuador_id: data.tatuador_id || defaultTattooArtistId,
+        tatuador_nome: data.tatuador_nome || artistName(data.tatuador_id || defaultTattooArtistId),
+        tatuador_cor: data.tatuador_cor || '',
         observacoes: data.observacoes || '',
         pomadas_anestesicas: Number(data.pomadas_anestesicas || 0),
         referencia_arte: data.referencia_arte || '',

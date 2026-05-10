@@ -2,6 +2,10 @@
 require_once __DIR__ . '/../auth/auth.php';
 require_admin();
 require_once __DIR__ . '/../includes/system_settings.php';
+require_once __DIR__ . '/../includes/team_settings.php';
+
+$tattooArtistsPayload = array_key_exists('tattoo_artists_payload', $_POST) ? $_POST['tattoo_artists_payload'] : null;
+$attendantsPayload = array_key_exists('attendants_payload', $_POST) ? $_POST['attendants_payload'] : null;
 
 $data = [
     'mensagem_trigger' => trim((string)($_POST['mensagem_trigger'] ?? 'oi')),
@@ -19,6 +23,12 @@ $data = [
     'data_ai_num_predict' => max(120, min(6000, (int)($_POST['data_ai_num_predict'] ?? 2400))),
     'openai_max_history' => max(4, min(60, (int)($_POST['openai_max_history'] ?? 20))),
     'openai_business_prompt' => trim((string)($_POST['openai_business_prompt'] ?? '')),
+    'tattoo_artists' => $tattooArtistsPayload !== null
+        ? (team_payload_people($tattooArtistsPayload, 'tattoo_artist') ?: team_default_tattoo_artists())
+        : team_tattoo_artists(),
+    'attendants' => $attendantsPayload !== null
+        ? (team_payload_people($attendantsPayload, 'attendant') ?: team_default_attendants())
+        : team_attendants(),
 ];
 
 system_settings_save($data);

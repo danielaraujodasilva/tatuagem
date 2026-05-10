@@ -3,9 +3,12 @@ ob_start();
 require_once __DIR__ . '/../../../auth/auth.php';
 require_staff();
 require __DIR__ . '/../../config/conexao.php';
+require_once __DIR__ . '/../../../includes/team_settings.php';
 header('Content-Type: application/json; charset=utf-8');
 
 try {
+    team_ensure_tatuagens_team_schema($conn);
+
     $result = $conn->query('
         SELECT *
         FROM tatuagens
@@ -52,6 +55,7 @@ try {
         $horaFim = $row['hora_fim'] ?: date('H:i:s', strtotime($horaInicio . ' +1 hour'));
         $cliente = $clientes[(int)($row['cliente_id'] ?? 0)] ?? [];
         $clienteNome = trim((string)($cliente['nome'] ?? ''));
+        $artist = team_resolve_tattoo_artist((string)($row['tatuador_id'] ?? ''), (string)($row['tatuador_nome'] ?? ''));
 
         $eventos[] = [
             'id' => (string) $row['id'],
@@ -59,6 +63,7 @@ try {
             'start' => $row['data_tatuagem'] . 'T' . $horaInicio,
             'end' => $row['data_tatuagem'] . 'T' . $horaFim,
             'color' => $cores[$status] ?? '#38bdf8',
+            'borderColor' => $artist['cor'] ?? ($cores[$status] ?? '#38bdf8'),
             'textColor' => '#06111f',
             'display' => 'block',
             'extendedProps' => [
@@ -69,6 +74,9 @@ try {
                 'observacoes' => $row['observacoes'] ?? '',
                 'pomadas_anestesicas' => (int)($row['pomadas_anestesicas'] ?? 0),
                 'referencia_arte' => $row['referencia_arte'] ?? '',
+                'tatuador_id' => $artist['id'] ?? '',
+                'tatuador_nome' => $artist['nome'] ?? '',
+                'tatuador_cor' => $artist['cor'] ?? '',
                 'cliente_nome' => $cliente['nome'] ?? '',
                 'cliente_telefone' => $cliente['telefone'] ?? ''
             ]

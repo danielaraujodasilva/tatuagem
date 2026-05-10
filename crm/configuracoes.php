@@ -4,9 +4,12 @@ require_once __DIR__ . '/../auth/auth.php';
 require_admin();
 require_once __DIR__ . '/../includes/app_menu.php';
 require_once __DIR__ . '/../includes/system_settings.php';
+require_once __DIR__ . '/../includes/team_settings.php';
 
 $systemSettings = system_settings_load();
 $valorPomada = system_pomada_unit_price();
+$tattooArtists = team_tattoo_artists();
+$attendants = team_attendants();
 $embedded = !empty($_GET['embed']) || !empty($_POST['embed']);
 ?>
 
@@ -117,6 +120,42 @@ $embedded = !empty($_GET['embed']) || !empty($_POST['embed']);
         .settings-row:hover {
             background: rgba(239, 68, 68, 0.06);
             border-color: rgba(239, 68, 68, 0.22);
+        }
+
+        .settings-team-row {
+            cursor: default;
+        }
+
+        .settings-team-row:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .settings-team-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .settings-mini-button {
+            min-height: 38px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+            padding: 0 12px;
+            color: #f6f7fb;
+            background: rgba(255, 255, 255, 0.06);
+            font-weight: 800;
+        }
+
+        .settings-mini-button:hover {
+            border-color: rgba(239, 68, 68, 0.36);
+            background: rgba(239, 68, 68, 0.14);
+        }
+
+        .settings-checkbox {
+            width: 18px;
+            height: 18px;
+            accent-color: #ef4444;
         }
 
         .settings-action {
@@ -240,8 +279,65 @@ $embedded = !empty($_GET['embed']) || !empty($_POST['embed']);
     </section>
 
     <section class="settings-card p-5 md:p-6 mt-6">
-        <form method="POST" action="salvar_config.php">
+        <form method="POST" action="salvar_config.php" id="systemSettingsForm">
             <?php if ($embedded): ?><input type="hidden" name="embed" value="1"><?php endif; ?>
+            <input type="hidden" name="tattoo_artists_payload" id="tattooArtistsPayload">
+            <input type="hidden" name="attendants_payload" id="attendantsPayload">
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+                <div class="border border-white/10 rounded-lg p-4 bg-black/20">
+                    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4">
+                        <div>
+                            <span class="settings-kicker">Agenda</span>
+                            <h2 class="text-xl font-black mt-1">Tatuadores</h2>
+                            <p class="settings-muted text-sm mt-1">Esses nomes aparecem na agenda e no agendamento pelo WhatsApp. Horarios iguais sao permitidos quando o tatuador e diferente.</p>
+                        </div>
+                        <button type="button" class="settings-mini-button" data-add-team-row="tattooArtistsList">+ Tatuador</button>
+                    </div>
+
+                    <div id="tattooArtistsList" class="space-y-3" data-team-kind="tattoo_artist">
+                        <?php foreach ($tattooArtists as $artist): ?>
+                            <div class="settings-row settings-team-row p-3 grid grid-cols-1 md:grid-cols-[1fr_72px_auto_auto] gap-3 items-center" data-team-row>
+                                <input type="hidden" data-field="id" value="<?= htmlspecialchars((string)$artist['id'], ENT_QUOTES, 'UTF-8') ?>">
+                                <input type="text" data-field="nome" class="settings-input px-3 py-2" value="<?= htmlspecialchars((string)$artist['nome'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Nome do tatuador">
+                                <input type="color" data-field="cor" class="settings-input h-[44px] w-full p-1" value="<?= htmlspecialchars((string)($artist['cor'] ?? '#ef4444'), ENT_QUOTES, 'UTF-8') ?>">
+                                <label class="inline-flex items-center gap-2 font-bold text-sm">
+                                    <input type="checkbox" data-field="ativo" class="settings-checkbox" <?= !empty($artist['ativo']) ? 'checked' : '' ?>>
+                                    Ativo
+                                </label>
+                                <button type="button" class="settings-action settings-action-delete px-3 py-2 text-sm" data-remove-team-row>Excluir</button>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
+                <div class="border border-white/10 rounded-lg p-4 bg-black/20">
+                    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4">
+                        <div>
+                            <span class="settings-kicker">WhatsApp</span>
+                            <h2 class="text-xl font-black mt-1">Atendentes</h2>
+                            <p class="settings-muted text-sm mt-1">Use o email do login para vincular cada pessoa. A conversa assumida fica editavel so para o atendente dono.</p>
+                        </div>
+                        <button type="button" class="settings-mini-button" data-add-team-row="attendantsList">+ Atendente</button>
+                    </div>
+
+                    <div id="attendantsList" class="space-y-3" data-team-kind="attendant">
+                        <?php foreach ($attendants as $attendant): ?>
+                            <div class="settings-row settings-team-row p-3 grid grid-cols-1 md:grid-cols-[1fr_1.2fr_auto_auto] gap-3 items-center" data-team-row>
+                                <input type="hidden" data-field="id" value="<?= htmlspecialchars((string)$attendant['id'], ENT_QUOTES, 'UTF-8') ?>">
+                                <input type="text" data-field="nome" class="settings-input px-3 py-2" value="<?= htmlspecialchars((string)$attendant['nome'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Nome do atendente">
+                                <input type="email" data-field="email" class="settings-input px-3 py-2" value="<?= htmlspecialchars((string)($attendant['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" placeholder="email do login">
+                                <label class="inline-flex items-center gap-2 font-bold text-sm">
+                                    <input type="checkbox" data-field="ativo" class="settings-checkbox" <?= !empty($attendant['ativo']) ? 'checked' : '' ?>>
+                                    Ativo
+                                </label>
+                                <button type="button" class="settings-action settings-action-delete px-3 py-2 text-sm" data-remove-team-row>Excluir</button>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="flex-1">
                     <span class="settings-kicker">Automacao</span>
@@ -361,6 +457,73 @@ $embedded = !empty($_GET['embed']) || !empty($_POST['embed']);
 </main>
 
 <script>
+const settingsForm = document.getElementById('systemSettingsForm');
+const teamTemplates = {
+    tattooArtistsList: `
+        <div class="settings-row settings-team-row p-3 grid grid-cols-1 md:grid-cols-[1fr_72px_auto_auto] gap-3 items-center" data-team-row>
+            <input type="hidden" data-field="id" value="">
+            <input type="text" data-field="nome" class="settings-input px-3 py-2" value="" placeholder="Nome do tatuador">
+            <input type="color" data-field="cor" class="settings-input h-[44px] w-full p-1" value="#ef4444">
+            <label class="inline-flex items-center gap-2 font-bold text-sm">
+                <input type="checkbox" data-field="ativo" class="settings-checkbox" checked>
+                Ativo
+            </label>
+            <button type="button" class="settings-action settings-action-delete px-3 py-2 text-sm" data-remove-team-row>Excluir</button>
+        </div>
+    `,
+    attendantsList: `
+        <div class="settings-row settings-team-row p-3 grid grid-cols-1 md:grid-cols-[1fr_1.2fr_auto_auto] gap-3 items-center" data-team-row>
+            <input type="hidden" data-field="id" value="">
+            <input type="text" data-field="nome" class="settings-input px-3 py-2" value="" placeholder="Nome do atendente">
+            <input type="email" data-field="email" class="settings-input px-3 py-2" value="" placeholder="email do login">
+            <label class="inline-flex items-center gap-2 font-bold text-sm">
+                <input type="checkbox" data-field="ativo" class="settings-checkbox" checked>
+                Ativo
+            </label>
+            <button type="button" class="settings-action settings-action-delete px-3 py-2 text-sm" data-remove-team-row>Excluir</button>
+        </div>
+    `
+};
+
+function collectTeamRows(listId) {
+    const list = document.getElementById(listId);
+    if (!list) return [];
+
+    return Array.from(list.querySelectorAll('[data-team-row]')).map(row => {
+        const item = {};
+        row.querySelectorAll('[data-field]').forEach(field => {
+            const key = field.dataset.field;
+            item[key] = field.type === 'checkbox' ? field.checked : field.value.trim();
+        });
+        return item;
+    }).filter(item => item.nome);
+}
+
+document.addEventListener('click', event => {
+    const addButton = event.target.closest('[data-add-team-row]');
+    if (addButton) {
+        const listId = addButton.dataset.addTeamRow;
+        const list = document.getElementById(listId);
+        if (list && teamTemplates[listId]) {
+            list.insertAdjacentHTML('beforeend', teamTemplates[listId]);
+            const lastInput = list.querySelector('[data-team-row]:last-child [data-field="nome"]');
+            if (lastInput) lastInput.focus();
+        }
+    }
+
+    const removeButton = event.target.closest('[data-remove-team-row]');
+    if (removeButton) {
+        removeButton.closest('[data-team-row]')?.remove();
+    }
+});
+
+if (settingsForm) {
+    settingsForm.addEventListener('submit', () => {
+        document.getElementById('tattooArtistsPayload').value = JSON.stringify(collectTeamRows('tattooArtistsList'));
+        document.getElementById('attendantsPayload').value = JSON.stringify(collectTeamRows('attendantsList'));
+    });
+}
+
 Sortable.create(document.getElementById('pipelineList'), {
     animation: 150,
     ghostClass: 'opacity-50',

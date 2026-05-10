@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../auth/auth.php';
 require_staff();
 require_once __DIR__ . '/data_store.php';
+require_once __DIR__ . '/../includes/team_settings.php';
 
 header('Content-Type: application/json; charset=utf-8');
 date_default_timezone_set('America/Sao_Paulo');
@@ -248,6 +249,19 @@ if (!empty($_FILES['arquivo']) && is_uploaded_file($_FILES['arquivo']['tmp_name'
 $numeroLimpo = normalizarNumero($numero);
 $clientes = crmCarregarClientes();
 $destinoWhatsApp = encontrarDestinoWhatsApp($clientes, $numeroLimpo);
+$atendenteAtual = team_current_attendant(current_user() ?: []);
+
+if (!empty($destinoWhatsApp['cliente']) && !team_conversation_owned_by($destinoWhatsApp['cliente'], $atendenteAtual)) {
+    $owner = team_conversation_owner($destinoWhatsApp['cliente']);
+    http_response_code(423);
+    echo json_encode([
+        'ok' => false,
+        'erro' => $owner['nome']
+            ? 'Conversa assumida por ' . $owner['nome'] . '. Voce pode visualizar, mas nao enviar mensagens.'
+            : 'Assuma a conversa antes de enviar mensagens.',
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
 $ch = curl_init("http://localhost:3001/enviar");
 curl_setopt($ch, CURLOPT_POST, true);
@@ -305,6 +319,9 @@ if (!empty($res['ok'])) {
     foreach ($clientes as &$c) {
         if (numerosIguais($c['numero'] ?? '', $numeroLimpo)) {
             $c['mensagens'][] = $mensagemSalva;
+            $c['atendente_id'] = (string)($atendenteAtual['id'] ?? '');
+            $c['atendente'] = (string)($atendenteAtual['nome'] ?? 'Atendente');
+            $c['modo_atendimento'] = 'humano';
             $achou = true;
             break;
         }
@@ -316,7 +333,9 @@ if (!empty($res['ok'])) {
             "numero" => $numeroLimpo,
             "nome" => "Cliente",
             "status" => "novo",
-            "atendente" => "humano",
+            "atendente_id" => (string)($atendenteAtual['id'] ?? ''),
+            "atendente" => (string)($atendenteAtual['nome'] ?? 'Atendente'),
+            "modo_atendimento" => "humano",
             "mensagens" => [$mensagemSalva]
         ];
     }

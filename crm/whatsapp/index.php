@@ -1,14 +1,18 @@
 <?php
 require_once __DIR__ . '/../../auth/auth.php';
-require_staff();
+$currentUser = require_staff();
 require_once __DIR__ . '/../data_store.php';
 require_once __DIR__ . '/../../includes/system_settings.php';
+require_once __DIR__ . '/../../includes/team_settings.php';
 
 date_default_timezone_set('America/Sao_Paulo');
 $quickReplies = array_values(array_filter(crmCarregarRespostasRapidas(), static function (array $resposta): bool {
     return !empty($resposta['ativo']);
 }));
 $valorPomadaAnestesica = system_pomada_unit_price();
+$tattooArtists = team_active_tattoo_artists();
+$defaultTattooArtist = team_default_tattoo_artist();
+$currentAttendant = team_current_attendant($currentUser);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -556,6 +560,35 @@ $valorPomadaAnestesica = system_pomada_unit_price();
             font-size: 13px;
         }
 
+        .wa-assignment-notice {
+            flex: 0 0 auto;
+            padding: 9px 16px;
+            border-top: 1px solid rgba(134, 150, 160, 0.14);
+            border-bottom: 1px solid rgba(134, 150, 160, 0.14);
+            color: #d7f7ee;
+            background: rgba(0, 168, 132, 0.13);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .wa-assignment-notice.locked {
+            color: #ffe6b0;
+            background: rgba(245, 158, 11, 0.16);
+        }
+
+        .wa-composer.locked {
+            opacity: 0.66;
+        }
+
+        .wa-icon-btn:disabled,
+        .wa-action-pill:disabled,
+        .wa-send:disabled,
+        .wa-status-select:disabled,
+        .wa-toggle button:disabled {
+            opacity: 0.42;
+            cursor: not-allowed;
+        }
+
         .wa-attachment-preview button {
             border: 0;
             color: var(--wa-muted);
@@ -711,6 +744,7 @@ $valorPomadaAnestesica = system_pomada_unit_price();
         }
 
         .wa-field input,
+        .wa-field select,
         .wa-field textarea {
             width: 100%;
             min-height: 42px;
@@ -721,6 +755,11 @@ $valorPomadaAnestesica = system_pomada_unit_price();
             background: #202c33;
             outline: 0;
             font: inherit;
+        }
+
+        .wa-field select option {
+            color: var(--wa-text);
+            background: #202c33;
         }
 
         .wa-field textarea { min-height: 88px; resize: vertical; }
@@ -897,6 +936,8 @@ $valorPomadaAnestesica = system_pomada_unit_price();
                     </div>
                 </header>
 
+                <div id="assignmentNotice" class="wa-assignment-notice wa-hidden"></div>
+
                 <div id="messages" class="wa-messages"></div>
 
                 <div id="emojiPanel" class="wa-emoji-panel wa-hidden">
@@ -962,6 +1003,16 @@ $valorPomadaAnestesica = system_pomada_unit_price();
                         <input type="date" id="scheduleData" name="data_tatuagem" required>
                     </div>
                     <div class="wa-field">
+                        <label for="scheduleArtist">Tatuador *</label>
+                        <select id="scheduleArtist" name="tatuador_id" required>
+                            <?php foreach ($tattooArtists as $artist): ?>
+                                <option value="<?= htmlspecialchars((string)$artist['id'], ENT_QUOTES, 'UTF-8') ?>">
+                                    <?= htmlspecialchars((string)$artist['nome'], ENT_QUOTES, 'UTF-8') ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="wa-field">
                         <label for="scheduleValor">Valor base (R$)</label>
                         <input type="number" step="0.01" id="scheduleValor" name="valor">
                     </div>
@@ -1020,6 +1071,8 @@ $valorPomadaAnestesica = system_pomada_unit_price();
     <script>
         const quickReplies = <?= json_encode($quickReplies, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
         const pomadaUnitPrice = <?= json_encode($valorPomadaAnestesica) ?>;
+        const currentAttendant = <?= json_encode($currentAttendant, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+        const defaultTattooArtistId = <?= json_encode((string)($defaultTattooArtist['id'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
         const state = {
             clientes: [],
             filtered: [],
@@ -1064,6 +1117,7 @@ $valorPomadaAnestesica = system_pomada_unit_price();
             back: document.getElementById('backBtn'),
             waDirect: document.getElementById('waDirectLink'),
             crmLead: document.getElementById('crmLeadLink'),
+            assignmentNotice: document.getElementById('assignmentNotice'),
             schedule: document.getElementById('scheduleBtn'),
             assume: document.getElementById('assumeBtn'),
             botMode: document.getElementById('botModeBtn'),
@@ -1080,6 +1134,7 @@ $valorPomadaAnestesica = system_pomada_unit_price();
             scheduleNome: document.getElementById('scheduleNome'),
             scheduleTelefone: document.getElementById('scheduleTelefone'),
             scheduleData: document.getElementById('scheduleData'),
+            scheduleArtist: document.getElementById('scheduleArtist'),
             scheduleValor: document.getElementById('scheduleValor'),
             schedulePomadas: document.getElementById('schedulePomadas'),
             scheduleDescricao: document.getElementById('scheduleDescricao'),
@@ -1139,6 +1194,33 @@ $valorPomadaAnestesica = system_pomada_unit_price();
             if (mode) return mode;
             const atendente = String(cliente?.atendente || '').toLowerCase();
             return atendente && atendente !== 'bot' ? 'humano' : 'bot';
+        }
+
+        function assignmentOwner(cliente) {
+            if (atendimentoMode(cliente) !== 'humano') return { id: '', nome: '' };
+            return {
+                id: String(cliente?.atendente_id || '').trim(),
+                nome: String(cliente?.atendente || '').trim(),
+            };
+        }
+
+        function isAssignedToMe(cliente) {
+            const owner = assignmentOwner(cliente);
+            if (!owner.id && !owner.nome) return false;
+            const myId = String(currentAttendant?.id || '').trim();
+            const myName = String(currentAttendant?.nome || '').trim().toLowerCase();
+
+            if (owner.id && myId && owner.id === myId) return true;
+            return !owner.id && owner.nome && owner.nome.toLowerCase() === myName;
+        }
+
+        function isAssignedToOther(cliente) {
+            const owner = assignmentOwner(cliente);
+            return Boolean((owner.id || owner.nome) && !isAssignedToMe(cliente));
+        }
+
+        function canInteract(cliente) {
+            return isAssignedToMe(cliente);
         }
 
         function normalizeClientPayload(cliente) {
@@ -1291,7 +1373,7 @@ $valorPomadaAnestesica = system_pomada_unit_price();
                 ].join(' ').toLowerCase();
                 if (query && !haystack.includes(query)) return false;
                 if (state.activeFilter === 'unread' && unreadCount(cliente) === 0) return false;
-                if (state.activeFilter === 'mine' && String(cliente.atendente || '').toLowerCase() !== 'humano') return false;
+                if (state.activeFilter === 'mine' && !isAssignedToMe(cliente)) return false;
                 return true;
             });
             renderList();
@@ -1308,6 +1390,8 @@ $valorPomadaAnestesica = system_pomada_unit_price();
                 const unread = unreadCount(cliente);
                 const active = String(cliente.id) === state.activeId ? 'active' : '';
                 const unreadBadge = unread ? `<span style="margin-left:auto;min-width:20px;height:20px;border-radius:999px;display:inline-grid;place-items:center;background:#00a884;color:#03120f;font-size:12px;font-weight:800;">${unread}</span>` : '';
+                const owner = assignmentOwner(cliente);
+                const ownerLabel = owner.nome ? `Atendente: ${owner.nome}` : 'Disponivel';
                 return `
                     <button class="wa-chat-item ${active}" data-id="${escapeHtml(cliente.id)}">
                         <div class="wa-avatar">${escapeHtml(initials(cliente.nome))}</div>
@@ -1323,6 +1407,7 @@ $valorPomadaAnestesica = system_pomada_unit_price();
                             <div class="wa-chat-meta">
                                 <span class="wa-stage-dot"></span>
                                 <span>${escapeHtml(cliente.status || cliente.etapa || 'novo')}</span>
+                                <span>- ${escapeHtml(ownerLabel)}</span>
                                 ${cliente.valor ? `<span>- R$ ${Number(cliente.valor || 0).toLocaleString('pt-BR')}</span>` : ''}
                             </div>
                         </div>
@@ -1348,15 +1433,16 @@ $valorPomadaAnestesica = system_pomada_unit_price();
             loadMessages(true);
             markConversationRead(cliente.id);
             startMessagePolling();
-            el.input.focus();
+            if (canInteract(cliente)) el.input.focus();
         }
 
         function renderActiveHeader(cliente) {
             const numero = onlyDigits(cliente.numero);
             const mode = atendimentoMode(cliente);
+            const owner = assignmentOwner(cliente);
             el.chatAvatar.textContent = initials(cliente.nome);
             el.chatName.textContent = cliente.nome || 'Cliente';
-            el.chatSubtitle.textContent = [cliente.numero, cliente.origem || 'WhatsApp', cliente.interesse || statusLabel(cliente.status)].filter(Boolean).join(' - ');
+            el.chatSubtitle.textContent = [cliente.numero, cliente.origem || 'WhatsApp', owner.nome ? 'Atendente: ' + owner.nome : '', cliente.interesse || statusLabel(cliente.status)].filter(Boolean).join(' - ');
             el.waDirect.href = numero ? `https://wa.me/${numero}` : '#';
             el.crmLead.href = `../index.php?cliente=${encodeURIComponent(cliente.id)}`;
             el.botMode.classList.toggle('active', mode !== 'humano');
@@ -1364,6 +1450,49 @@ $valorPomadaAnestesica = system_pomada_unit_price();
             el.status.value = ['novo', 'lead_quente', 'agendado', 'sem_retorno', 'em_atendimento', 'fechado', 'perdido'].includes(cliente.status)
                 ? cliente.status
                 : 'novo';
+            updateInteractionState(cliente);
+        }
+
+        function updateInteractionState(cliente) {
+            const mine = isAssignedToMe(cliente);
+            const other = isAssignedToOther(cliente);
+            const owner = assignmentOwner(cliente);
+            const disabled = !mine;
+
+            el.assignmentNotice.classList.toggle('wa-hidden', false);
+            el.assignmentNotice.classList.toggle('locked', other || !mine);
+
+            if (mine) {
+                el.assignmentNotice.textContent = 'Conversa assumida por voce. Os outros atendentes podem visualizar, mas nao interagir.';
+            } else if (other) {
+                el.assignmentNotice.textContent = `Somente visualizacao: ${owner.nome || 'outro atendente'} ja assumiu esta conversa.`;
+            } else {
+                el.assignmentNotice.textContent = 'Conversa disponivel. Clique em Assumir para responder e alterar dados.';
+            }
+
+            el.composer.classList.toggle('locked', disabled);
+            el.input.disabled = disabled;
+            el.input.placeholder = mine
+                ? 'Digite uma mensagem'
+                : (other ? 'Conversa atribuida a outro atendente' : 'Assuma a conversa para responder');
+            el.emoji.disabled = disabled;
+            el.quickReply.disabled = disabled;
+            el.attach.disabled = disabled;
+            el.record.disabled = disabled;
+            el.composer.querySelector('.wa-send').disabled = disabled;
+            el.schedule.disabled = disabled;
+            el.status.disabled = disabled;
+            el.humanMode.disabled = other;
+            el.botMode.disabled = !mine;
+            el.assume.disabled = mine || other;
+            el.assume.innerHTML = mine
+                ? '<i class="fa-solid fa-user-check"></i> Assumido'
+                : '<i class="fa-solid fa-user-check"></i> Assumir';
+
+            if (disabled) {
+                el.emojiPanel.classList.add('wa-hidden');
+                el.repliesPanel.classList.add('wa-hidden');
+            }
         }
 
         async function loadMessages(stick = false) {
@@ -1643,6 +1772,10 @@ $valorPomadaAnestesica = system_pomada_unit_price();
         function openScheduleOverlay() {
             const cliente = findActive();
             if (!cliente) return;
+            if (!canInteract(cliente)) {
+                alert(isAssignedToOther(cliente) ? 'Esta conversa ja foi assumida por outro atendente.' : 'Assuma a conversa antes de agendar.');
+                return;
+            }
 
             el.scheduleForm.reset();
             el.scheduleClienteId.value = '';
@@ -1650,6 +1783,7 @@ $valorPomadaAnestesica = system_pomada_unit_price();
             el.scheduleTelefone.value = cliente.numero || '';
             el.scheduleDescricao.value = cliente.interesse || '';
             el.schedulePomadas.value = '0';
+            el.scheduleArtist.value = defaultTattooArtistId;
             el.scheduleSearch.value = cliente.numero || cliente.nome || '';
             el.scheduleResults.classList.add('wa-hidden');
             el.scheduleResults.innerHTML = '';
@@ -1741,6 +1875,11 @@ $valorPomadaAnestesica = system_pomada_unit_price();
 
         async function saveSchedule(event) {
             event.preventDefault();
+            const cliente = findActive();
+            if (!cliente || !canInteract(cliente)) {
+                alert('Assuma a conversa antes de salvar agendamento.');
+                return;
+            }
             if (!el.scheduleForm.reportValidity()) return;
 
             const formData = new FormData(el.scheduleForm);
@@ -1775,6 +1914,10 @@ $valorPomadaAnestesica = system_pomada_unit_price();
 
             const cliente = findActive();
             if (!cliente) return;
+            if (!canInteract(cliente)) {
+                alert(isAssignedToOther(cliente) ? 'Esta conversa ja foi assumida por outro atendente.' : 'Assuma a conversa antes de responder.');
+                return;
+            }
 
             const text = el.input.value.trim();
             const file = state.recordedAudioFile || el.file.files[0] || null;
@@ -1817,6 +1960,7 @@ $valorPomadaAnestesica = system_pomada_unit_price();
 
             const reply = event.target.closest('.wa-reply-card');
             if (reply) {
+                if (!canInteract(findActive())) return;
                 const found = quickReplies.find(item => String(item.id) === String(reply.dataset.id));
                 if (found) {
                     el.input.value = found.texto || '';
@@ -1896,22 +2040,26 @@ $valorPomadaAnestesica = system_pomada_unit_price();
                 .then(data => {
                     if (!data.ok) throw new Error(data.message || 'Erro ao assumir conversa');
                     normalizeClientPayload(data.cliente);
+                    el.input.focus();
                 })
                 .catch(error => alert(error.message));
         });
         el.humanMode.addEventListener('click', () => {
             const cliente = findActive();
             if (!cliente) return;
+            if (isAssignedToOther(cliente)) return;
             postAttendanceAction({ action: 'assumir', id: cliente.id })
                 .then(data => {
                     if (!data.ok) throw new Error(data.message || 'Erro ao alternar atendimento');
                     normalizeClientPayload(data.cliente);
+                    el.input.focus();
                 })
                 .catch(error => alert(error.message));
         });
         el.botMode.addEventListener('click', () => {
             const cliente = findActive();
             if (!cliente) return;
+            if (!canInteract(cliente)) return;
             postAttendanceAction({ action: 'bot', id: cliente.id })
                 .then(data => {
                     if (!data.ok) throw new Error(data.message || 'Erro ao alternar atendimento');
@@ -1922,6 +2070,10 @@ $valorPomadaAnestesica = system_pomada_unit_price();
         el.status.addEventListener('change', () => {
             const cliente = findActive();
             if (!cliente) return;
+            if (!canInteract(cliente)) {
+                renderActiveHeader(cliente);
+                return;
+            }
             postAttendanceAction({ action: 'status', id: cliente.id, status: el.status.value })
                 .then(data => {
                     if (!data.ok) throw new Error(data.message || 'Erro ao atualizar status');

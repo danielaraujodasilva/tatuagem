@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../../auth/auth.php';
 require_staff();
 require __DIR__ . '/../../config/conexao.php';
+require_once __DIR__ . '/../../../includes/team_settings.php';
 header('Content-Type: application/json; charset=utf-8');
 
 $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
@@ -13,6 +14,8 @@ if ($id <= 0) {
 }
 
 try {
+    team_ensure_tatuagens_team_schema($conn);
+
     $stmt = $conn->prepare('SELECT * FROM tatuagens WHERE id = ? LIMIT 1');
     $stmt->bind_param('i', $id);
     $stmt->execute();
@@ -43,6 +46,10 @@ try {
     $evento['observacoes'] = $evento['observacoes'] ?? '';
     $evento['pomadas_anestesicas'] = $evento['pomadas_anestesicas'] ?? 0;
     $evento['referencia_arte'] = $evento['referencia_arte'] ?? '';
+    $artist = team_resolve_tattoo_artist((string)($evento['tatuador_id'] ?? ''), (string)($evento['tatuador_nome'] ?? ''));
+    $evento['tatuador_id'] = $artist['id'] ?? '';
+    $evento['tatuador_nome'] = $artist['nome'] ?? '';
+    $evento['tatuador_cor'] = $artist['cor'] ?? '';
     $evento['cliente_nome'] = $cliente['nome'] ?? '';
     $evento['cliente_telefone'] = $cliente['telefone'] ?? '';
 
