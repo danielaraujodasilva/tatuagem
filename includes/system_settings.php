@@ -35,7 +35,8 @@ if (!function_exists('system_settings_defaults')) {
             ],
             'attendants' => [
                 [
-                    'id' => 'daniel',
+                    'id' => 'user-1',
+                    'usuario_id' => 1,
                     'nome' => 'Daniel Araujo',
                     'email' => 'danielaraujodasilva@gmail.com',
                     'ativo' => true,

@@ -18,7 +18,8 @@ if (!function_exists('team_default_attendants')) {
     function team_default_attendants(): array
     {
         return [[
-            'id' => 'daniel',
+            'id' => 'user-1',
+            'usuario_id' => 1,
             'nome' => 'Daniel Araujo',
             'email' => 'danielaraujodasilva@gmail.com',
             'ativo' => true,
@@ -85,9 +86,12 @@ if (!function_exists('team_normalize_people')) {
             }
 
             $email = trim((string)($person['email'] ?? ''));
+            $userId = (int)($person['usuario_id'] ?? $person['user_id'] ?? 0);
             $id = trim((string)($person['id'] ?? ''));
             if ($id === '') {
-                $id = team_person_id($kind === 'tattoo_artist' ? 'tattoo' : 'attendant', $name, $email);
+                $id = $kind === 'attendant' && $userId > 0
+                    ? 'user-' . $userId
+                    : team_person_id($kind === 'tattoo_artist' ? 'tattoo' : 'attendant', $name, $email);
             }
 
             $item = [
@@ -99,6 +103,7 @@ if (!function_exists('team_normalize_people')) {
             if ($kind === 'tattoo_artist') {
                 $item['cor'] = team_color($person['cor'] ?? '', $index);
             } else {
+                $item['usuario_id'] = $userId;
                 $item['email'] = $email;
             }
 
@@ -205,7 +210,16 @@ if (!function_exists('team_current_attendant')) {
     function team_current_attendant(?array $user = null): array
     {
         $user = $user ?: (function_exists('current_user') ? (current_user() ?: []) : []);
+        $userId = (int)($user['id'] ?? 0);
         $email = strtolower(trim((string)($user['email'] ?? '')));
+
+        if ($userId > 0) {
+            foreach (team_active_attendants() as $attendant) {
+                if ((int)($attendant['usuario_id'] ?? 0) === $userId || (string)($attendant['id'] ?? '') === 'user-' . $userId) {
+                    return $attendant;
+                }
+            }
+        }
 
         if ($email !== '') {
             foreach (team_active_attendants() as $attendant) {
@@ -216,10 +230,10 @@ if (!function_exists('team_current_attendant')) {
         }
 
         $name = trim((string)($user['nome'] ?? $user['username'] ?? 'Atendente'));
-        $id = (int)($user['id'] ?? 0);
 
         return [
-            'id' => $id > 0 ? 'user-' . $id : team_person_id('attendant', $name, $email),
+            'id' => $userId > 0 ? 'user-' . $userId : team_person_id('attendant', $name, $email),
+            'usuario_id' => $userId,
             'nome' => $name !== '' ? $name : 'Atendente',
             'email' => $email,
             'ativo' => true,

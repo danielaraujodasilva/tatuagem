@@ -10,6 +10,15 @@ $systemSettings = system_settings_load();
 $valorPomada = system_pomada_unit_price();
 $tattooArtists = team_tattoo_artists();
 $attendants = team_attendants();
+$staffUsers = [];
+try {
+    $staffResult = auth_db()->query("SELECT id, nome, email, username, role FROM usuarios WHERE role IN ('funcionario', 'adm') AND ativo = 1 ORDER BY nome, email, username");
+    while ($staff = $staffResult->fetch_assoc()) {
+        $staffUsers[] = $staff;
+    }
+} catch (Throwable $e) {
+    $staffUsers = [];
+}
 $embedded = !empty($_GET['embed']) || !empty($_POST['embed']);
 ?>
 
@@ -316,17 +325,40 @@ $embedded = !empty($_GET['embed']) || !empty($_POST['embed']);
                         <div>
                             <span class="settings-kicker">WhatsApp</span>
                             <h2 class="text-xl font-black mt-1">Atendentes</h2>
-                            <p class="settings-muted text-sm mt-1">Use o email do login para vincular cada pessoa. A conversa assumida fica editavel so para o atendente dono.</p>
+                            <p class="settings-muted text-sm mt-1">Selecione os usuarios cadastrados que podem atender WhatsApp. A conversa assumida fica editavel so para o atendente dono.</p>
                         </div>
                         <button type="button" class="settings-mini-button" data-add-team-row="attendantsList">+ Atendente</button>
                     </div>
 
                     <div id="attendantsList" class="space-y-3" data-team-kind="attendant">
                         <?php foreach ($attendants as $attendant): ?>
-                            <div class="settings-row settings-team-row p-3 grid grid-cols-1 md:grid-cols-[1fr_1.2fr_auto_auto] gap-3 items-center" data-team-row>
+                            <div class="settings-row settings-team-row p-3 grid grid-cols-1 md:grid-cols-[1.4fr_1fr_auto_auto] gap-3 items-center" data-team-row>
                                 <input type="hidden" data-field="id" value="<?= htmlspecialchars((string)$attendant['id'], ENT_QUOTES, 'UTF-8') ?>">
-                                <input type="text" data-field="nome" class="settings-input px-3 py-2" value="<?= htmlspecialchars((string)$attendant['nome'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Nome do atendente">
-                                <input type="email" data-field="email" class="settings-input px-3 py-2" value="<?= htmlspecialchars((string)($attendant['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" placeholder="email do login">
+                                <input type="hidden" data-field="usuario_id" value="<?= htmlspecialchars((string)($attendant['usuario_id'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                                <input type="hidden" data-field="nome" value="<?= htmlspecialchars((string)$attendant['nome'], ENT_QUOTES, 'UTF-8') ?>">
+                                <input type="hidden" data-field="email" value="<?= htmlspecialchars((string)($attendant['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                                <select class="settings-input px-3 py-2" data-user-select>
+                                    <option value="">Selecione um funcionario</option>
+                                    <?php foreach ($staffUsers as $staff): ?>
+                                        <?php
+                                            $staffId = (int)($staff['id'] ?? 0);
+                                            $staffEmail = (string)($staff['email'] ?: $staff['username'] ?? '');
+                                            $staffName = (string)($staff['nome'] ?: $staff['username'] ?? $staffEmail);
+                                            $selected = (int)($attendant['usuario_id'] ?? 0) === $staffId
+                                                || strtolower((string)($attendant['email'] ?? '')) === strtolower($staffEmail);
+                                        ?>
+                                        <option value="<?= $staffId ?>"
+                                                data-id="user-<?= $staffId ?>"
+                                                data-nome="<?= htmlspecialchars($staffName, ENT_QUOTES, 'UTF-8') ?>"
+                                                data-email="<?= htmlspecialchars($staffEmail, ENT_QUOTES, 'UTF-8') ?>"
+                                                <?= $selected ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($staffName . ' - ' . $staffEmail, ENT_QUOTES, 'UTF-8') ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="settings-muted text-sm" data-user-summary>
+                                    <?= htmlspecialchars((string)$attendant['nome'] . (($attendant['email'] ?? '') ? ' - ' . (string)$attendant['email'] : ''), ENT_QUOTES, 'UTF-8') ?>
+                                </div>
                                 <label class="inline-flex items-center gap-2 font-bold text-sm">
                                     <input type="checkbox" data-field="ativo" class="settings-checkbox" <?= !empty($attendant['ativo']) ? 'checked' : '' ?>>
                                     Ativo
@@ -458,6 +490,27 @@ $embedded = !empty($_GET['embed']) || !empty($_POST['embed']);
 
 <script>
 const settingsForm = document.getElementById('systemSettingsForm');
+const staffUsers = <?= json_encode(array_map(static function (array $staff): array {
+    $id = (int)($staff['id'] ?? 0);
+    $email = (string)($staff['email'] ?: $staff['username'] ?? '');
+    $name = (string)($staff['nome'] ?: $staff['username'] ?? $email);
+
+    return [
+        'id' => 'user-' . $id,
+        'usuario_id' => $id,
+        'nome' => $name,
+        'email' => $email,
+        'label' => trim($name . ' - ' . $email, ' -'),
+    ];
+}, $staffUsers), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+const staffOptionsHtml = staffUsers.map(user => `
+    <option value="${String(user.usuario_id)}"
+            data-id="${escapeAttr(user.id)}"
+            data-nome="${escapeAttr(user.nome)}"
+            data-email="${escapeAttr(user.email)}">
+        ${escapeHtml(user.label)}
+    </option>
+`).join('');
 const teamTemplates = {
     tattooArtistsList: `
         <div class="settings-row settings-team-row p-3 grid grid-cols-1 md:grid-cols-[1fr_72px_auto_auto] gap-3 items-center" data-team-row>
@@ -472,10 +525,16 @@ const teamTemplates = {
         </div>
     `,
     attendantsList: `
-        <div class="settings-row settings-team-row p-3 grid grid-cols-1 md:grid-cols-[1fr_1.2fr_auto_auto] gap-3 items-center" data-team-row>
+        <div class="settings-row settings-team-row p-3 grid grid-cols-1 md:grid-cols-[1.4fr_1fr_auto_auto] gap-3 items-center" data-team-row>
             <input type="hidden" data-field="id" value="">
-            <input type="text" data-field="nome" class="settings-input px-3 py-2" value="" placeholder="Nome do atendente">
-            <input type="email" data-field="email" class="settings-input px-3 py-2" value="" placeholder="email do login">
+            <input type="hidden" data-field="usuario_id" value="">
+            <input type="hidden" data-field="nome" value="">
+            <input type="hidden" data-field="email" value="">
+            <select class="settings-input px-3 py-2" data-user-select>
+                <option value="">Selecione um funcionario</option>
+                ${staffOptionsHtml}
+            </select>
+            <div class="settings-muted text-sm" data-user-summary>Sem funcionario selecionado</div>
             <label class="inline-flex items-center gap-2 font-bold text-sm">
                 <input type="checkbox" data-field="ativo" class="settings-checkbox" checked>
                 Ativo
@@ -484,6 +543,42 @@ const teamTemplates = {
         </div>
     `
 };
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;',
+    }[char]));
+}
+
+function escapeAttr(value) {
+    return escapeHtml(value).replace(/`/g, '&#096;');
+}
+
+function syncAttendantRow(row) {
+    const select = row.querySelector('[data-user-select]');
+    if (!select) return;
+
+    const option = select.selectedOptions[0];
+    if (!option?.value && row.querySelector('[data-field="nome"]')?.value) {
+        return;
+    }
+
+    row.querySelector('[data-field="usuario_id"]').value = option?.value || '';
+    row.querySelector('[data-field="id"]').value = option?.dataset.id || '';
+    row.querySelector('[data-field="nome"]').value = option?.dataset.nome || '';
+    row.querySelector('[data-field="email"]').value = option?.dataset.email || '';
+
+    const summary = row.querySelector('[data-user-summary]');
+    if (summary) {
+        summary.textContent = option?.value
+            ? `${option.dataset.nome || 'Funcionario'} - ${option.dataset.email || 'sem email'}`
+            : 'Sem funcionario selecionado';
+    }
+}
 
 function collectTeamRows(listId) {
     const list = document.getElementById(listId);
@@ -506,7 +601,8 @@ document.addEventListener('click', event => {
         const list = document.getElementById(listId);
         if (list && teamTemplates[listId]) {
             list.insertAdjacentHTML('beforeend', teamTemplates[listId]);
-            const lastInput = list.querySelector('[data-team-row]:last-child [data-field="nome"]');
+            const row = list.querySelector('[data-team-row]:last-child');
+            const lastInput = row?.querySelector('[data-user-select], [data-field="nome"]');
             if (lastInput) lastInput.focus();
         }
     }
@@ -516,6 +612,15 @@ document.addEventListener('click', event => {
         removeButton.closest('[data-team-row]')?.remove();
     }
 });
+
+document.addEventListener('change', event => {
+    const select = event.target.closest('[data-user-select]');
+    if (select) {
+        syncAttendantRow(select.closest('[data-team-row]'));
+    }
+});
+
+document.querySelectorAll('#attendantsList [data-team-row]').forEach(syncAttendantRow);
 
 if (settingsForm) {
     settingsForm.addEventListener('submit', () => {
