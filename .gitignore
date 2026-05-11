@@ -1,4 +1,5 @@
 config.js
+/projetocrm/
 *.env
 *.local.php
 *.local.json
