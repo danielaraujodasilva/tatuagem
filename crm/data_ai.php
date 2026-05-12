@@ -391,14 +391,14 @@ function data_ai_pdo_table_exists(PDO $pdo, string $table): bool
 
 function data_ai_mysqli_table_exists(mysqli $conn, string $table): bool
 {
-    data_ai_record_query('Ficha/Agenda', 'SHOW TABLES LIKE ?', [$table]);
-    $stmt = $conn->prepare('SHOW TABLES LIKE ?');
+    data_ai_record_query('Ficha/Agenda', 'SELECT COUNT(*) AS total FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [$table]);
+    $stmt = $conn->prepare('SELECT COUNT(*) AS total FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?');
     $stmt->bind_param('s', $table);
     $stmt->execute();
-    $exists = (bool)$stmt->get_result()->fetch_row();
+    $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    return $exists;
+    return (int)($row['total'] ?? 0) > 0;
 }
 
 function data_ai_safe_section(callable $callback): array
@@ -423,7 +423,7 @@ function data_ai_question_days(string $question): int
     return 0;
 }
 
-function data_ai_summarize_messages(array $messages, int $limit = 5): array
+function data_ai_summarize_messages(array $messages, int $limit = 3): array
 {
     $items = array_slice($messages, -$limit);
 
@@ -443,9 +443,36 @@ function data_ai_summarize_messages(array $messages, int $limit = 5): array
             'autor' => $fromMe ? 'Atendimento' : 'Cliente',
             'data' => (string)($message['data'] ?? ''),
             'tipo' => (string)($message['tipo'] ?? 'texto'),
-            'texto' => data_ai_preview($text, 500),
+            'texto' => data_ai_preview($text, 280),
         ];
     }, $items), static fn(array $item): bool => $item['texto'] !== ''));
+}
+
+function data_ai_question_focus(string $question): array
+{
+    $text = strtolower($question);
+    $has = static function (array $terms) use ($text): bool {
+        foreach ($terms as $term) {
+            if (str_contains($text, $term)) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    $crm = $has(['lead', 'leads', 'whatsapp', 'conversa', 'cliente', 'status', 'funil', 'origem', 'agend']);
+    $agenda = $has(['agenda', 'agend', 'horario', 'horário', 'tatuagem', 'tatuagens', 'ficha', 'cliente']);
+    $finance = $has(['finance', 'despesa', 'gasto', 'custo', 'valor', 'receita', 'lucro']);
+
+    if (!$crm && !$agenda && !$finance) {
+        return ['crm' => true, 'agenda' => true, 'finance' => true];
+    }
+
+    return [
+        'crm' => $crm,
+        'agenda' => $agenda,
+        'finance' => $finance,
+    ];
 }
 
 function data_ai_read_whatsapp_json(): array
@@ -491,30 +518,31 @@ function data_ai_whatsapp_context(PDO $pdo): array
             SELECT id, numero, nome, status, etapa, atendente, modo_atendimento, interesse, valor, origem, data_ultimo_contato, updated_at
             FROM crm_whatsapp_clientes
             ORDER BY COALESCE(data_ultimo_contato, updated_at) DESC
-            LIMIT 18
+            LIMIT 12
         ");
         $ids = array_map(static fn(array $row): string => (string)$row['id'], $clients);
         $messagesByClient = [];
 
         if ($ids) {
-            $placeholders = implode(',', array_fill(0, count($ids), '?'));
             data_ai_record_query('CRM', "
                 SELECT cliente_id, texto, data, from_me, tipo, media_url, transcricao
                 FROM crm_whatsapp_mensagens
-                WHERE cliente_id IN ($placeholders)
+                WHERE cliente_id = ?
                 ORDER BY data DESC, id DESC
-            ", $ids);
+                LIMIT 4
+            ");
             $stmt = $pdo->prepare("
                 SELECT cliente_id, texto, data, from_me, tipo, media_url, transcricao
                 FROM crm_whatsapp_mensagens
-                WHERE cliente_id IN ($placeholders)
+                WHERE cliente_id = ?
                 ORDER BY data DESC, id DESC
+                LIMIT 4
             ");
-            $stmt->execute($ids);
-            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $message) {
-                $clientId = (string)$message['cliente_id'];
-                $messagesByClient[$clientId] ??= [];
-                if (count($messagesByClient[$clientId]) < 5) {
+            foreach ($ids as $id) {
+                $stmt->execute([$id]);
+                foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $message) {
+                    $clientId = (string)$message['cliente_id'];
+                    $messagesByClient[$clientId] ??= [];
                     $messagesByClient[$clientId][] = $message;
                 }
             }
@@ -522,8 +550,8 @@ function data_ai_whatsapp_context(PDO $pdo): array
 
         foreach ($clients as &$client) {
             $messages = array_reverse($messagesByClient[(string)$client['id']] ?? []);
-            $client['mensagens_recentes'] = data_ai_summarize_messages($messages, 5);
-            $client['interesse'] = data_ai_preview($client['interesse'] ?? '', 500);
+            $client['mensagens_recentes'] = data_ai_summarize_messages($messages, 3);
+            $client['interesse'] = data_ai_preview($client['interesse'] ?? '', 280);
         }
         unset($client);
 
@@ -557,8 +585,8 @@ function data_ai_whatsapp_context(PDO $pdo): array
         } else {
             $summary['em_ia']++;
         }
-        $client['mensagens_recentes'] = data_ai_summarize_messages($client['mensagens'] ?? []);
-        $client['interesse'] = data_ai_preview($client['interesse'] ?? '', 500);
+        $client['mensagens_recentes'] = data_ai_summarize_messages($client['mensagens'] ?? [], 3);
+        $client['interesse'] = data_ai_preview($client['interesse'] ?? '', 280);
         unset($client['mensagens']);
     }
     unset($client);
@@ -569,11 +597,11 @@ function data_ai_whatsapp_context(PDO $pdo): array
         'fonte' => 'crm_whatsapp_json',
         'resumo' => $summary,
         'por_status' => array_values($byStatus),
-        'conversas_recentes' => array_slice($clients, 0, 18),
+        'conversas_recentes' => array_slice($clients, 0, 12),
     ];
 }
 
-function data_ai_crm_context(): array
+function data_ai_crm_context(string $question = ''): array
 {
     return data_ai_safe_section(static function (): array {
         $pdo = data_ai_crm_pdo();
@@ -590,8 +618,12 @@ function data_ai_crm_context(): array
                 'por_status' => data_ai_pdo_rows($pdo, 'SELECT status, COUNT(*) AS qtd, COALESCE(SUM(valor), 0) AS valor FROM leads GROUP BY status ORDER BY qtd DESC LIMIT 20'),
                 'por_origem' => data_ai_pdo_rows($pdo, 'SELECT origem, COUNT(*) AS qtd, COALESCE(SUM(valor), 0) AS valor FROM leads GROUP BY origem ORDER BY qtd DESC LIMIT 20'),
                 'por_etapa' => data_ai_pdo_rows($pdo, 'SELECT etapa_funil AS etapa, COUNT(*) AS qtd, COALESCE(SUM(valor), 0) AS valor FROM leads GROUP BY etapa_funil ORDER BY qtd DESC LIMIT 20'),
-                'recentes' => data_ai_pdo_rows($pdo, 'SELECT id, nome, telefone, interesse, valor, origem, status, etapa_funil AS etapa, data_ultimo_contato, created_at FROM leads ORDER BY created_at DESC, id DESC LIMIT 20'),
+                'recentes' => data_ai_pdo_rows($pdo, 'SELECT id, nome, telefone, interesse, valor, origem, status, etapa_funil AS etapa, data_ultimo_contato, created_at FROM leads ORDER BY created_at DESC, id DESC LIMIT 12'),
             ];
+            foreach ($data['leads']['recentes'] as &$lead) {
+                $lead['interesse'] = data_ai_preview($lead['interesse'] ?? '', 240);
+            }
+            unset($lead);
         }
 
         return $data;
@@ -734,8 +766,412 @@ function data_ai_finance_context(): array
     });
 }
 
+function data_ai_money_br($value): string
+{
+    return 'R$ ' . number_format((float)$value, 2, ',', '.');
+}
+
+function data_ai_text_contains_any(string $text, array $terms): bool
+{
+    $text = strtolower($text);
+    foreach ($terms as $term) {
+        if (str_contains($text, strtolower($term))) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function data_ai_conversation_reason_labels(string $text, string $status, string $interest): array
+{
+    $combined = trim($text . ' ' . $status . ' ' . $interest);
+    $labels = [];
+
+    if (data_ai_text_contains_any($combined, ['valor', 'preco', 'preço', 'orcamento', 'orçamento', 'quanto', 'caro', 'barato'])) {
+        $labels[] = 'preco_orcamento';
+    }
+    if (data_ai_text_contains_any($combined, ['agenda', 'agendar', 'horario', 'horário', 'dia', 'data', 'disponivel', 'disponível'])) {
+        $labels[] = 'horario_agenda';
+    }
+    if (data_ai_text_contains_any($combined, ['pensar', 'decidir', 'ver aqui', 'vejo', 'depois', 'retorno', 'confirmo'])) {
+        $labels[] = 'decisao_pendente';
+    }
+    if (data_ai_text_contains_any($combined, ['referencia', 'referência', 'foto', 'imagem', 'desenho', 'tamanho', 'local do corpo', 'ideia'])) {
+        $labels[] = 'faltam_detalhes';
+    }
+    if (data_ai_text_contains_any($combined, ['sinal', 'pix', 'entrada', 'pagamento', 'pagar'])) {
+        $labels[] = 'pagamento_sinal';
+    }
+
+    return $labels ?: ['sem_motivo_claro'];
+}
+
+function data_ai_conversation_insights(array $context): array
+{
+    $conversations = $context['fontes']['crm']['data']['whatsapp']['conversas_recentes'] ?? [];
+    $items = [];
+    $reasonCounts = [];
+    $scheduledTerms = ['agendado', 'confirmado', 'fechado', 'concluido', 'concluído'];
+    $finalTerms = ['perdido', 'cancelado', 'fechado', 'concluido', 'concluído'];
+
+    foreach ($conversations as $conversation) {
+        if (!is_array($conversation)) {
+            continue;
+        }
+
+        $status = strtolower((string)($conversation['status'] ?? ''));
+        $stage = strtolower((string)($conversation['etapa'] ?? ''));
+        $isScheduled = data_ai_text_contains_any($status . ' ' . $stage, $scheduledTerms);
+        $isFinal = data_ai_text_contains_any($status . ' ' . $stage, $finalTerms);
+        $messages = $conversation['mensagens_recentes'] ?? [];
+        $messageText = '';
+        $lastClient = '';
+        foreach ($messages as $message) {
+            if (!is_array($message)) {
+                continue;
+            }
+            $line = trim((string)($message['texto'] ?? ''));
+            $messageText .= ' ' . $line;
+            if (($message['autor'] ?? '') === 'Cliente' && $line !== '') {
+                $lastClient = $line;
+            }
+        }
+
+        $interest = (string)($conversation['interesse'] ?? '');
+        $labels = data_ai_conversation_reason_labels($messageText, $status, $interest);
+        foreach ($labels as $label) {
+            $reasonCounts[$label] = ($reasonCounts[$label] ?? 0) + 1;
+        }
+
+        $score = count($labels) + ($isScheduled ? -3 : 2);
+        if ($lastClient !== '') {
+            $score++;
+        }
+
+        $items[] = [
+            'nome' => (string)($conversation['nome'] ?? ''),
+            'numero' => (string)($conversation['numero'] ?? ''),
+            'status' => (string)($conversation['status'] ?? ''),
+            'etapa' => (string)($conversation['etapa'] ?? ''),
+            'interesse' => data_ai_preview($interest, 160),
+            'valor' => (float)($conversation['valor'] ?? 0),
+            'ultimo_cliente' => data_ai_preview($lastClient, 180),
+            'motivos' => $labels,
+            'score' => $score,
+            'agendado' => $isScheduled,
+            'acionavel' => !$isScheduled && !$isFinal,
+        ];
+    }
+
+    usort($items, static fn(array $a, array $b): int => ($b['score'] <=> $a['score']));
+    arsort($reasonCounts);
+
+    return [
+        'motivos' => $reasonCounts,
+        'conversas' => array_values(array_filter($items, static fn(array $item): bool => !empty($item['acionavel']))),
+    ];
+}
+
+function data_ai_reason_label(string $key): string
+{
+    return [
+        'preco_orcamento' => 'Preço/orçamento: cliente pergunta valor, compara preço ou ainda não fechou orçamento.',
+        'horario_agenda' => 'Horário/agenda: conversa gira em torno de disponibilidade, data ou encaixe.',
+        'decisao_pendente' => 'Decisão pendente: cliente diz que vai pensar, ver melhor ou retornar depois.',
+        'faltam_detalhes' => 'Faltam detalhes: referência, imagem, tamanho, local do corpo ou ideia ainda incompleta.',
+        'pagamento_sinal' => 'Pagamento/sinal: dúvida ou fricção sobre Pix, entrada ou reserva.',
+        'sem_motivo_claro' => 'Sem motivo claro: pelas mensagens recentes não ficou explícito o bloqueio.',
+    ][$key] ?? $key;
+}
+
+function data_ai_reason_short_label(string $key): string
+{
+    return [
+        'preco_orcamento' => 'preco/orcamento',
+        'horario_agenda' => 'horario/agenda',
+        'decisao_pendente' => 'decisao pendente',
+        'faltam_detalhes' => 'faltam detalhes',
+        'pagamento_sinal' => 'pagamento/sinal',
+        'sem_motivo_claro' => 'sem motivo claro',
+    ][$key] ?? $key;
+}
+
+function data_ai_local_answer(string $question, array $context, array $problem = []): array
+{
+    $crm = $context['fontes']['crm']['data'] ?? [];
+    $whatsapp = $crm['whatsapp'] ?? [];
+    $leads = $crm['leads'] ?? [];
+    $ficha = $context['fontes']['ficha_agenda']['data'] ?? [];
+    $finance = $context['fontes']['financeiro']['data'] ?? [];
+    $insights = data_ai_conversation_insights($context);
+    $lines = [];
+
+    if ($problem) {
+        $lines[] = 'O modelo local nao terminou a tempo, entao montei uma leitura direta dos dados recentes para nao deixar a consulta sem resposta.';
+        $lines[] = '';
+    }
+
+    $questionLower = strtolower($question);
+    $asksConversation = str_contains($questionLower, 'conversa')
+        || str_contains($questionLower, 'whatsapp')
+        || str_contains($questionLower, 'argument')
+        || (str_contains($questionLower, 'lead') && str_contains($questionLower, 'agend'));
+    $asksAgendaRevenue = data_ai_text_contains_any($questionLower, ['faturamento', 'previsto', 'agendamentos por status']);
+    $asksFutureAgenda = str_contains($questionLower, 'agenda futura') || str_contains($questionLower, 'futuras');
+    $asksLeadSummary = data_ai_text_contains_any($questionLower, ['origem', 'etapa', 'valor potencial']);
+    $asksFinance = data_ai_text_contains_any($questionLower, ['despesa', 'gasto', 'financeiro']);
+
+    if ($asksConversation) {
+        $lines[] = 'Pelo recorte das conversas recentes, os principais motivos que aparecem antes do agendamento sao:';
+        if ($insights['motivos']) {
+            $position = 1;
+            foreach (array_slice($insights['motivos'], 0, 5, true) as $reason => $count) {
+                $lines[] = $position . '. ' . data_ai_reason_label((string)$reason) . ' Ocorrencias no recorte: ' . (int)$count . '.';
+                $position++;
+            }
+        } else {
+            $lines[] = '- Nao encontrei motivos claros nas mensagens recentes enviadas ao assistente.';
+        }
+
+        $lines[] = '';
+        $lines[] = 'Conversas que eu priorizaria para follow-up:';
+        $candidates = array_slice($insights['conversas'], 0, 6);
+        if (!$candidates) {
+            $lines[] = '- Nenhuma conversa recente sem agendamento apareceu com dados suficientes no recorte.';
+        }
+        foreach ($candidates as $candidate) {
+            $rawName = trim((string)$candidate['nome']);
+            $name = $rawName !== '' && strtolower($rawName) !== 'cliente' ? $rawName : ($candidate['numero'] ?: 'Lead sem nome');
+            $reasonText = implode(', ', array_map('data_ai_reason_short_label', $candidate['motivos']));
+            $lastClient = $candidate['ultimo_cliente'] !== '' ? ' Ultima fala do cliente: "' . $candidate['ultimo_cliente'] . '".' : '';
+            $lines[] = '- ' . $name . ': status "' . ($candidate['status'] ?: '-') . '", etapa "' . ($candidate['etapa'] ?: '-') . '". Motivo provavel: ' . $reasonText . '.' . $lastClient;
+        }
+
+        $lines[] = '';
+        $lines[] = 'Sugestao pratica: separar esses leads em tres filas: falta de detalhes, negociacao de valor e tentativa de data. Assim o atendimento manda uma pergunta objetiva em vez de uma mensagem generica.';
+    } elseif ($asksAgendaRevenue) {
+        $tattoos = $ficha['tatuagens'] ?? [];
+        $summary = $tattoos['resumo'] ?? [];
+        $lines[] = 'Faturamento previsto dos agendamentos por status:';
+        foreach (($tattoos['por_status'] ?? []) as $row) {
+            $lines[] = '- ' . (($row['status'] ?? '') ?: 'sem_status') . ': ' . (int)($row['qtd'] ?? 0) . ' agendamentos, ' . data_ai_money_br($row['valor'] ?? 0) . '.';
+        }
+        if (!$tattoos || empty($tattoos['por_status'])) {
+            $lines[] = '- Nao encontrei agendamentos agrupados por status na ficha/agenda.';
+        }
+        if ($summary) {
+            $lines[] = '';
+            $lines[] = 'Resumo: ' . (int)($summary['total'] ?? 0) . ' tatuagens cadastradas, ' . (int)($summary['futuras'] ?? 0) . ' futuras, ' . data_ai_money_br($summary['valor_mes_atual'] ?? 0) . ' previstos no mes atual.';
+        }
+    } elseif ($asksFutureAgenda) {
+        $appointments = array_slice($ficha['tatuagens']['proximas'] ?? [], 0, 10);
+        $lines[] = 'Clientes com agenda futura:';
+        if (!$appointments) {
+            $lines[] = '- Nao encontrei horarios futuros na ficha/agenda.';
+        }
+        foreach ($appointments as $appointment) {
+            $client = (string)($appointment['cliente_nome'] ?? 'Cliente sem nome');
+            $date = (string)($appointment['data_tatuagem'] ?? '');
+            $time = substr((string)($appointment['hora_inicio'] ?? ''), 0, 5);
+            $value = data_ai_money_br($appointment['valor'] ?? 0);
+            $desc = data_ai_preview($appointment['descricao'] ?? '', 120);
+            $lines[] = '- ' . $client . ': ' . $date . ($time ? ' as ' . $time : '') . ', ' . $value . ', status "' . (($appointment['status'] ?? '') ?: '-') . '"' . ($desc ? '. ' . $desc : '') . '.';
+        }
+    } elseif ($asksLeadSummary) {
+        $lines[] = 'Resumo dos leads:';
+        if (!empty($leads['resumo'])) {
+            $lines[] = '- Total: ' . (int)($leads['resumo']['total'] ?? 0) . ' leads, valor potencial de ' . data_ai_money_br($leads['resumo']['valor_total'] ?? 0) . '.';
+        }
+        if (!empty($leads['por_origem'])) {
+            $lines[] = '';
+            $lines[] = 'Por origem:';
+            foreach (array_slice($leads['por_origem'], 0, 8) as $row) {
+                $lines[] = '- ' . (($row['origem'] ?? '') ?: 'sem_origem') . ': ' . (int)($row['qtd'] ?? 0) . ' leads, ' . data_ai_money_br($row['valor'] ?? 0) . '.';
+            }
+        }
+        if (!empty($leads['por_etapa'])) {
+            $lines[] = '';
+            $lines[] = 'Por etapa:';
+            foreach (array_slice($leads['por_etapa'], 0, 8) as $row) {
+                $lines[] = '- ' . (($row['etapa'] ?? '') ?: 'sem_etapa') . ': ' . (int)($row['qtd'] ?? 0) . ' leads, ' . data_ai_money_br($row['valor'] ?? 0) . '.';
+            }
+        }
+    } elseif ($asksFinance) {
+        $financeSummary = $finance['resumo'] ?? [];
+        $tattooSummary = $ficha['tatuagens']['resumo'] ?? [];
+        $expensesMonth = (float)($financeSummary['valor_despesas_mes_atual'] ?? 0);
+        $appointmentsMonth = (float)($tattooSummary['valor_mes_atual'] ?? 0);
+        $lines[] = 'Comparativo financeiro do mes atual:';
+        $lines[] = '- Despesas cadastradas no mes: ' . data_ai_money_br($expensesMonth) . '.';
+        $lines[] = '- Valor de tatuagens no mes: ' . data_ai_money_br($appointmentsMonth) . '.';
+        $lines[] = '- Diferenca simples: ' . data_ai_money_br($appointmentsMonth - $expensesMonth) . '.';
+        if (!empty($finance['por_categoria'])) {
+            $lines[] = '';
+            $lines[] = 'Despesas por categoria:';
+            foreach (array_slice($finance['por_categoria'], 0, 8) as $row) {
+                $lines[] = '- ' . (($row['categoria'] ?? '') ?: 'Geral') . ': ' . (int)($row['qtd'] ?? 0) . ' registros, ' . data_ai_money_br($row['valor'] ?? 0) . '.';
+            }
+        }
+    } else {
+        $whatsappSummary = $whatsapp['resumo'] ?? [];
+        $leadSummary = $leads['resumo'] ?? [];
+        $tattooSummary = $ficha['tatuagens']['resumo'] ?? [];
+        $financeSummary = $finance['resumo'] ?? [];
+
+        $lines[] = 'Resumo rapido dos dados disponiveis:';
+        if ($whatsappSummary) {
+            $lines[] = '- WhatsApp: ' . (int)($whatsappSummary['total'] ?? 0) . ' conversas, valor total de ' . data_ai_money_br($whatsappSummary['valor_total'] ?? 0) . '.';
+        }
+        if ($leadSummary) {
+            $lines[] = '- Leads: ' . (int)($leadSummary['total'] ?? 0) . ' registros, valor total de ' . data_ai_money_br($leadSummary['valor_total'] ?? 0) . '.';
+        }
+        if ($tattooSummary) {
+            $lines[] = '- Agenda/ficha: ' . (int)($tattooSummary['total'] ?? 0) . ' tatuagens, ' . (int)($tattooSummary['futuras'] ?? 0) . ' futuras.';
+        }
+        if ($financeSummary) {
+            $lines[] = '- Financeiro: ' . (int)($financeSummary['total_despesas_cadastradas'] ?? 0) . ' despesas cadastradas, total de ' . data_ai_money_br($financeSummary['valor_total_despesas'] ?? 0) . '.';
+        }
+    }
+
+    return [
+        'answer' => trim(implode("\n", $lines)),
+        'transparency' => [
+            'Resposta local montada com consultas somente leitura.',
+            'Foram usados resumos de CRM, WhatsApp, agenda/ficha e financeiro conforme relevancia da pergunta.',
+        ],
+    ];
+}
+
+function data_ai_fallback_response(string $question, array $context, array $details, string $model): array
+{
+    $local = data_ai_local_answer($question, $context, $details);
+
+    return [
+        'ok' => true,
+        'answer' => $local['answer'],
+        'transparency' => $local['transparency'],
+        'queries' => data_ai_public_queries(),
+        'thinking' => '',
+        'raw_model_output' => '',
+        'diagnostic' => [
+            'stage' => 'fallback_local',
+            'model' => $model,
+            'fallback_reason' => $details['error_type'] ?? 'ollama_indisponivel',
+            'timeout_seconds' => $details['timeout_configurado_segundos'] ?? null,
+        ],
+        'model' => 'Resumo local',
+        'read_only' => true,
+        'generated_at' => $context['gerado_em'] ?? date('Y-m-d H:i:s'),
+        'fallback' => true,
+    ];
+}
+
+function data_ai_should_answer_locally(string $question): bool
+{
+    return data_ai_text_contains_any($question, [
+        'argument',
+        'conversa',
+        'whatsapp',
+        'lead',
+        'leads',
+        'agend',
+        'status',
+        'origem',
+        'resumo',
+        'despesa',
+        'gasto',
+        'financeiro',
+        'cliente',
+        'clientes',
+    ]);
+}
+
+function data_ai_local_response(string $question, array $context): array
+{
+    $local = data_ai_local_answer($question, $context);
+
+    return [
+        'ok' => true,
+        'answer' => $local['answer'],
+        'transparency' => $local['transparency'],
+        'queries' => data_ai_public_queries(),
+        'thinking' => '',
+        'raw_model_output' => '',
+        'diagnostic' => [
+            'stage' => 'analise_local',
+            'context_sources' => array_keys($context['fontes'] ?? []),
+        ],
+        'model' => 'Analise local',
+        'read_only' => true,
+        'generated_at' => $context['gerado_em'] ?? date('Y-m-d H:i:s'),
+        'local_analysis' => true,
+    ];
+}
+
+function data_ai_llm_context(string $question, array $context): array
+{
+    $crm = $context['fontes']['crm']['data'] ?? [];
+    $whatsapp = $crm['whatsapp'] ?? [];
+    $leads = $crm['leads'] ?? [];
+    $ficha = $context['fontes']['ficha_agenda']['data'] ?? [];
+    $finance = $context['fontes']['financeiro']['data'] ?? [];
+    $insights = data_ai_conversation_insights($context);
+
+    $conversations = array_map(static function (array $item): array {
+        return [
+            'nome' => $item['nome'] ?: 'Lead sem nome',
+            'numero' => $item['numero'],
+            'status' => $item['status'],
+            'etapa' => $item['etapa'],
+            'interesse' => $item['interesse'],
+            'valor' => $item['valor'],
+            'ultimo_cliente' => $item['ultimo_cliente'],
+            'motivos_detectados' => array_map('data_ai_reason_label', $item['motivos']),
+        ];
+    }, array_slice($insights['conversas'], 0, 8));
+
+    $reasons = [];
+    foreach (array_slice($insights['motivos'], 0, 6, true) as $reason => $count) {
+        $reasons[] = [
+            'motivo' => data_ai_reason_label((string)$reason),
+            'ocorrencias_no_recorte' => (int)$count,
+        ];
+    }
+
+    return [
+        'gerado_em' => $context['gerado_em'] ?? date('Y-m-d H:i:s'),
+        'pergunta' => data_ai_preview($question, 500),
+        'instrucoes_de_uso' => 'Use este resumo executivo. Nao diga que faltou o JSON bruto se os campos abaixo forem suficientes.',
+        'crm_whatsapp' => [
+            'resumo' => $whatsapp['resumo'] ?? [],
+            'por_status' => array_slice($whatsapp['por_status'] ?? [], 0, 8),
+            'motivos_detectados' => $reasons,
+            'conversas_para_follow_up' => $conversations,
+        ],
+        'leads' => [
+            'resumo' => $leads['resumo'] ?? [],
+            'por_status' => array_slice($leads['por_status'] ?? [], 0, 8),
+            'por_origem' => array_slice($leads['por_origem'] ?? [], 0, 8),
+            'por_etapa' => array_slice($leads['por_etapa'] ?? [], 0, 8),
+            'recentes' => array_slice($leads['recentes'] ?? [], 0, 8),
+        ],
+        'agenda_ficha' => [
+            'clientes_resumo' => $ficha['clientes']['resumo'] ?? [],
+            'tatuagens_resumo' => $ficha['tatuagens']['resumo'] ?? [],
+            'proximas' => array_slice($ficha['tatuagens']['proximas'] ?? [], 0, 8),
+        ],
+        'financeiro' => [
+            'resumo' => $finance['resumo'] ?? [],
+            'por_categoria' => array_slice($finance['por_categoria'] ?? [], 0, 8),
+        ],
+    ];
+}
+
 function data_ai_build_context(string $question): array
 {
+    $focus = data_ai_question_focus($question);
+
     return [
         'gerado_em' => date('Y-m-d H:i:s'),
         'pergunta' => data_ai_preview($question, 1200),
@@ -743,10 +1179,11 @@ function data_ai_build_context(string $question): array
             'modo' => 'somente_leitura',
             'observacao' => 'A IA nao recebe permissao para escrever no banco. O sistema envia apenas resultados de consultas SELECT fixas e leitura de JSON.',
         ],
+        'foco' => $focus,
         'fontes' => [
-            'crm' => data_ai_crm_context(),
-            'ficha_agenda' => data_ai_ficha_context($question),
-            'financeiro' => data_ai_finance_context(),
+            'crm' => $focus['crm'] ? data_ai_crm_context($question) : ['ok' => true, 'omitido' => 'Fonte omitida para acelerar esta pergunta.'],
+            'ficha_agenda' => $focus['agenda'] ? data_ai_ficha_context($question) : ['ok' => true, 'omitido' => 'Fonte omitida para acelerar esta pergunta.'],
+            'financeiro' => $focus['finance'] ? data_ai_finance_context() : ['ok' => true, 'omitido' => 'Fonte omitida para acelerar esta pergunta.'],
         ],
     ];
 }
@@ -775,7 +1212,7 @@ function data_ai_ask(string $question, ?callable $progress = null): array
     $ollamaUrl = rtrim(trim((string)($settings['ollama_url'] ?? 'http://localhost:11434')), '/') ?: 'http://localhost:11434';
     $model = trim((string)($settings['data_ai_model'] ?? 'qwen3:14b')) ?: 'qwen3:14b';
     $timeout = max(30, min(420, (int)($settings['data_ai_timeout_seconds'] ?? 240)));
-    $numPredict = max(120, min(6000, (int)($settings['data_ai_num_predict'] ?? 2400)));
+    $numPredict = max(420, min(1800, (int)($settings['data_ai_num_predict'] ?? 700)));
     if (function_exists('set_time_limit')) {
         @set_time_limit($timeout + 45);
     }
@@ -787,14 +1224,24 @@ function data_ai_ask(string $question, ?callable $progress = null): array
     $contextStartedAt = microtime(true);
     $context = data_ai_build_context($question);
     $contextSeconds = round(microtime(true) - $contextStartedAt, 3);
-    $emitProgress('contexto_pronto', 'Contexto pronto. Preparando chamada para o Ollama.', 42, [
+    $emitProgress('contexto_pronto', 'Contexto pronto. Escolhendo melhor forma de resposta.', 42, [
         'context_seconds' => $contextSeconds,
         'queries' => count(data_ai_public_queries()),
     ]);
 
-    $system = "Voce e um analista interno do estudio de tatuagem. Responda em portugues do Brasil, com objetividade e clareza. Use somente os dados fornecidos no JSON de contexto. Nao invente numeros, datas, nomes ou conclusoes que nao estejam apoiadas nos dados. Se a pergunta exigir algo fora do contexto, diga exatamente o que faltou. Voce nao executa SQL e nao altera dados; o sistema ja enviou apenas consultas de leitura.";
+    if (data_ai_should_answer_locally($question)) {
+        $emitProgress('analise_local', 'Gerando resposta direta com os dados do CRM.', 92);
+        $response = data_ai_local_response($question, $context);
+        $response['diagnostic']['context_seconds'] = $contextSeconds;
+        $response['diagnostic']['total_seconds'] = round(microtime(true) - $startedAt, 3);
+        $emitProgress('concluido', 'Resposta pronta.', 100);
+        return $response;
+    }
+
+    $system = "Voce e um analista interno do estudio de tatuagem. Responda em portugues do Brasil, com objetividade e clareza. Use somente os dados do JSON de contexto. Nao invente numeros, datas, nomes ou conclusoes sem apoio nos dados. Quando houver mensagens de WhatsApp, priorize evidencias da conversa e explique de forma pratica o que o gestor deve fazer. Voce nao executa SQL e nao altera dados.";
     $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE;
-    $contextJson = json_encode($context, $jsonFlags);
+    $llmContext = data_ai_llm_context($question, $context);
+    $contextJson = json_encode($llmContext, $jsonFlags);
     if ($contextJson === false) {
         return data_ai_error('contexto_json_invalido', 'montagem_contexto', 'Nao foi possivel converter o contexto dos dados para JSON.', [
             'json_error' => json_last_error_msg(),
@@ -807,6 +1254,7 @@ function data_ai_ask(string $question, ?callable $progress = null): array
         'model' => $model,
         'stream' => false,
         'think' => false,
+        'format' => 'json',
         'messages' => [
             ['role' => 'system', 'content' => $system . "\n\nRetorne exclusivamente um JSON valido neste formato: {\"resposta\":\"texto final para o gestor\",\"transparencia\":[\"resumo curto da fonte/evidencia usada\",\"outro resumo curto\"]}. O campo transparencia deve ter no maximo 5 itens, explicando quais fontes e evidencias voce usou, sem raciocinio interno passo a passo, sem tags <think>, sem bastidores tecnicos e sem JSON bruto dentro dos textos."],
             ['role' => 'user', 'content' => $user],
@@ -814,7 +1262,7 @@ function data_ai_ask(string $question, ?callable $progress = null): array
         'options' => [
             'temperature' => 0.2,
             'num_predict' => $numPredict,
-            'num_ctx' => 12000,
+            'num_ctx' => 4096,
         ],
     ];
 
@@ -827,7 +1275,7 @@ function data_ai_ask(string $question, ?callable $progress = null): array
         ]);
     }
 
-    $emitProgress('consulta_ollama', 'Consultando qwen3:14b em segundo plano.', 55, [
+    $emitProgress('consulta_ollama', 'Consultando ' . $model . ' em segundo plano.', 55, [
         'url' => $ollamaUrl . '/api/chat',
     ]);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $payloadJson);
@@ -851,7 +1299,8 @@ function data_ai_ask(string $question, ?callable $progress = null): array
     $json = json_decode((string)$raw, true);
     if ($raw === false || $curlError !== '') {
         $isTimeout = $curlErrno === 28 || stripos($curlError, 'timed out') !== false;
-        return data_ai_error($isTimeout ? 'ollama_timeout' : 'ollama_conexao', 'consulta_ollama', $isTimeout ? 'Timeout aguardando resposta do Ollama.' : 'Erro de conexao com Ollama.', [
+        $details = [
+            'error_type' => $isTimeout ? 'ollama_timeout' : 'ollama_conexao',
             'curl_errno' => $curlErrno,
             'curl_error' => $curlError,
             'timeout_configurado_segundos' => $timeout,
@@ -860,7 +1309,9 @@ function data_ai_ask(string $question, ?callable $progress = null): array
             'model' => $model,
             'num_predict' => $numPredict,
             'contexto_segundos' => $contextSeconds,
-        ]);
+        ];
+
+        return data_ai_fallback_response($question, $context, $details, $model);
     }
     if ($httpCode < 200 || $httpCode >= 300 || !is_array($json)) {
         $message = $json['error'] ?? ('Ollama retornou HTTP ' . $httpCode);
@@ -898,7 +1349,8 @@ function data_ai_ask(string $question, ?callable $progress = null): array
     }
 
     if ($answer === '') {
-        return data_ai_error('ollama_resposta_vazia', 'interpretacao_resposta', 'Ollama respondeu, mas nao retornou texto aproveitavel.', [
+        return data_ai_fallback_response($question, $context, [
+            'error_type' => 'ollama_resposta_vazia',
             'http_code' => $httpCode,
             'tempo_total_curl_segundos' => $totalTime,
             'done_reason' => $json['done_reason'] ?? null,
@@ -909,7 +1361,7 @@ function data_ai_ask(string $question, ?callable $progress = null): array
             'thinking_preview' => data_ai_preview($thinking, 2500),
             'raw_preview' => data_ai_preview($rawAnswer, 2500),
             'model' => $model,
-        ]);
+        ], $model);
     }
     $emitProgress('concluido', 'Resposta pronta.', 100);
 

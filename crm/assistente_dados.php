@@ -311,8 +311,8 @@ function data_ai_h($value): string
                     <div class="progress-step" data-step="0">Validando pergunta</div>
                     <div class="progress-step" data-step="1">Lendo CRM, WhatsApp, ficha e agenda</div>
                     <div class="progress-step" data-step="2">Montando contexto somente leitura</div>
-                    <div class="progress-step" data-step="3">Consultando o modelo local</div>
-                    <div class="progress-step" data-step="4">Organizando resposta e transparência</div>
+                    <div class="progress-step" data-step="3">Gerando analise</div>
+                    <div class="progress-step" data-step="4">Organizando resposta</div>
                 </div>
             </div>
 
@@ -392,6 +392,7 @@ const thinkingFullBlock = document.getElementById('thinkingFullBlock');
 const thinkingFull = document.getElementById('thinkingFull');
 const rawOutputBlock = document.getElementById('rawOutputBlock');
 const rawOutput = document.getElementById('rawOutput');
+const debugMode = new URLSearchParams(window.location.search).get('debug') === '1';
 
 let progressInterval = null;
 let pollInterval = null;
@@ -399,9 +400,9 @@ const progressPhases = [
     { after: 0, step: 0, width: 12, title: 'Validando pergunta...' },
     { after: 2, step: 1, width: 32, title: 'Lendo dados do sistema...' },
     { after: 5, step: 2, width: 52, title: 'Montando contexto somente leitura...' },
-    { after: 9, step: 3, width: 76, title: 'Consultando o modelo local...' },
-    { after: 35, step: 3, width: 86, title: 'Modelo ainda trabalhando, sem travar...' },
-    { after: 75, step: 3, width: 92, title: 'Ainda aguardando resposta do modelo...' }
+    { after: 9, step: 3, width: 76, title: 'Gerando analise dos dados...' },
+    { after: 35, step: 3, width: 86, title: 'Ainda trabalhando, sem travar a tela...' },
+    { after: 75, step: 3, width: 92, title: 'Ainda aguardando a resposta...' }
 ];
 
 function updateProgressStep(activeStep) {
@@ -468,6 +469,14 @@ function stringifyValue(value) {
 }
 
 function renderDiagnostic(data, failed = false) {
+    if (!debugMode) {
+        diagnosticPanel.classList.add('hidden');
+        diagnosticPanel.open = false;
+        thinkingFullBlock.classList.add('hidden');
+        rawOutputBlock.classList.add('hidden');
+        return;
+    }
+
     const diagnostic = data && typeof data.diagnostic === 'object' && data.diagnostic !== null ? data.diagnostic : {};
     const details = data && typeof data.details === 'object' && data.details !== null ? data.details : {};
     const items = [];
@@ -506,6 +515,12 @@ function renderDiagnostic(data, failed = false) {
 }
 
 function renderQueries(queries) {
+    if (!debugMode) {
+        queryPanel.classList.add('hidden');
+        queryPanel.open = false;
+        return;
+    }
+
     queryList.innerHTML = '';
     queries.forEach((query, index) => {
         const item = document.createElement('div');
@@ -534,12 +549,14 @@ function renderSuccess(data) {
         item.textContent = note;
         thinkingList.appendChild(item);
     });
-    thinkingPanel.classList.toggle('hidden', notes.length === 0);
+    thinkingPanel.classList.toggle('hidden', !debugMode || notes.length === 0);
     renderQueries(Array.isArray(data.queries) ? data.queries : []);
     renderDiagnostic(data, false);
     answerMeta.textContent = `${data.model || 'IA'} - ${data.generated_at || ''}`;
     answerPanel.classList.remove('hidden');
-    statusText.textContent = 'Resposta gerada com dados somente-leitura.';
+    statusText.textContent = data.fallback
+        ? 'Resposta gerada por resumo local porque o modelo demorou demais.'
+        : 'Resposta gerada com dados somente-leitura.';
 }
 
 function waitForJob(jobId) {
@@ -640,13 +657,21 @@ function showFailure(payload) {
     if (!safePayload.stage) {
         safePayload.stage = 'browser_payload';
     }
-    if (!safePayload.details.payload_completo) {
+    if (debugMode && !safePayload.details.payload_completo) {
         safePayload.details.payload_completo = debugDump(payload);
     }
 
     const stage = safePayload.stage ? ` na etapa ${safePayload.stage}` : '';
     const type = safePayload.error_type ? ` (${safePayload.error_type})` : '';
-    answer.textContent = `${safePayload.error || 'Falha sem mensagem.'}${type}${stage}`;
+    if (safePayload.error_type === 'ollama_timeout') {
+        answer.textContent = 'O modelo local demorou demais para responder. Eu reduzi o contexto enviado para as proximas consultas; tente perguntar novamente. Se continuar, o ideal e trocar para um modelo menor nas configuracoes do assistente.';
+    } else if (safePayload.error_type === 'ollama_conexao') {
+        answer.textContent = 'Nao consegui conectar ao Ollama agora. Verifique se o Ollama esta aberto no servidor e tente novamente.';
+    } else {
+        answer.textContent = debugMode
+            ? `${safePayload.error || 'Falha sem mensagem.'}${type}${stage}`
+            : (safePayload.error || 'Nao foi possivel consultar a IA agora.');
+    }
     answerMeta.textContent = 'Falha';
     renderQueries(Array.isArray(safePayload.queries) ? safePayload.queries : []);
 
@@ -666,7 +691,7 @@ function showFailure(payload) {
     }
 
     answerPanel.classList.remove('hidden');
-    statusText.textContent = 'Nao foi possivel consultar a IA agora.';
+    statusText.textContent = debugMode ? 'Nao foi possivel consultar a IA agora.' : 'Falha tratada sem detalhes tecnicos na tela.';
 }
 
 document.querySelectorAll('.example').forEach((item) => {
@@ -749,13 +774,16 @@ form.addEventListener('submit', async (event) => {
         }
         finishProgress(true);
     } catch (error) {
-        const payload = error && error.payload ? error.payload : {
+        const payload = error && error.payload ? error.payload : (
+            error && typeof error === 'object' && (error.error || error.error_type || error.ok === false)
+                ? error
+                : {
             ok: false,
             error: error && error.message ? error.message : 'Erro inesperado no navegador.',
             error_type: 'frontend_exception',
             stage: 'browser',
             details: debugDump(error)
-        };
+        });
         showFailure(payload);
         finishProgress(false);
     } finally {
