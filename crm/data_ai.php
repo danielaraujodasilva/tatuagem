@@ -1142,7 +1142,7 @@ function data_ai_try_local_answer(string $question, array $context, float $start
     ];
 }
 
-function data_ai_ollama_chat_request(string $ollamaUrl, string $model, array $messages, int $timeout, int $numPredict, int $numCtx = 12000): array
+function data_ai_ollama_chat_request(string $ollamaUrl, string $model, array $messages, int $timeout, int $numPredict, int $numCtx = 12000, bool $jsonMode = false): array
 {
     $payload = [
         'model' => $model,
@@ -1155,6 +1155,9 @@ function data_ai_ollama_chat_request(string $ollamaUrl, string $model, array $me
             'num_ctx' => $numCtx,
         ],
     ];
+    if ($jsonMode) {
+        $payload['format'] = 'json';
+    }
     $payloadJson = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
     if ($payloadJson === false) {
         return ['ok' => false, 'error' => 'Nao foi possivel montar payload JSON para o modelo.', 'json_error' => json_last_error_msg()];
@@ -1364,7 +1367,7 @@ function data_ai_plan_dynamic_queries(string $question, array $schema, string $o
         ['role' => 'user', 'content' => "Data atual: " . date('Y-m-d') . "\nPergunta: " . $question . "\nSchema disponivel:\n" . $schemaJson],
     ];
 
-    $response = data_ai_ollama_chat_request($ollamaUrl, $model, $messages, $timeout, 900, 10000);
+    $response = data_ai_ollama_chat_request($ollamaUrl, $model, $messages, $timeout, 900, 10000, true);
     if (empty($response['ok'])) {
         return ['ok' => false, 'error' => $response['error'] ?? 'Falha planejando consultas.', 'details' => $response];
     }
@@ -1469,7 +1472,7 @@ function data_ai_try_dynamic_answer(string $question, array $context, string $ol
         ],
         ['role' => 'user', 'content' => $answerJson],
     ];
-    $answerResponse = data_ai_ollama_chat_request($ollamaUrl, $model, $messages, max(30, $timeout - (int)ceil(microtime(true) - $startedAt)), min($numPredict, 2600), 12000);
+    $answerResponse = data_ai_ollama_chat_request($ollamaUrl, $model, $messages, max(30, $timeout - (int)ceil(microtime(true) - $startedAt)), min($numPredict, 2600), 12000, true);
     if (empty($answerResponse['ok'])) {
         return data_ai_error('resposta_dinamica', 'resposta_dinamica', 'As consultas foram executadas, mas nao consegui transformar os resultados em resposta agora.', [
             'answer_error' => $answerResponse['error'] ?? 'Falha na resposta final.',
@@ -1565,7 +1568,7 @@ function data_ai_ask(string $question, ?callable $progress = null): array
     }
 
     $dynamicAnswer = data_ai_try_dynamic_answer($question, $context, $ollamaUrl, $model, $timeout, $numPredict, $startedAt, $contextSeconds, $progress);
-    if ($dynamicAnswer !== null) {
+    if ($dynamicAnswer !== null && !empty($dynamicAnswer['ok'])) {
         $emitProgress('concluido', 'Resposta dinamica pronta.', 100);
         return $dynamicAnswer;
     }
@@ -1574,6 +1577,9 @@ function data_ai_ask(string $question, ?callable $progress = null): array
     if ($localAnswer !== null) {
         $emitProgress('concluido', 'Resposta local pronta.', 100);
         return $localAnswer;
+    }
+    if ($dynamicAnswer !== null) {
+        return $dynamicAnswer;
     }
 
     $system = "Voce e um analista interno do estudio de tatuagem. Responda em portugues do Brasil, com objetividade e clareza. Use somente os dados fornecidos no JSON de contexto. Priorize o bloco dados_calculados_para_resposta para numeros, totais, listas prioritarias e regras de filtro; ele foi calculado pelo sistema para a pergunta atual. Use o bloco fontes apenas como evidencia complementar. Nao invente numeros, datas, nomes ou conclusoes que nao estejam apoiadas nos dados. Se uma fonte estiver indisponivel ou a pergunta exigir algo fora do contexto, diga exatamente o que faltou. Voce nao executa SQL e nao altera dados; o sistema ja enviou apenas consultas de leitura.";
