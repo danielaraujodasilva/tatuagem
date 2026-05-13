@@ -1422,16 +1422,193 @@ function data_ai_period_filter_from_question(string $question, string $column): 
         return "$column >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01') AND $column < DATE_FORMAT(CURDATE(), '%Y-%m-01')";
     }
     if (data_ai_question_has_any($question, ['mes', 'mês', 'este mes', 'esse mes', 'neste mes', 'nesse mes', 'mes atual'])) {
-        return "$column >= DATE_FORMAT(CURDATE(), '%Y-%m-01') AND $column <= LAST_DAY(CURDATE())";
+        return "$column >= DATE_FORMAT(CURDATE(), '%Y-%m-01') AND $column < DATE_ADD(LAST_DAY(CURDATE()), INTERVAL 1 DAY)";
     }
     if (data_ai_question_has_any($question, ['futuro', 'futuros', 'proximo', 'proximos', 'próximo', 'próximos'])) {
         return "$column >= CURDATE()";
     }
     if (data_ai_question_has_any($question, ['hoje'])) {
-        return "$column = CURDATE()";
+        return "$column >= CURDATE() AND $column < DATE_ADD(CURDATE(), INTERVAL 1 DAY)";
     }
 
     return "$column >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)";
+}
+
+function data_ai_period_label_from_question(string $question): string
+{
+    if (data_ai_question_has_any($question, ['ontem'])) {
+        return 'ontem';
+    }
+    if (data_ai_question_has_any($question, ['hoje'])) {
+        return 'hoje';
+    }
+    if (data_ai_question_has_any($question, ['mes passado', 'mês passado'])) {
+        return 'no mes passado';
+    }
+    if (data_ai_question_has_any($question, ['mes', 'mês', 'este mes', 'esse mes', 'neste mes', 'nesse mes', 'mes atual'])) {
+        return 'neste mes';
+    }
+    if (data_ai_question_has_any($question, ['futuro', 'futuros', 'proximo', 'proximos', 'próximo', 'próximos'])) {
+        return 'no futuro';
+    }
+
+    return 'nos ultimos 90 dias';
+}
+
+function data_ai_rows_for_purpose(array $results, string $purpose): array
+{
+    foreach ($results as $result) {
+        if ((string)($result['finalidade'] ?? '') === $purpose) {
+            return is_array($result['rows'] ?? null) ? $result['rows'] : [];
+        }
+    }
+
+    return [];
+}
+
+function data_ai_has_purpose(array $results, string $purpose): bool
+{
+    foreach ($results as $result) {
+        if ((string)($result['finalidade'] ?? '') === $purpose) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function data_ai_sum_rows(array $rows, string $field): float
+{
+    return array_reduce($rows, static fn(float $sum, array $row): float => $sum + (float)($row[$field] ?? 0), 0.0);
+}
+
+function data_ai_row_matches_question_period(array $row, string $question, array $dateFields): bool
+{
+    $date = '';
+    foreach ($dateFields as $field) {
+        $candidate = trim((string)($row[$field] ?? ''));
+        if ($candidate !== '') {
+            $date = substr($candidate, 0, 10);
+            break;
+        }
+    }
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+        return false;
+    }
+
+    if (data_ai_question_has_any($question, ['ontem'])) {
+        return $date === date('Y-m-d', strtotime('-1 day'));
+    }
+    if (data_ai_question_has_any($question, ['hoje'])) {
+        return $date === date('Y-m-d');
+    }
+    if (data_ai_question_has_any($question, ['mes passado', 'mês passado'])) {
+        return substr($date, 0, 7) === date('Y-m', strtotime('first day of last month'));
+    }
+    if (data_ai_question_has_any($question, ['mes', 'mês', 'este mes', 'esse mes', 'neste mes', 'nesse mes', 'mes atual'])) {
+        return substr($date, 0, 7) === date('Y-m');
+    }
+    if (data_ai_question_has_any($question, ['futuro', 'futuros', 'proximo', 'proximos', 'próximo', 'próximos'])) {
+        return $date >= date('Y-m-d');
+    }
+
+    return $date >= date('Y-m-d', strtotime('-90 days'));
+}
+
+function data_ai_status_summary_text(array $summaryRows): string
+{
+    $parts = [];
+    foreach ($summaryRows as $row) {
+        $status = trim((string)($row['status'] ?? 'sem status')) ?: 'sem status';
+        $qtd = data_ai_int_value($row['qtd'] ?? 0);
+        if ($qtd <= 0) {
+            continue;
+        }
+        $parts[] = $status . ': ' . $qtd;
+    }
+
+    return implode(', ', $parts);
+}
+
+function data_ai_response_from_lines(array $lines, array $transparency, float $startedAt, float $contextSeconds, string $generatedAt, string $stage = 'concluido_coleta_local'): array
+{
+    return [
+        'ok' => true,
+        'answer' => implode("\n", $lines),
+        'transparency' => $transparency,
+        'queries' => data_ai_public_queries(),
+        'thinking' => '',
+        'raw_model_output' => '',
+        'diagnostic' => ['stage' => $stage, 'total_seconds' => round(microtime(true) - $startedAt, 3), 'context_seconds' => $contextSeconds],
+        'model' => 'Analise local',
+        'read_only' => true,
+        'generated_at' => $generatedAt,
+    ];
+}
+
+function data_ai_generic_summary_from_results(string $question, array $results, array $errors, float $startedAt, float $contextSeconds, string $generatedAt): ?array
+{
+    $periodLabel = data_ai_period_label_from_question($question);
+    $agendaRows = data_ai_rows_for_purpose($results, 'agendamentos/clientes relevantes para a pergunta');
+    $agendaSummaryRows = data_ai_rows_for_purpose($results, 'resumo por status dos agendamentos filtrados');
+    $leadSummaryRows = data_ai_rows_for_purpose($results, 'total de leads no periodo perguntado');
+    $leadRows = data_ai_rows_for_purpose($results, 'leads no periodo perguntado');
+    $whatsappSummaryRows = data_ai_rows_for_purpose($results, 'clientes/leads que enviaram mensagem no WhatsApp no periodo perguntado');
+    $financeRows = data_ai_rows_for_purpose($results, 'despesas recentes cadastradas');
+    $hasAgenda = data_ai_has_purpose($results, 'agendamentos/clientes relevantes para a pergunta')
+        || data_ai_has_purpose($results, 'resumo por status dos agendamentos filtrados');
+    $hasLeads = data_ai_has_purpose($results, 'total de leads no periodo perguntado')
+        || data_ai_has_purpose($results, 'leads no periodo perguntado');
+    $hasWhatsapp = data_ai_has_purpose($results, 'clientes/leads que enviaram mensagem no WhatsApp no periodo perguntado');
+    $hasFinance = data_ai_has_purpose($results, 'despesas recentes cadastradas');
+
+    if (!$hasAgenda && !$hasLeads && !$hasWhatsapp && !$hasFinance) {
+        return null;
+    }
+
+    $lines = ['Panorama ' . $periodLabel . ':'];
+    if ($hasAgenda) {
+        $agendaTotal = count($agendaRows);
+        if ($agendaSummaryRows) {
+            $agendaTotal = array_reduce($agendaSummaryRows, static fn(int $sum, array $row): int => $sum + data_ai_int_value($row['qtd'] ?? 0), 0);
+        }
+        $agendaValue = data_ai_sum_rows($agendaSummaryRows ?: $agendaRows, 'valor');
+        $statusText = data_ai_status_summary_text($agendaSummaryRows);
+        $lines[] = '- Agenda: ' . $agendaTotal . ' agendamento(s), somando ' . data_ai_money_br($agendaValue) . ($statusText !== '' ? ' (' . $statusText . ').' : '.');
+    }
+
+    if ($hasWhatsapp) {
+        $wRow = $whatsappSummaryRows[0] ?? [];
+        $totalClients = data_ai_int_value($wRow['total_clientes'] ?? 0);
+        $totalMessages = data_ai_int_value($wRow['total_mensagens'] ?? 0);
+        $lines[] = '- WhatsApp: ' . $totalClients . ' cliente(s)/lead(s) entraram em contato, com ' . $totalMessages . ' mensagem(ns) recebida(s).';
+    }
+
+    if ($hasLeads) {
+        $lRow = $leadSummaryRows[0] ?? [];
+        $leadTotal = $leadSummaryRows ? data_ai_int_value($lRow['total'] ?? 0) : count($leadRows);
+        $leadValue = $leadSummaryRows ? (float)($lRow['valor'] ?? 0) : data_ai_sum_rows($leadRows, 'valor');
+        $lines[] = '- Leads no CRM: ' . $leadTotal . ' registro(s), potencial de ' . data_ai_money_br($leadValue) . '.';
+    }
+
+    if ($hasFinance) {
+        $periodFinanceRows = array_values(array_filter($financeRows, static fn(array $row): bool => data_ai_row_matches_question_period($row, $question, ['data', 'created_at', 'updated_at'])));
+        $financeTotal = count($periodFinanceRows);
+        $financeValue = data_ai_sum_rows($periodFinanceRows, 'valor');
+        $lines[] = '- Financeiro: ' . $financeTotal . ' despesa(s) cadastrada(s) no periodo, somando ' . data_ai_money_br($financeValue) . '.';
+    }
+
+    if ($errors) {
+        $sources = array_values(array_unique(array_map(static fn(array $error): string => (string)($error['source'] ?? 'fonte'), $errors)));
+        $lines[] = '';
+        $lines[] = 'Obs.: uma ou mais fontes tiveram leitura parcial: ' . implode(', ', $sources) . '.';
+    }
+
+    return data_ai_response_from_lines($lines, [
+        'Resposta montada sem SQL livre: usei apenas consultas seguras predefinidas.',
+        'Periodo interpretado pela pergunta: ' . $periodLabel . '.',
+        'Consultas seguras coletadas: ' . count($results) . '.',
+    ], $startedAt, $contextSeconds, $generatedAt);
 }
 
 function data_ai_collect_relevant_results(string $question): array
@@ -1563,7 +1740,10 @@ function data_ai_collect_relevant_results(string $question): array
 
 function data_ai_local_answer_from_results(string $question, array $results, array $errors, float $startedAt, float $contextSeconds, string $generatedAt): ?array
 {
-    if (data_ai_question_has_any($question, ['lead', 'leads', 'contato', 'entraram em contato', 'entrou em contato'])) {
+    $isContactQuestion = data_ai_question_has_any($question, ['contato', 'entraram em contato', 'entrou em contato'])
+        || (data_ai_question_has_any($question, ['quantos', 'quantas']) && data_ai_question_has_any($question, ['lead', 'leads']));
+
+    if ($isContactQuestion) {
         $leadTotal = null;
         $leadRows = [];
         $whatsappTotal = null;
@@ -1586,7 +1766,7 @@ function data_ai_local_answer_from_results(string $question, array $results, arr
         }
 
         if ($leadTotal !== null || $whatsappTotal !== null) {
-            $periodLabel = data_ai_question_has_any($question, ['ontem']) ? 'ontem' : 'no periodo perguntado';
+            $periodLabel = data_ai_period_label_from_question($question);
             $lines = [];
             if ($whatsappTotal !== null) {
                 $lines[] = 'Pelo WhatsApp, ' . $whatsappTotal . ' lead(s)/cliente(s) entraram em contato ' . $periodLabel . '.';
@@ -1623,6 +1803,10 @@ function data_ai_local_answer_from_results(string $question, array $results, arr
                 'generated_at' => $generatedAt,
             ];
         }
+    }
+
+    if (data_ai_question_has_any($question, ['panorama', 'resumo', 'geral', 'visao', 'visão', 'como foi', 'relatorio', 'relatório', 'crm'])) {
+        return data_ai_generic_summary_from_results($question, $results, $errors, $startedAt, $contextSeconds, $generatedAt);
     }
 
     if (!data_ai_question_has_any($question, ['agenda', 'agendamento', 'agendamentos', 'tatuagem', 'tatuagens', 'confirmado', 'agendado'])) {
@@ -1697,6 +1881,7 @@ function data_ai_try_collected_answer(string $question, array $context, string $
     if ($local !== null && (count($results) <= 2 || data_ai_question_has_any($question, ['quantos', 'quais', 'qual', 'valor', 'clientes', 'agendamentos', 'lead', 'leads', 'contato', 'ontem']))) {
         return $local;
     }
+    $fallback = data_ai_generic_summary_from_results($question, $results, $errors, $startedAt, $contextSeconds, (string)$context['gerado_em']);
 
     if ($progress) {
         $progress('resposta_com_dados', 'Gerando resposta com os dados coletados.', 78, ['results' => count($results)]);
@@ -1717,7 +1902,7 @@ function data_ai_try_collected_answer(string $question, array $context, string $
     ];
     $response = data_ai_ollama_chat_request($ollamaUrl, $model, $messages, max(30, min(90, $timeout - (int)ceil(microtime(true) - $startedAt))), min($numPredict, 1600), 9000, true);
     if (empty($response['ok'])) {
-        return $local ?: data_ai_error('resposta_com_dados', 'resposta_com_dados', 'Coletei dados relevantes, mas o modelo local nao conseguiu transformar esses dados em resposta.', [
+        return $local ?: $fallback ?: data_ai_error('resposta_com_dados', 'resposta_com_dados', 'Coletei dados relevantes, mas o modelo local nao conseguiu transformar esses dados em resposta.', [
             'model_error' => $response['error'] ?? 'Falha na resposta com dados coletados.',
             'collected_results' => count($results),
             'errors' => $errors,
@@ -1726,7 +1911,7 @@ function data_ai_try_collected_answer(string $question, array $context, string $
     $structured = data_ai_parse_json_response((string)$response['content']);
     $answer = data_ai_clean_answer((string)($structured['resposta'] ?? $response['content']));
     if ($answer === '') {
-        return $local ?: data_ai_error('resposta_com_dados_vazia', 'resposta_com_dados', 'Coletei dados relevantes, mas o modelo local retornou resposta vazia.', [
+        return $local ?: $fallback ?: data_ai_error('resposta_com_dados_vazia', 'resposta_com_dados', 'Coletei dados relevantes, mas o modelo local retornou resposta vazia.', [
             'collected_results' => count($results),
             'raw_preview' => data_ai_preview((string)$response['content'], 2200),
         ]);
