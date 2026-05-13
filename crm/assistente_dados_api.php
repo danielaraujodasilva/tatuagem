@@ -45,6 +45,13 @@ if ($jobId !== '') {
     $age = time() - $updatedAt;
     $status = (string)($job['status'] ?? '');
     if ($status === 'queued' && $age > 30) {
+        $workerLog = '';
+        try {
+            $logPath = data_ai_worker_log_path($jobId);
+            $workerLog = is_file($logPath) ? data_ai_preview((string)file_get_contents($logPath), 2500) : '';
+        } catch (Throwable $e) {
+            $workerLog = 'Nao foi possivel ler log do worker: ' . $e->getMessage();
+        }
         data_ai_job_update($jobId, [
             'ok' => false,
             'status' => 'error',
@@ -56,6 +63,7 @@ if ($jobId !== '') {
             'details' => [
                 'seconds_since_update' => $age,
                 'job' => $job,
+                'worker_log' => $workerLog,
             ],
             'finished_at' => date('Y-m-d H:i:s'),
         ]);
