@@ -1415,6 +1415,9 @@ function data_ai_status_filter_from_question(string $question): array
 
 function data_ai_period_filter_from_question(string $question, string $column): string
 {
+    if (data_ai_question_has_any($question, ['ontem'])) {
+        return "$column >= DATE_SUB(CURDATE(), INTERVAL 1 DAY) AND $column < CURDATE()";
+    }
     if (data_ai_question_has_any($question, ['mes passado', 'mês passado'])) {
         return "$column >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01') AND $column < DATE_FORMAT(CURDATE(), '%Y-%m-01')";
     }
@@ -1439,6 +1442,9 @@ function data_ai_collect_relevant_results(string $question): array
     $wantsCrm = data_ai_question_has_any($question, ['lead', 'leads', 'pipeline', 'origem', 'funil']);
     $wantsWhatsapp = data_ai_question_has_any($question, ['whatsapp', 'conversa', 'conversas', 'mensagem', 'mensagens', 'atencao', 'atenção', 'responder']);
     $wantsFinance = data_ai_question_has_any($question, ['financeiro', 'despesa', 'despesas', 'gasto', 'gastos', 'custo', 'custos']);
+    if (data_ai_question_has_any($question, ['contato', 'entraram em contato', 'entrou em contato'])) {
+        $wantsWhatsapp = true;
+    }
 
     if (!$wantsAgenda && !$wantsCrm && !$wantsWhatsapp && !$wantsFinance) {
         $wantsAgenda = $wantsCrm = $wantsWhatsapp = $wantsFinance = true;
@@ -1487,12 +1493,49 @@ function data_ai_collect_relevant_results(string $question): array
         try {
             $pdo = data_ai_crm_pdo();
             if ($wantsCrm && data_ai_pdo_table_exists($pdo, 'leads')) {
+                $leadPeriodColumn = 'COALESCE(data_ultimo_contato, created_at)';
+                $leadPeriod = data_ai_period_filter_from_question($question, $leadPeriodColumn);
+                $sql = "
+                    SELECT COUNT(*) AS total, COALESCE(SUM(valor), 0) AS valor
+                    FROM leads
+                    WHERE $leadPeriod
+                ";
+                $results[] = data_ai_result_payload('crm', 'total de leads no periodo perguntado', $sql, data_ai_pdo_rows($pdo, $sql));
+                $sql = "
+                    SELECT id, nome, telefone, interesse, valor, origem, status, etapa_funil AS etapa, data_ultimo_contato, created_at
+                    FROM leads
+                    WHERE $leadPeriod
+                    ORDER BY COALESCE(data_ultimo_contato, created_at) DESC, id DESC
+                    LIMIT 80
+                ";
+                $results[] = data_ai_result_payload('crm', 'leads no periodo perguntado', $sql, data_ai_pdo_rows($pdo, $sql));
                 $sql = 'SELECT id, nome, telefone, interesse, valor, origem, status, etapa_funil AS etapa, data_ultimo_contato, created_at FROM leads ORDER BY created_at DESC, id DESC LIMIT 80';
                 $results[] = data_ai_result_payload('crm', 'leads recentes e valores potenciais', $sql, data_ai_pdo_rows($pdo, $sql));
                 $sql = 'SELECT status, origem, etapa_funil AS etapa, COUNT(*) AS qtd, COALESCE(SUM(valor), 0) AS valor FROM leads GROUP BY status, origem, etapa_funil ORDER BY qtd DESC LIMIT 80';
                 $results[] = data_ai_result_payload('crm', 'agrupamento de leads por status, origem e etapa', $sql, data_ai_pdo_rows($pdo, $sql));
             }
             if ($wantsWhatsapp && data_ai_pdo_table_exists($pdo, 'crm_whatsapp_clientes')) {
+                if (data_ai_pdo_table_exists($pdo, 'crm_whatsapp_mensagens')) {
+                    $messagePeriod = data_ai_period_filter_from_question($question, 'm.data');
+                    $sql = "
+                        SELECT COUNT(DISTINCT m.cliente_id) AS total_clientes, COUNT(*) AS total_mensagens
+                        FROM crm_whatsapp_mensagens m
+                        WHERE m.from_me = 0
+                        AND $messagePeriod
+                    ";
+                    $results[] = data_ai_result_payload('crm', 'clientes/leads que enviaram mensagem no WhatsApp no periodo perguntado', $sql, data_ai_pdo_rows($pdo, $sql));
+                    $sql = "
+                        SELECT c.id, c.numero, c.nome, c.status, c.etapa, c.interesse, c.valor, c.origem, MAX(m.data) AS ultimo_contato_cliente, COUNT(*) AS mensagens_cliente
+                        FROM crm_whatsapp_mensagens m
+                        INNER JOIN crm_whatsapp_clientes c ON c.id = m.cliente_id
+                        WHERE m.from_me = 0
+                        AND $messagePeriod
+                        GROUP BY c.id, c.numero, c.nome, c.status, c.etapa, c.interesse, c.valor, c.origem
+                        ORDER BY ultimo_contato_cliente DESC
+                        LIMIT 80
+                    ";
+                    $results[] = data_ai_result_payload('crm', 'lista de clientes/leads que entraram em contato no WhatsApp no periodo perguntado', $sql, data_ai_pdo_rows($pdo, $sql));
+                }
                 $sql = "SELECT id, numero, nome, status, etapa, atendente, modo_atendimento, interesse, valor, origem, data_ultimo_contato, updated_at FROM crm_whatsapp_clientes ORDER BY COALESCE(data_ultimo_contato, updated_at) DESC LIMIT 80";
                 $results[] = data_ai_result_payload('crm', 'conversas recentes do WhatsApp', $sql, data_ai_pdo_rows($pdo, $sql));
                 if (data_ai_pdo_table_exists($pdo, 'crm_whatsapp_mensagens')) {
@@ -1520,6 +1563,68 @@ function data_ai_collect_relevant_results(string $question): array
 
 function data_ai_local_answer_from_results(string $question, array $results, array $errors, float $startedAt, float $contextSeconds, string $generatedAt): ?array
 {
+    if (data_ai_question_has_any($question, ['lead', 'leads', 'contato', 'entraram em contato', 'entrou em contato'])) {
+        $leadTotal = null;
+        $leadRows = [];
+        $whatsappTotal = null;
+        $whatsappMessages = null;
+        $whatsappRows = [];
+
+        foreach ($results as $result) {
+            $purpose = (string)($result['finalidade'] ?? '');
+            $rows = is_array($result['rows'] ?? null) ? $result['rows'] : [];
+            if ($purpose === 'total de leads no periodo perguntado') {
+                $leadTotal = data_ai_int_value($rows[0]['total'] ?? 0);
+            } elseif ($purpose === 'leads no periodo perguntado') {
+                $leadRows = $rows;
+            } elseif ($purpose === 'clientes/leads que enviaram mensagem no WhatsApp no periodo perguntado') {
+                $whatsappTotal = data_ai_int_value($rows[0]['total_clientes'] ?? 0);
+                $whatsappMessages = data_ai_int_value($rows[0]['total_mensagens'] ?? 0);
+            } elseif ($purpose === 'lista de clientes/leads que entraram em contato no WhatsApp no periodo perguntado') {
+                $whatsappRows = $rows;
+            }
+        }
+
+        if ($leadTotal !== null || $whatsappTotal !== null) {
+            $periodLabel = data_ai_question_has_any($question, ['ontem']) ? 'ontem' : 'no periodo perguntado';
+            $lines = [];
+            if ($whatsappTotal !== null) {
+                $lines[] = 'Pelo WhatsApp, ' . $whatsappTotal . ' lead(s)/cliente(s) entraram em contato ' . $periodLabel . '.';
+                if ($whatsappMessages !== null) {
+                    $lines[] = 'Foram ' . $whatsappMessages . ' mensagem(ns) recebida(s) de clientes nesse periodo.';
+                }
+            }
+            if ($leadTotal !== null) {
+                $lines[] = 'Na tabela de leads do CRM, ' . $leadTotal . ' registro(s) tiveram contato/cadastro ' . $periodLabel . '.';
+            }
+
+            $listRows = $whatsappRows ?: $leadRows;
+            if ($listRows) {
+                $lines[] = '';
+                $lines[] = 'Principais registros:';
+                foreach (array_slice($listRows, 0, 12) as $row) {
+                    $name = trim((string)($row['nome'] ?? 'Cliente sem nome')) ?: 'Cliente sem nome';
+                    $status = trim((string)($row['status'] ?? 'sem status')) ?: 'sem status';
+                    $date = trim((string)($row['ultimo_contato_cliente'] ?? $row['data_ultimo_contato'] ?? $row['created_at'] ?? ''));
+                    $lines[] = '- ' . $name . ' (' . $status . ')' . ($date !== '' ? ': ' . $date : '');
+                }
+            }
+
+            return [
+                'ok' => true,
+                'answer' => implode("\n", $lines),
+                'transparency' => ['Resposta montada a partir de consultas seguras no CRM/WhatsApp.', 'Periodo interpretado pela pergunta: ' . $periodLabel . '.'],
+                'queries' => data_ai_public_queries(),
+                'thinking' => '',
+                'raw_model_output' => '',
+                'diagnostic' => ['stage' => 'concluido_coleta_local', 'total_seconds' => round(microtime(true) - $startedAt, 3), 'context_seconds' => $contextSeconds],
+                'model' => 'Analise local',
+                'read_only' => true,
+                'generated_at' => $generatedAt,
+            ];
+        }
+    }
+
     foreach ($results as $result) {
         if (($result['source'] ?? '') !== 'ficha' || stripos((string)($result['finalidade'] ?? ''), 'agendamentos/clientes') === false) {
             continue;
@@ -1585,7 +1690,7 @@ function data_ai_try_collected_answer(string $question, array $context, string $
     }
 
     $local = data_ai_local_answer_from_results($question, $results, $errors, $startedAt, $contextSeconds, (string)$context['gerado_em']);
-    if ($local !== null && count($results) <= 2 && data_ai_question_has_any($question, ['quantos', 'quais', 'qual', 'valor', 'clientes', 'agendamentos'])) {
+    if ($local !== null && (count($results) <= 2 || data_ai_question_has_any($question, ['quantos', 'quais', 'qual', 'valor', 'clientes', 'agendamentos', 'lead', 'leads', 'contato', 'ontem']))) {
         return $local;
     }
 
