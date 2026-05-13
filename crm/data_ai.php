@@ -1446,9 +1446,9 @@ function data_ai_collect_relevant_results(string $question): array
         $wantsWhatsapp = true;
     }
 
-    if (!$wantsAgenda && !$wantsCrm && !$wantsWhatsapp && !$wantsFinance) {
-        $wantsAgenda = $wantsCrm = $wantsWhatsapp = $wantsFinance = true;
-    }
+    // Coleta ampla por padrao: evita depender do modelo local para escrever SQL
+    // quando a pergunta vier fora dos exemplos previstos.
+    $wantsAgenda = $wantsCrm = $wantsWhatsapp = $wantsFinance = true;
 
     if ($wantsAgenda) {
         try {
@@ -1625,6 +1625,10 @@ function data_ai_local_answer_from_results(string $question, array $results, arr
         }
     }
 
+    if (!data_ai_question_has_any($question, ['agenda', 'agendamento', 'agendamentos', 'tatuagem', 'tatuagens', 'confirmado', 'agendado'])) {
+        return null;
+    }
+
     foreach ($results as $result) {
         if (($result['source'] ?? '') !== 'ficha' || stripos((string)($result['finalidade'] ?? ''), 'agendamentos/clientes') === false) {
             continue;
@@ -1713,12 +1717,19 @@ function data_ai_try_collected_answer(string $question, array $context, string $
     ];
     $response = data_ai_ollama_chat_request($ollamaUrl, $model, $messages, max(30, min(90, $timeout - (int)ceil(microtime(true) - $startedAt))), min($numPredict, 1600), 9000, true);
     if (empty($response['ok'])) {
-        return $local;
+        return $local ?: data_ai_error('resposta_com_dados', 'resposta_com_dados', 'Coletei dados relevantes, mas o modelo local nao conseguiu transformar esses dados em resposta.', [
+            'model_error' => $response['error'] ?? 'Falha na resposta com dados coletados.',
+            'collected_results' => count($results),
+            'errors' => $errors,
+        ]);
     }
     $structured = data_ai_parse_json_response((string)$response['content']);
     $answer = data_ai_clean_answer((string)($structured['resposta'] ?? $response['content']));
     if ($answer === '') {
-        return $local;
+        return $local ?: data_ai_error('resposta_com_dados_vazia', 'resposta_com_dados', 'Coletei dados relevantes, mas o modelo local retornou resposta vazia.', [
+            'collected_results' => count($results),
+            'raw_preview' => data_ai_preview((string)$response['content'], 2200),
+        ]);
     }
     $transparency = is_array($structured['transparencia'] ?? null) ? $structured['transparencia'] : [];
     $transparency = array_values(array_filter(array_map(static fn($item): string => data_ai_preview($item, 260), $transparency)));
@@ -1923,24 +1934,15 @@ function data_ai_ask(string $question, ?callable $progress = null): array
     }
 
     $collectedAnswer = data_ai_try_collected_answer($question, $context, $ollamaUrl, $model, $timeout, $numPredict, $startedAt, $contextSeconds, $progress);
-    if ($collectedAnswer !== null && !empty($collectedAnswer['ok'])) {
-        $emitProgress('concluido', 'Resposta com dados coletados pronta.', 100);
+    if ($collectedAnswer !== null) {
+        $emitProgress('concluido', !empty($collectedAnswer['ok']) ? 'Resposta com dados coletados pronta.' : 'Consulta encerrada com diagnostico.', 100);
         return $collectedAnswer;
-    }
-
-    $dynamicAnswer = data_ai_try_dynamic_answer($question, $context, $ollamaUrl, $model, $timeout, $numPredict, $startedAt, $contextSeconds, $progress);
-    if ($dynamicAnswer !== null && !empty($dynamicAnswer['ok'])) {
-        $emitProgress('concluido', 'Resposta dinamica pronta.', 100);
-        return $dynamicAnswer;
     }
 
     $localAnswer = data_ai_try_local_answer($question, $context, $startedAt, $contextSeconds);
     if ($localAnswer !== null) {
         $emitProgress('concluido', 'Resposta local pronta.', 100);
         return $localAnswer;
-    }
-    if ($dynamicAnswer !== null) {
-        return $dynamicAnswer;
     }
 
     $system = "Voce e um analista interno do estudio de tatuagem. Responda em portugues do Brasil, com objetividade e clareza. Use somente os dados fornecidos no JSON de contexto. Priorize o bloco dados_calculados_para_resposta para numeros, totais, listas prioritarias e regras de filtro; ele foi calculado pelo sistema para a pergunta atual. Use o bloco fontes apenas como evidencia complementar. Nao invente numeros, datas, nomes ou conclusoes que nao estejam apoiadas nos dados. Se uma fonte estiver indisponivel ou a pergunta exigir algo fora do contexto, diga exatamente o que faltou. Voce nao executa SQL e nao altera dados; o sistema ja enviou apenas consultas de leitura.";
