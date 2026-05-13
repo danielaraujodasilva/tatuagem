@@ -19,6 +19,7 @@ app.use(express.json({ limit: "30mb" }));
 let sock = null;
 const lidToPhone = new Map();   // Backup caso precise no futuro
 const startedAt = Math.floor(Date.now() / 1000);
+const authDir = path.join(__dirname, "auth_info");
 
 function jidToDigits(jid) {
     return String(jid || "").split("@")[0].replace(/\D/g, "");
@@ -140,7 +141,9 @@ function normalizeBaileysStatus(status) {
 }
 
 async function startBot() {
-    const { state, saveCreds } = await useMultiFileAuthState("./whatsapp/auth_info");
+    fs.mkdirSync(authDir, { recursive: true });
+    console.log("Usando sessao WhatsApp em:", authDir);
+    const { state, saveCreds } = await useMultiFileAuthState(authDir);
     const { version } = await fetchLatestBaileysVersion();
 
     sock = makeWASocket({
@@ -175,7 +178,7 @@ async function startBot() {
                 console.log("🔄 Reconectando em 5s...");
                 setTimeout(startBot, 5000);
             } else {
-                console.log("🚫 Sessão inválida. Delete a pasta 'whatsapp/auth_info' e escaneie novamente.");
+                console.log(`🚫 Sessão inválida. Delete a pasta '${authDir}' e escaneie novamente.`);
             }
         }
     });
