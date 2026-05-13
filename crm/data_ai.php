@@ -481,19 +481,19 @@ function data_ai_mysqli_row(mysqli $conn, string $sql): array
 
 function data_ai_pdo_table_exists(PDO $pdo, string $table): bool
 {
-    data_ai_record_query('CRM', 'SHOW TABLES LIKE ?', [$table]);
-    $stmt = $pdo->prepare('SHOW TABLES LIKE ?');
+    data_ai_record_query('CRM', 'SELECT COUNT(*) AS total FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [$table]);
+    $stmt = $pdo->prepare('SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?');
     $stmt->execute([$table]);
-    return (bool)$stmt->fetchColumn();
+    return (int)$stmt->fetchColumn() > 0;
 }
 
 function data_ai_mysqli_table_exists(mysqli $conn, string $table): bool
 {
-    data_ai_record_query('Ficha/Agenda', 'SHOW TABLES LIKE ?', [$table]);
-    $stmt = $conn->prepare('SHOW TABLES LIKE ?');
+    data_ai_record_query('Ficha/Agenda', 'SELECT COUNT(*) AS total FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [$table]);
+    $stmt = $conn->prepare('SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?');
     $stmt->bind_param('s', $table);
     $stmt->execute();
-    $exists = (bool)$stmt->get_result()->fetch_row();
+    $exists = ((int)($stmt->get_result()->fetch_row()[0] ?? 0)) > 0;
     $stmt->close();
 
     return $exists;
