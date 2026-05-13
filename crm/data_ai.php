@@ -1715,6 +1715,8 @@ function data_ai_collect_relevant_results(string $question): array
                 }
                 $sql = "SELECT id, numero, nome, status, etapa, atendente, modo_atendimento, interesse, valor, origem, data_ultimo_contato, updated_at FROM crm_whatsapp_clientes ORDER BY COALESCE(data_ultimo_contato, updated_at) DESC LIMIT 80";
                 $results[] = data_ai_result_payload('crm', 'conversas recentes do WhatsApp', $sql, data_ai_pdo_rows($pdo, $sql));
+                $sql = 'SELECT status, origem, etapa, COUNT(*) AS qtd, COALESCE(SUM(valor), 0) AS valor FROM crm_whatsapp_clientes GROUP BY status, origem, etapa ORDER BY qtd DESC LIMIT 80';
+                $results[] = data_ai_result_payload('crm', 'agrupamento de conversas/leads do WhatsApp por status, origem e etapa', $sql, data_ai_pdo_rows($pdo, $sql));
                 if (data_ai_pdo_table_exists($pdo, 'crm_whatsapp_mensagens')) {
                     $attention = data_ai_whatsapp_attention_sql($pdo);
                     $results[] = data_ai_result_payload('crm', 'conversas do WhatsApp que parecem precisar de atencao', 'consulta segura de ultimas mensagens e respostas por cliente', $attention);
@@ -1803,6 +1805,43 @@ function data_ai_local_answer_from_results(string $question, array $results, arr
                 'generated_at' => $generatedAt,
             ];
         }
+    }
+
+    $isLeadBreakdown = data_ai_question_has_any($question, ['lead', 'leads'])
+        && data_ai_question_has_any($question, ['origem', 'etapa', 'funil', 'status', 'valor', 'potencial', 'resumo']);
+    if ($isLeadBreakdown) {
+        $leadGroups = data_ai_rows_for_purpose($results, 'agrupamento de leads por status, origem e etapa');
+        $whatsappGroups = data_ai_rows_for_purpose($results, 'agrupamento de conversas/leads do WhatsApp por status, origem e etapa');
+        $lines = ['Resumo dos leads por origem, etapa e valor potencial:'];
+
+        if ($leadGroups) {
+            $lines[] = '';
+            $lines[] = 'Leads cadastrados no CRM:';
+            foreach (array_slice($leadGroups, 0, 15) as $row) {
+                $status = trim((string)($row['status'] ?? 'sem status')) ?: 'sem status';
+                $origin = trim((string)($row['origem'] ?? 'sem origem')) ?: 'sem origem';
+                $stage = trim((string)($row['etapa'] ?? 'sem etapa')) ?: 'sem etapa';
+                $lines[] = '- ' . $origin . ' / ' . $stage . ' / ' . $status . ': ' . data_ai_int_value($row['qtd'] ?? 0) . ' lead(s), ' . data_ai_money_br($row['valor'] ?? 0) . '.';
+            }
+        } else {
+            $lines[] = '- Leads cadastrados no CRM: nenhum registro encontrado nessa tabela.';
+        }
+
+        if ($whatsappGroups) {
+            $lines[] = '';
+            $lines[] = 'Conversas/leads vindos do WhatsApp:';
+            foreach (array_slice($whatsappGroups, 0, 15) as $row) {
+                $status = trim((string)($row['status'] ?? 'sem status')) ?: 'sem status';
+                $origin = trim((string)($row['origem'] ?? 'sem origem')) ?: 'sem origem';
+                $stage = trim((string)($row['etapa'] ?? 'sem etapa')) ?: 'sem etapa';
+                $lines[] = '- ' . $origin . ' / ' . $stage . ' / ' . $status . ': ' . data_ai_int_value($row['qtd'] ?? 0) . ' conversa(s), ' . data_ai_money_br($row['valor'] ?? 0) . '.';
+            }
+        }
+
+        return data_ai_response_from_lines($lines, [
+            'Resposta montada a partir de agrupamentos seguros de leads e WhatsApp.',
+            'Campos usados: origem, etapa, status, quantidade e valor.',
+        ], $startedAt, $contextSeconds, $generatedAt);
     }
 
     if (data_ai_question_has_any($question, ['panorama', 'resumo', 'geral', 'visao', 'visão', 'como foi', 'relatorio', 'relatório', 'crm'])) {
