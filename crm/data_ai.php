@@ -1459,7 +1459,7 @@ function data_ai_collect_relevant_results(string $question): array
                 }
 
                 $sqlList = "
-                    SELECT t.id, c.nome AS cliente_nome, c.telefone AS cliente_telefone, t.descricao, t.valor, t.data_tatuagem, t.hora_inicio, t.hora_fim, t.status, t.tatuador_nome, t.observacoes
+                    SELECT t.id, c.nome AS cliente_nome, c.telefone AS cliente_telefone, t.descricao, t.valor, t.data_tatuagem, t.hora_inicio, t.hora_fim, t.status, t.observacoes
                     FROM tatuagens t
                     LEFT JOIN clientes c ON c.id = t.cliente_id
                     WHERE $period $statusClause
