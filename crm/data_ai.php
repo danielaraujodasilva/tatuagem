@@ -1389,6 +1389,256 @@ function data_ai_plan_dynamic_queries(string $question, array $schema, string $o
     ];
 }
 
+function data_ai_result_payload(string $source, string $purpose, string $sql, array $rows): array
+{
+    return [
+        'ok' => true,
+        'source' => $source,
+        'finalidade' => $purpose,
+        'sql' => trim(preg_replace('/\s+/', ' ', $sql) ?? $sql),
+        'rows' => $rows,
+        'row_count' => count($rows),
+    ];
+}
+
+function data_ai_status_filter_from_question(string $question): array
+{
+    $statuses = [];
+    foreach (['agendado', 'confirmado', 'cancelado', 'concluido'] as $status) {
+        if (data_ai_question_has_any($question, [$status])) {
+            $statuses[] = $status;
+        }
+    }
+
+    return $statuses;
+}
+
+function data_ai_period_filter_from_question(string $question, string $column): string
+{
+    if (data_ai_question_has_any($question, ['mes passado', 'mês passado'])) {
+        return "$column >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01') AND $column < DATE_FORMAT(CURDATE(), '%Y-%m-01')";
+    }
+    if (data_ai_question_has_any($question, ['mes', 'mês', 'este mes', 'esse mes', 'neste mes', 'nesse mes', 'mes atual'])) {
+        return "$column >= DATE_FORMAT(CURDATE(), '%Y-%m-01') AND $column <= LAST_DAY(CURDATE())";
+    }
+    if (data_ai_question_has_any($question, ['futuro', 'futuros', 'proximo', 'proximos', 'próximo', 'próximos'])) {
+        return "$column >= CURDATE()";
+    }
+    if (data_ai_question_has_any($question, ['hoje'])) {
+        return "$column = CURDATE()";
+    }
+
+    return "$column >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)";
+}
+
+function data_ai_collect_relevant_results(string $question): array
+{
+    $results = [];
+    $errors = [];
+    $wantsAgenda = data_ai_question_has_any($question, ['agenda', 'agendamento', 'agendamentos', 'tatuagem', 'tatuagens', 'cliente', 'clientes', 'confirmado', 'agendado', 'valor']);
+    $wantsCrm = data_ai_question_has_any($question, ['lead', 'leads', 'pipeline', 'origem', 'funil']);
+    $wantsWhatsapp = data_ai_question_has_any($question, ['whatsapp', 'conversa', 'conversas', 'mensagem', 'mensagens', 'atencao', 'atenção', 'responder']);
+    $wantsFinance = data_ai_question_has_any($question, ['financeiro', 'despesa', 'despesas', 'gasto', 'gastos', 'custo', 'custos']);
+
+    if (!$wantsAgenda && !$wantsCrm && !$wantsWhatsapp && !$wantsFinance) {
+        $wantsAgenda = $wantsCrm = $wantsWhatsapp = $wantsFinance = true;
+    }
+
+    if ($wantsAgenda) {
+        try {
+            $conn = data_ai_ficha_mysqli();
+            if (data_ai_mysqli_table_exists($conn, 'tatuagens')) {
+                $period = data_ai_period_filter_from_question($question, 't.data_tatuagem');
+                $statuses = data_ai_status_filter_from_question($question);
+                $statusClause = '';
+                if ($statuses) {
+                    $quoted = array_map(static fn(string $status): string => "'" . str_replace("'", "''", $status) . "'", $statuses);
+                    $statusClause = ' AND t.status IN (' . implode(',', $quoted) . ')';
+                } elseif (!data_ai_question_has_any($question, ['cancelado', 'cancelados'])) {
+                    $statusClause = " AND t.status <> 'cancelado'";
+                }
+
+                $sqlList = "
+                    SELECT t.id, c.nome AS cliente_nome, c.telefone AS cliente_telefone, t.descricao, t.valor, t.data_tatuagem, t.hora_inicio, t.hora_fim, t.status, t.tatuador_nome, t.observacoes
+                    FROM tatuagens t
+                    LEFT JOIN clientes c ON c.id = t.cliente_id
+                    WHERE $period $statusClause
+                    ORDER BY t.data_tatuagem ASC, t.hora_inicio ASC, t.id ASC
+                    LIMIT 120
+                ";
+                $rowsList = data_ai_mysqli_rows($conn, $sqlList);
+                $results[] = data_ai_result_payload('ficha', 'agendamentos/clientes relevantes para a pergunta', $sqlList, $rowsList);
+
+                $sqlSummary = "
+                    SELECT t.status, COUNT(*) AS qtd, COALESCE(SUM(t.valor), 0) AS valor
+                    FROM tatuagens t
+                    WHERE $period $statusClause
+                    GROUP BY t.status
+                    ORDER BY qtd DESC
+                ";
+                $results[] = data_ai_result_payload('ficha', 'resumo por status dos agendamentos filtrados', $sqlSummary, data_ai_mysqli_rows($conn, $sqlSummary));
+            }
+        } catch (Throwable $e) {
+            $errors[] = ['source' => 'ficha', 'error' => $e->getMessage()];
+        }
+    }
+
+    if ($wantsCrm || $wantsWhatsapp) {
+        try {
+            $pdo = data_ai_crm_pdo();
+            if ($wantsCrm && data_ai_pdo_table_exists($pdo, 'leads')) {
+                $sql = 'SELECT id, nome, telefone, interesse, valor, origem, status, etapa_funil AS etapa, data_ultimo_contato, created_at FROM leads ORDER BY created_at DESC, id DESC LIMIT 80';
+                $results[] = data_ai_result_payload('crm', 'leads recentes e valores potenciais', $sql, data_ai_pdo_rows($pdo, $sql));
+                $sql = 'SELECT status, origem, etapa_funil AS etapa, COUNT(*) AS qtd, COALESCE(SUM(valor), 0) AS valor FROM leads GROUP BY status, origem, etapa_funil ORDER BY qtd DESC LIMIT 80';
+                $results[] = data_ai_result_payload('crm', 'agrupamento de leads por status, origem e etapa', $sql, data_ai_pdo_rows($pdo, $sql));
+            }
+            if ($wantsWhatsapp && data_ai_pdo_table_exists($pdo, 'crm_whatsapp_clientes')) {
+                $sql = "SELECT id, numero, nome, status, etapa, atendente, modo_atendimento, interesse, valor, origem, data_ultimo_contato, updated_at FROM crm_whatsapp_clientes ORDER BY COALESCE(data_ultimo_contato, updated_at) DESC LIMIT 80";
+                $results[] = data_ai_result_payload('crm', 'conversas recentes do WhatsApp', $sql, data_ai_pdo_rows($pdo, $sql));
+                if (data_ai_pdo_table_exists($pdo, 'crm_whatsapp_mensagens')) {
+                    $attention = data_ai_whatsapp_attention_sql($pdo);
+                    $results[] = data_ai_result_payload('crm', 'conversas do WhatsApp que parecem precisar de atencao', 'consulta segura de ultimas mensagens e respostas por cliente', $attention);
+                }
+            }
+        } catch (Throwable $e) {
+            $errors[] = ['source' => 'crm', 'error' => $e->getMessage()];
+        }
+    }
+
+    if ($wantsFinance) {
+        $finance = data_ai_finance_context();
+        if (!empty($finance['ok'])) {
+            $rows = is_array($finance['data']['recentes'] ?? null) ? $finance['data']['recentes'] : [];
+            $results[] = data_ai_result_payload('financeiro', 'despesas recentes cadastradas', 'READ JSON crm/data/finance_expenses.json', $rows);
+        } else {
+            $errors[] = ['source' => 'financeiro', 'error' => (string)($finance['error'] ?? 'Financeiro indisponivel')];
+        }
+    }
+
+    return ['results' => $results, 'errors' => $errors];
+}
+
+function data_ai_local_answer_from_results(string $question, array $results, array $errors, float $startedAt, float $contextSeconds, string $generatedAt): ?array
+{
+    foreach ($results as $result) {
+        if (($result['source'] ?? '') !== 'ficha' || stripos((string)($result['finalidade'] ?? ''), 'agendamentos/clientes') === false) {
+            continue;
+        }
+        $rows = is_array($result['rows'] ?? null) ? $result['rows'] : [];
+        if (!$rows) {
+            return [
+                'ok' => true,
+                'answer' => 'Nao encontrei agendamentos que batam com essa pergunta no periodo/filtro solicitado.',
+                'transparency' => ['Resposta montada a partir de consulta segura na agenda/ficha.'],
+                'queries' => data_ai_public_queries(),
+                'thinking' => '',
+                'raw_model_output' => '',
+                'diagnostic' => ['stage' => 'concluido_coleta_local', 'total_seconds' => round(microtime(true) - $startedAt, 3), 'context_seconds' => $contextSeconds],
+                'model' => 'Analise local',
+                'read_only' => true,
+                'generated_at' => $generatedAt,
+            ];
+        }
+
+        $total = count($rows);
+        $value = array_reduce($rows, static fn(float $sum, array $row): float => $sum + (float)($row['valor'] ?? 0), 0.0);
+        $lines = ['Encontrei ' . $total . ' agendamento(s) para o filtro da pergunta, somando ' . data_ai_money_br($value) . '.'];
+        $lines[] = '';
+        foreach (array_slice($rows, 0, 30) as $row) {
+            $date = trim((string)($row['data_tatuagem'] ?? ''));
+            $hour = trim((string)($row['hora_inicio'] ?? ''));
+            $client = trim((string)($row['cliente_nome'] ?? 'Cliente sem nome')) ?: 'Cliente sem nome';
+            $status = trim((string)($row['status'] ?? 'sem status')) ?: 'sem status';
+            $lines[] = '- ' . $client . ': ' . data_ai_money_br($row['valor'] ?? 0) . ', ' . $status . ($date !== '' ? ', ' . $date : '') . ($hour !== '' ? ' ' . substr($hour, 0, 5) : '');
+        }
+        if ($total > 30) {
+            $lines[] = '- ...mais ' . ($total - 30) . ' registro(s) no filtro.';
+        }
+
+        return [
+            'ok' => true,
+            'answer' => implode("\n", $lines),
+            'transparency' => ['Resposta montada a partir de consulta segura na agenda/ficha.', 'Linhas consideradas: ' . $total . '.'],
+            'queries' => data_ai_public_queries(),
+            'thinking' => '',
+            'raw_model_output' => '',
+            'diagnostic' => ['stage' => 'concluido_coleta_local', 'total_seconds' => round(microtime(true) - $startedAt, 3), 'context_seconds' => $contextSeconds],
+            'model' => 'Analise local',
+            'read_only' => true,
+            'generated_at' => $generatedAt,
+        ];
+    }
+
+    return null;
+}
+
+function data_ai_try_collected_answer(string $question, array $context, string $ollamaUrl, string $model, int $timeout, int $numPredict, float $startedAt, float $contextSeconds, ?callable $progress = null): ?array
+{
+    if ($progress) {
+        $progress('coleta_dados', 'Coletando dados relevantes com consultas seguras.', 56, []);
+    }
+    $collected = data_ai_collect_relevant_results($question);
+    $results = $collected['results'];
+    $errors = $collected['errors'];
+    if (!$results) {
+        return null;
+    }
+
+    $local = data_ai_local_answer_from_results($question, $results, $errors, $startedAt, $contextSeconds, (string)$context['gerado_em']);
+    if ($local !== null && count($results) <= 2 && data_ai_question_has_any($question, ['quantos', 'quais', 'qual', 'valor', 'clientes', 'agendamentos'])) {
+        return $local;
+    }
+
+    if ($progress) {
+        $progress('resposta_com_dados', 'Gerando resposta com os dados coletados.', 78, ['results' => count($results)]);
+    }
+    $answerInput = [
+        'pergunta' => $question,
+        'data_atual' => date('Y-m-d'),
+        'resultados_consultas' => $results,
+        'erros_fontes' => $errors,
+    ];
+    $answerJson = json_encode($answerInput, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+    if ($answerJson === false || !function_exists('curl_init')) {
+        return $local;
+    }
+    $messages = [
+        ['role' => 'system', 'content' => 'Voce e um analista interno do estudio de tatuagem. Responda em portugues do Brasil, direto e humano. Use somente os resultados_consultas. Responda exatamente a pergunta, sem resumo geral. Retorne JSON valido: {"resposta":"texto final","transparencia":["evidencia usada"]}.'],
+        ['role' => 'user', 'content' => $answerJson],
+    ];
+    $response = data_ai_ollama_chat_request($ollamaUrl, $model, $messages, max(30, min(90, $timeout - (int)ceil(microtime(true) - $startedAt))), min($numPredict, 1600), 9000, true);
+    if (empty($response['ok'])) {
+        return $local;
+    }
+    $structured = data_ai_parse_json_response((string)$response['content']);
+    $answer = data_ai_clean_answer((string)($structured['resposta'] ?? $response['content']));
+    if ($answer === '') {
+        return $local;
+    }
+    $transparency = is_array($structured['transparencia'] ?? null) ? $structured['transparencia'] : [];
+    $transparency = array_values(array_filter(array_map(static fn($item): string => data_ai_preview($item, 260), $transparency)));
+    $transparency[] = 'Consultas seguras coletadas: ' . count($results) . '.';
+
+    return [
+        'ok' => true,
+        'answer' => $answer,
+        'transparency' => $transparency,
+        'queries' => data_ai_public_queries(),
+        'thinking' => (string)($response['thinking'] ?? ''),
+        'raw_model_output' => (string)$response['content'],
+        'diagnostic' => [
+            'stage' => 'concluido_coleta_ia',
+            'context_seconds' => $contextSeconds,
+            'total_seconds' => round(microtime(true) - $startedAt, 3),
+            'collected_results' => count($results),
+            'model' => $model,
+        ],
+        'model' => $model . ' + coleta segura',
+        'read_only' => true,
+        'generated_at' => $context['gerado_em'],
+    ];
+}
+
 function data_ai_try_dynamic_answer(string $question, array $context, string $ollamaUrl, string $model, int $timeout, int $numPredict, float $startedAt, float $contextSeconds, ?callable $progress = null): ?array
 {
     $emitProgress = static function (string $stage, string $label, int $percent, array $details = []) use ($progress): void {
@@ -1565,6 +1815,12 @@ function data_ai_ask(string $question, ?callable $progress = null): array
             return $localAnswer;
         }
         return data_ai_error('php_sem_curl', 'ambiente_php', 'A extensao cURL do PHP nao esta disponivel.');
+    }
+
+    $collectedAnswer = data_ai_try_collected_answer($question, $context, $ollamaUrl, $model, $timeout, $numPredict, $startedAt, $contextSeconds, $progress);
+    if ($collectedAnswer !== null && !empty($collectedAnswer['ok'])) {
+        $emitProgress('concluido', 'Resposta com dados coletados pronta.', 100);
+        return $collectedAnswer;
     }
 
     $dynamicAnswer = data_ai_try_dynamic_answer($question, $context, $ollamaUrl, $model, $timeout, $numPredict, $startedAt, $contextSeconds, $progress);
