@@ -20,6 +20,7 @@ let sock = null;
 const lidToPhone = new Map();   // Backup caso precise no futuro
 const startedAt = Math.floor(Date.now() / 1000);
 const authDir = path.join(__dirname, "auth_info");
+const statusFile = path.join(__dirname, "..", "data", "whatsapp_status.json");
 
 function jidToDigits(jid) {
     return String(jid || "").split("@")[0].replace(/\D/g, "");
@@ -140,6 +141,29 @@ function normalizeBaileysStatus(status) {
     return map[value] ?? value;
 }
 
+function saveWhatsappStatus(payload) {
+    try {
+        fs.mkdirSync(path.dirname(statusFile), { recursive: true });
+        fs.writeFileSync(statusFile + ".tmp", JSON.stringify({
+            updatedAt: new Date().toISOString(),
+            ...payload
+        }, null, 2), "utf8");
+        fs.copyFileSync(statusFile + ".tmp", statusFile);
+        fs.unlinkSync(statusFile + ".tmp");
+    } catch (err) {
+        console.error("Erro ao salvar status do WhatsApp:", err.message);
+    }
+}
+
+function loadWhatsappStatus() {
+    try {
+        if (!fs.existsSync(statusFile)) return {};
+        return JSON.parse(fs.readFileSync(statusFile, "utf8"));
+    } catch (err) {
+        return {};
+    }
+}
+
 async function startBot() {
     fs.mkdirSync(authDir, { recursive: true });
     console.log("Usando sessao WhatsApp em:", authDir);
@@ -162,10 +186,12 @@ async function startBot() {
         if (qr) {
             console.log("\n📱 Escaneia esse QR aí:\n");
             qrcode.generate(qr, { small: true });
+            saveWhatsappStatus({ connected: false, connection: "qr", qr });
         }
 
         if (connection === "open") {
             console.log("✅ WhatsApp conectado com sucesso!");
+            saveWhatsappStatus({ connected: true, connection: "open", qr: "" });
         }
 
         if (connection === "close") {
@@ -176,9 +202,11 @@ async function startBot() {
 
             if (shouldReconnect) {
                 console.log("🔄 Reconectando em 5s...");
+                saveWhatsappStatus({ connected: false, connection: "close", reconnecting: true, lastCode: code || null });
                 setTimeout(startBot, 5000);
             } else {
                 console.log(`🚫 Sessão inválida. Delete a pasta '${authDir}' e escaneie novamente.`);
+                saveWhatsappStatus({ connected: false, connection: "close", loggedOut: true, lastCode: code || null });
             }
         }
     });
@@ -389,8 +417,13 @@ app.post("/enviar", async (req, res) => {
     }
 });
 
+app.get("/status", (_req, res) => {
+    res.json(loadWhatsappStatus());
+});
+
 // Inicia servidor
 app.listen(3001, () => {
     console.log("🚀 API WhatsApp rodando na porta 3001");
+    saveWhatsappStatus({ connected: false, connection: "starting" });
     startBot();
 });

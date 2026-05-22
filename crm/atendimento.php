@@ -227,6 +227,78 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
             color: #fff;
         }
 
+        .home-drilldown-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        @media (min-width: 1024px) {
+            .home-drilldown-grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+        }
+
+        .home-drilldown-card {
+            width: 100%;
+            min-height: 92px;
+            border: 1px solid var(--crm-border);
+            background: linear-gradient(180deg, rgba(18, 18, 22, 0.98), rgba(10, 10, 12, 0.98));
+            color: inherit;
+            text-align: left;
+            padding: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform .15s ease, border-color .15s ease, background .15s ease;
+        }
+
+        .home-drilldown-card:hover {
+            transform: translateY(-1px);
+            border-color: rgba(225, 29, 40, 0.45);
+            background: linear-gradient(180deg, rgba(26, 26, 30, 0.98), rgba(14, 14, 16, 0.98));
+        }
+
+        .home-drilldown-card .home-drilldown-title {
+            font-weight: 800;
+            font-size: 1rem;
+            line-height: 1.1;
+        }
+
+        .home-drilldown-card .home-drilldown-foot {
+            margin-top: 8px;
+            color: var(--crm-muted);
+            font-size: .82rem;
+        }
+
+        .home-drilldown-overlay .crm-modal-panel {
+            max-width: min(1100px, calc(100vw - 24px));
+        }
+
+        .drilldown-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .drilldown-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            border: 1px solid var(--crm-border);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.02);
+        }
+
+        .drilldown-row-title {
+            font-weight: 800;
+        }
+
+        .drilldown-row-meta {
+            color: var(--crm-muted);
+            font-size: .84rem;
+            margin-top: 2px;
+        }
+
         .conversation-unread-badge {
             min-width: 21px;
             height: 21px;
@@ -477,23 +549,23 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
 
         <main class="crm-main">
             <div id="attendanceView" class="workspace-view">
-            <section class="crm-grid-4 mb-4">
-                <div class="crm-card metric-card">
-                    <div class="crm-muted text-sm">Conversas</div>
-                    <div class="text-3xl font-black mt-1"><?= $totalConversas ?></div>
-                </div>
-                <div class="crm-card metric-card">
-                    <div class="crm-muted text-sm">Nao respondidas</div>
-                    <div class="text-3xl font-black mt-1 text-red-400"><?= $naoRespondidas ?></div>
-                </div>
-                <div class="crm-card metric-card">
-                    <div class="crm-muted text-sm">Leads quentes</div>
-                    <div class="text-3xl font-black mt-1 text-amber-300"><?= $leadsQuentes ?></div>
-                </div>
-                <div class="crm-card metric-card">
-                    <div class="crm-muted text-sm">Agendados</div>
-                    <div class="text-3xl font-black mt-1 text-green-400"><?= $agendados ?></div>
-                </div>
+            <section class="home-drilldown-grid mb-4">
+                <button type="button" class="home-drilldown-card" data-home-drilldown="conversas">
+                    <div class="home-drilldown-title">Conversas</div>
+                    <div class="home-drilldown-foot">Abrir detalhes</div>
+                </button>
+                <button type="button" class="home-drilldown-card" data-home-drilldown="nao_respondidas">
+                    <div class="home-drilldown-title">Nao respondidas</div>
+                    <div class="home-drilldown-foot">Abrir detalhes</div>
+                </button>
+                <button type="button" class="home-drilldown-card" data-home-drilldown="leads_quentes">
+                    <div class="home-drilldown-title">Leads quentes</div>
+                    <div class="home-drilldown-foot">Abrir detalhes</div>
+                </button>
+                <button type="button" class="home-drilldown-card" data-home-drilldown="agendados">
+                    <div class="home-drilldown-title">Agendados</div>
+                    <div class="home-drilldown-foot">Abrir detalhes</div>
+                </button>
             </section>
 
             <section class="crm-panel mb-4">
@@ -503,21 +575,19 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
                         <i class="fa-solid fa-chart-line"></i> Relatorios
                     </button>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 p-4">
-                    <div class="crm-card p-4">
-                        <div class="crm-muted text-sm">Humano / bot</div>
-                        <div class="mt-2 text-2xl font-black"><?= $emHumano ?> / <?= $emBot ?></div>
-                    </div>
-                    <div class="crm-card p-4">
-                        <div class="crm-muted text-sm">Potencial das conversas</div>
-                        <div class="mt-2 text-2xl font-black">R$ <?= number_format($valorPotencial, 2, ',', '.') ?></div>
-                    </div>
-                    <div class="crm-card p-4">
-                        <div class="crm-muted text-sm">Pressao da fila</div>
-                        <div class="mt-2 text-2xl font-black <?= $naoRespondidas > 0 ? 'text-red-300' : 'text-green-300' ?>">
-                            <?= $naoRespondidas > 0 ? $naoRespondidas . ' aguardando' : 'Em dia' ?>
-                        </div>
-                    </div>
+                <div class="home-drilldown-grid p-4">
+                    <button type="button" class="home-drilldown-card" data-home-drilldown="modo_atendimento">
+                        <div class="home-drilldown-title">Humano / bot</div>
+                        <div class="home-drilldown-foot">Abrir detalhes</div>
+                    </button>
+                    <button type="button" class="home-drilldown-card" data-home-drilldown="potencial">
+                        <div class="home-drilldown-title">Potencial das conversas</div>
+                        <div class="home-drilldown-foot">Abrir detalhes</div>
+                    </button>
+                    <button type="button" class="home-drilldown-card" data-home-drilldown="pressao_fila">
+                        <div class="home-drilldown-title">Pressao da fila</div>
+                        <div class="home-drilldown-foot">Abrir detalhes</div>
+                    </button>
                 </div>
             </section>
 
@@ -735,8 +805,48 @@ $valorPotencial = array_reduce($conversas, static fn(float $total, array $c): fl
     </div>
 </div>
 
+<div id="homeDrilldownOverlay" class="crm-modal hidden home-drilldown-overlay">
+    <div class="crm-modal-panel">
+        <div class="crm-panel-header">
+            <div>
+                <h3 id="homeDrilldownTitle" class="crm-panel-title"><i class="fa-solid fa-chart-column"></i> Detalhes</h3>
+                <p id="homeDrilldownSubtitle" class="crm-muted text-sm mt-2">Detalhes do panorama</p>
+            </div>
+            <button type="button" id="closeHomeDrilldown" class="crm-button crm-icon-button" title="Fechar">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div id="homeDrilldownBody" class="p-5"></div>
+    </div>
+</div>
+
 <script>
 const conversations = <?= json_encode($conversas, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+const homeDrilldownData = {
+    totalConversas: <?= (int)$totalConversas ?>,
+    naoRespondidas: <?= (int)$naoRespondidas ?>,
+    leadsQuentes: <?= (int)$leadsQuentes ?>,
+    agendados: <?= (int)$agendados ?>,
+    emHumano: <?= (int)$emHumano ?>,
+    emBot: <?= (int)$emBot ?>,
+    valorPotencial: <?= json_encode(number_format($valorPotencial, 2, ',', '.'), JSON_UNESCAPED_UNICODE) ?>,
+    conversaList: <?= json_encode(array_map(static function (array $item): array {
+        return [
+            'id' => $item['id'] ?? '',
+            'nome' => $item['nome'] ?? '',
+            'numero' => $item['numero'] ?? '',
+            'status' => $item['status'] ?? '',
+            'statusLabel' => $item['statusLabel'] ?? '',
+            'modo' => $item['modo'] ?? '',
+            'ultimaMensagem' => $item['ultimaMensagem'] ?? '',
+            'ultimaData' => $item['ultimaData'] ?? '',
+            'tempoSemResposta' => $item['tempoSemResposta'] ?? '',
+            'semResposta' => !empty($item['semResposta']),
+            'interesse' => $item['interesse'] ?? '',
+            'valor' => number_format((float)($item['valor'] ?? 0), 2, ',', '.'),
+        ];
+    }, array_slice($conversas, 0, 12)), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
+};
 const quickReplies = <?= json_encode($respostasRapidas, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 const pomadaUnitPrice = <?= json_encode($valorPomadaAnestesica) ?>;
 const currentAttendant = <?= json_encode($currentAttendant, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
@@ -1202,6 +1312,155 @@ function renderReplies() {
     });
 }
 
+function openHomeDrilldown(key) {
+    const overlay = document.getElementById('homeDrilldownOverlay');
+    const title = document.getElementById('homeDrilldownTitle');
+    const subtitle = document.getElementById('homeDrilldownSubtitle');
+    const body = document.getElementById('homeDrilldownBody');
+    const conversationsSorted = [...conversations].sort((a, b) => (b.ultimaTimestamp || 0) - (a.ultimaTimestamp || 0));
+    const unread = conversationsSorted.filter(item => item.semResposta);
+    const quente = conversationsSorted.filter(item => item.status === 'lead_quente');
+    const agendado = conversationsSorted.filter(item => item.status === 'agendado');
+    const humanos = conversationsSorted.filter(item => item.modo === 'humano');
+    const bots = conversationsSorted.filter(item => item.modo !== 'humano');
+    const formatMoney = value => `R$ ${Number(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    const sections = {
+        conversas: {
+            title: 'Conversas',
+            subtitle: `${homeDrilldownData.totalConversas} conversa(s) no total`,
+            html: renderDrilldownList(conversationsSorted.slice(0, 8).map(item => ({
+                title: item.nome || 'Cliente',
+                meta: `${item.numero || 'sem telefone'} • ${item.statusLabel || item.status || 'sem status'}`,
+                right: item.ultimaData || item.tempoSemResposta || '',
+                note: item.ultimaMensagem || 'Sem ultima mensagem visivel.',
+            })))
+        },
+        nao_respondidas: {
+            title: 'Nao respondidas',
+            subtitle: `${unread.length} conversa(s) aguardando resposta`,
+            html: renderDrilldownList(unread.slice(0, 10).map(item => ({
+                title: item.nome || 'Cliente',
+                meta: `${item.numero || 'sem telefone'} • ${item.tempoSemResposta || 'sem tempo'}`,
+                right: item.statusLabel || item.status || '',
+                note: item.ultimaMensagem || 'Sem ultima mensagem visivel.',
+            })))
+        },
+        leads_quentes: {
+            title: 'Leads quentes',
+            subtitle: `${quente.length} lead(s) com interesse forte`,
+            html: renderDrilldownList(quente.slice(0, 10).map(item => ({
+                title: item.nome || 'Cliente',
+                meta: `${item.numero || 'sem telefone'} • ${item.interesse || 'sem interesse'}`,
+                right: item.statusLabel || '',
+                note: item.ultimaMensagem || 'Sem ultima mensagem visivel.',
+            })))
+        },
+        agendados: {
+            title: 'Agendados',
+            subtitle: `${agendado.length} conversa(s) em agendamento`,
+            html: renderDrilldownList(agendado.slice(0, 10).map(item => ({
+                title: item.nome || 'Cliente',
+                meta: `${item.numero || 'sem telefone'} • ${item.ultimaData || 'sem data'}`,
+                right: item.modo === 'humano' ? 'Humano' : 'Bot',
+                note: item.ultimaMensagem || 'Sem ultima mensagem visivel.',
+            })))
+        },
+        modo_atendimento: {
+            title: 'Humano / bot',
+            subtitle: `${homeDrilldownData.emHumano} em humano e ${homeDrilldownData.emBot} em bot`,
+            html: `
+                <div class="drilldown-list">
+                    <div class="drilldown-row">
+                        <div>
+                            <div class="drilldown-row-title">Em humano</div>
+                            <div class="drilldown-row-meta">Conversas assumidas manualmente</div>
+                        </div>
+                        <strong>${homeDrilldownData.emHumano}</strong>
+                    </div>
+                    <div class="drilldown-row">
+                        <div>
+                            <div class="drilldown-row-title">Em bot</div>
+                            <div class="drilldown-row-meta">Conversas aptas a resposta automatica</div>
+                        </div>
+                        <strong>${homeDrilldownData.emBot}</strong>
+                    </div>
+                    <div class="drilldown-row">
+                        <div>
+                            <div class="drilldown-row-title">Observacao</div>
+                            <div class="drilldown-row-meta">Bot nao responde quando a conversa esta em modo humano.</div>
+                        </div>
+                    </div>
+                </div>
+            `,
+        },
+        potencial: {
+            title: 'Potencial das conversas',
+            subtitle: `Total estimado: ${formatMoney(homeDrilldownData.valorPotencial)}`,
+            html: renderDrilldownList(conversationsSorted.slice(0, 10).map(item => ({
+                title: item.nome || 'Cliente',
+                meta: `${item.numero || 'sem telefone'} • ${item.statusLabel || item.status || ''}`,
+                right: formatMoney(item.valor),
+                note: item.interesse || 'Sem interesse definido.',
+            })))
+        },
+        pressao_fila: {
+            title: 'Pressao da fila',
+            subtitle: unread.length ? `${unread.length} aguardando resposta` : 'Fila em dia',
+            html: `
+                <div class="drilldown-list">
+                    <div class="drilldown-row">
+                        <div>
+                            <div class="drilldown-row-title">Sem resposta</div>
+                            <div class="drilldown-row-meta">Conversas que precisam de atenção</div>
+                        </div>
+                        <strong>${homeDrilldownData.naoRespondidas}</strong>
+                    </div>
+                    <div class="drilldown-row">
+                        <div>
+                            <div class="drilldown-row-title">Ultimas conversas com atraso</div>
+                            <div class="drilldown-row-meta">${unread.slice(0, 5).map(item => item.nome || 'Cliente').join(' · ') || 'Nenhuma'}</div>
+                        </div>
+                    </div>
+                </div>
+            `,
+        },
+    };
+
+    const selected = sections[key] || sections.conversas;
+    title.textContent = selected.title;
+    subtitle.textContent = selected.subtitle;
+    body.innerHTML = selected.html;
+    overlay.classList.remove('hidden');
+}
+
+function renderDrilldownList(items) {
+    if (!items.length) {
+        return '<div class="crm-card p-4">Nenhum detalhe para mostrar.</div>';
+    }
+
+    return `
+        <div class="drilldown-list">
+            ${items.map(item => `
+                <div class="drilldown-row">
+                    <div class="min-w-0">
+                        <div class="drilldown-row-title">${escapeHtml(item.title || '')}</div>
+                        <div class="drilldown-row-meta">${escapeHtml(item.meta || '')}</div>
+                        <div class="drilldown-row-meta mt-2">${escapeHtml(item.note || '')}</div>
+                    </div>
+                    <div class="shrink-0 text-right">
+                        <div class="font-black">${escapeHtml(item.right || '')}</div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function closeHomeDrilldown() {
+    document.getElementById('homeDrilldownOverlay').classList.add('hidden');
+}
+
 function updateActiveFromPayload(cliente) {
     const item = getActive();
     if (!item || !cliente) return;
@@ -1546,6 +1805,18 @@ document.querySelectorAll('[data-workspace-link], [data-workspace-trigger]').for
             src: link.dataset.src || link.getAttribute('href')
         });
     });
+});
+document.querySelectorAll('[data-home-drilldown]').forEach(button => {
+    button.addEventListener('click', () => openHomeDrilldown(button.dataset.homeDrilldown || 'conversas'));
+});
+document.getElementById('homeDrilldownOverlay').addEventListener('click', event => {
+    if (event.target === event.currentTarget) closeHomeDrilldown();
+});
+document.getElementById('closeHomeDrilldown').addEventListener('click', closeHomeDrilldown);
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+        closeHomeDrilldown();
+    }
 });
 document.getElementById('backToAttendanceButton').addEventListener('click', showAttendanceWorkspace);
 document.getElementById('emojiButton').addEventListener('click', () => document.getElementById('emojiPanel').classList.toggle('hidden'));

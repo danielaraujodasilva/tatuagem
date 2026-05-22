@@ -25,6 +25,9 @@ if (!function_exists('system_settings_defaults')) {
             'data_ai_timeout_seconds' => 240,
             'data_ai_num_predict' => 2400,
             'openai_max_history' => 20,
+            'agenda_dias_disponiveis' => '1,2,3,4,5',
+            'agenda_horarios_disponiveis' => '10:00,15:00',
+            'agenda_tempo_atendimento_minutos' => 300,
             'tattoo_artists' => [
                 [
                     'id' => 'user-1',
@@ -44,7 +47,50 @@ if (!function_exists('system_settings_defaults')) {
                     'ativo' => true,
                 ],
             ],
-            'openai_business_prompt' => "Você é o assistente de atendimento de um estúdio de tatuagem. Responda em português do Brasil, de forma natural, curta e acolhedora. Ajude a entender a ideia da tatuagem, peça referência, tamanho aproximado em cm e local do corpo quando faltar informação. Não invente preço fechado, data disponível ou política que não esteja no contexto. Quando fizer sentido, conduza o cliente para orçamento e agendamento com um atendente.",
+            'studio_plans' => [
+                [
+                    'id' => 'essencial',
+                    'nome' => 'Essencial',
+                    'descricao' => 'Para estúdios pequenos que precisam do CRM, atendimento e agenda organizados.',
+                    'valor' => 97.00,
+                    'periodicidade' => 'mensal',
+                    'recursos' => [
+                        'Leads e funil',
+                        'WhatsApp integrado',
+                        'Agenda e ficha de clientes',
+                    ],
+                    'ativo' => true,
+                ],
+                [
+                    'id' => 'profissional',
+                    'nome' => 'Profissional',
+                    'descricao' => 'Para equipes em crescimento que precisam de automações e mais controle do atendimento.',
+                    'valor' => 197.00,
+                    'periodicidade' => 'mensal',
+                    'recursos' => [
+                        'Tudo do plano Essencial',
+                        'Automações e respostas rápidas',
+                        'Múltiplos atendentes',
+                        'Relatórios e IA local',
+                    ],
+                    'ativo' => true,
+                ],
+                [
+                    'id' => 'premium',
+                    'nome' => 'Premium',
+                    'descricao' => 'Para estúdios com operação maior, vários artistas e necessidade de suporte prioritário.',
+                    'valor' => 297.00,
+                    'periodicidade' => 'mensal',
+                    'recursos' => [
+                        'Tudo do plano Profissional',
+                        'Multiunidades ou múltiplos perfis',
+                        'Configuração personalizada',
+                        'Suporte prioritário',
+                    ],
+                    'ativo' => true,
+                ],
+            ],
+            'openai_business_prompt' => "Você é o assistente de atendimento de um estúdio de tatuagem. Responda em português do Brasil, de forma natural, curta e acolhedora.\n\nObjetivo: ajudar o cliente a avançar sem enrolar.\n- Se a pergunta for sobre agenda, responda com no máximo 2 frases curtas.\n- Se não houver vaga no dia pedido, diga apenas que o dia está lotado e informe a próxima vaga real com data e hora.\n- Se houver vaga, informe só a próxima opção real com data e hora.\n- Não liste nomes de clientes, horários ocupados, bastidores, raciocínio interno ou explicações longas.\n- Quando faltar informação sobre a tatuagem, peça referencia, tamanho aproximado em cm e local do corpo.\n- Não invente preço fechado, política ou data disponível que não esteja no contexto.\n\nExemplos de resposta:\n- 'Tem vaga sim. O próximo horário livre real é 23/05 às 10:00.'\n- 'Não tem vaga nesse dia. A próxima vaga real é 26/05 às 15:00.'\n\nQuando fizer sentido, conduza o cliente para orçamento e agendamento com um atendente.",
         ];
     }
 }

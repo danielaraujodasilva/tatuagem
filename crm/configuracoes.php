@@ -10,6 +10,7 @@ $systemSettings = system_settings_load();
 $valorPomada = system_pomada_unit_price();
 $tattooArtists = team_tattoo_artists();
 $attendants = team_attendants();
+$studioPlans = array_values(array_filter($systemSettings['studio_plans'] ?? system_settings_defaults()['studio_plans'] ?? [], 'is_array'));
 $staffUsers = [];
 try {
     $staffResult = auth_db()->query("SELECT id, nome, email, username, role FROM usuarios WHERE role IN ('funcionario', 'adm') AND ativo = 1 ORDER BY nome, email, username");
@@ -292,6 +293,7 @@ $embedded = !empty($_GET['embed']) || !empty($_POST['embed']);
             <?php if ($embedded): ?><input type="hidden" name="embed" value="1"><?php endif; ?>
             <input type="hidden" name="tattoo_artists_payload" id="tattooArtistsPayload">
             <input type="hidden" name="attendants_payload" id="attendantsPayload">
+            <input type="hidden" name="studio_plans_payload" id="studioPlansPayload">
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
                 <div class="border border-white/10 rounded-lg p-4 bg-black/20">
@@ -396,6 +398,35 @@ $embedded = !empty($_GET['embed']) || !empty($_POST['embed']);
                 </div>
             </div>
 
+            <div class="border border-white/10 rounded-lg p-4 bg-black/20 mb-6">
+                <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4">
+                    <div>
+                        <span class="settings-kicker">Planos</span>
+                        <h2 class="text-xl font-black mt-1">Planos possiveis para estúdios cadastrados</h2>
+                        <p class="settings-muted text-sm mt-1">Edite aqui os planos comerciais que podem ser mostrados para cada estúdio cadastrado no CRM.</p>
+                    </div>
+                    <button type="button" class="settings-mini-button" data-add-studio-plan>+ Plano</button>
+                </div>
+
+                <div id="studioPlansList" class="space-y-3">
+                    <?php foreach ($studioPlans as $plan): ?>
+                        <div class="settings-row settings-team-row p-3 grid grid-cols-1 md:grid-cols-[1.1fr_1fr_110px_1fr_auto_auto] gap-3 items-center" data-studio-plan-row>
+                            <input type="hidden" data-field="id" value="<?= htmlspecialchars((string)($plan['id'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="text" data-field="nome" class="settings-input px-3 py-2" placeholder="Nome do plano" value="<?= htmlspecialchars((string)($plan['nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="text" data-field="descricao" class="settings-input px-3 py-2" placeholder="Descricao curta" value="<?= htmlspecialchars((string)($plan['descricao'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="number" step="0.01" min="0" data-field="valor" class="settings-input px-3 py-2" placeholder="Valor" value="<?= htmlspecialchars(number_format((float)($plan['valor'] ?? 0), 2, '.', ''), ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="text" data-field="periodicidade" class="settings-input px-3 py-2" placeholder="mensal" value="<?= htmlspecialchars((string)($plan['periodicidade'] ?? 'mensal'), ENT_QUOTES, 'UTF-8') ?>">
+                            <label class="inline-flex items-center gap-2 font-bold text-sm">
+                                <input type="checkbox" data-field="ativo" class="settings-checkbox" <?= !empty($plan['ativo']) ? 'checked' : '' ?>>
+                                Ativo
+                            </label>
+                            <textarea data-field="recursos" rows="2" class="settings-input px-3 py-2 md:col-span-5" placeholder="Lista de recursos, um por linha"><?= htmlspecialchars(implode("\n", array_map('strval', (array)($plan['recursos'] ?? []))), ENT_QUOTES, 'UTF-8') ?></textarea>
+                            <button type="button" class="settings-action settings-action-delete px-3 py-2 text-sm" data-remove-studio-plan>Excluir</button>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="flex-1">
                     <span class="settings-kicker">Automacao</span>
@@ -412,6 +443,42 @@ $embedded = !empty($_GET['embed']) || !empty($_POST['embed']);
                     <input type="number" step="0.01" min="0" name="valor_pomada_anestesica"
                            class="settings-input px-4 py-3 w-full"
                            value="<?= htmlspecialchars(number_format($valorPomada, 2, '.', ''), ENT_QUOTES, 'UTF-8') ?>">
+                </div>
+
+                <div class="md:col-span-3 border border-white/10 rounded-lg p-4 bg-black/20">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                        <div>
+                            <span class="settings-kicker">Agenda</span>
+                            <h2 class="text-xl font-black mt-1">Regras de disponibilidade</h2>
+                            <p class="settings-muted text-sm mt-1">Esses campos ajudam o sistema e a IA a entender em quais dias e horarios o estúdio costuma atender.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block mb-2 font-bold">Dias disponiveis</label>
+                            <input type="text" name="agenda_dias_disponiveis"
+                                   class="settings-input px-4 py-3 w-full"
+                                   value="<?= htmlspecialchars((string)($systemSettings['agenda_dias_disponiveis'] ?? '1,2,3,4,5'), ENT_QUOTES, 'UTF-8') ?>"
+                                   placeholder="1,2,3,4,5">
+                            <p class="settings-muted text-xs mt-1">Use 1 para segunda, 7 para domingo.</p>
+                        </div>
+
+                        <div>
+                            <label class="block mb-2 font-bold">Horarios disponiveis</label>
+                            <input type="text" name="agenda_horarios_disponiveis"
+                                   class="settings-input px-4 py-3 w-full"
+                                   value="<?= htmlspecialchars((string)($systemSettings['agenda_horarios_disponiveis'] ?? '10:00,15:00'), ENT_QUOTES, 'UTF-8') ?>"
+                                   placeholder="10:00,15:00">
+                        </div>
+
+                        <div>
+                            <label class="block mb-2 font-bold">Tempo de atendimento (minutos)</label>
+                            <input type="number" min="30" max="1440" name="agenda_tempo_atendimento_minutos"
+                                   class="settings-input px-4 py-3 w-full"
+                                   value="<?= htmlspecialchars((string)($systemSettings['agenda_tempo_atendimento_minutos'] ?? 300), ENT_QUOTES, 'UTF-8') ?>">
+                        </div>
+                    </div>
                 </div>
 
                 <div class="md:col-span-2 border border-white/10 rounded-lg p-4 bg-black/20">
@@ -468,9 +535,11 @@ $embedded = !empty($_GET['embed']) || !empty($_POST['embed']);
                         </div>
 
                         <div class="md:col-span-3">
-                            <label class="block mb-2 font-bold">Instrucoes da IA</label>
-                            <textarea name="openai_business_prompt" rows="6"
-                                      class="settings-input px-4 py-3 w-full"><?= htmlspecialchars((string)($systemSettings['openai_business_prompt'] ?? ''), ENT_QUOTES, 'UTF-8') ?></textarea>
+                            <label class="block mb-2 font-bold">Contexto da IA de atendimento</label>
+                            <p class="settings-muted text-sm mb-2">Escreva aqui o jeito ideal de a IA conversar com o cliente. Esse texto vira a base do atendimento no WhatsApp. Use exemplos concretos, tom desejado e regras curtas.</p>
+                            <textarea name="openai_business_prompt" rows="10"
+                                      class="settings-input px-4 py-3 w-full"
+                                      placeholder="Ex.: responder curto, pedir referencia quando faltar, nunca inventar vagas, sempre citar a proxima vaga real"><?= htmlspecialchars((string)($systemSettings['openai_business_prompt'] ?? ''), ENT_QUOTES, 'UTF-8') ?></textarea>
                         </div>
 
                         <div class="md:col-span-3 border border-white/10 rounded-lg p-4 bg-black/20">
@@ -537,6 +606,21 @@ const staffOptionsHtml = staffUsers.map(user => `
         ${escapeHtml(user.label)}
     </option>
 `).join('');
+const studioPlanTemplate = `
+    <div class="settings-row settings-team-row p-3 grid grid-cols-1 md:grid-cols-[1.1fr_1fr_110px_1fr_auto_auto] gap-3 items-center" data-studio-plan-row>
+        <input type="hidden" data-field="id" value="">
+        <input type="text" data-field="nome" class="settings-input px-3 py-2" placeholder="Nome do plano" value="">
+        <input type="text" data-field="descricao" class="settings-input px-3 py-2" placeholder="Descricao curta" value="">
+        <input type="number" step="0.01" min="0" data-field="valor" class="settings-input px-3 py-2" placeholder="Valor" value="0.00">
+        <input type="text" data-field="periodicidade" class="settings-input px-3 py-2" placeholder="mensal" value="mensal">
+        <label class="inline-flex items-center gap-2 font-bold text-sm">
+            <input type="checkbox" data-field="ativo" class="settings-checkbox" checked>
+            Ativo
+        </label>
+        <textarea data-field="recursos" rows="2" class="settings-input px-3 py-2 md:col-span-5" placeholder="Lista de recursos, um por linha"></textarea>
+        <button type="button" class="settings-action settings-action-delete px-3 py-2 text-sm" data-remove-studio-plan>Excluir</button>
+    </div>
+`;
 const teamTemplates = {
     tattooArtistsList: `
         <div class="settings-row settings-team-row p-3 grid grid-cols-1 md:grid-cols-[1.4fr_1fr_72px_auto_auto] gap-3 items-center" data-team-row>
@@ -627,6 +711,21 @@ function collectTeamRows(listId) {
     }).filter(item => item.nome);
 }
 
+function collectStudioPlans() {
+    const list = document.getElementById('studioPlansList');
+    if (!list) return [];
+
+    return Array.from(list.querySelectorAll('[data-studio-plan-row]')).map(row => ({
+        id: row.querySelector('[data-field="id"]')?.value.trim() || '',
+        nome: row.querySelector('[data-field="nome"]')?.value.trim() || '',
+        descricao: row.querySelector('[data-field="descricao"]')?.value.trim() || '',
+        valor: row.querySelector('[data-field="valor"]')?.value.trim() || '',
+        periodicidade: row.querySelector('[data-field="periodicidade"]')?.value.trim() || 'mensal',
+        recursos: row.querySelector('[data-field="recursos"]')?.value.trim() || '',
+        ativo: row.querySelector('[data-field="ativo"]')?.checked ? 1 : 0,
+    })).filter(item => item.nome);
+}
+
 document.addEventListener('click', event => {
     const addButton = event.target.closest('[data-add-team-row]');
     if (addButton) {
@@ -644,6 +743,16 @@ document.addEventListener('click', event => {
     if (removeButton) {
         removeButton.closest('[data-team-row]')?.remove();
     }
+
+    const addPlanButton = event.target.closest('[data-add-studio-plan]');
+    if (addPlanButton) {
+        document.getElementById('studioPlansList')?.insertAdjacentHTML('beforeend', studioPlanTemplate);
+    }
+
+    const removePlanButton = event.target.closest('[data-remove-studio-plan]');
+    if (removePlanButton) {
+        removePlanButton.closest('[data-studio-plan-row]')?.remove();
+    }
 });
 
 document.addEventListener('change', event => {
@@ -659,6 +768,7 @@ if (settingsForm) {
     settingsForm.addEventListener('submit', () => {
         document.getElementById('tattooArtistsPayload').value = JSON.stringify(collectTeamRows('tattooArtistsList'));
         document.getElementById('attendantsPayload').value = JSON.stringify(collectTeamRows('attendantsList'));
+        document.getElementById('studioPlansPayload').value = JSON.stringify(collectStudioPlans());
     });
 }
 

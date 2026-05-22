@@ -11,6 +11,7 @@ if (!function_exists('app_menu_render')) {
             ['key' => 'crm', 'label' => 'Dashboard', 'url' => auth_url('/crm/dashboard.php'), 'roles' => ['funcionario', 'adm']],
             ['key' => 'respostas', 'label' => 'Respostas Rapidas', 'url' => auth_url('/crm/respostas_rapidas.php'), 'roles' => ['funcionario', 'adm']],
             ['key' => 'automacao', 'label' => 'Automacao', 'url' => auth_url('/crm/automacao.php'), 'roles' => ['funcionario', 'adm']],
+            ['key' => 'assistente', 'label' => 'Assistente IA', 'url' => auth_url('/crm/assistente_dados.php'), 'roles' => ['funcionario', 'adm']],
             ['key' => 'financeiro', 'label' => 'Financeiro', 'url' => auth_url('/crm/financeiro.php'), 'roles' => ['funcionario', 'adm']],
             ['key' => 'relatorios', 'label' => 'Relatorios', 'url' => auth_url('/crm/relatorios.php'), 'roles' => ['funcionario', 'adm']],
             ['key' => 'assistente_dados', 'label' => 'Assistente IA', 'url' => auth_url('/crm/assistente_dados.php'), 'roles' => ['adm']],

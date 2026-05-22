@@ -302,6 +302,19 @@ $recentes = array_slice($leads, 0, 12);
 $queryString = $_GET;
 $queryString['export'] = 'csv';
 $csvUrl = 'relatorios.php?' . http_build_query($queryString);
+$pivotRows = array_map(static function (array $lead): array {
+    return [
+        'tipo' => (string)($lead['tipo'] ?? 'Nao informado'),
+        'nome' => (string)($lead['nome'] ?? 'Nao informado'),
+        'origem' => (string)($lead['origem'] ?? 'Nao informado'),
+        'status' => (string)($lead['status'] ?? 'Nao informado'),
+        'etapa' => (string)($lead['etapa_nome'] ?? $lead['etapa'] ?? 'Nao informado'),
+        'atendente' => (string)($lead['atendente'] ?? 'Nao informado'),
+        'valor' => (float)($lead['valor'] ?? 0),
+        'criado_em' => (string)($lead['created_at'] ?? ''),
+        'mes' => substr((string)($lead['created_at'] ?? ''), 0, 7) ?: 'Sem data',
+    ];
+}, $leads);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -593,6 +606,164 @@ $csvUrl = 'relatorios.php?' . http_build_query($queryString);
                 </tbody>
             </table>
         </section>
+
+        <section class="bg-gray-900 border border-gray-800 rounded-2xl p-5 mt-6">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between mb-4">
+                <div>
+                    <h2 class="font-bold text-lg">Tabela dinamica</h2>
+                    <p class="text-sm text-gray-400">Monte os cortes como preferir. Escolha linha, coluna e medida.</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 w-full xl:w-auto">
+                    <select id="pivotRow" class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 min-w-[160px]">
+                        <option value="etapa">Etapa</option>
+                        <option value="origem">Origem</option>
+                        <option value="status">Status</option>
+                        <option value="atendente">Atendente</option>
+                        <option value="tipo">Tipo</option>
+                        <option value="mes">Mes</option>
+                    </select>
+                    <select id="pivotColumn" class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 min-w-[160px]">
+                        <option value="status">Status</option>
+                        <option value="origem">Origem</option>
+                        <option value="etapa">Etapa</option>
+                        <option value="atendente">Atendente</option>
+                        <option value="tipo">Tipo</option>
+                        <option value="mes">Mes</option>
+                    </select>
+                    <select id="pivotMetric" class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 min-w-[160px]">
+                        <option value="qtd">Quantidade</option>
+                        <option value="valor">Valor</option>
+                    </select>
+                    <select id="pivotOrder" class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 min-w-[160px]">
+                        <option value="desc">Maior para menor</option>
+                        <option value="asc">Menor para maior</option>
+                    </select>
+                    <button type="button" id="pivotReset" class="rounded-xl bg-sky-400 text-gray-950 font-bold px-4 py-2">Limpar</button>
+                </div>
+            </div>
+            <div id="pivotLegend" class="text-sm text-gray-400 mb-3"></div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm" id="pivotTable">
+                    <thead class="text-gray-400"></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
     </main>
+    <script>
+        const pivotRows = <?= json_encode($pivotRows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+        const pivotFields = {
+            tipo: 'Tipo',
+            nome: 'Nome',
+            origem: 'Origem',
+            status: 'Status',
+            etapa: 'Etapa',
+            atendente: 'Atendente',
+            valor: 'Valor',
+            criado_em: 'Criado em',
+            mes: 'Mes',
+        };
+
+        const pivotMoney = value => `R$ ${Number(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const pivotLabel = value => {
+            const text = String(value || '').trim();
+            return text ? text : 'Nao informado';
+        };
+
+        function pivotAggregate(rows, rowField, columnField, metric) {
+            const matrix = new Map();
+            const rowKeys = new Set();
+            const columnKeys = new Set();
+            const totalsByRow = new Map();
+            const totalsByColumn = new Map();
+            let grandTotal = 0;
+
+            rows.forEach(row => {
+                const rowKey = pivotLabel(row[rowField]);
+                const columnKey = pivotLabel(row[columnField]);
+                const current = matrix.get(rowKey) || new Map();
+                const cell = current.get(columnKey) || 0;
+                const value = metric === 'valor' ? Number(row.valor || 0) : 1;
+                current.set(columnKey, cell + value);
+                matrix.set(rowKey, current);
+                rowKeys.add(rowKey);
+                columnKeys.add(columnKey);
+                totalsByRow.set(rowKey, (totalsByRow.get(rowKey) || 0) + value);
+                totalsByColumn.set(columnKey, (totalsByColumn.get(columnKey) || 0) + value);
+                grandTotal += value;
+            });
+
+            return {
+                matrix,
+                rowKeys: [...rowKeys],
+                columnKeys: [...columnKeys],
+                totalsByRow,
+                totalsByColumn,
+                grandTotal,
+            };
+        }
+
+        function renderPivot() {
+            const rowField = document.getElementById('pivotRow').value;
+            const columnField = document.getElementById('pivotColumn').value;
+            const metric = document.getElementById('pivotMetric').value;
+            const order = document.getElementById('pivotOrder').value;
+            const thead = document.querySelector('#pivotTable thead');
+            const tbody = document.querySelector('#pivotTable tbody');
+            const legend = document.getElementById('pivotLegend');
+
+            const data = pivotAggregate(pivotRows, rowField, columnField, metric);
+            const rowKeys = [...data.rowKeys].sort((a, b) => {
+                const diff = (data.totalsByRow.get(a) || 0) - (data.totalsByRow.get(b) || 0);
+                return order === 'asc' ? diff : -diff;
+            });
+            const columnKeys = [...data.columnKeys].sort();
+
+            legend.textContent = `${pivotFields[rowField]} x ${pivotFields[columnField]} • ${metric === 'valor' ? 'Soma de valores' : 'Quantidade de registros'} • ${data.grandTotal.toLocaleString('pt-BR')}`;
+
+            thead.innerHTML = `
+                <tr class="border-b border-gray-700">
+                    <th class="sticky left-0 bg-gray-900 text-left py-3 px-3 min-w-[180px]">${pivotFields[rowField]}</th>
+                    ${columnKeys.map(col => `<th class="text-right py-3 px-3 min-w-[110px]">${col}</th>`).join('')}
+                    <th class="text-right py-3 px-3 min-w-[120px]">Total</th>
+                </tr>
+            `;
+
+            if (!rowKeys.length || !columnKeys.length) {
+                tbody.innerHTML = '<tr><td colspan="99" class="py-6 text-center text-gray-400">Sem dados para exibir.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rowKeys.map(rowKey => {
+                const current = data.matrix.get(rowKey) || new Map();
+                const totalRow = data.totalsByRow.get(rowKey) || 0;
+                return `
+                    <tr class="border-b border-gray-800 hover:bg-white/5">
+                        <td class="sticky left-0 bg-gray-900 py-3 px-3 font-bold">${rowKey}</td>
+                        ${columnKeys.map(col => {
+                            const cell = current.get(col) || 0;
+                            const display = metric === 'valor' ? pivotMoney(cell) : String(cell);
+                            return `<td class="py-3 px-3 text-right">${display}</td>`;
+                        }).join('')}
+                        <td class="py-3 px-3 text-right font-bold">${metric === 'valor' ? pivotMoney(totalRow) : totalRow}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        document.getElementById('pivotRow').addEventListener('change', renderPivot);
+        document.getElementById('pivotColumn').addEventListener('change', renderPivot);
+        document.getElementById('pivotMetric').addEventListener('change', renderPivot);
+        document.getElementById('pivotOrder').addEventListener('change', renderPivot);
+        document.getElementById('pivotReset').addEventListener('click', () => {
+            document.getElementById('pivotRow').value = 'etapa';
+            document.getElementById('pivotColumn').value = 'status';
+            document.getElementById('pivotMetric').value = 'qtd';
+            document.getElementById('pivotOrder').value = 'desc';
+            renderPivot();
+        });
+
+        renderPivot();
+    </script>
 </body>
 </html>

@@ -21,6 +21,7 @@ $currentAttendant = team_current_attendant($currentUser);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WhatsApp Web - CRM</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root {
             --wa-green: #00a884;
@@ -404,6 +405,28 @@ $currentAttendant = team_current_attendant($currentUser);
         .wa-empty p {
             margin: 0;
             line-height: 1.55;
+        }
+
+        .wa-qr-wrap {
+            margin: 22px auto 0;
+            padding: 16px;
+            width: fit-content;
+            border-radius: 18px;
+            background: rgba(17, 27, 33, 0.92);
+            border: 1px solid rgba(134, 150, 160, 0.16);
+        }
+
+        .wa-qr-status {
+            margin-top: 14px;
+            color: #d1d7db;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .wa-qr-hint {
+            margin-top: 10px;
+            color: var(--wa-muted);
+            font-size: 12px;
         }
 
         .wa-messages {
@@ -900,6 +923,11 @@ $currentAttendant = team_current_attendant($currentUser);
                     <div class="wa-empty-icon"><i class="fa-brands fa-whatsapp"></i></div>
                     <h1>WhatsApp Web</h1>
                     <p>Selecione uma conversa para atender com menos distracao. Esta tela usa os mesmos clientes e mensagens do CRM atual.</p>
+                    <div class="wa-qr-wrap">
+                        <div id="waQrCode"></div>
+                    </div>
+                    <div id="waQrStatus" class="wa-qr-status">Aguardando o QR do WhatsApp...</div>
+                    <div class="wa-qr-hint">Se o QR nao aparecer no terminal, ele continua disponivel aqui enquanto a sessao estiver pendente.</div>
                 </div>
             </div>
 
@@ -1089,6 +1117,8 @@ $currentAttendant = team_current_attendant($currentUser);
             recordingTimer: null,
             recordingStartedAt: 0,
             scheduleSearchTimer: null,
+            qrValue: '',
+            qrPolling: null,
         };
 
         const el = {
@@ -1097,6 +1127,8 @@ $currentAttendant = team_current_attendant($currentUser);
             search: document.getElementById('searchInput'),
             refresh: document.getElementById('refreshBtn'),
             emptyState: document.getElementById('emptyState'),
+            qrCode: document.getElementById('waQrCode'),
+            qrStatus: document.getElementById('waQrStatus'),
             chatPanel: document.getElementById('chatPanel'),
             chatAvatar: document.getElementById('chatAvatar'),
             chatName: document.getElementById('chatName'),
@@ -1187,6 +1219,57 @@ $currentAttendant = team_current_attendant($currentUser);
                 perdido: 'Perdido',
             };
             return labels[status] || status || 'Novo';
+        }
+
+        function renderQrCode(value) {
+            if (!el.qrCode) return;
+            el.qrCode.innerHTML = '';
+            if (!value) return;
+            new QRCode(el.qrCode, {
+                text: String(value),
+                width: 220,
+                height: 220,
+                correctLevel: QRCode.CorrectLevel.M,
+            });
+        }
+
+        async function loadWhatsappStatus() {
+            try {
+                const response = await fetch('node_status.php', { cache: 'no-store' });
+                const data = await response.json();
+                if (!data || data.ok === false) {
+                    el.qrStatus.textContent = data?.error || 'WhatsApp nao respondeu';
+                    return;
+                }
+
+                const qr = String(data.qr || '');
+                if (qr && qr !== state.qrValue) {
+                    state.qrValue = qr;
+                    renderQrCode(qr);
+                }
+
+                if (data.connected) {
+                    el.qrStatus.textContent = 'WhatsApp conectado com sucesso.';
+                    renderQrCode('');
+                    return;
+                }
+
+                if (data.reconnecting) {
+                    el.qrStatus.textContent = 'Reconectando o WhatsApp...';
+                    return;
+                }
+
+                if (data.loggedOut) {
+                    el.qrStatus.textContent = 'Sessao expirada. Remova a pasta auth_info e escaneie novamente.';
+                    return;
+                }
+
+                el.qrStatus.textContent = qr
+                    ? 'Escaneie o QR code com o WhatsApp do celular.'
+                    : 'Aguardando o QR do WhatsApp...';
+            } catch (error) {
+                el.qrStatus.textContent = 'Nao consegui ler o status do WhatsApp.';
+            }
         }
 
         function atendimentoMode(cliente) {
@@ -2097,6 +2180,8 @@ $currentAttendant = team_current_attendant($currentUser);
                 });
             });
         renderReplies();
+        loadWhatsappStatus().catch(() => {});
+        state.qrPolling = setInterval(() => loadWhatsappStatus().catch(() => {}), 5000);
         state.listPolling = setInterval(() => loadClientes(true).catch(() => {}), 8000);
     </script>
 </body>

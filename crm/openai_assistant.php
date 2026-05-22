@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/system_settings.php';
+require_once __DIR__ . '/../includes/team_settings.php';
+require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/data_store.php';
 
 function crm_ai_log(array $dados): void
@@ -37,6 +39,281 @@ function crm_ai_cliente_em_modo_bot(array $cliente): bool
 
     $atendente = strtolower(trim((string)($cliente['atendente'] ?? '')));
     return $atendente === '' || $atendente === 'bot';
+}
+
+function crm_ai_text_normalize(string $texto): string
+{
+    $texto = trim($texto);
+    if (function_exists('mb_strtolower')) {
+        $texto = mb_strtolower($texto, 'UTF-8');
+    } else {
+        $texto = strtolower($texto);
+    }
+
+    $texto = preg_replace('/\s+/u', ' ', $texto) ?? $texto;
+    return trim($texto);
+}
+
+function crm_ai_question_asks_availability(string $question): bool
+{
+    $normalized = crm_ai_text_normalize($question);
+    $needles = [
+        'tem vaga',
+        'tem horario',
+        'tem horário',
+        'quando tem vaga',
+        'qual dia tem',
+        'que dia tem',
+        'pra quando tem vaga',
+        'para quando tem vaga',
+        'disponibilidade',
+        'agenda livre',
+        'agenda disponivel',
+        'agenda disponível',
+        'horario livre',
+        'horário livre',
+        'vagas livres',
+        'agenda lotada',
+        'amanha',
+        'amanhã',
+        'proximo horario',
+        'próximo horário',
+    ];
+
+    foreach ($needles as $needle) {
+        if ($needle !== '' && strpos($normalized, $needle) !== false) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function crm_ai_schedule_defaults(): array
+{
+    $settings = system_settings_load();
+    $daysRaw = crm_ai_text_normalize((string)($settings['agenda_dias_disponiveis'] ?? '1,2,3,4,5'));
+    $hoursRaw = crm_ai_text_normalize((string)($settings['agenda_horarios_disponiveis'] ?? '10:00,15:00'));
+    $durationMinutes = max(30, (int)($settings['agenda_tempo_atendimento_minutos'] ?? 300));
+
+    $days = array_values(array_filter(array_map('trim', preg_split('/[,\s]+/', $daysRaw) ?: []), static fn(string $v): bool => $v !== ''));
+    $hours = array_values(array_filter(array_map('trim', preg_split('/[,\s]+/', $hoursRaw) ?: []), static fn(string $v): bool => $v !== ''));
+
+    return [
+        'days' => $days ?: ['1', '2', '3', '4', '5'],
+        'hours' => $hours ?: ['10:00', '15:00'],
+        'duration' => $durationMinutes,
+    ];
+}
+
+function crm_ai_parse_relative_date(string $question): ?DateTimeImmutable
+{
+    $question = crm_ai_text_normalize($question);
+    $tz = new DateTimeZone('America/Sao_Paulo');
+    $today = new DateTimeImmutable('today', $tz);
+
+    if (preg_match('/\bamanh[ãa]\b/u', $question)) {
+        return $today->modify('+1 day');
+    }
+    if (preg_match('/\bdepois de amanh[ãa]\b/u', $question)) {
+        return $today->modify('+2 day');
+    }
+    if (preg_match('/\bhoje\b/u', $question)) {
+        return $today;
+    }
+
+    if (preg_match('/\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/u', $question, $m)) {
+        $day = (int)$m[1];
+        $month = (int)$m[2];
+        $year = isset($m[3]) ? (int)$m[3] : (int)$today->format('Y');
+        if ($year < 100) {
+            $year += 2000;
+        }
+        if (@checkdate($month, $day, $year)) {
+            return new DateTimeImmutable(sprintf('%04d-%02d-%02d', $year, $month, $day), $tz);
+        }
+    }
+
+    return null;
+}
+
+function crm_ai_fetch_agenda_rows(DateTimeImmutable $start, DateTimeImmutable $end): array
+{
+    try {
+        /** @var mysqli $conn */
+        global $conn;
+        if (!isset($conn) || !($conn instanceof mysqli)) {
+            return [];
+        }
+
+        $sql = '
+            SELECT
+                data_tatuagem,
+                hora_inicio,
+                COALESCE(NULLIF(hora_fim, ""), ADDTIME(hora_inicio, "05:00:00")) AS hora_fim,
+                status
+            FROM tatuagens
+            WHERE data_tatuagem BETWEEN ? AND ?
+              AND COALESCE(status, "") <> "cancelado"
+            ORDER BY data_tatuagem ASC, hora_inicio ASC
+        ';
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            return [];
+        }
+
+        $startDate = $start->format('Y-m-d');
+        $endDate = $end->format('Y-m-d');
+        $stmt->bind_param('ss', $startDate, $endDate);
+        $stmt->execute();
+        $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+
+        return is_array($rows) ? $rows : [];
+    } catch (Throwable $e) {
+        return [];
+    }
+}
+
+function crm_ai_time_to_minutes(string $time): int
+{
+    if (!preg_match('/^(\d{1,2}):(\d{2})/', $time, $m)) {
+        return 0;
+    }
+
+    return ((int)$m[1] * 60) + (int)$m[2];
+}
+
+function crm_ai_build_day_schedule_map(array $rows): array
+{
+    $map = [];
+    foreach ($rows as $row) {
+        $date = substr((string)($row['data_tatuagem'] ?? ''), 0, 10);
+        if ($date === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            continue;
+        }
+        $map[$date][] = [
+            'start' => crm_ai_time_to_minutes((string)($row['hora_inicio'] ?? '00:00')),
+            'end' => crm_ai_time_to_minutes((string)($row['hora_fim'] ?? '00:00')),
+        ];
+    }
+
+    return $map;
+}
+
+function crm_ai_slot_is_available(array $occupied, int $slotStart, int $slotEnd): bool
+{
+    foreach ($occupied as $busy) {
+        $busyStart = (int)($busy['start'] ?? 0);
+        $busyEnd = (int)($busy['end'] ?? 0);
+        if ($slotStart < $busyEnd && $slotEnd > $busyStart) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function crm_ai_find_next_available_slot(DateTimeImmutable $fromDate, ?DateTimeImmutable $limitDate = null): ?array
+{
+    $tz = new DateTimeZone('America/Sao_Paulo');
+    $schedule = crm_ai_schedule_defaults();
+    $duration = (int)$schedule['duration'];
+    $hours = array_values($schedule['hours']);
+    $allowedDays = array_map('intval', array_filter($schedule['days'], static fn($v) => $v !== ''));
+    if (!$allowedDays) {
+        $allowedDays = [1, 2, 3, 4, 5];
+    }
+
+    $start = $fromDate->setTime(0, 0, 0);
+    $limit = $limitDate ?: $start->modify('+45 days');
+    $agendaRows = crm_ai_fetch_agenda_rows($start, $limit);
+    $busyByDay = crm_ai_build_day_schedule_map($agendaRows);
+    $cursor = $start;
+
+    while ($cursor <= $limit) {
+        $weekday = (int)$cursor->format('N');
+        if (!in_array($weekday, $allowedDays, true)) {
+            $cursor = $cursor->modify('+1 day');
+            continue;
+        }
+
+        $dateKey = $cursor->format('Y-m-d');
+        $occupied = $busyByDay[$dateKey] ?? [];
+        foreach ($hours as $hour) {
+            $slotStart = crm_ai_time_to_minutes($hour);
+            if ($slotStart <= 0) {
+                continue;
+            }
+            $slotEnd = $slotStart + $duration;
+            if (crm_ai_slot_is_available($occupied, $slotStart, $slotEnd)) {
+                return [
+                    'date' => $dateKey,
+                    'time' => sprintf('%02d:%02d', intdiv($slotStart, 60), $slotStart % 60),
+                ];
+            }
+        }
+
+        $cursor = $cursor->modify('+1 day');
+    }
+
+    return null;
+}
+
+function crm_ai_reply_about_availability(array $cliente, array $mensagemAtual): ?array
+{
+    $question = crm_ai_mensagem_texto($mensagemAtual);
+    if (!crm_ai_question_asks_availability($question)) {
+        return null;
+    }
+
+    $requestedDate = crm_ai_parse_relative_date($question) ?: new DateTimeImmutable('today', new DateTimeZone('America/Sao_Paulo'));
+    $nextSlot = crm_ai_find_next_available_slot($requestedDate, $requestedDate->modify('+45 days'));
+    if (!$nextSlot) {
+        return [
+            'ok' => true,
+            'texto' => 'Nao encontrei nenhuma vaga livre no periodo pesquisado. Quer que eu procure mais pra frente?',
+            'model' => 'Regra local',
+            'local' => true,
+            'availability' => true,
+        ];
+    }
+
+    $requestedKey = $requestedDate->format('Y-m-d');
+    $requestedRows = crm_ai_fetch_agenda_rows($requestedDate, $requestedDate);
+    $busyByDay = crm_ai_build_day_schedule_map($requestedRows);
+    $schedule = crm_ai_schedule_defaults();
+    $occupied = $busyByDay[$requestedKey] ?? [];
+    $dayHasFreeSlot = false;
+    foreach (array_values($schedule['hours']) as $hour) {
+        $slotStart = crm_ai_time_to_minutes($hour);
+        if ($slotStart <= 0) {
+            continue;
+        }
+        if (crm_ai_slot_is_available($occupied, $slotStart, $slotStart + (int)$schedule['duration'])) {
+            $dayHasFreeSlot = true;
+            break;
+        }
+    }
+
+    $dateBr = DateTimeImmutable::createFromFormat('Y-m-d', $nextSlot['date'], new DateTimeZone('America/Sao_Paulo'));
+    $formattedDate = $dateBr ? $dateBr->format('d/m') : substr($nextSlot['date'], 8, 2) . '/' . substr($nextSlot['date'], 5, 2);
+
+    if ($dayHasFreeSlot && $requestedKey === $nextSlot['date']) {
+        $texto = 'Tem vaga sim. O proximo horario livre real e ' . $formattedDate . ' as ' . $nextSlot['time'] . '.';
+    } elseif ($requestedKey === $nextSlot['date']) {
+        $texto = 'Nao tem vaga nesse dia. A proxima vaga real e ' . $formattedDate . ' as ' . $nextSlot['time'] . '.';
+    } else {
+        $texto = 'Nao tem vaga nesse dia. A proxima vaga real e ' . $formattedDate . ' as ' . $nextSlot['time'] . '.';
+    }
+
+    return [
+        'ok' => true,
+        'texto' => $texto,
+        'model' => 'Regra local',
+        'local' => true,
+        'availability' => true,
+    ];
 }
 
 function crm_ai_mensagem_texto(array $msg): string
@@ -166,6 +443,11 @@ function crm_ai_gerar_resposta(array $cliente, array $mensagemAtual, array $sett
 {
     if (!function_exists('curl_init')) {
         return ['ok' => false, 'error' => 'Extensao cURL do PHP nao esta disponivel.'];
+    }
+
+    $localAvailability = crm_ai_reply_about_availability($cliente, $mensagemAtual);
+    if (is_array($localAvailability) && !empty($localAvailability['ok'])) {
+        return $localAvailability;
     }
 
     $ollamaUrl = crm_ai_ollama_url($settings);
