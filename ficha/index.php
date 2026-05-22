@@ -91,6 +91,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $totalClientes = (int) $conn->query('SELECT COUNT(*) AS total FROM clientes')->fetch_assoc()['total'];
 $totalTatuagens = (int) $conn->query('SELECT COUNT(*) AS total FROM tatuagens')->fetch_assoc()['total'];
 $proximas = (int) $conn->query("SELECT COUNT(*) AS total FROM tatuagens WHERE data_tatuagem >= CURDATE() AND status <> 'cancelado'")->fetch_assoc()['total'];
+
+$recentes = $conn->query('SELECT id, nome, telefone, email, profissao, created_at FROM clientes ORDER BY id DESC LIMIT 8')->fetch_all(MYSQLI_ASSOC);
+$proximasTatuagens = $conn->query("
+    SELECT t.id, t.data_tatuagem, t.hora_inicio, t.status, c.nome AS cliente_nome, c.telefone
+    FROM tatuagens t
+    LEFT JOIN clientes c ON c.id = t.cliente_id
+    WHERE t.data_tatuagem >= CURDATE() AND t.status <> 'cancelado'
+    ORDER BY t.data_tatuagem ASC, t.hora_inicio ASC
+    LIMIT 8
+")->fetch_all(MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -100,6 +110,63 @@ $proximas = (int) $conn->query("SELECT COUNT(*) AS total FROM tatuagens WHERE da
   <title>Ficha de Cliente</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="assets/style.css?v=20260505-embedded-redesign" rel="stylesheet">
+  <style>
+    .ficha-drilldown-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .ficha-drilldown-card {
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: rgba(15, 23, 42, 0.3);
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: #f8fafc;
+      text-align: left;
+      min-height: 86px;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease;
+    }
+    .ficha-drilldown-card:hover {
+      transform: translateY(-1px);
+      border-color: rgba(248, 113, 113, 0.35);
+      background: rgba(15, 23, 42, 0.45);
+    }
+    .ficha-drilldown-title {
+      font-weight: 800;
+      font-size: 0.98rem;
+      line-height: 1.2;
+    }
+    .ficha-drilldown-foot {
+      margin-top: 8px;
+      color: #94a3b8;
+      font-size: 0.88rem;
+    }
+    .ficha-drilldown-overlay .modal-dialog {
+      max-width: 900px;
+    }
+    .ficha-drilldown-list {
+      display: grid;
+      gap: 10px;
+    }
+    .ficha-drilldown-row {
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      border-radius: 12px;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.26);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .ficha-drilldown-meta {
+      color: #94a3b8;
+      font-size: 0.88rem;
+      margin-top: 2px;
+    }
+    @media (max-width: 992px) {
+      .ficha-drilldown-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body class="ficha-body">
   <main class="ficha-shell">
@@ -112,19 +179,19 @@ $proximas = (int) $conn->query("SELECT COUNT(*) AS total FROM tatuagens WHERE da
       </header>
 
       <div class="ficha-content">
-        <div class="ficha-stats mb-4">
-          <div class="ficha-stat">
-            <span>Clientes cadastrados</span>
-            <strong><?php echo $totalClientes; ?></strong>
-          </div>
-          <div class="ficha-stat">
-            <span>Tatuagens registradas</span>
-            <strong><?php echo $totalTatuagens; ?></strong>
-          </div>
-          <div class="ficha-stat">
-            <span>Proximos atendimentos</span>
-            <strong><?php echo $proximas; ?></strong>
-          </div>
+        <div class="ficha-drilldown-grid mb-4">
+          <button type="button" class="ficha-drilldown-card" data-ficha-drilldown="clientes">
+            <div class="ficha-drilldown-title">Clientes cadastrados</div>
+            <div class="ficha-drilldown-foot">Abrir detalhes</div>
+          </button>
+          <button type="button" class="ficha-drilldown-card" data-ficha-drilldown="tatuagens">
+            <div class="ficha-drilldown-title">Tatuagens registradas</div>
+            <div class="ficha-drilldown-foot">Abrir detalhes</div>
+          </button>
+          <button type="button" class="ficha-drilldown-card" data-ficha-drilldown="proximos">
+            <div class="ficha-drilldown-title">Proximos atendimentos</div>
+            <div class="ficha-drilldown-foot">Abrir detalhes</div>
+          </button>
         </div>
 
         <?php if ($feedback): ?>
@@ -252,5 +319,113 @@ $proximas = (int) $conn->query("SELECT COUNT(*) AS total FROM tatuagens WHERE da
       </div>
     </section>
   </main>
+
+  <div class="modal fade ficha-drilldown-overlay" id="fichaDrilldownModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content bg-gray-900 text-white border border-slate-700">
+        <div class="modal-header border-slate-700">
+          <div>
+            <h5 class="modal-title fw-bold" id="fichaDrilldownTitle">Detalhes</h5>
+            <div class="text-secondary small" id="fichaDrilldownSubtitle"></div>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body" id="fichaDrilldownBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const fichaDrilldownData = {
+      clientes: <?= json_encode($recentes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
+      tatuagens: <?= json_encode($totalTatuagens, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
+      proximos: <?= json_encode($proximasTatuagens, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
+      totais: {
+        clientes: <?= (int) $totalClientes ?>,
+        tatuagens: <?= (int) $totalTatuagens ?>,
+        proximos: <?= (int) $proximas ?>
+      }
+    };
+
+    const fichaDrilldownModal = new bootstrap.Modal(document.getElementById('fichaDrilldownModal'));
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      }[char]));
+    }
+
+    function renderFichaList(items, emptyLabel, mapRow) {
+      if (!items.length) {
+        return `<div class="text-secondary">${escapeHtml(emptyLabel)}</div>`;
+      }
+      return `<div class="ficha-drilldown-list">${items.map(mapRow).join('')}</div>`;
+    }
+
+    function openFichaDrilldown(key) {
+      const title = document.getElementById('fichaDrilldownTitle');
+      const subtitle = document.getElementById('fichaDrilldownSubtitle');
+      const body = document.getElementById('fichaDrilldownBody');
+
+      const sections = {
+        clientes: {
+          title: 'Clientes cadastrados',
+          subtitle: `${fichaDrilldownData.totais.clientes} cliente(s) no cadastro`,
+          html: renderFichaList(fichaDrilldownData.clientes, 'Nenhum cliente encontrado.', item => `
+            <div class="ficha-drilldown-row">
+              <div>
+                <div class="fw-bold">${escapeHtml(item.nome || 'Cliente')}</div>
+                <div class="ficha-drilldown-meta">${escapeHtml(item.telefone || 'sem telefone')} • ${escapeHtml(item.email || 'sem e-mail')}</div>
+                <div class="ficha-drilldown-meta">${escapeHtml(item.profissao || 'sem profissão')}</div>
+              </div>
+              <div class="text-end small text-secondary">${escapeHtml((item.created_at || '').slice(0, 10) || '')}</div>
+            </div>
+          `)
+        },
+        tatuagens: {
+          title: 'Tatuagens registradas',
+          subtitle: `${fichaDrilldownData.totais.tatuagens} tatuagem(ns) registradas`,
+          html: `<div class="ficha-drilldown-list">
+            <div class="ficha-drilldown-row">
+              <div>
+                <div class="fw-bold">Total geral</div>
+                <div class="ficha-drilldown-meta">Quantidade de tatuagens cadastradas no sistema</div>
+              </div>
+              <strong>${fichaDrilldownData.totais.tatuagens}</strong>
+            </div>
+          </div>`
+        },
+        proximos: {
+          title: 'Proximos atendimentos',
+          subtitle: `${fichaDrilldownData.totais.proximos} atendimento(s) agendado(s)`,
+          html: renderFichaList(fichaDrilldownData.proximos, 'Nenhum atendimento futuro encontrado.', item => `
+            <div class="ficha-drilldown-row">
+              <div>
+                <div class="fw-bold">${escapeHtml(item.cliente_nome || 'Cliente')}</div>
+                <div class="ficha-drilldown-meta">${escapeHtml((item.data_tatuagem || '').slice(0, 10) || '')} ${escapeHtml(item.hora_inicio || '')}</div>
+                <div class="ficha-drilldown-meta">${escapeHtml(item.status || 'sem status')}</div>
+              </div>
+              <div class="text-end small text-secondary">${escapeHtml(item.telefone || '')}</div>
+            </div>
+          `)
+        }
+      };
+
+      const section = sections[key] || sections.clientes;
+      title.textContent = section.title;
+      subtitle.textContent = section.subtitle;
+      body.innerHTML = section.html;
+      fichaDrilldownModal.show();
+    }
+
+    document.querySelectorAll('[data-ficha-drilldown]').forEach(button => {
+      button.addEventListener('click', () => openFichaDrilldown(button.dataset.fichaDrilldown || 'clientes'));
+    });
+  </script>
 </body>
 </html>
