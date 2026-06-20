@@ -1,0 +1,10 @@
+Marcador criado porque o servidor estava offline.
+
+Última versão considerada válida:
+- Redesign visual premium do orçamento
+- Seleção múltipla de regiões
+- Frente e costas
+- Mãos, dedos, pés e divisões internas/externas dos braços
+- Integração WhatsApp
+
+Objetivo: gerar novo commit para facilitar sincronização e deploy.
