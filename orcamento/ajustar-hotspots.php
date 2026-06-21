@@ -22,17 +22,17 @@ $hotspots = file_exists($arquivo) ? file_get_contents($arquivo) : '{"frente":[],
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ajustar Hotspots - Orçamento</title>
 <style>
-:root{--bg:#050505;--panel:#111114;--line:rgba(255,255,255,.14);--red:#e7332f;--txt:#fff;--muted:#aaa;--green:#25d366}*{box-sizing:border-box}body{margin:0;background:#050505;color:#fff;font-family:Arial,Helvetica,sans-serif;padding:14px}.wrap{max-width:1500px;margin:auto}.top{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:14px}.top h1{margin:0;text-transform:uppercase;font-size:26px}.badge{font-size:12px;color:#ff7068;border:1px solid rgba(231,51,47,.5);border-radius:999px;padding:5px 9px}.grid{display:grid;grid-template-columns:1fr 390px;gap:16px}.stage,.side{background:linear-gradient(180deg,#151519,#09090a);border:1px solid var(--line);border-radius:14px;padding:16px}.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}button,select,input,textarea{font:inherit}button{border:1px solid var(--line);background:#0b0b0d;color:#fff;border-radius:8px;padding:10px 12px;font-weight:900;cursor:pointer}.active{background:linear-gradient(#e7332f,#8c1411)!important}.save{background:linear-gradient(#25d366,#148b3f)!important;color:#06170b}.map{position:relative;width:min(100%,640px);height:760px;margin:auto;background:#020202;border:1px solid var(--line);border-radius:12px;overflow:hidden}.map img{position:absolute;left:50%;top:50%;height:96%;max-width:78%;transform:translate(-50%,-50%);object-fit:contain;user-select:none;pointer-events:none}.spot{position:absolute;border:2px solid rgba(255,80,70,.75);background:rgba(231,51,47,.18);border-radius:999px;color:transparent;cursor:move;box-shadow:0 0 18px rgba(231,51,47,.45)}.spot:hover{background:rgba(231,51,47,.30)}.spot.sel{border-color:#fff;background:rgba(231,51,47,.48);box-shadow:0 0 28px rgba(255,75,69,.95)}.spot:after{content:'';position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid var(--red);cursor:nwse-resize}.side h2{margin:0 0 12px;text-transform:uppercase}.field{display:grid;gap:5px;margin-bottom:10px}.field label{font-size:11px;color:#bbb;text-transform:uppercase;font-weight:900}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);background:#070707;color:#fff;border-radius:8px;padding:10px}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.list{max-height:260px;overflow:auto;display:grid;gap:6px;margin-top:10px}.item{border:1px solid var(--line);background:#080808;border-radius:8px;padding:8px;text-align:left}.item.sel{border-color:#fff;background:rgba(231,51,47,.18)}textarea{min-height:180px;font-family:monospace;font-size:12px}.help{font-size:13px;color:#bbb;line-height:1.45}.status{margin-top:10px;color:#bbb}.danger{color:#ff756d}@media(max-width:1050px){.grid{grid-template-columns:1fr}.map{height:620px}.side{order:-1}}
+:root{--bg:#050505;--panel:#111114;--line:rgba(255,255,255,.14);--red:#e7332f;--txt:#fff;--muted:#aaa;--green:#25d366}*{box-sizing:border-box}body{margin:0;background:#050505;color:#fff;font-family:Arial,Helvetica,sans-serif;padding:14px}.wrap{max-width:1500px;margin:auto}.top{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:14px}.top h1{margin:0;text-transform:uppercase;font-size:26px}.badge{font-size:12px;color:#ff7068;border:1px solid rgba(231,51,47,.5);border-radius:999px;padding:5px 9px}.grid{display:grid;grid-template-columns:1fr 390px;gap:16px}.stage,.side{background:linear-gradient(180deg,#151519,#09090a);border:1px solid var(--line);border-radius:14px;padding:16px}.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}button,select,input,textarea{font:inherit}button{border:1px solid var(--line);background:#0b0b0d;color:#fff;border-radius:8px;padding:10px 12px;font-weight:900;cursor:pointer}.active{background:linear-gradient(#e7332f,#8c1411)!important}.save{background:linear-gradient(#25d366,#148b3f)!important;color:#06170b}.map{position:relative;width:min(100%,640px);height:760px;margin:auto;background:#020202;border:1px solid var(--line);border-radius:12px;overflow:hidden}.map img{position:absolute;left:50%;top:50%;height:96%;max-width:78%;transform:translate(-50%,-50%);object-fit:contain;user-select:none;pointer-events:none}.spot{position:absolute;border:2px solid rgba(255,80,70,.75);background:rgba(231,51,47,.18);border-radius:999px;color:transparent;cursor:move;box-shadow:0 0 18px rgba(231,51,47,.45);touch-action:none}.spot:hover{background:rgba(231,51,47,.30)}.spot.sel{border-color:#fff;background:rgba(231,51,47,.48);box-shadow:0 0 28px rgba(255,75,69,.95)}.handle{position:absolute;right:-8px;bottom:-8px;width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid var(--red);cursor:nwse-resize;z-index:5;box-shadow:0 0 10px rgba(0,0,0,.8)}.side h2{margin:0 0 12px;text-transform:uppercase}.field{display:grid;gap:5px;margin-bottom:10px}.field label{font-size:11px;color:#bbb;text-transform:uppercase;font-weight:900}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);background:#070707;color:#fff;border-radius:8px;padding:10px}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.list{max-height:260px;overflow:auto;display:grid;gap:6px;margin-top:10px}.item{border:1px solid var(--line);background:#080808;border-radius:8px;padding:8px;text-align:left}.item.sel{border-color:#fff;background:rgba(231,51,47,.18)}textarea{min-height:180px;font-family:monospace;font-size:12px}.help{font-size:13px;color:#bbb;line-height:1.45}.status{margin-top:10px;color:#bbb}.danger{color:#ff756d}@media(max-width:1050px){.grid{grid-template-columns:1fr}.map{height:620px}.side{order:-1}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><h1>Ajustar hotspots <span class="badge">orcamento</span></h1><div class="help">Arraste, redimensione, salve. Civilização, finalmente.</div></div>
+  <div class="top"><h1>Ajustar hotspots <span class="badge">orcamento</span></h1><div class="help">Arraste a área para mover. Arraste a bolinha branca para redimensionar. Sim, agora faz sentido.</div></div>
   <div class="grid">
     <main class="stage">
       <div class="bar"><button id="btnFrente" class="active">Frente</button><button id="btnCostas">Costas</button><button id="toggleGhost">Mostrar/Ocultar áreas</button><button id="save" class="save">Salvar hotspots.json</button></div>
       <div class="map" id="map"><img id="body" src="assets/body-front-muscular.png?v=1" alt="manequim"></div>
-      <p class="help">Dica: clique em uma área e use as setas do teclado. Com Shift anda 5x. O círculo branco no canto redimensiona.</p>
+      <p class="help">Dica: clique em uma área e use as setas do teclado. Com Shift anda 5x. Campos numéricos servem para ajuste cirúrgico.</p>
     </main>
     <aside class="side">
       <h2>Região selecionada</h2>
@@ -56,11 +56,21 @@ function render(){
   $('body').src = img();
   $('map').querySelectorAll('.spot').forEach(e=>e.remove());
   getArr().forEach((h,i)=>{
-    const s=document.createElement('div'); s.className='spot'; if(selected===i)s.classList.add('sel');
-    s.dataset.i=i; s.style.left=h[3]+'%'; s.style.top=h[4]+'%'; s.style.width=h[5]+'%'; s.style.height=h[6]+'%';
+    const s=document.createElement('div');
+    s.className='spot';
+    if(selected===i)s.classList.add('sel');
+    s.dataset.i=i;
+    s.style.left=h[3]+'%'; s.style.top=h[4]+'%'; s.style.width=h[5]+'%'; s.style.height=h[6]+'%';
     s.style.opacity=visible?1:0;
     s.title=h[2];
-    s.addEventListener('mousedown',ev=>start(ev,i));
+    const handle=document.createElement('span');
+    handle.className='handle';
+    handle.title='Redimensionar';
+    handle.addEventListener('mousedown',ev=>start(ev,i,true));
+    handle.addEventListener('touchstart',ev=>start(ev,i,true),{passive:false});
+    s.appendChild(handle);
+    s.addEventListener('mousedown',ev=>start(ev,i,false));
+    s.addEventListener('touchstart',ev=>start(ev,i,false),{passive:false});
     s.addEventListener('click',ev=>{ev.stopPropagation(); select(i)});
     $('map').appendChild(s);
   });
@@ -68,28 +78,45 @@ function render(){
 }
 function renderSide(){
   const arr=getArr();
-  $('hotspotSelect').innerHTML = arr.map((h,i)=>`<option value="${i}" ${i===selected?'selected':''}>${h[2]} - ${h[0]}</option>`).join('');
   if(selected===null && arr.length) selected=0;
+  $('hotspotSelect').innerHTML = arr.map((h,i)=>`<option value="${i}" ${i===selected?'selected':''}>${h[2]} - ${h[0]}</option>`).join('');
   const h=arr[selected];
   ['left','top','width','height'].forEach((id,idx)=>$(id).value = h ? h[idx+3] : '');
   $('list').innerHTML = arr.map((h,i)=>`<button class="item ${i===selected?'sel':''}" onclick="select(${i})">${h[2]}<br><small>${h[0]} | ${h[3]}, ${h[4]}, ${h[5]}, ${h[6]}</small></button>`).join('');
   $('jsonOut').value = JSON.stringify(data,null,2);
 }
-function select(i){selected=Number(i); render()}
-function start(ev,i){
-  ev.preventDefault(); select(i);
-  const spot=ev.currentTarget, rect=$('map').getBoundingClientRect(), h=getArr()[i];
-  const isResize = ev.offsetX > spot.clientWidth - 18 && ev.offsetY > spot.clientHeight - 18;
-  drag={i,isResize,rect,startX:ev.clientX,startY:ev.clientY,orig:[h[3],h[4],h[5],h[6]]};
+function pointer(ev){ const p=ev.touches ? ev.touches[0] : ev; return {x:p.clientX,y:p.clientY}; }
+function select(i){ selected=Number(i); render(); }
+function start(ev,i,isResize){
+  ev.preventDefault();
+  ev.stopPropagation();
+  selected=Number(i);
+  const p=pointer(ev), rect=$('map').getBoundingClientRect(), h=getArr()[i];
+  drag={i,isResize,rect,startX:p.x,startY:p.y,orig:[h[3],h[4],h[5],h[6]]};
+  renderSide();
 }
-window.addEventListener('mousemove',ev=>{
+function move(ev){
   if(!drag)return;
-  const h=getArr()[drag.i], dx=(ev.clientX-drag.startX)/drag.rect.width*100, dy=(ev.clientY-drag.startY)/drag.rect.height*100;
+  ev.preventDefault();
+  const p=pointer(ev), h=getArr()[drag.i], dx=(p.x-drag.startX)/drag.rect.width*100, dy=(p.y-drag.startY)/drag.rect.height*100;
   if(drag.isResize){ h[5]=round(Math.max(1,drag.orig[2]+dx)); h[6]=round(Math.max(1,drag.orig[3]+dy)); }
   else { h[3]=round(drag.orig[0]+dx); h[4]=round(drag.orig[1]+dy); }
-  render();
-});
-window.addEventListener('mouseup',()=>drag=null);
+  paintOnly();
+}
+function stop(){ if(drag){ drag=null; render(); } }
+window.addEventListener('mousemove',move);
+window.addEventListener('touchmove',move,{passive:false});
+window.addEventListener('mouseup',stop);
+window.addEventListener('touchend',stop);
+function paintOnly(){
+  document.querySelectorAll('.spot').forEach(s=>{
+    const h=getArr()[Number(s.dataset.i)];
+    if(!h)return;
+    s.style.left=h[3]+'%'; s.style.top=h[4]+'%'; s.style.width=h[5]+'%'; s.style.height=h[6]+'%';
+    s.classList.toggle('sel',Number(s.dataset.i)===selected);
+  });
+  renderSide();
+}
 window.addEventListener('keydown',ev=>{
   if(selected===null || ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))return;
   const h=getArr()[selected], step=ev.shiftKey?1:.2;
