@@ -252,6 +252,8 @@ button { color: inherit; font: inherit; }
   perspective: 1100px;
   contain: layout paint;
   transform: translate3d(0, calc(var(--scroll) * -42px), 0) rotateX(calc(var(--scroll) * 4deg)) rotateY(calc(var(--scroll) * -8deg)) rotateZ(var(--tilt));
+  animation: heroDrift 7.5s ease-in-out infinite;
+  cursor: auto;
 }
 .hero-canvas {
   width: 100%;
@@ -275,6 +277,7 @@ button { color: inherit; font: inherit; }
     0 35px 85px rgba(0, 0, 0, .28);
   transform: translateZ(-140px) rotateX(72deg) scale(.96);
   filter: blur(.15px);
+  animation: depthPulse 8s ease-in-out infinite;
 }
 .scene-aura {
   width: 82%;
@@ -284,6 +287,7 @@ button { color: inherit; font: inherit; }
   background: radial-gradient(circle, rgba(49, 104, 82, .48) 0, rgba(12, 32, 25, .24) 48%, transparent 70%);
   z-index: 1;
   filter: blur(2px);
+  animation: auraPulse 6.5s ease-in-out infinite;
 }
 .scene-ring {
   position: absolute;
@@ -436,6 +440,21 @@ button { color: inherit; font: inherit; }
   font-weight: 800;
   letter-spacing: .2em;
   text-transform: uppercase;
+}
+
+@keyframes heroDrift {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -14px; }
+}
+
+@keyframes depthPulse {
+  0%, 100% { transform: translateZ(-140px) rotateX(72deg) scale(.96); opacity: .92; }
+  50% { transform: translateZ(-155px) rotateX(72deg) scale(1); opacity: 1; }
+}
+
+@keyframes auraPulse {
+  0%, 100% { opacity: .88; transform: scale(.96); }
+  50% { opacity: 1; transform: scale(1.02); }
 }
 
 @keyframes ringFloat {
@@ -745,7 +764,7 @@ footer > small { grid-column: 1 / -1; padding-top: 1.5rem; border-top: 1px solid
   opacity: 1;
   pointer-events: auto;
   transform: none;
-  animation: waPulse 1.55s infinite;
+  animation: waPulse 1.25s ease-in-out infinite;
   filter: saturate(1.08);
 }
 .floating-whatsapp span:last-child {
@@ -757,17 +776,15 @@ footer > small { grid-column: 1 / -1; padding-top: 1.5rem; border-top: 1px solid
   flex: 0 0 auto;
   color: #fff;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, .28));
-  animation: waIconPulse 1.55s infinite;
+  animation: waIconPulse 1.25s ease-in-out infinite;
 }
 @keyframes waPulse {
-  0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, .52), 0 16px 38px rgba(0, 0, 0, .34); transform: translateY(0) scale(1); }
-  55% { transform: translateY(-2px) scale(1.02); }
-  70% { box-shadow: 0 0 0 18px rgba(37, 211, 102, 0), 0 16px 38px rgba(0, 0, 0, .34); }
-  100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0), 0 16px 38px rgba(0, 0, 0, .34); transform: translateY(0) scale(1); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, .54), 0 16px 38px rgba(0, 0, 0, .34); transform: translateY(0) scale(1); }
+  50% { box-shadow: 0 0 0 18px rgba(37, 211, 102, 0), 0 20px 42px rgba(0, 0, 0, .38); transform: translateY(-3px) scale(1.03); }
 }
 @keyframes waIconPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.12) rotate(-7deg); }
 }
 .reveal { opacity: 1; transform: none; }
 .motion-ready .reveal {
