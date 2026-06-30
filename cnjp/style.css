@@ -152,8 +152,8 @@ button { color: inherit; font: inherit; }
   z-index: 2;
   width: 100%;
   max-width: none;
-  padding-left: clamp(0rem, 8vw, 6.5rem);
-  padding-right: clamp(0rem, 6vw, 4rem);
+  padding-left: clamp(0rem, 8vw, 5.5rem);
+  padding-right: clamp(0rem, 1.5vw, 1rem);
 }
 
 .eyebrow {
@@ -177,12 +177,13 @@ button { color: inherit; font: inherit; }
   font-weight: 500;
   letter-spacing: -.045em;
   line-height: 1.03;
-  text-wrap: balance;
+  text-wrap: normal;
 }
 .hero h1 {
   max-width: 1600px;
   margin: 1rem 0 1.25rem;
   font-size: clamp(3.35rem, 6vw, 6.7rem);
+  width: min(100%, 1500px);
 }
 .hero h1 em, .final-cta h2 em { color: var(--green); font-weight: inherit; }
 .lead {
@@ -190,12 +191,14 @@ button { color: inherit; font: inherit; }
   margin: 0;
   color: #d2dcd6;
   font-size: clamp(1.03rem, 1.4vw, 1.2rem);
+  width: min(100%, 1420px);
 }
 .hero-support {
   max-width: 1280px;
   margin: .8rem 0 0;
   color: var(--muted);
   font-size: .86rem;
+  width: min(100%, 1380px);
 }
 .hero-actions { display: flex; align-items: center; gap: 1.8rem; margin: 2rem 0 1.6rem; flex-wrap: wrap; }
 .trust-list {
@@ -561,7 +564,7 @@ footer > small { grid-column: 1 / -1; padding-top: 1.5rem; border-top: 1px solid
     box-shadow: 0 20px 50px rgba(0, 0, 0, .35);
   }
   .hero { width: min(100% - 1rem, 1240px); }
-  .hero-copy { padding-left: clamp(0rem, 4vw, 2rem); padding-right: clamp(0rem, 2vw, 1rem); }
+  .hero-copy { padding-left: clamp(0rem, 4vw, 2rem); padding-right: 0; }
   .hero h1 { font-size: clamp(3rem, 6.3vw, 5.1rem); }
   .problem-grid { grid-template-columns: repeat(2, 1fr); }
   .services-grid { grid-template-columns: repeat(2, 1fr); }
@@ -596,13 +599,6 @@ footer > small { grid-column: 1 / -1; padding-top: 1.5rem; border-top: 1px solid
 
 @media (max-width: 620px) {
   body { padding-bottom: 76px; font-size: 15px; }
-  .version-badge {
-    top: .5rem;
-    left: .5rem;
-    right: .5rem;
-    margin-inline: auto;
-    width: fit-content;
-  }
   .site-header { width: min(100% - 2rem, var(--container)); height: 70px; }
   .brand small { font-size: .41rem; }
   .hero { width: min(100% - .9rem, 1240px); padding: 2.2rem 0 2.5rem; }
