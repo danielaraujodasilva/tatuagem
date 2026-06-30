@@ -5,11 +5,95 @@
   const root = doc.documentElement;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  const consentKey = "cnjp_cookie_consent";
+  const consentEvents = {
+    granted: {
+      ad_storage: "granted",
+      analytics_storage: "granted",
+      ad_user_data: "granted",
+      ad_personalization: "granted"
+    },
+    denied: {
+      ad_storage: "denied",
+      analytics_storage: "denied",
+      ad_user_data: "denied",
+      ad_personalization: "denied"
+    }
+  };
 
   const pushDataLayer = (payload) => {
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push(payload);
   };
+
+  const ensureGtag = () => {
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = window.gtag || function () {
+      window.dataLayer.push(arguments);
+    };
+  };
+
+  const safeStorageGet = (key) => {
+    try {
+      return window.localStorage.getItem(key);
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const safeStorageSet = (key, value) => {
+    try {
+      window.localStorage.setItem(key, value);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const updateConsent = (status) => {
+    ensureGtag();
+
+    const consentPayload = consentEvents[status] || consentEvents.denied;
+    window.gtag("consent", "update", consentPayload);
+
+    pushDataLayer({
+      event: "cookie_consent_update",
+      consent_status: status,
+      page_name: "cnjp_acordo"
+    });
+  };
+
+  const banner = doc.getElementById("cookie-consent");
+  const acceptBtn = doc.getElementById("cookie-accept");
+  const rejectBtn = doc.getElementById("cookie-reject");
+  const storedConsent = safeStorageGet(consentKey);
+
+  if (banner) {
+    const setBannerVisibility = (visible) => {
+      banner.classList.toggle("is-visible", visible);
+      doc.body.classList.toggle("cookie-banner-visible", visible);
+    };
+
+    if (!storedConsent) {
+      setBannerVisibility(true);
+    }
+
+    if (acceptBtn) {
+      acceptBtn.addEventListener("click", () => {
+        safeStorageSet(consentKey, "granted");
+        updateConsent("granted");
+        setBannerVisibility(false);
+      });
+    }
+
+    if (rejectBtn) {
+      rejectBtn.addEventListener("click", () => {
+        safeStorageSet(consentKey, "denied");
+        updateConsent("denied");
+        setBannerVisibility(false);
+      });
+    }
+  }
 
   doc.querySelectorAll(".js-whatsapp-cta").forEach((cta) => {
     cta.addEventListener("click", () => {

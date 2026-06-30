@@ -18,6 +18,31 @@
   <link rel="alternate" href="https://danieltatuador.com/cnjp/" hreflang="pt-BR">
   <link rel="icon" href="/favicon.ico">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = window.gtag || function () { dataLayer.push(arguments); };
+
+    (function () {
+      var consentKey = 'cnjp_cookie_consent';
+      var storedConsent = null;
+
+      try {
+        storedConsent = localStorage.getItem(consentKey);
+      } catch (error) {
+        storedConsent = null;
+      }
+
+      var isGranted = storedConsent === 'granted';
+
+      window.gtag('consent', 'default', {
+        ad_storage: isGranted ? 'granted' : 'denied',
+        analytics_storage: isGranted ? 'granted' : 'denied',
+        ad_user_data: isGranted ? 'granted' : 'denied',
+        ad_personalization: isGranted ? 'granted' : 'denied',
+        wait_for_update: isGranted ? 0 : 500
+      });
+    })();
+  </script>
   <!-- Google Tag Manager -->
   <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
   new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -288,11 +313,22 @@
     <small>© <span id="year">2026</span> CNJP. Todos os direitos reservados.</small>
   </footer>
 
+  <div class="cookie-consent" id="cookie-consent" role="dialog" aria-live="polite" aria-label="Aviso de cookies">
+    <div class="cookie-consent__text">
+      <strong>Usamos cookies</strong>
+      <p>Utilizamos cookies para medir acessos, melhorar sua experiência e acompanhar campanhas. Você pode aceitar ou recusar o uso de cookies não essenciais.</p>
+    </div>
+    <div class="cookie-consent__actions">
+      <button type="button" class="cookie-consent__btn cookie-consent__btn--ghost" id="cookie-reject">Recusar</button>
+      <button type="button" class="cookie-consent__btn cookie-consent__btn--primary" id="cookie-accept">Aceitar</button>
+    </div>
+  </div>
+
   <a class="floating-whatsapp js-whatsapp-cta" id="cta-floating-whatsapp" href="https://wa.me/5511947287318?text=Ol%C3%A1%2C%20vim%20pela%20p%C3%A1gina%20da%20CNJP%20e%20quero%20entender%20se%20meu%20caso%20pode%20ser%20resolvido%20por%20acordo%20extrajudicial." target="_blank" rel="noopener noreferrer" aria-label="Triagem grátis pelo WhatsApp">
     <svg class="wa-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5C5.7.5.5 5.5.5 11.8c0 2.2.6 4.3 1.7 6.1L.8 23.5l5.9-1.5c1.7.9 3.6 1.4 5.5 1.4 6.3 0 11.5-5 11.5-11.2S18.3.5 12 .5zm0 20.5c-1.8 0-3.5-.5-5-1.4l-.4-.2-3.4.9.9-3.3-.2-.4c-1-1.6-1.6-3.5-1.6-5.4C2.3 6.8 6.4 2.8 12 2.8s9.7 4 9.7 8.8-4.1 9.4-9.7 9.4zm5.6-7.2c-.3-.2-1.8-.9-2.1-1-.3-.1-.5-.2-.8.2s-1 1-1.2 1.2c-.2.2-.4.2-.8.1-.3-.2-1.3-.5-2.4-1.5-.9-.8-1.5-1.8-1.6-2.1-.2-.3 0-.5.1-.7.1-.1.3-.3.4-.5.1-.1.2-.3.3-.5.1-.2 0-.4 0-.5 0-.2-.8-1.9-1.1-2.6-.3-.7-.6-.6-.8-.6h-.7c-.2 0-.5.1-.7.4s-1 1-1 2.4 1 2.7 1.1 2.9c.1.2 2 3.1 4.9 4.3.7.3 1.3.5 1.8.6.7.2 1.4.2 1.9.1.6-.1 1.8-.7 2-1.4.2-.7.2-1.3.1-1.4 0-.1-.3-.2-.6-.3z" fill="currentColor"/></svg>
     <span>Triagem grátis pelo WhatsApp</span>
   </a>
-  <script defer src="script.js?v=20260630-10"></script>
+  <script defer src="script.js?v=20260630-11"></script>
 </body>
 </html>
 
