@@ -288,13 +288,11 @@
       let raf = 0;
       const animate = () => {
         raf = window.requestAnimationFrame(animate);
-        group.rotation.z += 0.002;
+        group.rotation.z += 0.0025;
         shell.rotation.y += 0.0035;
         core.rotation.z -= 0.002;
         particles.rotation.x += 0.0016;
-        if (window.scrollY < 10) {
-          renderer.render(scene3d, camera);
-        }
+        if (window.scrollY < 10) renderer.render(scene3d, camera);
       };
       animate();
     }).catch(() => {
@@ -310,6 +308,14 @@
     const versionDate = versionBadge.getAttribute("data-version-date") || "";
     const versionCommit = versionBadge.getAttribute("data-version-commit") || "";
     versionBadge.innerHTML = `<strong>${versionDate}</strong> · ${versionCommit}`;
+  }
+
+  const floatingCta = doc.getElementById("cta-floating-whatsapp");
+  if (floatingCta) {
+    floatingCta.addEventListener("animationiteration", () => {
+      floatingCta.style.setProperty("transform", "translateY(-2px) scale(1.02)");
+      window.setTimeout(() => floatingCta.style.removeProperty("transform"), 90);
+    });
   }
 
   updateScrollState();
