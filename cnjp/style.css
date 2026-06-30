@@ -149,16 +149,14 @@ button { color: inherit; font: inherit; }
   pointer-events: none;
 }
 .hero-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
-  align-items: center;
-  gap: clamp(32px, 5vw, 72px);
-  min-width: 0;
+  display: block;
 }
 .hero-copy {
   position: relative;
   z-index: 2;
-  min-width: 0;
+  max-width: 920px;
+  margin-inline: auto;
+  text-align: center;
 }
 
 .eyebrow {
@@ -187,32 +185,45 @@ button { color: inherit; font: inherit; }
 .hero h1 {
   max-width: 100%;
   margin: 1rem 0 1.25rem;
-  font-size: clamp(3.35rem, 6vw, 6.7rem);
+  font-size: clamp(2.45rem, 6vw, 5.25rem);
+  line-height: .95;
+  letter-spacing: -.06em;
 }
 .hero h1 em, .final-cta h2 em { color: var(--green); font-weight: inherit; }
 .lead {
-  max-width: 1000px;
+  max-width: 760px;
   margin: 0;
   color: #d2dcd6;
   font-size: clamp(1.03rem, 1.4vw, 1.2rem);
+  margin-inline: auto;
 }
 .hero-support {
-  max-width: 960px;
+  max-width: 760px;
   margin: .8rem 0 0;
   color: var(--muted);
   font-size: .86rem;
+  margin-inline: auto;
 }
-.hero-actions { display: flex; align-items: center; gap: 1.8rem; margin: 2rem 0 1.6rem; flex-wrap: wrap; }
+.hero-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin: 2rem 0 1.6rem;
+  flex-wrap: wrap;
+}
 .trust-list {
-  max-width: 100%;
+  max-width: 900px;
   margin: 0;
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: .5rem 1.4rem;
+  justify-content: center;
+  gap: 10px 1.4rem;
   list-style: none;
   color: #c4d0c9;
   font-size: .7rem;
+  margin-inline: auto;
 }
 .trust-list li::before, .about-copy li::before {
   content: "✓";
@@ -567,6 +578,7 @@ footer > small { grid-column: 1 / -1; padding-top: 1.5rem; border-top: 1px solid
   }
   .container { width: min(100% - 32px, 1120px); }
   .hero { padding: 4rem 0 5rem; }
+  .hero-copy { max-width: 920px; }
   .hero h1 { font-size: clamp(3rem, 6.3vw, 5.1rem); }
   .problem-grid { grid-template-columns: repeat(2, 1fr); }
   .services-grid { grid-template-columns: repeat(2, 1fr); }
@@ -577,10 +589,9 @@ footer > small { grid-column: 1 / -1; padding-top: 1.5rem; border-top: 1px solid
     min-height: auto;
     padding: 3rem 0 4rem;
   }
-  .hero-grid { grid-template-columns: 1fr; gap: 1rem; }
   .hero-copy { text-align: left; }
   .hero-copy .lead, .hero-copy .hero-support { margin-inline: 0; }
-  .hero-actions { justify-content: center; }
+  .hero-actions { justify-content: flex-start; }
   .trust-list { justify-content: flex-start; margin-inline: 0; }
   .confidence-strip { grid-template-columns: 1fr; }
   .confidence-strip p, .confidence-strip p:first-child {
