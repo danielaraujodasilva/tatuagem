@@ -64,6 +64,15 @@
     g.addColorStop(1, palette.bgA);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, state.w, state.h);
+
+    const band = ctx.createLinearGradient(0, state.h * .1, state.w, state.h * .88);
+    band.addColorStop(0, "rgba(191, 233, 133, 0)");
+    band.addColorStop(.46, "rgba(191, 233, 133, .08)");
+    band.addColorStop(.54, "rgba(191, 233, 133, .16)");
+    band.addColorStop(.62, "rgba(191, 233, 133, .08)");
+    band.addColorStop(1, "rgba(191, 233, 133, 0)");
+    ctx.fillStyle = band;
+    ctx.fillRect(0, 0, state.w, state.h);
   }
 
   function drawRoundedPanel(x, y, w, h, depth, rotation, fill, stroke, label, accent = false) {
@@ -186,6 +195,22 @@
     ctx.restore();
   }
 
+  function drawEnergyBeam(progress) {
+    ctx.save();
+    const x = state.w * (0.39 + progress * 0.18);
+    const y = state.h * (0.34 + progress * 0.08);
+    const beam = ctx.createLinearGradient(x - 140, y - 20, x + 190, y + 210);
+    beam.addColorStop(0, "rgba(191, 233, 133, 0)");
+    beam.addColorStop(.5, `rgba(191, 233, 133, ${.08 + progress * .22})`);
+    beam.addColorStop(1, "rgba(191, 233, 133, 0)");
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = beam;
+    ctx.beginPath();
+    ctx.ellipse(x, y, 240 + progress * 40, 24 + progress * 8, -0.28, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   function draw() {
     const cx = state.w * .68;
     const cy = state.h * .49;
@@ -193,6 +218,7 @@
     const mouseInfluenceX = state.mouseX * 24;
     const mouseInfluenceY = state.mouseY * 16;
     drawGradientBg(cx, cy);
+    drawEnergyBeam(progress);
 
     // soft depth rings
     ctx.save();
@@ -240,6 +266,16 @@
     ctx.font = "700 11px ui-sans-serif, system-ui, sans-serif";
     ctx.letterSpacing = "0.2em";
     ctx.fillText("DO CONFLITO AO ACORDO", state.w * .62, state.h * .73);
+
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.strokeStyle = "rgba(191, 233, 133, .08)";
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc(state.w * .68, state.h * .49, 140 + i * 52 + Math.sin(state.time * 1.2 + i) * 10, 0.6 + i * 0.1, Math.PI * 1.35 + i * 0.08);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   function tick(now) {
