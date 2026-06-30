@@ -134,7 +134,6 @@
       const heroProgress = Math.max(viewportInfluence, 1 - leaveInfluence);
       scene.style.setProperty("--scroll", heroProgress.toFixed(3));
       scene.style.setProperty("--tilt", `${(-heroProgress * 16).toFixed(2)}deg`);
-      scene.style.transform = `translate3d(0, ${(-heroProgress * 42).toFixed(2)}px, 0) rotateX(${(heroProgress * 4).toFixed(2)}deg) rotateY(${(-heroProgress * 8).toFixed(2)}deg) rotateZ(${(-heroProgress * 2).toFixed(2)}deg)`;
     }
 
     const process = doc.querySelector("[data-process]");
