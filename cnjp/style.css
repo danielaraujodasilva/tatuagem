@@ -242,6 +242,7 @@ button { color: inherit; font: inherit; }
   --rx: -5deg;
   --ry: -8deg;
   --scroll: 0;
+  --tilt: 0deg;
   min-height: 600px;
   position: relative;
   display: grid;
@@ -250,6 +251,14 @@ button { color: inherit; font: inherit; }
   perspective: 1100px;
   contain: layout paint;
   transform: translateZ(0);
+}
+.hero-canvas {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
 }
 .scene-depth {
   width: 92%;
@@ -272,6 +281,7 @@ button { color: inherit; font: inherit; }
   position: absolute;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(49, 104, 82, .48) 0, rgba(12, 32, 25, .24) 48%, transparent 70%);
+  z-index: 1;
   filter: blur(2px);
 }
 .scene-ring {
@@ -293,7 +303,7 @@ button { color: inherit; font: inherit; }
   padding: 1.1rem;
   position: absolute;
   top: 37%;
-  z-index: 1;
+  z-index: 3;
   overflow: hidden;
   border: 1px solid rgba(213, 233, 222, .14);
   background: linear-gradient(145deg, #17382d, #0b1c17);
@@ -337,7 +347,7 @@ button { color: inherit; font: inherit; }
 .agreement-path {
   width: 90%;
   position: absolute;
-  z-index: 2;
+  z-index: 4;
   overflow: visible;
   filter: drop-shadow(0 0 10px rgba(191, 233, 133, .55));
 }
@@ -354,7 +364,7 @@ button { color: inherit; font: inherit; }
   width: 205px;
   height: 282px;
   padding: 1.35rem;
-  z-index: 4;
+  z-index: 5;
   position: relative;
   border-radius: 4px;
   background: linear-gradient(145deg, #fbf8ed, #dbe1d7);
@@ -404,7 +414,7 @@ button { color: inherit; font: inherit; }
 }
 .scene-label {
   position: absolute;
-  z-index: 5;
+  z-index: 6;
   padding: .55rem .9rem;
   border: 1px solid var(--line);
   border-radius: 30px;

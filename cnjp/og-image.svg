@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="CNJP - conciliação extrajudicial online">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#06100d"/>
+      <stop offset="55%" stop-color="#0a1a15"/>
+      <stop offset="100%" stop-color="#13241d"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#c7f08d" stop-opacity=".35"/>
+      <stop offset="45%" stop-color="#84c18d" stop-opacity=".14"/>
+      <stop offset="100%" stop-color="#84c18d" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="890" cy="180" r="260" fill="url(#glow)"/>
+  <circle cx="360" cy="470" r="210" fill="url(#glow)" opacity=".7"/>
+  <g fill="none" stroke="#bfe985" stroke-opacity=".25">
+    <circle cx="890" cy="180" r="170"/>
+    <circle cx="890" cy="180" r="110" stroke-dasharray="12 14"/>
+    <circle cx="360" cy="470" r="140" stroke-dasharray="10 16"/>
+  </g>
+  <text x="88" y="190" fill="#bfe985" font-family="Arial, Helvetica, sans-serif" font-size="26" letter-spacing="6">CNJP</text>
+  <text x="88" y="298" fill="#f7f7f2" font-family="Georgia, 'Times New Roman', serif" font-size="72" font-weight="700">Conciliação</text>
+  <text x="88" y="376" fill="#f7f7f2" font-family="Georgia, 'Times New Roman', serif" font-size="72" font-weight="700">extrajudicial online</text>
+  <text x="88" y="456" fill="#d0dbd3" font-family="Arial, Helvetica, sans-serif" font-size="30">Triagem gratuita para entender se existe caminho para acordo antes do processo.</text>
+  <rect x="88" y="498" width="330" height="56" rx="16" fill="#bfe985"/>
+  <text x="118" y="534" fill="#06100d" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700">Atendimento online em todo o Brasil</text>
+</svg>
