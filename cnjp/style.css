@@ -133,8 +133,8 @@ button { color: inherit; font: inherit; }
 .text-link span { color: var(--green); }
 
 .hero {
-  min-height: calc(100svh - 84px);
-  padding: 4.5rem 0 6rem;
+  min-height: auto;
+  padding: 3rem 0 2rem;
   position: relative;
 }
 .hero::before {
@@ -577,7 +577,7 @@ footer > small { grid-column: 1 / -1; padding-top: 1.5rem; border-top: 1px solid
     box-shadow: 0 20px 50px rgba(0, 0, 0, .35);
   }
   .container { width: min(100% - 32px, 1120px); }
-  .hero { padding: 4rem 0 5rem; }
+  .hero { padding: 2.6rem 0 1.75rem; }
   .hero-copy { max-width: 920px; }
   .hero h1 { font-size: clamp(3rem, 6.3vw, 5.1rem); }
   .problem-grid { grid-template-columns: repeat(2, 1fr); }
@@ -587,7 +587,7 @@ footer > small { grid-column: 1 / -1; padding-top: 1.5rem; border-top: 1px solid
 @media (max-width: 800px) {
   .hero {
     min-height: auto;
-    padding: 3rem 0 4rem;
+    padding: 2.4rem 0 1.5rem;
   }
   .hero-copy { text-align: left; }
   .hero-copy .lead, .hero-copy .hero-support { margin-inline: 0; }
@@ -616,7 +616,7 @@ footer > small { grid-column: 1 / -1; padding-top: 1.5rem; border-top: 1px solid
   .container { width: min(100% - 24px, 1120px); }
   .site-header { width: min(100% - 2rem, var(--container)); height: 70px; }
   .brand small { font-size: .41rem; }
-  .hero { padding: 2.2rem 0 2.5rem; }
+  .hero { padding: 2rem 0 1.2rem; }
   .hero-copy { text-align: left; }
   .hero h1 { margin-top: .8rem; font-size: clamp(2.75rem, 13.5vw, 3.65rem); }
   .lead { font-size: 1rem; }
