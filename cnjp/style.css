@@ -70,7 +70,7 @@ button { color: inherit; font: inherit; }
 }
 
 .site-header {
-  width: min(100% - 3rem, var(--container));
+  width: min(100% - 2rem, 1560px);
   height: 84px;
   margin: auto;
   display: flex;
@@ -177,7 +177,7 @@ button { color: inherit; font: inherit; }
 .hero-copy {
   position: relative;
   z-index: 2;
-  width: min(100%, 980px);
+  width: min(100%, 1380px);
 }
 
 .eyebrow {
@@ -204,26 +204,26 @@ button { color: inherit; font: inherit; }
   text-wrap: balance;
 }
 .hero h1 {
-  max-width: 980px;
+  max-width: 1240px;
   margin: 1rem 0 1.25rem;
   font-size: clamp(3.35rem, 6vw, 6.7rem);
 }
 .hero h1 em, .final-cta h2 em { color: var(--green); font-weight: inherit; }
 .lead {
-  max-width: 920px;
+  max-width: 1160px;
   margin: 0;
   color: #d2dcd6;
   font-size: clamp(1.03rem, 1.4vw, 1.2rem);
 }
 .hero-support {
-  max-width: 880px;
+  max-width: 1120px;
   margin: .8rem 0 0;
   color: var(--muted);
   font-size: .86rem;
 }
 .hero-actions { display: flex; align-items: center; gap: 1.8rem; margin: 2rem 0 1.6rem; flex-wrap: wrap; }
 .trust-list {
-  max-width: 960px;
+  max-width: 1240px;
   margin: 0;
   padding: 0;
   display: flex;
@@ -262,7 +262,7 @@ button { color: inherit; font: inherit; }
 }
 .section-heading { max-width: 830px; margin-bottom: 3.5rem; }
 .section-heading h2 { margin: .8rem 0 1.1rem; font-size: clamp(2.45rem, 4.5vw, 4.8rem); }
-.section-heading > p:last-child { max-width: 960px; color: var(--muted); }
+.section-heading > p:last-child { max-width: 1240px; color: var(--muted); }
 .section-heading.split {
   max-width: none;
   display: grid;
@@ -584,7 +584,7 @@ footer > small { grid-column: 1 / -1; padding-top: 1.5rem; border-top: 1px solid
     background: rgba(11, 29, 23, .98);
     box-shadow: 0 20px 50px rgba(0, 0, 0, .35);
   }
-  .hero { grid-template-columns: 1fr 1fr; gap: 2rem; }
+  .hero { width: min(100% - 2rem, 1240px); }
   .hero h1 { font-size: clamp(3rem, 6.3vw, 5.1rem); }
   .problem-grid { grid-template-columns: repeat(2, 1fr); }
   .services-grid { grid-template-columns: repeat(2, 1fr); }
@@ -594,8 +594,6 @@ footer > small { grid-column: 1 / -1; padding-top: 1.5rem; border-top: 1px solid
   .hero {
     min-height: auto;
     padding: 3rem 0 4rem;
-    grid-template-columns: 1fr;
-    gap: 1rem;
   }
   .hero-copy { text-align: center; }
   .hero-copy .lead, .hero-copy .hero-support { margin-inline: auto; }
@@ -630,7 +628,7 @@ footer > small { grid-column: 1 / -1; padding-top: 1.5rem; border-top: 1px solid
   }
   .site-header { width: min(100% - 2rem, var(--container)); height: 70px; }
   .brand small { font-size: .41rem; }
-  .hero { width: min(100% - 2rem, var(--container)); padding: 2.2rem 0 2.5rem; }
+  .hero { width: min(100% - 1.5rem, 1240px); padding: 2.2rem 0 2.5rem; }
   .hero h1 { margin-top: .8rem; font-size: clamp(2.75rem, 13.5vw, 3.65rem); }
   .lead { font-size: 1rem; }
   .hero-support { font-size: .78rem; }
