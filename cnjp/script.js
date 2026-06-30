@@ -126,7 +126,7 @@
     });
 
     const floatingCta = doc.getElementById("cta-floating-whatsapp");
-    if (floatingCta) floatingCta.classList.toggle("is-visible", window.scrollY > 180);
+    if (floatingCta) floatingCta.classList.add("is-visible");
 
     const scene = doc.querySelector("[data-hero-scene]");
     if (scene && !reducedMotion) {
@@ -188,116 +188,112 @@
   }
 
   const canvas = doc.querySelector("[data-hero-canvas]");
-  if (canvas && finePointer && !reducedMotion) {
-    import("https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js").then((THREE) => {
-      const hero = canvas.closest(".hero-scene");
-      const scene3d = new THREE.Scene();
-      scene3d.fog = new THREE.Fog(0x08110d, 8, 16);
+  if (canvas && finePointer && !reducedMotion && typeof window.THREE !== "undefined") {
+    const THREE = window.THREE;
+    const hero = canvas.closest(".hero-scene");
+    const scene3d = new THREE.Scene();
+    scene3d.fog = new THREE.Fog(0x08110d, 8, 16);
 
-      const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 60);
-      camera.position.set(0, 0.15, 6.1);
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 60);
+    camera.position.set(0, 0.15, 6.1);
 
-      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
-      renderer.setClearColor(0x000000, 0);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
+    renderer.setClearColor(0x000000, 0);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
 
-      const resize = () => {
-        const width = hero.clientWidth;
-        const height = hero.clientHeight;
-        renderer.setSize(width, height, false);
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-        renderer.render(scene3d, camera);
-      };
+    const resize = () => {
+      const width = hero.clientWidth;
+      const height = hero.clientHeight;
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.render(scene3d, camera);
+    };
 
-      const glow = new THREE.Mesh(
-        new THREE.SphereGeometry(1.55, 48, 48),
-        new THREE.MeshBasicMaterial({ color: 0x7abf74, transparent: true, opacity: 0.11 })
+    const glow = new THREE.Mesh(
+      new THREE.SphereGeometry(1.55, 48, 48),
+      new THREE.MeshBasicMaterial({ color: 0x7abf74, transparent: true, opacity: 0.11 })
+    );
+    glow.scale.set(1.25, .92, 1.25);
+    scene3d.add(glow);
+
+    const group = new THREE.Group();
+    scene3d.add(group);
+
+    const shell = new THREE.Mesh(
+      new THREE.TorusKnotGeometry(1.15, .34, 240, 24),
+      new THREE.MeshStandardMaterial({
+        color: 0xc9f59b,
+        metalness: .28,
+        roughness: .42,
+        emissive: 0x0b1a13,
+        emissiveIntensity: .18
+      })
+    );
+    group.add(shell);
+
+    const core = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(.68, 1),
+      new THREE.MeshStandardMaterial({
+        color: 0xf2f7e4,
+        metalness: .08,
+        roughness: .18,
+        emissive: 0x203525,
+        emissiveIntensity: .22
+      })
+    );
+    group.add(core);
+
+    const ribbons = new THREE.Group();
+    for (let i = 0; i < 3; i++) {
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(2.18 + i * .16, .035, 14, 180),
+        new THREE.MeshStandardMaterial({ color: i === 1 ? 0xd9c07a : 0x7bb28a, metalness: .22, roughness: .25, transparent: true, opacity: .8 })
       );
-      glow.scale.set(1.25, .92, 1.25);
-      scene3d.add(glow);
+      ring.rotation.x = i * 0.84;
+      ring.rotation.y = i * 0.46;
+      ribbons.add(ring);
+    }
+    group.add(ribbons);
 
-      const group = new THREE.Group();
-      scene3d.add(group);
+    const particles = new THREE.Group();
+    const particleMaterial = new THREE.MeshStandardMaterial({ color: 0xd6ff9d, metalness: .1, roughness: .75 });
+    for (let i = 0; i < 42; i++) {
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(i % 3 === 0 ? .06 : .04, 12, 12), particleMaterial);
+      const angle = (i / 42) * Math.PI * 2;
+      const radius = 2.65 + (i % 5) * .11;
+      dot.position.set(Math.cos(angle) * radius, Math.sin(angle * 1.7) * 1.1, Math.sin(angle) * radius * .36);
+      particles.add(dot);
+    }
+    group.add(particles);
 
-      const shell = new THREE.Mesh(
-        new THREE.TorusKnotGeometry(1.15, .34, 240, 24),
-        new THREE.MeshStandardMaterial({
-          color: 0xc9f59b,
-          metalness: .28,
-          roughness: .42,
-          emissive: 0x0b1a13,
-          emissiveIntensity: .18
-        })
-      );
-      group.add(shell);
+    const ambient = new THREE.AmbientLight(0xcde7c2, 1.6);
+    scene3d.add(ambient);
+    const key = new THREE.DirectionalLight(0xffffff, 2.4);
+    key.position.set(3, 4, 5);
+    scene3d.add(key);
+    const fill = new THREE.DirectionalLight(0xa7d88b, 1.05);
+    fill.position.set(-4, -1, 3);
+    scene3d.add(fill);
 
-      const core = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(.68, 1),
-        new THREE.MeshStandardMaterial({
-          color: 0xf2f7e4,
-          metalness: .08,
-          roughness: .18,
-          emissive: 0x203525,
-          emissiveIntensity: .22
-        })
-      );
-      group.add(core);
+    const rim = new THREE.PointLight(0x8ff0b0, 1.9, 18);
+    rim.position.set(-2.5, 1.5, 3.8);
+    scene3d.add(rim);
 
-      const ribbons = new THREE.Group();
-      for (let i = 0; i < 3; i++) {
-        const ring = new THREE.Mesh(
-          new THREE.TorusGeometry(2.18 + i * .16, .035, 14, 180),
-          new THREE.MeshStandardMaterial({ color: i === 1 ? 0xd9c07a : 0x7bb28a, metalness: .22, roughness: .25, transparent: true, opacity: .8 })
-        );
-        ring.rotation.x = i * 0.84;
-        ring.rotation.y = i * 0.46;
-        ribbons.add(ring);
-      }
-      group.add(ribbons);
+    threeState = { renderer, camera, group, shell, core, ribbons, particles, scene: scene3d, hero };
+    resize();
+    updateThreeScene();
 
-      const particles = new THREE.Group();
-      const particleMaterial = new THREE.MeshStandardMaterial({ color: 0xd6ff9d, metalness: .1, roughness: .75 });
-      for (let i = 0; i < 42; i++) {
-        const dot = new THREE.Mesh(new THREE.SphereGeometry(i % 3 === 0 ? .06 : .04, 12, 12), particleMaterial);
-        const angle = (i / 42) * Math.PI * 2;
-        const radius = 2.65 + (i % 5) * .11;
-        dot.position.set(Math.cos(angle) * radius, Math.sin(angle * 1.7) * 1.1, Math.sin(angle) * radius * .36);
-        particles.add(dot);
-      }
-      group.add(particles);
-
-      const ambient = new THREE.AmbientLight(0xcde7c2, 1.6);
-      scene3d.add(ambient);
-      const key = new THREE.DirectionalLight(0xffffff, 2.4);
-      key.position.set(3, 4, 5);
-      scene3d.add(key);
-      const fill = new THREE.DirectionalLight(0xa7d88b, 1.05);
-      fill.position.set(-4, -1, 3);
-      scene3d.add(fill);
-
-      const rim = new THREE.PointLight(0x8ff0b0, 1.9, 18);
-      rim.position.set(-2.5, 1.5, 3.8);
-      scene3d.add(rim);
-
-      threeState = { renderer, camera, group, shell, core, ribbons, particles, scene: scene3d, hero };
-      resize();
-      updateThreeScene();
-
-      window.addEventListener("resize", resize, { passive: true });
-      let raf = 0;
-      const animate = () => {
-        raf = window.requestAnimationFrame(animate);
-        group.rotation.z += 0.0025;
-        shell.rotation.y += 0.0035;
-        core.rotation.z -= 0.002;
-        particles.rotation.x += 0.0016;
-        if (window.scrollY < 10) renderer.render(scene3d, camera);
-      };
-      animate();
-    }).catch(() => {
-      canvas.remove();
-    });
+    window.addEventListener("resize", resize, { passive: true });
+    const animate = () => {
+      window.requestAnimationFrame(animate);
+      group.rotation.z += 0.0025;
+      shell.rotation.y += 0.0035;
+      core.rotation.z -= 0.002;
+      particles.rotation.x += 0.0016;
+      if (window.scrollY < 10) renderer.render(scene3d, camera);
+    };
+    animate();
   }
 
   const year = doc.getElementById("year");
@@ -308,14 +304,6 @@
     const versionDate = versionBadge.getAttribute("data-version-date") || "";
     const versionCommit = versionBadge.getAttribute("data-version-commit") || "";
     versionBadge.innerHTML = `<strong>${versionDate}</strong> · ${versionCommit}`;
-  }
-
-  const floatingCta = doc.getElementById("cta-floating-whatsapp");
-  if (floatingCta) {
-    floatingCta.addEventListener("animationiteration", () => {
-      floatingCta.style.setProperty("transform", "translateY(-2px) scale(1.02)");
-      window.setTimeout(() => floatingCta.style.removeProperty("transform"), 90);
-    });
   }
 
   updateScrollState();
