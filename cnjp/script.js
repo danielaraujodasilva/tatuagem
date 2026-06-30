@@ -154,6 +154,7 @@
       ticking = true;
     }
   }, { passive: true });
+  window.setInterval(updateScrollState, 120);
 
   if (!reducedMotion && "IntersectionObserver" in window) {
     root.classList.add("motion-ready");

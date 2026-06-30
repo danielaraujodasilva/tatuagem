@@ -244,7 +244,8 @@ button { color: inherit; font: inherit; }
   --scroll: 0;
   --tilt: 0deg;
   min-height: 600px;
-  position: relative;
+  position: sticky;
+  top: clamp(4rem, 14vh, 8rem);
   display: grid;
   place-items: center;
   isolation: isolate;
