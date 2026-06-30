@@ -250,7 +250,7 @@ button { color: inherit; font: inherit; }
   isolation: isolate;
   perspective: 1100px;
   contain: layout paint;
-  transform: translate3d(0, calc(var(--scroll) * -18px), 0) rotateZ(var(--tilt));
+  transform: translate3d(0, calc(var(--scroll) * -42px), 0) rotateX(calc(var(--scroll) * 4deg)) rotateY(calc(var(--scroll) * -8deg)) rotateZ(var(--tilt));
   cursor: none;
 }
 .hero-canvas {
@@ -730,12 +730,6 @@ footer > small { grid-column: 1 / -1; padding-top: 1.5rem; border-top: 1px solid
   color: #fff;
   font-size: .78rem;
   font-weight: 850;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(18px) scale(.96);
-  transition: opacity .25s ease, transform .25s ease, box-shadow .25s ease, filter .25s ease;
-}
-.floating-whatsapp.is-visible {
   opacity: 1;
   pointer-events: auto;
   transform: none;
