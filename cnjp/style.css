@@ -250,10 +250,11 @@ button { color: inherit; font: inherit; }
   place-items: center;
   isolation: isolate;
   perspective: 1100px;
-  contain: layout paint;
+  contain: layout;
+  overflow: visible;
+  will-change: transform;
   transform: translate3d(0, calc(var(--scroll) * -42px), 0) rotateX(calc(var(--scroll) * 4deg)) rotateY(calc(var(--scroll) * -8deg)) rotateZ(var(--tilt));
   animation: heroDrift 7.5s ease-in-out infinite;
-  cursor: auto;
 }
 .hero-canvas {
   width: 100%;
