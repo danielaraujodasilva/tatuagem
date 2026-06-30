@@ -105,8 +105,12 @@
     const scene = doc.querySelector("[data-hero-scene]");
     if (scene && !reducedMotion) {
       const hero = scene.closest(".hero");
-      const heroProgress = Math.min(1, Math.max(0, -hero.getBoundingClientRect().top / Math.max(hero.offsetHeight, 1)));
+      const heroRect = hero.getBoundingClientRect();
+      const viewportInfluence = Math.min(1, Math.max(0, (window.innerHeight - heroRect.top) / Math.max(heroRect.height, 1)));
+      const leaveInfluence = Math.min(1, Math.max(0, heroRect.bottom / Math.max(window.innerHeight, 1)));
+      const heroProgress = Math.max(viewportInfluence, 1 - leaveInfluence);
       scene.style.setProperty("--scroll", heroProgress.toFixed(3));
+      scene.style.transform = `translateY(${(-heroProgress * 12).toFixed(2)}px)`;
     }
 
     const process = doc.querySelector("[data-process]");
@@ -157,6 +161,13 @@
 
   const year = doc.getElementById("year");
   if (year) year.textContent = String(new Date().getFullYear());
+
+  const versionBadge = doc.querySelector("[data-version-badge]");
+  if (versionBadge) {
+    const versionDate = versionBadge.getAttribute("data-version-date") || "";
+    const versionCommit = versionBadge.getAttribute("data-version-commit") || "";
+    versionBadge.innerHTML = `<strong>${versionDate}</strong> · ${versionCommit}`;
+  }
 
   updateScrollState();
 })();
