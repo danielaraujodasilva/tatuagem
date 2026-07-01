@@ -5,7 +5,7 @@
  * O index.php atual já monta a galeria lendo arquivos da pasta /galeria.
  * Então este sync baixa as imagens/capas do Instagram para essa pasta, sem precisar mexer no layout.
  *
- * Pode ser chamado pelo feed.php ou via cron:
+ * Pode ser chamado pelo feed.php, pelo GitHub Actions semanal ou manualmente:
  * php /caminho/do/site/instagram/sync.php
  */
 
@@ -27,7 +27,14 @@ if (!file_exists($configFile)) {
 
 $config = require $configFile;
 $accessToken = trim((string)($config['access_token'] ?? ''));
-$limit = max(1, min((int)($config['limit'] ?? 12), 50));
+
+// limit = 0 significa: buscar tudo que a API entregar, página por página.
+// Se quiser travar, coloque por exemplo 60 ou 100 no config.local.php.
+$configLimit = (int)($config['limit'] ?? 0);
+$fetchAll = $configLimit <= 0;
+$maxItems = $fetchAll ? PHP_INT_MAX : max(1, $configLimit);
+$pageSize = max(1, min((int)($config['page_size'] ?? 50), 50));
+$maxPages = max(1, min((int)($config['max_pages'] ?? 20), 100));
 
 // Mantém compatível com seu index atual: ele lê tudo que está em /galeria.
 // Como o config.local.php atual talvez não tenha estas opções, o padrão já liga o espelhamento.
@@ -50,63 +57,42 @@ if (!is_dir($cacheDir)) {
     @mkdir($cacheDir, 0755, true);
 }
 
-$fields = implode(',', [
-    'id',
-    'caption',
-    'media_type',
-    'media_url',
-    'permalink',
-    'thumbnail_url',
-    'timestamp',
-]);
+function ig_fetch_json(string $url): array
+{
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_HTTPHEADER => ['Accept: application/json'],
+    ]);
 
-$url = 'https://graph.instagram.com/v24.0/me/media?' . http_build_query([
-    'fields' => $fields,
-    'limit' => $limit,
-    'access_token' => $accessToken,
-]);
+    $response = curl_exec($ch);
+    $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
 
-$ch = curl_init($url);
-curl_setopt_array($ch, [
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT => 30,
-    CURLOPT_FOLLOWLOCATION => true,
-    CURLOPT_SSL_VERIFYPEER => true,
-    CURLOPT_HTTPHEADER => [
-        'Accept: application/json',
-    ],
-]);
-
-$response = curl_exec($ch);
-$httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$curlError = curl_error($ch);
-curl_close($ch);
-
-if ($response === false) {
-    if (PHP_SAPI !== 'cli') {
-        http_response_code(502);
+    if ($response === false) {
+        return [
+            'ok' => false,
+            'error' => 'Erro cURL ao chamar Instagram.',
+            'details' => $curlError,
+        ];
     }
-    echo json_encode([
-        'ok' => false,
-        'error' => 'Erro cURL ao chamar Instagram.',
-        'details' => $curlError,
-    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    exit;
-}
 
-$decoded = json_decode($response, true);
+    $decoded = json_decode($response, true);
 
-if ($httpCode < 200 || $httpCode >= 300 || !is_array($decoded)) {
-    if (PHP_SAPI !== 'cli') {
-        http_response_code(502);
+    if ($httpCode < 200 || $httpCode >= 300 || !is_array($decoded)) {
+        return [
+            'ok' => false,
+            'error' => 'Instagram respondeu com erro.',
+            'http_code' => $httpCode,
+            'response' => $decoded ?: $response,
+        ];
     }
-    echo json_encode([
-        'ok' => false,
-        'error' => 'Instagram respondeu com erro.',
-        'http_code' => $httpCode,
-        'response' => $decoded ?: $response,
-    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    exit;
+
+    return ['ok' => true, 'body' => $decoded];
 }
 
 function ig_download_media(string $url, string $destination, int $timeout = 30): bool
@@ -205,8 +191,8 @@ function ig_prepare_gallery_dir(string $galleryDir, bool $replaceLocalGallery): 
     return $result;
 }
 
-$items = [];
-foreach (($decoded['data'] ?? []) as $item) {
+function ig_normalize_item(array $item): ?array
+{
     $mediaType = (string)($item['media_type'] ?? '');
 
     // Para vídeo/reels, a API normalmente entrega thumbnail_url.
@@ -216,13 +202,13 @@ foreach (($decoded['data'] ?? []) as $item) {
     $imageUrl = $thumbUrl !== '' ? $thumbUrl : $mediaUrl;
 
     if ($imageUrl === '') {
-        continue;
+        return null;
     }
 
     $caption = (string)($item['caption'] ?? '');
     $id = preg_replace('/[^a-zA-Z0-9_-]/', '', (string)($item['id'] ?? uniqid('ig_', true)));
 
-    $items[] = [
+    return [
         'id' => $id,
         'caption' => $caption,
         'alt' => $caption !== '' ? mb_substr(trim(preg_replace('/\s+/', ' ', $caption)), 0, 140) : 'Post do Instagram',
@@ -235,6 +221,57 @@ foreach (($decoded['data'] ?? []) as $item) {
     ];
 }
 
+$fields = implode(',', [
+    'id',
+    'caption',
+    'media_type',
+    'media_url',
+    'permalink',
+    'thumbnail_url',
+    'timestamp',
+]);
+
+$nextUrl = 'https://graph.instagram.com/v24.0/me/media?' . http_build_query([
+    'fields' => $fields,
+    'limit' => min($pageSize, $maxItems),
+    'access_token' => $accessToken,
+]);
+
+$items = [];
+$pagesFetched = 0;
+$seenIds = [];
+
+while ($nextUrl !== '' && $pagesFetched < $maxPages && count($items) < $maxItems) {
+    $result = ig_fetch_json($nextUrl);
+
+    if (!$result['ok']) {
+        if (PHP_SAPI !== 'cli') {
+            http_response_code(502);
+        }
+        echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    $decoded = $result['body'];
+    $pagesFetched++;
+
+    foreach (($decoded['data'] ?? []) as $rawItem) {
+        if (count($items) >= $maxItems) {
+            break;
+        }
+
+        $post = ig_normalize_item($rawItem);
+        if (!$post || isset($seenIds[$post['id']])) {
+            continue;
+        }
+
+        $seenIds[$post['id']] = true;
+        $items[] = $post;
+    }
+
+    $nextUrl = (string)($decoded['paging']['next'] ?? '');
+}
+
 $gallerySync = null;
 if ($mirrorToGallery && count($items) > 0) {
     $gallerySync = ig_prepare_gallery_dir($galleryDir, $replaceLocalGallery);
@@ -244,7 +281,7 @@ if ($mirrorToGallery && count($items) > 0) {
     if (empty($gallerySync['error'])) {
         foreach ($items as $pos => $post) {
             $extension = 'jpg';
-            $filename = sprintf('instagram_%02d_%s.%s', $pos + 1, $post['id'], $extension);
+            $filename = sprintf('instagram_%03d_%s.%s', $pos + 1, $post['id'], $extension);
             $destination = $galleryDir . DIRECTORY_SEPARATOR . $filename;
 
             if (ig_download_media((string)$post['image'], $destination, $downloadTimeout)) {
@@ -264,6 +301,9 @@ $output = [
     'ok' => true,
     'updated_at' => date('c'),
     'count' => count($items),
+    'pages_fetched' => $pagesFetched,
+    'fetch_all' => $fetchAll,
+    'configured_limit' => $configLimit,
     'gallery_sync' => $gallerySync,
     'data' => $items,
 ];
