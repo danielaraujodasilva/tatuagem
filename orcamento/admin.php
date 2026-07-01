@@ -691,12 +691,12 @@ function promo(titulo, descricao, ids, desconto, view) {
 }
 
 const $ = (id) => document.getElementById(id);
+let promoUidSeq = 0;
 let config = load("orcamentoTattooConfig", DEFAULT_CONFIG);
 let areas = loadAreas();
 let promotions = loadPromos();
 let promoSearchQuery = "";
 let draggedPromoIndex = null;
-let promoUidSeq = 0;
 
 function load(key, fallback) {
   try {
