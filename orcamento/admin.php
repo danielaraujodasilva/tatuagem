@@ -1,6 +1,12 @@
 <?php
 // Painel local do orçamento: edita apenas as preferências salvas no navegador.
 // Não depende de login nem de banco para não quebrar o fluxo de ajustes visuais.
+$orcamentoFile = __DIR__ . '/orcamento-data.json';
+$orcamentoJson = file_exists($orcamentoFile) ? file_get_contents($orcamentoFile) : '{}';
+json_decode($orcamentoJson, true);
+if (json_last_error() !== JSON_ERROR_NONE) {
+    $orcamentoJson = '{}';
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -678,6 +684,7 @@ td input[type="checkbox"] {
 </main>
 
 <script>
+const SERVER_STATE = <?php echo $orcamentoJson; ?>;
 const DEFAULT_CONFIG = {
   whatsapp: "5511947573311",
   cta: "Quero orçamento agora",
@@ -737,9 +744,9 @@ function promo(titulo, descricao, ids, desconto, view) {
 
 const $ = (id) => document.getElementById(id);
 let promoUidSeq = 0;
-let config = load("orcamentoTattooConfig", DEFAULT_CONFIG);
-let areas = loadAreas();
-let promotions = loadPromos();
+let config = normalizeConfig(chooseInitialState().config);
+let areas = normalizeAreas(chooseInitialState().areas);
+let promotions = normalizePromos(chooseInitialState().promos);
 let promoSearchQuery = "";
 let draggedPromoIndex = null;
 
@@ -749,6 +756,56 @@ function load(key, fallback) {
   } catch (e) {
     return { ...fallback };
   }
+}
+
+function loadJson(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+function hasLocalDraft() {
+  try {
+    return [
+      "orcamentoTattooConfig",
+      "orcamentoTattooAreas",
+      "orcamentoTattooPromos"
+    ].some(key => localStorage.getItem(key) !== null);
+  } catch (e) {
+    return false;
+  }
+}
+
+function chooseInitialState() {
+  if (hasLocalDraft()) {
+    return {
+      config: loadJson("orcamentoTattooConfig", DEFAULT_CONFIG),
+      areas: loadJson("orcamentoTattooAreas", DEFAULT_AREAS),
+      promos: loadJson("orcamentoTattooPromos", DEFAULT_PROMOS)
+    };
+  }
+
+  if (SERVER_STATE && typeof SERVER_STATE === "object") {
+    return SERVER_STATE;
+  }
+
+  return {
+    config: DEFAULT_CONFIG,
+    areas: DEFAULT_AREAS,
+    promos: DEFAULT_PROMOS
+  };
+}
+
+function normalizeConfig(source) {
+  const input = source && typeof source === "object" ? source : {};
+  return {
+    whatsapp: String(input.whatsapp ?? DEFAULT_CONFIG.whatsapp ?? ""),
+    cta: String(input.cta ?? DEFAULT_CONFIG.cta ?? ""),
+    intro: String(input.intro ?? DEFAULT_CONFIG.intro ?? "")
+  };
 }
 
 function fillConfig() {
@@ -1103,7 +1160,7 @@ function collectPromosFromForm() {
   }).filter(item => item.titulo && item.ids.length);
 }
 
-function save() {
+function collectStateFromUi() {
   config = {
     whatsapp: $("whatsapp").value.trim(),
     cta: $("cta").value.trim(),
@@ -1129,16 +1186,49 @@ function save() {
     areas[id] = next;
   });
 
-  localStorage.setItem("orcamentoTattooConfig", JSON.stringify(config));
-  localStorage.setItem("orcamentoTattooAreas", JSON.stringify(areas));
-  localStorage.setItem("orcamentoTattooPromos", JSON.stringify(promotions));
+  return {
+    config: normalizeConfig(config),
+    areas: normalizeAreas(areas),
+    promos: normalizePromos(promotions)
+  };
+}
+
+async function persistState(state) {
+  const response = await fetch("save-orcamento.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(state)
+  });
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || !payload?.ok) {
+    throw new Error(payload?.erro || "Falha ao salvar no servidor.");
+  }
+  return payload;
+}
+
+async function save() {
+  const state = collectStateFromUi();
+
+  localStorage.setItem("orcamentoTattooConfig", JSON.stringify(state.config));
+  localStorage.setItem("orcamentoTattooAreas", JSON.stringify(state.areas));
+  localStorage.setItem("orcamentoTattooPromos", JSON.stringify(state.promos));
+
+  try {
+    await persistState(state);
+    $("notice").textContent = "Configurações salvas no servidor.";
+  } catch (error) {
+    $("notice").textContent = "Salvo no navegador, mas o servidor não respondeu.";
+  }
+
   renderSummary();
-  $("notice").textContent = "Configurações salvas.";
   $("notice").classList.add("show");
   setTimeout(() => $("notice").classList.remove("show"), 3200);
 }
 
-function reset() {
+async function reset() {
   localStorage.removeItem("orcamentoTattooConfig");
   localStorage.removeItem("orcamentoTattooAreas");
   localStorage.removeItem("orcamentoTattooPromos");
@@ -1149,7 +1239,18 @@ function reset() {
   renderRows();
   renderPromoRows();
   renderSummary();
-  $("notice").textContent = "Padrões restaurados.";
+
+  try {
+    await persistState({
+      config,
+      areas,
+      promos: promotions
+    });
+    $("notice").textContent = "Padrões restaurados no servidor.";
+  } catch (error) {
+    $("notice").textContent = "Padrões restaurados no navegador.";
+  }
+
   $("notice").classList.add("show");
 }
 
