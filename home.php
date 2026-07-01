@@ -8,6 +8,10 @@ $heroOverride = <<<'HTML'
 .hero{
   background:linear-gradient(90deg,rgba(5,4,3,1),rgba(5,4,3,.94) 32%,rgba(5,4,3,.42) 67%,rgba(5,4,3,1)) !important;
 }
+.hero:before{
+  display:none !important;
+  content:none !important;
+}
 .hero-visual{
   position:relative;
   min-height:1200px !important;
