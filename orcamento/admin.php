@@ -428,7 +428,8 @@ td input[type="checkbox"] {
 .promo-piece {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 10px;
   min-height: 40px;
   padding: 9px;
   border: 1px solid rgba(255,255,255,.1);
@@ -446,9 +447,29 @@ td input[type="checkbox"] {
   accent-color: var(--green);
 }
 
+.promo-piece-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.promo-piece-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.promo-piece-price {
+  color: #8dffad;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
 .promo-preview {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 10px;
   margin-top: 12px;
 }
@@ -817,28 +838,25 @@ function renderRows() {
 
 function renderPromoRows() {
   const openIds = new Set([...document.querySelectorAll("[data-promo-uid][open]")].map(card => card.dataset.promoUid));
+  const areaDraft = currentAreasFromRows();
   $("promoRows").innerHTML = promotions.map((item, index) => {
     const descontoPercent = Math.round((1 - Number(item.desconto || 1)) * 100);
     const pieceCount = (item.ids || []).length;
     const haystack = `${item.titulo || ""} ${item.descricao || ""} ${(item.ids || []).join(" ")}`.toLowerCase();
     const isVisible = !promoSearchQuery || haystack.includes(promoSearchQuery);
     const total = (item.ids || []).reduce((sum, id) => {
-      const region = regionFromPartId(id);
-      const data = areas[region];
       return {
-        min: sum.min + Number(data?.min || 0),
-        max: sum.max + Number(data?.max || 0)
+        price: sum.price + pieceBasePrice(id, areaDraft)
       };
-    }, { min: 0, max: 0 });
+    }, { price: 0 });
     const factor = Number(item.desconto || 1);
-    const finalMin = roundPrice(total.min * factor);
-    const finalMax = roundPrice(total.max * factor);
+    const finalPrice = roundPrice(total.price * factor);
     return `
       <details class="promo-card${isVisible ? "" : " promo-hidden"}" data-promo-index="${index}" data-promo-uid="${escapeHtml(item.uid)}" draggable="true" ${openIds.has(item.uid) ? "open" : ""}>
         <summary>
           <span class="promo-card-headline">
             <strong>${escapeHtml(item.titulo || "Promoção sem título")}</strong>
-            <span>${descontoPercent}% OFF · ${pieceCount} peça(s) · ${money(total.min)} a ${money(total.max)} → ${money(finalMin)} a ${money(finalMax)}</span>
+            <span>${descontoPercent}% OFF · ${pieceCount} peça(s) · ${money(finalPrice)}</span>
           </span>
         </summary>
         <div class="promo-card-body">
@@ -873,7 +891,7 @@ function renderPromoRows() {
             <div class="field full">
               <label>Peças da promoção</label>
               <div class="promo-areas" data-promo-pieces>
-                ${renderPieceOptions(item.ids || [])}
+                ${renderPieceOptions(item.ids || [], areaDraft)}
               </div>
               <p class="mini-help">Marque as peças que fazem parte da promoção. O valor é calculado automaticamente com base nas áreas marcadas.</p>
             </div>
@@ -893,14 +911,24 @@ function allPromoPieces() {
   return [...new Set([...defaults, ...saved])].sort((a, b) => pieceLabel(a).localeCompare(pieceLabel(b), "pt-BR"));
 }
 
-function renderPieceOptions(selectedIds) {
+function renderPieceOptions(selectedIds, areaSource = areas) {
   const selectedSet = new Set(selectedIds || []);
   return allPromoPieces().map(id => `
     <label class="promo-piece">
-      <input type="checkbox" data-piece-id="${escapeHtml(id)}" ${selectedSet.has(id) ? "checked" : ""}>
-      ${escapeHtml(pieceLabel(id))}
+      <span class="promo-piece-main">
+        <input type="checkbox" data-piece-id="${escapeHtml(id)}" ${selectedSet.has(id) ? "checked" : ""}>
+        <span class="promo-piece-name">${escapeHtml(pieceLabel(id))}</span>
+      </span>
+      <span class="promo-piece-price">${money(pieceBasePrice(id, areaSource))}</span>
     </label>
   `).join("");
+}
+
+function pieceBasePrice(id, areaSource = areas) {
+  const region = regionFromPartId(id);
+  const data = areaSource[region];
+  if (!data) return 0;
+  return roundPrice((Number(data.min || 0) + Number(data.max || 0)) / 2);
 }
 
 function pieceLabel(id) {
@@ -970,31 +998,13 @@ function updatePromoPreviews() {
     const ids = selectedPromoIds(card);
     const discountPercent = Math.min(80, Math.max(0, Number(card.querySelector('[data-promo-field="descontoPercent"]').value || 0)));
     const factor = 1 - (discountPercent / 100);
-    const total = ids.reduce((sum, id) => {
-      const region = regionFromPartId(id);
-      const data = areaDraft[region];
-      return {
-        min: sum.min + Number(data?.min || 0),
-        max: sum.max + Number(data?.max || 0)
-      };
-    }, { min: 0, max: 0 });
-    const finalMin = roundPrice(total.min * factor);
-    const finalMax = roundPrice(total.max * factor);
+    const total = ids.reduce((sum, id) => sum + pieceBasePrice(id, areaDraft), 0);
+    const finalPrice = roundPrice(total * factor);
     const preview = card.querySelector("[data-promo-preview]");
     preview.innerHTML = `
       <div class="promo-preview-box">
-        <span>Desconto</span>
-        <strong>${discountPercent}% OFF</strong>
-      </div>
-      <div class="promo-preview-box">
-        <span>Valor bruto</span>
-        <strong>${money(total.min)} a ${money(total.max)}</strong>
-        <small>Valor real antes de aplicar a promoção.</small>
-      </div>
-      <div class="promo-preview-box final">
-        <span>Valor com desconto</span>
-        <strong>${money(finalMin)} a ${money(finalMax)}</strong>
-        <small>Faixa estimada depois do desconto.</small>
+        <span>Preço da promoção</span>
+        <strong>${money(finalPrice)}</strong>
       </div>
     `;
   });
@@ -1136,8 +1146,12 @@ $("promoRows").addEventListener("click", event => {
   renderPromoRows();
   renderSummary();
 });
-$("rows").addEventListener("input", updatePromoPreviews);
-$("rows").addEventListener("change", updatePromoPreviews);
+$("rows").addEventListener("input", () => {
+  renderPromoRows();
+});
+$("rows").addEventListener("change", () => {
+  renderPromoRows();
+});
 
 fillConfig();
 ensureDefaultState();
