@@ -42,29 +42,50 @@ $heroOverride = <<<'HTML'
 <script id="promo-carousel-autoplay">
 document.addEventListener('DOMContentLoaded',function(){
   var wrapper=document.querySelector('.promo-carousel-wrapper');
-  var next=document.querySelector('.promo-carousel-wrapper .carousel-btn.next');
+  var track=document.querySelector('.promo-carousel-wrapper .promo-track');
+  if(!wrapper||!track){return;}
   var timer=null;
-  if(!wrapper||!next){return;}
+  var index=0;
+
+  function getCards(){return Array.prototype.slice.call(document.querySelectorAll('.promo-carousel-wrapper .promo-col'));}
+  function getDots(){return Array.prototype.slice.call(document.querySelectorAll('.promo-carousel-wrapper .promo-dots button'));}
+  function visibleCount(){return window.innerWidth<720?1:(window.innerWidth<1100?3:6);}
+  function stepSize(){
+    var card=getCards()[0];
+    if(!card){return 0;}
+    return card.getBoundingClientRect().width+(window.innerWidth<720?18:-38);
+  }
+  function maxIndex(){return Math.max(0,getCards().length-visibleCount());}
+  function syncFromActiveDot(){
+    var dots=getDots();
+    var active=document.querySelector('.promo-carousel-wrapper .promo-dots button.active');
+    var found=dots.indexOf(active);
+    if(found>=0){index=found;}
+  }
+  function goTo(nextIndex){
+    var max=maxIndex();
+    index=nextIndex>max?0:nextIndex;
+    var dots=getDots();
+    if(dots[index]){dots[index].click();return;}
+    track.style.transform='translateX('+(-index*stepSize())+'px)';
+  }
+  function nextSlide(){
+    syncFromActiveDot();
+    goTo(index+1);
+  }
   function start(){
     stop();
-    timer=setInterval(function(){
-      var dots=document.querySelectorAll('.promo-carousel-wrapper .promo-dots button');
-      var active=document.querySelector('.promo-carousel-wrapper .promo-dots button.active');
-      var isLast=active&&dots.length&&active===dots[dots.length-1];
-      if(isLast){
-        var firstDot=document.querySelector('.promo-carousel-wrapper .promo-dots button:first-child');
-        if(firstDot){firstDot.click();return;}
-      }
-      next.click();
-    },4000);
+    timer=setInterval(nextSlide,4000);
   }
   function stop(){
     if(timer){clearInterval(timer);timer=null;}
   }
+
   wrapper.addEventListener('mouseenter',stop);
   wrapper.addEventListener('mouseleave',start);
   wrapper.addEventListener('touchstart',stop,{passive:true});
   wrapper.addEventListener('touchend',start,{passive:true});
+  window.addEventListener('resize',function(){syncFromActiveDot();goTo(index);});
   start();
 });
 </script>
