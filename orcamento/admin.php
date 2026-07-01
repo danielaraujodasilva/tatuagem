@@ -692,7 +692,7 @@ function promo(titulo, descricao, ids, desconto, view) {
 
 const $ = (id) => document.getElementById(id);
 let config = load("orcamentoTattooConfig", DEFAULT_CONFIG);
-let areas = load("orcamentoTattooAreas", DEFAULT_AREAS);
+let areas = loadAreas();
 let promotions = loadPromos();
 let promoSearchQuery = "";
 let draggedPromoIndex = null;
@@ -721,6 +721,15 @@ function loadPromos() {
   }
 }
 
+function loadAreas() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("orcamentoTattooAreas") || "{}");
+    return normalizeAreas(saved);
+  } catch (e) {
+    return normalizeAreas(DEFAULT_AREAS);
+  }
+}
+
 function makePromoUid() {
   promoUidSeq += 1;
   return `promo_${Date.now()}_${promoUidSeq}`;
@@ -736,6 +745,38 @@ function normalizePromo(item) {
 
 function normalizePromos(list) {
   return list.map(normalizePromo);
+}
+
+function normalizeAreaItem(item, fallback) {
+  const base = fallback || {};
+  const source = item && typeof item === "object" ? item : {};
+  return {
+    ...base,
+    ...source,
+    titulo: String(source.titulo ?? base.titulo ?? ""),
+    descricao: String(source.descricao ?? base.descricao ?? ""),
+    min: Number(source.min ?? base.min ?? 0),
+    max: Number(source.max ?? base.max ?? 0),
+    ativa: source.ativa !== false && base.ativa !== false
+  };
+}
+
+function normalizeAreas(source) {
+  const next = {};
+  const saved = source && typeof source === "object" ? source : {};
+  Object.keys(DEFAULT_AREAS).forEach(key => {
+    next[key] = normalizeAreaItem(saved[key], DEFAULT_AREAS[key]);
+  });
+  return next;
+}
+
+function ensureDefaultState() {
+  if (!Object.keys(areas).length) {
+    areas = normalizeAreas(DEFAULT_AREAS);
+  }
+  if (!Array.isArray(promotions) || !promotions.length) {
+    promotions = normalizePromos(DEFAULT_PROMOS);
+  }
 }
 
 function renderSummary() {
@@ -1024,7 +1065,7 @@ function reset() {
   localStorage.removeItem("orcamentoTattooAreas");
   localStorage.removeItem("orcamentoTattooPromos");
   config = { ...DEFAULT_CONFIG };
-  areas = { ...DEFAULT_AREAS };
+  areas = normalizeAreas(DEFAULT_AREAS);
   promotions = normalizePromos(DEFAULT_PROMOS);
   fillConfig();
   renderRows();
@@ -1069,6 +1110,7 @@ $("rows").addEventListener("input", updatePromoPreviews);
 $("rows").addEventListener("change", updatePromoPreviews);
 
 fillConfig();
+ensureDefaultState();
 renderRows();
 renderPromoRows();
 renderSummary();
