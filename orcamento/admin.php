@@ -287,6 +287,35 @@ td input[type="checkbox"] {
   margin-bottom: 14px;
 }
 
+.promo-toolbar-main {
+  display: grid;
+  gap: 6px;
+}
+
+.promo-toolbar-main h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.promo-toolbar-main p {
+  margin: 0;
+}
+
+.promo-toolbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.promo-search {
+  min-width: min(320px, 100%);
+}
+
+.btn.ghost {
+  background: rgba(255,255,255,.04);
+}
+
 .promo-list {
   display: grid;
   gap: 12px;
@@ -297,6 +326,10 @@ td input[type="checkbox"] {
   border-radius: 14px;
   background: rgba(255,255,255,.035);
   overflow: clip;
+}
+
+.promo-card.promo-hidden {
+  display: none;
 }
 
 .promo-card summary {
@@ -329,12 +362,39 @@ td input[type="checkbox"] {
   padding: 0 16px 16px;
 }
 
+.promo-card.dragging {
+  opacity: .5;
+}
+
+.promo-card.drop-target {
+  outline: 2px solid rgba(37,211,102,.55);
+  outline-offset: 2px;
+}
+
 .promo-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   padding-bottom: 12px;
+}
+
+.promo-card-drag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 10px;
+  background: rgba(255,255,255,.04);
+  color: #fff;
+  cursor: grab;
+  user-select: none;
+}
+
+.promo-card-drag:active {
+  cursor: grabbing;
 }
 
 .promo-card-title {
@@ -533,11 +593,16 @@ td input[type="checkbox"] {
     </summary>
     <div class="section-body">
       <div class="promo-toolbar">
-        <div>
-          <h2 style="margin:0 0 4px;font-size:22px;">Editor de promoções</h2>
-          <p style="margin:0;">Cada promoção abre só quando você precisa editar. Menos ruído, mesma profundidade.</p>
+        <div class="promo-toolbar-main">
+          <h2>Editor de promoções</h2>
+          <p>Cada promoção abre só quando você precisa editar. Menos ruído, mesma profundidade.</p>
         </div>
-        <button class="btn primary" id="addPromo" type="button">Nova promoção</button>
+        <div class="promo-toolbar-controls">
+          <input id="promoSearch" class="promo-search" type="search" placeholder="Buscar promoção..." />
+          <button class="btn ghost" id="expandAll" type="button">Expandir tudo</button>
+          <button class="btn ghost" id="collapseAll" type="button">Recolher tudo</button>
+          <button class="btn primary" id="addPromo" type="button">Nova promoção</button>
+        </div>
       </div>
       <div class="promo-list" id="promoRows"></div>
     </div>
@@ -629,6 +694,9 @@ const $ = (id) => document.getElementById(id);
 let config = load("orcamentoTattooConfig", DEFAULT_CONFIG);
 let areas = load("orcamentoTattooAreas", DEFAULT_AREAS);
 let promotions = loadPromos();
+let promoSearchQuery = "";
+let draggedPromoIndex = null;
+let promoUidSeq = 0;
 
 function load(key, fallback) {
   try {
@@ -647,10 +715,27 @@ function fillConfig() {
 function loadPromos() {
   try {
     const saved = JSON.parse(localStorage.getItem("orcamentoTattooPromos") || "[]");
-    return Array.isArray(saved) && saved.length ? saved : DEFAULT_PROMOS;
+    return Array.isArray(saved) && saved.length ? normalizePromos(saved) : normalizePromos(DEFAULT_PROMOS);
   } catch (e) {
-    return DEFAULT_PROMOS;
+    return normalizePromos(DEFAULT_PROMOS);
   }
+}
+
+function makePromoUid() {
+  promoUidSeq += 1;
+  return `promo_${Date.now()}_${promoUidSeq}`;
+}
+
+function normalizePromo(item) {
+  return {
+    ...item,
+    uid: item.uid || makePromoUid(),
+    ativa: item.ativa !== false
+  };
+}
+
+function normalizePromos(list) {
+  return list.map(normalizePromo);
 }
 
 function renderSummary() {
@@ -682,11 +767,14 @@ function renderRows() {
 }
 
 function renderPromoRows() {
+  const openIds = new Set([...document.querySelectorAll("[data-promo-uid][open]")].map(card => card.dataset.promoUid));
   $("promoRows").innerHTML = promotions.map((item, index) => {
     const descontoPercent = Math.round((1 - Number(item.desconto || 1)) * 100);
     const pieceCount = (item.ids || []).length;
+    const haystack = `${item.titulo || ""} ${item.descricao || ""} ${(item.ids || []).join(" ")}`.toLowerCase();
+    const isVisible = !promoSearchQuery || haystack.includes(promoSearchQuery);
     return `
-      <details class="promo-card" data-promo-index="${index}">
+      <details class="promo-card${isVisible ? "" : " promo-hidden"}" data-promo-index="${index}" data-promo-uid="${escapeHtml(item.uid)}" draggable="true" ${openIds.has(item.uid) ? "open" : ""}>
         <summary>
           <span class="promo-card-headline">
             <strong>${escapeHtml(item.titulo || "Promoção sem título")}</strong>
@@ -695,6 +783,7 @@ function renderPromoRows() {
         </summary>
         <div class="promo-card-body">
           <div class="promo-card-head">
+            <button class="promo-card-drag" type="button" title="Arrastar para reordenar" aria-label="Arrastar promoção para reordenar">⋮⋮</button>
             <label class="promo-card-title">
               <input data-promo-field="ativa" type="checkbox" ${item.ativa !== false ? "checked" : ""}>
               Promoção ativa
@@ -735,6 +824,7 @@ function renderPromoRows() {
     `;
   }).join("");
   updatePromoPreviews();
+  syncPromoDragState();
 }
 
 function allPromoPieces() {
@@ -839,10 +929,56 @@ function updatePromoPreviews() {
   });
 }
 
+function syncPromoDragState() {
+  document.querySelectorAll("[data-promo-index]").forEach(card => {
+    card.addEventListener("dragstart", event => {
+      draggedPromoIndex = Number(card.dataset.promoIndex);
+      card.classList.add("dragging");
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", String(draggedPromoIndex));
+    });
+
+    card.addEventListener("dragend", () => {
+      draggedPromoIndex = null;
+      card.classList.remove("dragging");
+      document.querySelectorAll(".drop-target").forEach(item => item.classList.remove("drop-target"));
+    });
+
+    card.addEventListener("dragover", event => {
+      event.preventDefault();
+      card.classList.add("drop-target");
+      event.dataTransfer.dropEffect = "move";
+    });
+
+    card.addEventListener("dragleave", () => {
+      card.classList.remove("drop-target");
+    });
+
+    card.addEventListener("drop", event => {
+      event.preventDefault();
+      card.classList.remove("drop-target");
+      const targetIndex = Number(card.dataset.promoIndex);
+      const sourceIndex = draggedPromoIndex !== null ? draggedPromoIndex : Number(event.dataTransfer.getData("text/plain"));
+      if (Number.isNaN(sourceIndex) || Number.isNaN(targetIndex) || sourceIndex === targetIndex) return;
+      promotions = reorderArray(promotions, sourceIndex, targetIndex);
+      renderPromoRows();
+      renderSummary();
+    });
+  });
+}
+
+function reorderArray(items, fromIndex, toIndex) {
+  const next = items.slice();
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, moved);
+  return next;
+}
+
 function collectPromosFromForm() {
   return [...document.querySelectorAll("[data-promo-index]")].map(card => {
     const discountPercent = Math.min(80, Math.max(0, Number(card.querySelector('[data-promo-field="descontoPercent"]').value || 0)));
     return {
+      uid: card.dataset.promoUid || makePromoUid(),
       titulo: card.querySelector('[data-promo-field="titulo"]').value.trim(),
       descricao: card.querySelector('[data-promo-field="descricao"]').value.trim(),
       ids: selectedPromoIds(card),
@@ -889,7 +1025,7 @@ function reset() {
   localStorage.removeItem("orcamentoTattooPromos");
   config = { ...DEFAULT_CONFIG };
   areas = { ...DEFAULT_AREAS };
-  promotions = [...DEFAULT_PROMOS];
+  promotions = normalizePromos(DEFAULT_PROMOS);
   fillConfig();
   renderRows();
   renderPromoRows();
@@ -901,9 +1037,23 @@ function reset() {
 $("save").addEventListener("click", save);
 $("reset").addEventListener("click", reset);
 $("addPromo").addEventListener("click", () => {
-  promotions.push(promo("Nova promoção", "Descreva o pacote", [], .9, "frente"));
+  promotions.push(normalizePromo(promo("Nova promoção", "Descreva o pacote", [], .9, "frente")));
   renderPromoRows();
   renderSummary();
+});
+$("promoSearch").addEventListener("input", event => {
+  promoSearchQuery = event.target.value.trim().toLowerCase();
+  renderPromoRows();
+});
+$("expandAll").addEventListener("click", () => {
+  document.querySelectorAll(".promo-card").forEach(card => {
+    card.open = true;
+  });
+});
+$("collapseAll").addEventListener("click", () => {
+  document.querySelectorAll(".promo-card").forEach(card => {
+    card.open = false;
+  });
 });
 $("promoRows").addEventListener("input", updatePromoPreviews);
 $("promoRows").addEventListener("change", updatePromoPreviews);
