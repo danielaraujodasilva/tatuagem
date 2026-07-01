@@ -822,12 +822,23 @@ function renderPromoRows() {
     const pieceCount = (item.ids || []).length;
     const haystack = `${item.titulo || ""} ${item.descricao || ""} ${(item.ids || []).join(" ")}`.toLowerCase();
     const isVisible = !promoSearchQuery || haystack.includes(promoSearchQuery);
+    const total = (item.ids || []).reduce((sum, id) => {
+      const region = regionFromPartId(id);
+      const data = areas[region];
+      return {
+        min: sum.min + Number(data?.min || 0),
+        max: sum.max + Number(data?.max || 0)
+      };
+    }, { min: 0, max: 0 });
+    const factor = Number(item.desconto || 1);
+    const finalMin = roundPrice(total.min * factor);
+    const finalMax = roundPrice(total.max * factor);
     return `
       <details class="promo-card${isVisible ? "" : " promo-hidden"}" data-promo-index="${index}" data-promo-uid="${escapeHtml(item.uid)}" draggable="true" ${openIds.has(item.uid) ? "open" : ""}>
         <summary>
           <span class="promo-card-headline">
             <strong>${escapeHtml(item.titulo || "Promoção sem título")}</strong>
-            <span>${descontoPercent}% OFF · ${pieceCount} peça(s)</span>
+            <span>${descontoPercent}% OFF · ${pieceCount} peça(s) · ${money(total.min)} a ${money(total.max)} → ${money(finalMin)} a ${money(finalMax)}</span>
           </span>
         </summary>
         <div class="promo-card-body">
