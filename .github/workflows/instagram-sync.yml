@@ -1,0 +1,17 @@
+name: Weekly Instagram Gallery Sync
+
+on:
+  schedule:
+    # Toda segunda-feira às 03:00 no horário de Brasília.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  sync-instagram-gallery:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger live Instagram sync
+        run: |
+          curl --fail --show-error --silent --max-time 120 "https://danieltatuador.com/instagram/sync.php" > instagram-sync-result.json
+          cat instagram-sync-result.json
+          grep -q '"ok": true' instagram-sync-result.json
