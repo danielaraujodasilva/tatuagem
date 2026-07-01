@@ -11,8 +11,15 @@ return [
     // Token gerado no painel da Meta/Instagram.
     'access_token' => 'COLE_SEU_TOKEN_AQUI',
 
-    // Quantidade máxima de posts retornados pelo feed público do site.
-    'limit' => 12,
+    // 0 = busca tudo que a API entregar, página por página.
+    // Se quiser limitar, use por exemplo 60 ou 100.
+    'limit' => 0,
+
+    // Tamanho de cada página buscada na API. O máximo prático aqui é 50.
+    'page_size' => 50,
+
+    // Segurança anti-loop. 20 páginas x 50 posts = até 1000 mídias.
+    'max_pages' => 20,
 
     // Tempo de cache em segundos. 21600 = 6 horas.
     'cache_ttl' => 21600,
