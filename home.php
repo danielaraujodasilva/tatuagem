@@ -16,6 +16,16 @@ $heroOverride = <<<'HTML'
   position:relative;
   min-height:1200px !important;
 }
+.artist-silhouette{
+  position:absolute;
+  inset:0 -6% -8% 5%;
+  background:url(img/daniel.jpg) center / cover no-repeat;
+  border-radius:0 !important;
+  filter:none !important;
+  opacity:1 !important;
+  mix-blend-mode:normal !important;
+  mask-image:linear-gradient(to bottom,#000 60%,transparent);
+}
 </style>
 HTML;
 
