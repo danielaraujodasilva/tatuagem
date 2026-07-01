@@ -26,16 +26,16 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   color: var(--text);
   background:
-    linear-gradient(140deg, rgba(215,25,42,.18), transparent 30%),
-    var(--bg);
-  padding: 22px 14px;
+    radial-gradient(circle at top, rgba(215,25,42,.18), transparent 26%),
+    linear-gradient(180deg, #090909, #060606 48%, #050505);
+  padding: 22px 14px 28px;
 }
 
-button, input, textarea { font: inherit; }
+button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
 
 .container {
-  width: min(1120px, 100%);
+  width: min(1240px, 100%);
   margin: 0 auto;
   display: grid;
   gap: 16px;
@@ -47,6 +47,7 @@ button { cursor: pointer; }
   align-items: end;
   gap: 16px;
   flex-wrap: wrap;
+  padding: 4px 2px;
 }
 
 h1 {
@@ -62,43 +63,10 @@ p {
   line-height: 1.45;
 }
 
-.card {
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: linear-gradient(180deg, rgba(27,27,27,.98), rgba(9,9,9,.98));
-  box-shadow: 0 18px 54px rgba(0,0,0,.45);
-}
-
 .actions {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-}
-
-.admin-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.admin-tab {
-  min-height: 48px;
-  border: 1px solid rgba(255,255,255,.14);
-  border-radius: 8px;
-  background: rgba(255,255,255,.055);
-  color: #fff;
-  font-weight: 900;
-}
-
-.admin-tab.active {
-  border-color: rgba(37,211,102,.48);
-  background: rgba(37,211,102,.16);
-  color: #d8ffe5;
-}
-
-.admin-panel[hidden] {
-  display: none;
 }
 
 .btn, .link {
@@ -106,7 +74,7 @@ p {
   place-items: center;
   min-height: 42px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 10px;
   padding: 10px 13px;
   background: #121212;
   color: #fff;
@@ -125,6 +93,117 @@ p {
   background: rgba(215,25,42,.18);
 }
 
+.notice {
+  display: none;
+  border-left: 3px solid var(--green);
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: rgba(37,211,102,.1);
+  color: #d8ffe5;
+}
+
+.notice.show { display: block; }
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summary-card {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(24,24,26,.98), rgba(9,9,9,.98));
+  box-shadow: 0 18px 54px rgba(0,0,0,.38);
+}
+
+.summary-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.summary-card strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 20px;
+}
+
+.section-accordion {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(21,21,23,.98), rgba(7,7,8,.98));
+  box-shadow: 0 18px 54px rgba(0,0,0,.45);
+  overflow: clip;
+}
+
+.section-accordion + .section-accordion {
+  margin-top: 2px;
+}
+
+.section-accordion summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.section-accordion summary::-webkit-details-marker,
+.promo-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.section-accordion summary::after,
+.promo-card summary::after {
+  content: '+';
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.16);
+  color: #ff6f67;
+  font-size: 18px;
+  line-height: 1;
+  flex: none;
+}
+
+.section-accordion[open] summary::after,
+.promo-card[open] summary::after {
+  content: '−';
+}
+
+.section-body {
+  padding: 0 18px 18px;
+}
+
+.section-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.section-head h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.section-head p {
+  margin: 4px 0 0;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -137,22 +216,6 @@ p {
 }
 
 .field.full { grid-column: 1 / -1; }
-.section-head {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.section-head h2 {
-  margin: 0;
-  font-size: 24px;
-}
-
-.section-head p {
-  margin: 4px 0 0;
-}
 
 label {
   color: #ddd;
@@ -161,10 +224,10 @@ label {
   text-transform: uppercase;
 }
 
-input, textarea {
+input, textarea, select {
   width: 100%;
   border: 1px solid rgba(255,255,255,.13);
-  border-radius: 6px;
+  border-radius: 10px;
   background: #0d0d0d;
   color: #fff;
   padding: 10px;
@@ -179,7 +242,7 @@ textarea {
 .table-wrap {
   overflow: auto;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 12px;
 }
 
 table {
@@ -215,18 +278,55 @@ td input[type="checkbox"] {
 .area-name { min-width: 170px; }
 .area-text { min-width: 360px; }
 
+.promo-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
 .promo-list {
   display: grid;
   gap: 12px;
 }
 
 .promo-card {
-  display: grid;
-  gap: 12px;
-  padding: 14px;
   border: 1px solid rgba(255,255,255,.12);
-  border-radius: 8px;
+  border-radius: 14px;
   background: rgba(255,255,255,.035);
+  overflow: clip;
+}
+
+.promo-card summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  font-weight: 900;
+}
+
+.promo-card-headline {
+  display: grid;
+  gap: 4px;
+}
+
+.promo-card-headline strong {
+  font-size: 15px;
+}
+
+.promo-card-headline span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.promo-card-body {
+  padding: 0 16px 16px;
 }
 
 .promo-card-head {
@@ -234,6 +334,7 @@ td input[type="checkbox"] {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  padding-bottom: 12px;
 }
 
 .promo-card-title {
@@ -258,16 +359,6 @@ td input[type="checkbox"] {
 .promo-form-grid .wide { grid-column: span 2; }
 .promo-form-grid .full { grid-column: 1 / -1; }
 
-.promo-card select {
-  width: 100%;
-  border: 1px solid rgba(255,255,255,.13);
-  border-radius: 6px;
-  background: #0d0d0d;
-  color: #fff;
-  padding: 10px;
-  outline: none;
-}
-
 .promo-areas {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -281,7 +372,7 @@ td input[type="checkbox"] {
   min-height: 40px;
   padding: 9px;
   border: 1px solid rgba(255,255,255,.1);
-  border-radius: 6px;
+  border-radius: 8px;
   background: #0d0d0d;
   color: #eee;
   font-size: 13px;
@@ -299,12 +390,13 @@ td input[type="checkbox"] {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
+  margin-top: 12px;
 }
 
 .promo-preview-box {
   padding: 12px;
   border: 1px solid rgba(255,255,255,.1);
-  border-radius: 8px;
+  border-radius: 10px;
   background: #0d0d0d;
 }
 
@@ -334,26 +426,62 @@ td input[type="checkbox"] {
   line-height: 1.35;
 }
 
-.notice {
-  display: none;
-  border-left: 3px solid var(--green);
-  border-radius: 4px;
-  padding: 10px 12px;
-  background: rgba(37,211,102,.1);
-  color: #d8ffe5;
+.meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
 }
 
-.notice.show { display: block; }
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 999px;
+  background: rgba(255,255,255,.04);
+  color: #eee;
+  font-size: 13px;
+}
 
-@media (max-width: 760px) {
-  body { padding: 14px 10px; }
-  .admin-tabs { grid-template-columns: 1fr; }
-  .grid { grid-template-columns: 1fr; }
-  .section-head { align-items: stretch; flex-direction: column; }
+.meta-pill b {
+  color: #fff;
+}
+
+@media (max-width: 960px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .promo-form-grid,
   .promo-preview,
-  .promo-areas { grid-template-columns: 1fr; }
+  .promo-areas {
+    grid-template-columns: 1fr;
+  }
+
   .promo-form-grid .wide { grid-column: 1; }
+}
+
+@media (max-width: 760px) {
+  body { padding: 14px 10px 18px; }
+  .header { align-items: stretch; flex-direction: column; }
+  .actions { width: 100%; }
+  .actions .btn, .actions .link { flex: 1; }
+  .summary-grid { grid-template-columns: 1fr; }
+  .section-accordion summary,
+  .promo-card summary,
+  .section-body,
+  .promo-card-body {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .section-body,
+  .promo-card-body {
+    padding-bottom: 14px;
+  }
 }
 </style>
 </head>
@@ -362,7 +490,7 @@ td input[type="checkbox"] {
   <header class="header">
     <div>
       <h1>Admin Orçamento</h1>
-      <p>Página separada para ajustar o orçamento. As alterações ficam salvas no navegador por enquanto.</p>
+      <p>Agora em blocos colapsáveis para ficar mais rápido de navegar sem perder nenhuma configuração.</p>
     </div>
     <div class="actions">
       <a class="link" href="index.php">Ver orçamento</a>
@@ -371,58 +499,72 @@ td input[type="checkbox"] {
     </div>
   </header>
 
-  <nav class="admin-tabs" aria-label="Seções do admin">
-    <button class="admin-tab active" type="button" data-admin-tab="geral">Configurações</button>
-    <button class="admin-tab" type="button" data-admin-tab="promocoes">Promoções</button>
-    <button class="admin-tab" type="button" data-admin-tab="valores">Valores das peças</button>
-  </nav>
+  <div class="summary-grid" id="summaryGrid" aria-label="Resumo do painel"></div>
 
   <div class="notice" id="notice">Configurações salvas.</div>
 
-  <section class="card admin-panel" data-admin-panel="geral">
-    <div class="grid">
-      <div class="field">
-        <label for="whatsapp">WhatsApp</label>
-        <input id="whatsapp" type="text" placeholder="5511999999999" />
-      </div>
-      <div class="field">
-        <label for="cta">Texto do botão</label>
-        <input id="cta" type="text" />
-      </div>
-      <div class="field full">
-        <label for="intro">Texto de abertura</label>
-        <textarea id="intro"></textarea>
+  <details class="section-accordion" open>
+    <summary>
+      <span>Configurações gerais</span>
+      <span class="meta-pill"><b>1</b> grupo</span>
+    </summary>
+    <div class="section-body">
+      <div class="grid">
+        <div class="field">
+          <label for="whatsapp">WhatsApp</label>
+          <input id="whatsapp" type="text" placeholder="5511999999999" />
+        </div>
+        <div class="field">
+          <label for="cta">Texto do botão</label>
+          <input id="cta" type="text" />
+        </div>
+        <div class="field full">
+          <label for="intro">Texto de abertura</label>
+          <textarea id="intro"></textarea>
+        </div>
       </div>
     </div>
-  </section>
+  </details>
 
-  <section class="card admin-panel" data-admin-panel="promocoes" hidden>
-    <div class="section-head">
-      <div>
-        <h2>Promoções</h2>
-        <p>Edite o desconto em percentual e veja na hora a faixa estimada com desconto.</p>
+  <details class="section-accordion" open>
+    <summary>
+      <span>Promoções</span>
+      <span class="meta-pill"><b id="promoCount">0</b> promoções</span>
+    </summary>
+    <div class="section-body">
+      <div class="promo-toolbar">
+        <div>
+          <h2 style="margin:0 0 4px;font-size:22px;">Editor de promoções</h2>
+          <p style="margin:0;">Cada promoção abre só quando você precisa editar. Menos ruído, mesma profundidade.</p>
+        </div>
+        <button class="btn primary" id="addPromo" type="button">Nova promoção</button>
       </div>
-      <button class="btn primary" id="addPromo" type="button">Nova promoção</button>
+      <div class="promo-list" id="promoRows"></div>
     </div>
-    <div class="promo-list" id="promoRows"></div>
-  </section>
+  </details>
 
-  <section class="card admin-panel" data-admin-panel="valores" hidden>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Ativa</th>
-            <th>Área</th>
-            <th>Mínimo</th>
-            <th>Máximo</th>
-            <th>Descrição</th>
-          </tr>
-        </thead>
-        <tbody id="rows"></tbody>
-      </table>
+  <details class="section-accordion">
+    <summary>
+      <span>Valores das peças</span>
+      <span class="meta-pill"><b id="areaCount">0</b> áreas</span>
+    </summary>
+    <div class="section-body">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ativa</th>
+              <th>Área</th>
+              <th>Mínimo</th>
+              <th>Máximo</th>
+              <th>Descrição</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
     </div>
-  </section>
+  </details>
 </main>
 
 <script>
@@ -511,6 +653,22 @@ function loadPromos() {
   }
 }
 
+function renderSummary() {
+  $("summaryGrid").innerHTML = [
+    { label: "Configuração", value: "Salva localmente" },
+    { label: "Promoções", value: `${promotions.length} blocos` },
+    { label: "Áreas", value: `${Object.keys(areas).length} linhas` },
+    { label: "Estado", value: "Pronto para editar" },
+  ].map(item => `
+    <div class="summary-card">
+      <span>${item.label}</span>
+      <strong>${item.value}</strong>
+    </div>
+  `).join("");
+  $("promoCount").textContent = String(promotions.length);
+  $("areaCount").textContent = String(Object.keys(areas).length);
+}
+
 function renderRows() {
   $("rows").innerHTML = Object.entries(areas).map(([id, item]) => `
     <tr data-id="${id}">
@@ -526,45 +684,54 @@ function renderRows() {
 function renderPromoRows() {
   $("promoRows").innerHTML = promotions.map((item, index) => {
     const descontoPercent = Math.round((1 - Number(item.desconto || 1)) * 100);
+    const pieceCount = (item.ids || []).length;
     return `
-      <article class="promo-card" data-promo-index="${index}">
-        <div class="promo-card-head">
-          <label class="promo-card-title">
-            <input data-promo-field="ativa" type="checkbox" ${item.ativa !== false ? "checked" : ""}>
-            Promoção ativa
-          </label>
-          <button class="btn danger" type="button" data-remove-promo="${index}">Remover</button>
-        </div>
-        <div class="promo-form-grid">
-          <div class="field wide">
-            <label>Título</label>
-            <input data-promo-field="titulo" value="${escapeHtml(item.titulo || "")}">
+      <details class="promo-card" data-promo-index="${index}">
+        <summary>
+          <span class="promo-card-headline">
+            <strong>${escapeHtml(item.titulo || "Promoção sem título")}</strong>
+            <span>${descontoPercent}% OFF · ${pieceCount} peça(s)</span>
+          </span>
+        </summary>
+        <div class="promo-card-body">
+          <div class="promo-card-head">
+            <label class="promo-card-title">
+              <input data-promo-field="ativa" type="checkbox" ${item.ativa !== false ? "checked" : ""}>
+              Promoção ativa
+            </label>
+            <button class="btn danger" type="button" data-remove-promo="${index}">Remover</button>
           </div>
-          <div class="field">
-            <label>Desconto (%)</label>
-            <input data-promo-field="descontoPercent" type="number" min="0" max="80" step="1" value="${descontoPercent}">
-          </div>
-          <div class="field">
-            <label>Visual do boneco</label>
-            <select data-promo-field="view">
-              <option value="frente" ${item.view === "frente" ? "selected" : ""}>Frente</option>
-              <option value="costas" ${item.view === "costas" ? "selected" : ""}>Costas</option>
-            </select>
-          </div>
-          <div class="field full">
-            <label>Descrição</label>
-            <input data-promo-field="descricao" value="${escapeHtml(item.descricao || "")}">
-          </div>
-          <div class="field full">
-            <label>Peças da promoção</label>
-            <div class="promo-areas" data-promo-pieces>
-              ${renderPieceOptions(item.ids || [])}
+          <div class="promo-form-grid">
+            <div class="field wide">
+              <label>Título</label>
+              <input data-promo-field="titulo" value="${escapeHtml(item.titulo || "")}">
             </div>
-            <p class="mini-help">Marque as peças que fazem parte da promoção. O valor é calculado automaticamente com base nas áreas marcadas.</p>
+            <div class="field">
+              <label>Desconto (%)</label>
+              <input data-promo-field="descontoPercent" type="number" min="0" max="80" step="1" value="${descontoPercent}">
+            </div>
+            <div class="field">
+              <label>Visual do boneco</label>
+              <select data-promo-field="view">
+                <option value="frente" ${item.view === "frente" ? "selected" : ""}>Frente</option>
+                <option value="costas" ${item.view === "costas" ? "selected" : ""}>Costas</option>
+              </select>
+            </div>
+            <div class="field full">
+              <label>Descrição</label>
+              <input data-promo-field="descricao" value="${escapeHtml(item.descricao || "")}">
+            </div>
+            <div class="field full">
+              <label>Peças da promoção</label>
+              <div class="promo-areas" data-promo-pieces>
+                ${renderPieceOptions(item.ids || [])}
+              </div>
+              <p class="mini-help">Marque as peças que fazem parte da promoção. O valor é calculado automaticamente com base nas áreas marcadas.</p>
+            </div>
           </div>
+          <div class="promo-preview" data-promo-preview></div>
         </div>
-        <div class="promo-preview" data-promo-preview></div>
-      </article>
+      </details>
     `;
   }).join("");
   updatePromoPreviews();
@@ -643,13 +810,6 @@ function regionFromPartId(id) {
   return "";
 }
 
-function promoIdsFromTextarea(value) {
-  return String(value || "")
-    .split(/[\n,]+/)
-    .map(item => item.trim())
-    .filter(Boolean);
-}
-
 function selectedPromoIds(card) {
   return [...card.querySelectorAll("[data-piece-id]:checked")].map(input => input.dataset.pieceId);
 }
@@ -717,6 +877,7 @@ function save() {
   localStorage.setItem("orcamentoTattooConfig", JSON.stringify(config));
   localStorage.setItem("orcamentoTattooAreas", JSON.stringify(areas));
   localStorage.setItem("orcamentoTattooPromos", JSON.stringify(promotions));
+  renderSummary();
   $("notice").textContent = "Configurações salvas.";
   $("notice").classList.add("show");
   setTimeout(() => $("notice").classList.remove("show"), 3200);
@@ -732,6 +893,7 @@ function reset() {
   fillConfig();
   renderRows();
   renderPromoRows();
+  renderSummary();
   $("notice").textContent = "Padrões restaurados.";
   $("notice").classList.add("show");
 }
@@ -741,6 +903,7 @@ $("reset").addEventListener("click", reset);
 $("addPromo").addEventListener("click", () => {
   promotions.push(promo("Nova promoção", "Descreva o pacote", [], .9, "frente"));
   renderPromoRows();
+  renderSummary();
 });
 $("promoRows").addEventListener("input", updatePromoPreviews);
 $("promoRows").addEventListener("change", updatePromoPreviews);
@@ -750,21 +913,15 @@ $("promoRows").addEventListener("click", event => {
   promotions = collectPromosFromForm();
   promotions.splice(Number(button.dataset.removePromo), 1);
   renderPromoRows();
+  renderSummary();
 });
 $("rows").addEventListener("input", updatePromoPreviews);
 $("rows").addEventListener("change", updatePromoPreviews);
-document.querySelectorAll("[data-admin-tab]").forEach(button => {
-  button.addEventListener("click", () => {
-    document.querySelectorAll("[data-admin-tab]").forEach(item => item.classList.toggle("active", item === button));
-    document.querySelectorAll("[data-admin-panel]").forEach(panel => {
-      panel.hidden = panel.dataset.adminPanel !== button.dataset.adminTab;
-    });
-  });
-});
 
 fillConfig();
 renderRows();
 renderPromoRows();
+renderSummary();
 </script>
 </body>
 </html>
