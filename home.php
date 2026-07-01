@@ -36,6 +36,35 @@ $heroOverride = <<<'HTML'
   }
 }
 </style>
+<script id="promo-carousel-autoplay">
+document.addEventListener('DOMContentLoaded',function(){
+  var wrapper=document.querySelector('.promo-carousel-wrapper');
+  var next=document.querySelector('.promo-carousel-wrapper .carousel-btn.next');
+  var dots=document.querySelectorAll('.promo-carousel-wrapper .promo-dots button');
+  if(!wrapper||!next){return;}
+  var timer=null;
+  function start(){
+    stop();
+    timer=setInterval(function(){
+      var active=document.querySelector('.promo-carousel-wrapper .promo-dots button.active');
+      var isLast=active&&dots.length&&active===dots[dots.length-1];
+      if(isLast){
+        var firstDot=document.querySelector('.promo-carousel-wrapper .promo-dots button:first-child');
+        if(firstDot){firstDot.click();return;}
+      }
+      next.click();
+    },4000);
+  }
+  function stop(){
+    if(timer){clearInterval(timer);timer=null;}
+  }
+  wrapper.addEventListener('mouseenter',stop);
+  wrapper.addEventListener('mouseleave',start);
+  wrapper.addEventListener('touchstart',stop,{passive:true});
+  wrapper.addEventListener('touchend',start,{passive:true});
+  start();
+});
+</script>
 HTML;
 
 $html = str_replace('</head>', $heroOverride . "\n</head>", $html);
