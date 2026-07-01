@@ -29,6 +29,17 @@ $heroOverride = <<<'HTML'
   mix-blend-mode:normal !important;
   mask-image:linear-gradient(to bottom,#000 60%,transparent);
 }
+.gallery-card.gallery-hidden{
+  display:none !important;
+}
+.gallery-load-more-wrap{
+  display:flex;
+  justify-content:center;
+  margin-top:30px;
+}
+.gallery-load-more{
+  min-width:190px;
+}
 @media(max-width:720px){
   .hero-grid{
     grid-template-columns:1fr !important;
@@ -87,6 +98,48 @@ document.addEventListener('DOMContentLoaded',function(){
   wrapper.addEventListener('touchend',start,{passive:true});
   window.addEventListener('resize',function(){syncFromActiveDot();goTo(index);});
   start();
+});
+</script>
+<script id="gallery-load-more-script">
+document.addEventListener('DOMContentLoaded',function(){
+  var grid=document.querySelector('.gallery-grid');
+  if(!grid){return;}
+  var cards=Array.prototype.slice.call(grid.querySelectorAll('.gallery-card'));
+  var initialLimit=10;
+  var increment=5;
+  var visible=initialLimit;
+
+  if(cards.length<=initialLimit){return;}
+
+  cards.forEach(function(card,index){
+    if(index>=initialLimit){card.classList.add('gallery-hidden');}
+  });
+
+  var wrap=document.createElement('div');
+  wrap.className='gallery-load-more-wrap';
+
+  var button=document.createElement('button');
+  button.type='button';
+  button.className='btn gallery-load-more';
+  button.innerHTML='Ver mais <i class="fa-solid fa-chevron-down"></i>';
+
+  function updateButton(){
+    var remaining=cards.length-visible;
+    if(remaining<=0){wrap.remove();return;}
+    button.innerHTML='Ver mais '+Math.min(increment,remaining)+' <i class="fa-solid fa-chevron-down"></i>';
+  }
+
+  button.addEventListener('click',function(){
+    visible+=increment;
+    cards.forEach(function(card,index){
+      if(index<visible){card.classList.remove('gallery-hidden');}
+    });
+    updateButton();
+  });
+
+  wrap.appendChild(button);
+  grid.insertAdjacentElement('afterend',wrap);
+  updateButton();
 });
 </script>
 HTML;
