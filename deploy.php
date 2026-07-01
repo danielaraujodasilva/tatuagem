@@ -38,4 +38,10 @@ if (!hash_equals($hash, $signature)) {
 
 $deployPath = getenv('DEPLOY_PATH') ?: (string)($deployConfig['path'] ?? __DIR__);
 $output = shell_exec('cd ' . escapeshellarg($deployPath) . ' && git pull 2>&1');
+
+clearstatcache(true);
+if (function_exists('opcache_reset')) {
+    opcache_reset();
+}
+
 echo "<pre>$output</pre>";
