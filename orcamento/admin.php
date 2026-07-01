@@ -479,6 +479,14 @@ td input[type="checkbox"] {
   color: #8dffad;
 }
 
+.promo-preview-box small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .mini-help {
   margin: 6px 0 0;
   color: var(--muted);
@@ -963,9 +971,20 @@ function updatePromoPreviews() {
     const finalMax = roundPrice(total.max * factor);
     const preview = card.querySelector("[data-promo-preview]");
     preview.innerHTML = `
-      <div class="promo-preview-box"><span>Sem desconto</span><strong>${money(total.min)} a ${money(total.max)}</strong></div>
-      <div class="promo-preview-box"><span>Desconto</span><strong>${discountPercent}% OFF</strong></div>
-      <div class="promo-preview-box final"><span>Com desconto</span><strong>${money(finalMin)} a ${money(finalMax)}</strong></div>
+      <div class="promo-preview-box">
+        <span>Desconto</span>
+        <strong>${discountPercent}% OFF</strong>
+      </div>
+      <div class="promo-preview-box">
+        <span>Valor bruto</span>
+        <strong>${money(total.min)} a ${money(total.max)}</strong>
+        <small>Valor real antes de aplicar a promoção.</small>
+      </div>
+      <div class="promo-preview-box final">
+        <span>Valor com desconto</span>
+        <strong>${money(finalMin)} a ${money(finalMax)}</strong>
+        <small>Faixa estimada depois do desconto.</small>
+      </div>
     `;
   });
 }
