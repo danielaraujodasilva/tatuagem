@@ -3,6 +3,9 @@ ob_start();
 include __DIR__ . '/index.php';
 $html = ob_get_clean();
 
+$expiredPromo = '<div class="promo-col bg5" data-title="Sorteio Filantrópico" data-content="&lt;p&gt;Estamos ajudando uma mamãe de Guarulhos que teve uma bebê e infelizmente está precisando de ajuda. Então, para cada pessoa que fizer a doação de algo que seja útil para ajudar essa mãe e/ou essa bebê, estará concorrendo a um fechamento no valor de R$999 com nossa equipe! O Sorteio será no dia 10 de Outubro de 2025!&lt;/p&gt;"><span>Sorteio Filantrópico</span></div>';
+$html = str_replace($expiredPromo, '', $html);
+
 $heroOverride = <<<'HTML'
 <style id="hero-final-adjustments">
 .hero{
@@ -40,12 +43,12 @@ $heroOverride = <<<'HTML'
 document.addEventListener('DOMContentLoaded',function(){
   var wrapper=document.querySelector('.promo-carousel-wrapper');
   var next=document.querySelector('.promo-carousel-wrapper .carousel-btn.next');
-  var dots=document.querySelectorAll('.promo-carousel-wrapper .promo-dots button');
-  if(!wrapper||!next){return;}
   var timer=null;
+  if(!wrapper||!next){return;}
   function start(){
     stop();
     timer=setInterval(function(){
+      var dots=document.querySelectorAll('.promo-carousel-wrapper .promo-dots button');
       var active=document.querySelector('.promo-carousel-wrapper .promo-dots button.active');
       var isLast=active&&dots.length&&active===dots[dots.length-1];
       if(isLast){
