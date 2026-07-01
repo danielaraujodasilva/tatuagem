@@ -837,8 +837,8 @@ function makePromoUid() {
 
 function canonicalPromoPieceId(id) {
   const value = String(id || "");
-  if (value.includes("costas") && value.includes("esq")) return "costas_esquerda";
-  if (value.includes("costas") && value.includes("dir")) return "costas_direita";
+  if (["costas_esq_alta", "costas_esq_media", "costas_esq_baixa"].includes(value)) return "costas_esquerda";
+  if (["costas_dir_alta", "costas_dir_media", "costas_dir_baixa"].includes(value)) return "costas_direita";
   return value;
 }
 

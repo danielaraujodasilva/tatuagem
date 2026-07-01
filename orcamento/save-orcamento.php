@@ -50,10 +50,10 @@ function normalize_promo($input) {
 
     $ids = array_values(array_unique(array_filter(array_map(function ($id) {
         $value = (string)$id;
-        if (strpos($value, 'costas') !== false && strpos($value, 'esq') !== false) {
+        if (in_array($value, ['costas_esq_alta', 'costas_esq_media', 'costas_esq_baixa'], true)) {
             return 'costas_esquerda';
         }
-        if (strpos($value, 'costas') !== false && strpos($value, 'dir') !== false) {
+        if (in_array($value, ['costas_dir_alta', 'costas_dir_media', 'costas_dir_baixa'], true)) {
             return 'costas_direita';
         }
         return $value;
