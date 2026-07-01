@@ -1,3 +1,9 @@
+DirectoryIndex home.php index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^index\.php$ home.php [L]
+</IfModule>
 
 <IfModule mod_headers.c>
     # Remove COEP completamente (não envie o header)
@@ -13,4 +19,3 @@
 <FilesMatch "(^\.|\.env$|\.local\.php$|\.local\.json$|composer\.(json|lock)$|package(-lock)?\.json$|deploy\.log$)">
     Require all denied
 </FilesMatch>
-
