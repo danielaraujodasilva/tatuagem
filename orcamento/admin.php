@@ -744,9 +744,10 @@ function promo(titulo, descricao, ids, desconto, view) {
 
 const $ = (id) => document.getElementById(id);
 let promoUidSeq = 0;
-let config = normalizeConfig(chooseInitialState().config);
-let areas = normalizeAreas(chooseInitialState().areas);
-let promotions = normalizePromos(chooseInitialState().promos);
+const INITIAL_STATE = chooseInitialState();
+let config = normalizeConfig(INITIAL_STATE.config);
+let areas = normalizeAreas(INITIAL_STATE.areas);
+let promotions = normalizePromos(INITIAL_STATE.promos);
 let promoSearchQuery = "";
 let draggedPromoIndex = null;
 
@@ -788,14 +789,10 @@ function chooseInitialState() {
     };
   }
 
-  if (SERVER_STATE && typeof SERVER_STATE === "object") {
-    return SERVER_STATE;
-  }
-
   return {
-    config: DEFAULT_CONFIG,
-    areas: DEFAULT_AREAS,
-    promos: DEFAULT_PROMOS
+    config: SERVER_STATE && typeof SERVER_STATE === "object" && SERVER_STATE.config ? SERVER_STATE.config : DEFAULT_CONFIG,
+    areas: SERVER_STATE && typeof SERVER_STATE === "object" && SERVER_STATE.areas ? SERVER_STATE.areas : DEFAULT_AREAS,
+    promos: SERVER_STATE && typeof SERVER_STATE === "object" && Array.isArray(SERVER_STATE.promos) ? SERVER_STATE.promos : DEFAULT_PROMOS
   };
 }
 
@@ -1254,6 +1251,19 @@ async function reset() {
   $("notice").classList.add("show");
 }
 
+async function syncLocalDraftIfAny() {
+  if (!hasLocalDraft()) return;
+
+  try {
+    await persistState(collectStateFromUi());
+    $("notice").textContent = "Rascunho sincronizado com o servidor.";
+    $("notice").classList.add("show");
+    setTimeout(() => $("notice").classList.remove("show"), 3200);
+  } catch (error) {
+    // Se a sincronização falhar, o rascunho local continua disponível.
+  }
+}
+
 $("save").addEventListener("click", save);
 $("reset").addEventListener("click", reset);
 $("addPromo").addEventListener("click", () => {
@@ -1301,6 +1311,7 @@ ensureDefaultState();
 renderRows();
 renderPromoRows();
 renderSummary();
+syncLocalDraftIfAny();
 </script>
 </body>
 </html>
