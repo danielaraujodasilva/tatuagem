@@ -9,6 +9,15 @@
  * php /caminho/do/site/instagram/sync.php
  */
 
+// Buscar e baixar muitas imagens pode passar do limite padrão do PHP/Apache.
+// Sem isso o XAMPP mata o processo em 120 segundos, como se estivesse fazendo um favor.
+@ini_set('max_execution_time', '0');
+@ini_set('memory_limit', '512M');
+@ignore_user_abort(true);
+if (function_exists('set_time_limit')) {
+    @set_time_limit(0);
+}
+
 $configFile = __DIR__ . '/config.local.php';
 $cacheDir = __DIR__ . '/cache';
 $cacheFile = $cacheDir . '/feed.json';
@@ -28,19 +37,15 @@ if (!file_exists($configFile)) {
 $config = require $configFile;
 $accessToken = trim((string)($config['access_token'] ?? ''));
 
-// limit = 0 significa: buscar tudo que a API entregar, página por página.
-// Se quiser travar, coloque por exemplo 60 ou 100 no config.local.php.
 $configLimit = (int)($config['limit'] ?? 0);
 $fetchAll = $configLimit <= 0;
 $maxItems = $fetchAll ? PHP_INT_MAX : max(1, $configLimit);
 $pageSize = max(1, min((int)($config['page_size'] ?? 50), 50));
 $maxPages = max(1, min((int)($config['max_pages'] ?? 20), 100));
 
-// Mantém compatível com seu index atual: ele lê tudo que está em /galeria.
-// Como o config.local.php atual talvez não tenha estas opções, o padrão já liga o espelhamento.
 $mirrorToGallery = (bool)($config['mirror_to_gallery'] ?? true);
 $replaceLocalGallery = (bool)($config['replace_local_gallery'] ?? true);
-$downloadTimeout = max(10, (int)($config['download_timeout'] ?? 30));
+$downloadTimeout = max(8, (int)($config['download_timeout'] ?? 12));
 
 if ($accessToken === '' || $accessToken === 'COLE_SEU_TOKEN_AQUI') {
     if (PHP_SAPI !== 'cli') {
@@ -63,6 +68,7 @@ function ig_fetch_json(string $url): array
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 30,
+        CURLOPT_CONNECTTIMEOUT => 10,
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_HTTPHEADER => ['Accept: application/json'],
@@ -95,7 +101,7 @@ function ig_fetch_json(string $url): array
     return ['ok' => true, 'body' => $decoded];
 }
 
-function ig_download_media(string $url, string $destination, int $timeout = 30): bool
+function ig_download_media(string $url, string $destination, int $timeout = 12): bool
 {
     if ($url === '') {
         return false;
@@ -111,9 +117,12 @@ function ig_download_media(string $url, string $destination, int $timeout = 30):
     curl_setopt_array($ch, [
         CURLOPT_FILE => $fp,
         CURLOPT_TIMEOUT => $timeout,
+        CURLOPT_CONNECTTIMEOUT => 8,
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_USERAGENT => 'DanielTatuadorInstagramSync/1.0',
+        CURLOPT_LOW_SPEED_LIMIT => 1024,
+        CURLOPT_LOW_SPEED_TIME => 8,
     ]);
 
     $ok = curl_exec($ch);
@@ -194,9 +203,6 @@ function ig_prepare_gallery_dir(string $galleryDir, bool $replaceLocalGallery): 
 function ig_normalize_item(array $item): ?array
 {
     $mediaType = (string)($item['media_type'] ?? '');
-
-    // Para vídeo/reels, a API normalmente entrega thumbnail_url.
-    // Para imagem/carrossel, usamos media_url quando existir.
     $mediaUrl = (string)($item['media_url'] ?? '');
     $thumbUrl = (string)($item['thumbnail_url'] ?? '');
     $imageUrl = $thumbUrl !== '' ? $thumbUrl : $mediaUrl;
