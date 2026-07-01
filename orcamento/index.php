@@ -1,4 +1,11 @@
 <?php
+$noCacheHeaders = [
+    'Cache-Control: no-store, no-cache, must-revalidate, max-age=0',
+    'Pragma: no-cache',
+];
+foreach ($noCacheHeaders as $header) {
+    header($header);
+}
 $hotspotsFile = __DIR__ . '/hotspots.json';
 $hotspotsJson = file_exists($hotspotsFile) ? file_get_contents($hotspotsFile) : '{"frente":[],"costas":[]}';
 json_decode($hotspotsJson, true);

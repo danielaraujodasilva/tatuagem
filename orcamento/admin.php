@@ -1,6 +1,13 @@
 <?php
 // Painel local do orçamento: edita apenas as preferências salvas no navegador.
 // Não depende de login nem de banco para não quebrar o fluxo de ajustes visuais.
+$noCacheHeaders = [
+    'Cache-Control: no-store, no-cache, must-revalidate, max-age=0',
+    'Pragma: no-cache',
+];
+foreach ($noCacheHeaders as $header) {
+    header($header);
+}
 $orcamentoFile = __DIR__ . '/orcamento-data.json';
 $orcamentoJson = file_exists($orcamentoFile) ? file_get_contents($orcamentoFile) : '{}';
 json_decode($orcamentoJson, true);
