@@ -48,12 +48,25 @@ function normalize_promo($input) {
         $discount = max(0, min(80, (float)($input['descontoPercent'] ?? 0))) / 100;
     }
 
+    $ids = array_values(array_unique(array_filter(array_map(function ($id) {
+        $value = (string)$id;
+        if (strpos($value, 'costas') !== false && strpos($value, 'esq') !== false) {
+            return 'costas_esquerda';
+        }
+        if (strpos($value, 'costas') !== false && strpos($value, 'dir') !== false) {
+            return 'costas_direita';
+        }
+        return $value;
+    }, (array)($input['ids'] ?? [])), function ($value) {
+        return $value !== '';
+    })));
+
     return [
         'uid' => (string)($input['uid'] ?? ''),
         'titulo' => (string)($input['titulo'] ?? ''),
         'descricao' => (string)($input['descricao'] ?? $input['desc'] ?? ''),
         'desc' => (string)($input['desc'] ?? $input['descricao'] ?? ''),
-        'ids' => array_values(array_filter((array)($input['ids'] ?? []), 'is_string')),
+        'ids' => $ids,
         'desconto' => $discount > 0 && $discount <= 1 ? $discount : 1,
         'view' => ($input['view'] ?? 'frente') === 'costas' ? 'costas' : 'frente',
         'ativa' => ($input['ativa'] ?? true) !== false,

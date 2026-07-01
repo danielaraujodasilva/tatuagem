@@ -700,7 +700,7 @@ const DEFAULT_PROMOS = [
   promo("Fechamento de perna frontal direita", "Coxa + joelho + canela + tornozelo", ["coxa_dir_frontal", "joelho_dir", "canela_dir", "tornozelo_dir"], .85, "frente"),
   promo("Fechamento de perna posterior esquerda", "Coxa posterior + joelho posterior + panturrilha + tornozelo", ["coxa_esq_posterior", "joelho_esq_posterior", "panturrilha_esq", "tornozelo_esq_costas"], .85, "costas"),
   promo("Fechamento de perna posterior direita", "Coxa posterior + joelho posterior + panturrilha + tornozelo", ["coxa_dir_posterior", "joelho_dir_posterior", "panturrilha_dir", "tornozelo_dir_costas"], .85, "costas"),
-  promo("Fechamento de costas", "Costas completa", ["costas_esq_alta", "costas_dir_alta", "costas_esq_baixa", "costas_dir_baixa", "lombar"], .82, "costas"),
+  promo("Fechamento de costas", "Costas esquerda + costas direita + lombar", ["costas_esquerda", "costas_direita", "lombar"], .82, "costas"),
   promo("Fechamento de peitoral", "Peito esquerdo + peito direito", ["peito_esq", "peito_dir"], .9, "frente"),
   promo("Fechamento frontal", "Peitoral completo + abdômen", ["peito_esq", "peito_dir", "abdomen"], .85, "frente")
 ];
@@ -714,7 +714,8 @@ const DEFAULT_AREAS = {
   abdomen: area("Abdômen", 2000, 5600, "Área ampla, sensível e com variação de elasticidade. Pede planejamento limpo."),
   costela: area("Costela", 1800, 5600, "Ótima para composições laterais, florais, lettering e projetos verticais."),
   quadril: area("Quadril / Virilha", 1500, 4200, "Boa para peças ornamentais, sensuais ou complemento de perna e abdômen."),
-  costas: area("Costas", 3200, 12000, "Área nobre para projetos grandes, painéis, simetrias e fechamentos de alto impacto."),
+  costas_esquerda: area("Costas esquerda", 10050, 10050, "Metade esquerda das costas, reunindo superior, média e inferior em uma única leitura."),
+  costas_direita: area("Costas direita", 10050, 10050, "Metade direita das costas, reunindo superior, média e inferior em uma única leitura."),
   lombar: area("Lombar", 1500, 4200, "Boa para peças centrais, ornamentais e complementos de fechamento."),
   braco: area("Braço", 1800, 4800, "Uma das melhores áreas: boa leitura, boa resistência e encaixe anatômico."),
   antebraco_interno: area("Antebraço interno", 1200, 3400, "Área muito procurada, boa para projetos detalhados e leitura frontal."),
@@ -834,10 +835,18 @@ function makePromoUid() {
   return `promo_${Date.now()}_${promoUidSeq}`;
 }
 
+function canonicalPromoPieceId(id) {
+  const value = String(id || "");
+  if (value.includes("costas") && value.includes("esq")) return "costas_esquerda";
+  if (value.includes("costas") && value.includes("dir")) return "costas_direita";
+  return value;
+}
+
 function normalizePromo(item) {
   return {
     ...item,
     uid: item.uid || makePromoUid(),
+    ids: [...new Set((item.ids || []).map(canonicalPromoPieceId).filter(Boolean))],
     ativa: item.ativa !== false
   };
 }
@@ -1061,6 +1070,8 @@ function regionFromPartId(id) {
   if (value.includes("braco")) return "braco";
   if (value.includes("peito")) return "peito";
   if (value.includes("abdomen")) return "abdomen";
+  if (value.includes("costas") && value.includes("esq")) return "costas_esquerda";
+  if (value.includes("costas") && value.includes("dir")) return "costas_direita";
   if (value.includes("costas")) return "costas";
   if (value.includes("lombar")) return "lombar";
   return "";
