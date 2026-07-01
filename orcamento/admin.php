@@ -666,8 +666,7 @@ td input[type="checkbox"] {
             <tr>
               <th>Ativa</th>
               <th>Área</th>
-              <th>Mínimo</th>
-              <th>Máximo</th>
+              <th>Preço</th>
               <th>Descrição</th>
             </tr>
           </thead>
@@ -796,13 +795,17 @@ function normalizePromos(list) {
 function normalizeAreaItem(item, fallback) {
   const base = fallback || {};
   const source = item && typeof item === "object" ? item : {};
+  const min = Number(source.min ?? base.min ?? 0);
+  const max = Number(source.max ?? base.max ?? 0);
+  const preco = Number(source.preco ?? (min && max ? (min + max) / 2 : (min || max || 0)));
   return {
     ...base,
     ...source,
     titulo: String(source.titulo ?? base.titulo ?? ""),
     descricao: String(source.descricao ?? base.descricao ?? ""),
-    min: Number(source.min ?? base.min ?? 0),
-    max: Number(source.max ?? base.max ?? 0),
+    preco: roundPrice(preco),
+    min: roundPrice(preco),
+    max: roundPrice(preco),
     ativa: source.ativa !== false && base.ativa !== false
   };
 }
@@ -846,8 +849,7 @@ function renderRows() {
     <tr data-id="${id}">
       <td><input data-field="ativa" type="checkbox" ${item.ativa !== false ? "checked" : ""}></td>
       <td><input class="area-name" data-field="titulo" value="${escapeHtml(item.titulo)}"></td>
-      <td><input data-field="min" type="number" min="0" step="50" value="${Number(item.min || 0)}"></td>
-      <td><input data-field="max" type="number" min="0" step="50" value="${Number(item.max || 0)}"></td>
+      <td><input data-field="preco" type="number" min="0" step="50" value="${Number(item.preco ?? item.min ?? item.max ?? 0)}"></td>
       <td><textarea class="area-text" data-field="descricao">${escapeHtml(item.descricao || "")}</textarea></td>
     </tr>
   `).join("");
@@ -945,7 +947,7 @@ function pieceBasePrice(id, areaSource = areas) {
   const region = regionFromPartId(id);
   const data = areaSource[region];
   if (!data) return 0;
-  return roundPrice((Number(data.min || 0) + Number(data.max || 0)) / 2);
+  return roundPrice(Number(data.preco ?? data.min ?? data.max ?? 0));
 }
 
 function pieceLabel(id) {
@@ -977,7 +979,12 @@ function currentAreasFromRows() {
     row.querySelectorAll("[data-field]").forEach(input => {
       const field = input.dataset.field;
       if (field === "ativa") next.ativa = input.checked;
-      else if (field === "min" || field === "max") next[field] = Number(input.value || 0);
+      else if (field === "preco") {
+        const price = roundPrice(Number(input.value || 0));
+        next.preco = price;
+        next.min = price;
+        next.max = price;
+      }
       else next[field] = input.value;
     });
     nextAreas[id] = next;
@@ -1111,7 +1118,12 @@ function save() {
     row.querySelectorAll("[data-field]").forEach(input => {
       const field = input.dataset.field;
       if (field === "ativa") next.ativa = input.checked;
-      else if (field === "min" || field === "max") next[field] = Number(input.value || 0);
+      else if (field === "preco") {
+        const price = roundPrice(Number(input.value || 0));
+        next.preco = price;
+        next.min = price;
+        next.max = price;
+      }
       else next[field] = input.value;
     });
     areas[id] = next;
@@ -1173,10 +1185,14 @@ $("promoRows").addEventListener("click", event => {
   renderSummary();
 });
 $("rows").addEventListener("input", () => {
+  areas = currentAreasFromRows();
   renderPromoRows();
+  renderSummary();
 });
 $("rows").addEventListener("change", () => {
+  areas = currentAreasFromRows();
   renderPromoRows();
+  renderSummary();
 });
 
 fillConfig();
