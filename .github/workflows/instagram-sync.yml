@@ -11,8 +11,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Trigger live Instagram sync
+      - name: Start live Instagram sync in background
         run: |
-          curl --fail --show-error --silent --max-time 900 "https://danieltatuador.com/instagram/sync.php" > instagram-sync-result.json
-          cat instagram-sync-result.json
-          grep -q '"ok": true' instagram-sync-result.json
+          curl --fail --show-error --silent --max-time 30 "https://danieltatuador.com/instagram/sync-start.php" > instagram-sync-start.json
+          cat instagram-sync-start.json
+          grep -q '"ok": true' instagram-sync-start.json
+
+      - name: Wait for sync to finish
+        run: |
+          for i in {1..90}; do
+            curl --fail --show-error --silent --max-time 30 "https://danieltatuador.com/instagram/sync-status.php" > instagram-sync-status.json
+            cat instagram-sync-status.json
+            if grep -q '"running": false' instagram-sync-status.json; then
+              grep -q '"ok": true' instagram-sync-status.json
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Sync did not finish within workflow timeout. It may still be running on the server."
+          exit 1
