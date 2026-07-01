@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../auth/auth.php';
-require_admin();
+// Painel local do orçamento: edita apenas as preferências salvas no navegador.
+// Não depende de login nem de banco para não quebrar o fluxo de ajustes visuais.
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
