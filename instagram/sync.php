@@ -1,16 +1,9 @@
 <?php
 /**
  * Sincroniza mídias do Instagram, grava cache JSON e espelha imagens/capas em /galeria.
- *
- * O index.php atual já monta a galeria lendo arquivos da pasta /galeria.
- * Então este sync baixa as imagens/capas do Instagram para essa pasta, sem precisar mexer no layout.
- *
- * Pode ser chamado pelo feed.php, pelo GitHub Actions semanal ou manualmente:
- * php /caminho/do/site/instagram/sync.php
+ * Também escreve progresso em instagram/cache/sync-status.json para a página sync-panel.php.
  */
 
-// Buscar e baixar muitas imagens pode passar do limite padrão do PHP/Apache.
-// Sem isso o XAMPP mata o processo em 120 segundos, como se estivesse fazendo um favor.
 @ini_set('max_execution_time', '0');
 @ini_set('memory_limit', '512M');
 @ignore_user_abort(true);
@@ -21,16 +14,52 @@ if (function_exists('set_time_limit')) {
 $configFile = __DIR__ . '/config.local.php';
 $cacheDir = __DIR__ . '/cache';
 $cacheFile = $cacheDir . '/feed.json';
+$statusFile = $cacheDir . '/sync-status.json';
 $galleryDir = realpath(__DIR__ . '/..') . DIRECTORY_SEPARATOR . 'galeria';
 
+if (!is_dir($cacheDir)) {
+    @mkdir($cacheDir, 0755, true);
+}
+
+function ig_status(string $phase, int $percent, string $message, array $extra = []): void
+{
+    global $statusFile;
+
+    $payload = array_merge([
+        'ok' => true,
+        'running' => true,
+        'phase' => $phase,
+        'percent' => max(0, min(100, $percent)),
+        'message' => $message,
+        'updated_at' => date('c'),
+    ], $extra);
+
+    @file_put_contents($statusFile, json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+}
+
+function ig_finish(bool $ok, string $message, array $extra = []): void
+{
+    global $statusFile;
+
+    $payload = array_merge([
+        'ok' => $ok,
+        'running' => false,
+        'phase' => $ok ? 'done' : 'error',
+        'percent' => $ok ? 100 : 0,
+        'message' => $message,
+        'updated_at' => date('c'),
+    ], $extra);
+
+    @file_put_contents($statusFile, json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+}
+
+ig_status('start', 1, 'Preparando sincronização...');
+
 if (!file_exists($configFile)) {
-    if (PHP_SAPI !== 'cli') {
-        http_response_code(500);
-    }
-    echo json_encode([
-        'ok' => false,
-        'error' => 'Arquivo instagram/config.local.php não encontrado.',
-    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $error = ['ok' => false, 'error' => 'Arquivo instagram/config.local.php não encontrado.'];
+    ig_finish(false, $error['error'], ['error' => $error['error']]);
+    if (PHP_SAPI !== 'cli') http_response_code(500);
+    echo json_encode($error, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }
 
@@ -48,18 +77,11 @@ $replaceLocalGallery = (bool)($config['replace_local_gallery'] ?? true);
 $downloadTimeout = max(8, (int)($config['download_timeout'] ?? 12));
 
 if ($accessToken === '' || $accessToken === 'COLE_SEU_TOKEN_AQUI') {
-    if (PHP_SAPI !== 'cli') {
-        http_response_code(500);
-    }
-    echo json_encode([
-        'ok' => false,
-        'error' => 'Access token vazio em instagram/config.local.php.',
-    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $error = ['ok' => false, 'error' => 'Access token vazio em instagram/config.local.php.'];
+    ig_finish(false, $error['error'], ['error' => $error['error']]);
+    if (PHP_SAPI !== 'cli') http_response_code(500);
+    echo json_encode($error, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
-}
-
-if (!is_dir($cacheDir)) {
-    @mkdir($cacheDir, 0755, true);
 }
 
 function ig_fetch_json(string $url): array
@@ -80,11 +102,7 @@ function ig_fetch_json(string $url): array
     curl_close($ch);
 
     if ($response === false) {
-        return [
-            'ok' => false,
-            'error' => 'Erro cURL ao chamar Instagram.',
-            'details' => $curlError,
-        ];
+        return ['ok' => false, 'error' => 'Erro cURL ao chamar Instagram.', 'details' => $curlError];
     }
 
     $decoded = json_decode($response, true);
@@ -103,15 +121,11 @@ function ig_fetch_json(string $url): array
 
 function ig_download_media(string $url, string $destination, int $timeout = 12): bool
 {
-    if ($url === '') {
-        return false;
-    }
+    if ($url === '') return false;
 
     $tmp = $destination . '.tmp';
     $fp = @fopen($tmp, 'wb');
-    if (!$fp) {
-        return false;
-    }
+    if (!$fp) return false;
 
     $ch = curl_init($url);
     curl_setopt_array($ch, [
@@ -141,26 +155,15 @@ function ig_download_media(string $url, string $destination, int $timeout = 12):
 
 function ig_prepare_gallery_dir(string $galleryDir, bool $replaceLocalGallery): array
 {
-    $result = [
-        'backup_created' => null,
-        'local_files_moved' => 0,
-        'old_instagram_files_removed' => 0,
-    ];
+    $result = ['backup_created' => null, 'local_files_moved' => 0, 'old_instagram_files_removed' => 0];
 
-    if (!is_dir($galleryDir)) {
-        @mkdir($galleryDir, 0755, true);
-    }
-
+    if (!is_dir($galleryDir)) @mkdir($galleryDir, 0755, true);
     if (!is_dir($galleryDir) || !is_writable($galleryDir)) {
         return $result + ['error' => 'A pasta galeria não existe ou não tem permissão de escrita.'];
     }
 
-    $files = glob($galleryDir . DIRECTORY_SEPARATOR . '*') ?: [];
-    foreach ($files as $file) {
-        if (!is_file($file)) {
-            continue;
-        }
-
+    foreach ((glob($galleryDir . DIRECTORY_SEPARATOR . '*') ?: []) as $file) {
+        if (!is_file($file)) continue;
         $base = basename($file);
         if (preg_match('/^instagram_[a-zA-Z0-9_-]+\.(jpe?g|png|webp)$/i', $base)) {
             @unlink($file);
@@ -175,10 +178,7 @@ function ig_prepare_gallery_dir(string $galleryDir, bool $replaceLocalGallery): 
             @mkdir($backupDir, 0755, true);
 
             foreach ((glob($galleryDir . DIRECTORY_SEPARATOR . '*') ?: []) as $file) {
-                if (!is_file($file)) {
-                    continue;
-                }
-
+                if (!is_file($file)) continue;
                 $base = basename($file);
                 if (preg_match('/\.(jpe?g|png|webp|gif)$/i', $base) && !preg_match('/^instagram_/i', $base)) {
                     if (@rename($file, $backupDir . DIRECTORY_SEPARATOR . $base)) {
@@ -206,10 +206,7 @@ function ig_normalize_item(array $item): ?array
     $mediaUrl = (string)($item['media_url'] ?? '');
     $thumbUrl = (string)($item['thumbnail_url'] ?? '');
     $imageUrl = $thumbUrl !== '' ? $thumbUrl : $mediaUrl;
-
-    if ($imageUrl === '') {
-        return null;
-    }
+    if ($imageUrl === '') return null;
 
     $caption = (string)($item['caption'] ?? '');
     $id = preg_replace('/[^a-zA-Z0-9_-]/', '', (string)($item['id'] ?? uniqid('ig_', true)));
@@ -227,16 +224,7 @@ function ig_normalize_item(array $item): ?array
     ];
 }
 
-$fields = implode(',', [
-    'id',
-    'caption',
-    'media_type',
-    'media_url',
-    'permalink',
-    'thumbnail_url',
-    'timestamp',
-]);
-
+$fields = implode(',', ['id', 'caption', 'media_type', 'media_url', 'permalink', 'thumbnail_url', 'timestamp']);
 $nextUrl = 'https://graph.instagram.com/v24.0/me/media?' . http_build_query([
     'fields' => $fields,
     'limit' => min($pageSize, $maxItems),
@@ -247,13 +235,14 @@ $items = [];
 $pagesFetched = 0;
 $seenIds = [];
 
+ig_status('fetch', 5, 'Buscando posts no Instagram...', ['pages_fetched' => 0, 'found' => 0]);
+
 while ($nextUrl !== '' && $pagesFetched < $maxPages && count($items) < $maxItems) {
     $result = ig_fetch_json($nextUrl);
 
     if (!$result['ok']) {
-        if (PHP_SAPI !== 'cli') {
-            http_response_code(502);
-        }
+        ig_finish(false, $result['error'] ?? 'Erro ao buscar dados do Instagram.', $result);
+        if (PHP_SAPI !== 'cli') http_response_code(502);
         echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
     }
@@ -262,32 +251,44 @@ while ($nextUrl !== '' && $pagesFetched < $maxPages && count($items) < $maxItems
     $pagesFetched++;
 
     foreach (($decoded['data'] ?? []) as $rawItem) {
-        if (count($items) >= $maxItems) {
-            break;
-        }
-
+        if (count($items) >= $maxItems) break;
         $post = ig_normalize_item($rawItem);
-        if (!$post || isset($seenIds[$post['id']])) {
-            continue;
-        }
-
+        if (!$post || isset($seenIds[$post['id']])) continue;
         $seenIds[$post['id']] = true;
         $items[] = $post;
     }
+
+    $fetchPercent = $fetchAll ? min(35, 5 + ($pagesFetched * 3)) : min(35, 5 + (int)((count($items) / max(1, $maxItems)) * 30));
+    ig_status('fetch', $fetchPercent, 'Buscando posts no Instagram...', [
+        'pages_fetched' => $pagesFetched,
+        'found' => count($items),
+        'max_pages' => $maxPages,
+    ]);
 
     $nextUrl = (string)($decoded['paging']['next'] ?? '');
 }
 
 $gallerySync = null;
 if ($mirrorToGallery && count($items) > 0) {
+    ig_status('prepare', 38, 'Preparando pasta da galeria...', ['found' => count($items)]);
     $gallerySync = ig_prepare_gallery_dir($galleryDir, $replaceLocalGallery);
     $downloaded = 0;
     $failed = 0;
+    $total = count($items);
 
     if (empty($gallerySync['error'])) {
         foreach ($items as $pos => $post) {
-            $extension = 'jpg';
-            $filename = sprintf('instagram_%03d_%s.%s', $pos + 1, $post['id'], $extension);
+            $current = $pos + 1;
+            $percent = 40 + (int)(($pos / max(1, $total)) * 58);
+            ig_status('download', $percent, 'Baixando imagens e capas para a galeria...', [
+                'current' => $current,
+                'total' => $total,
+                'downloaded' => $downloaded,
+                'failed' => $failed,
+                'current_id' => $post['id'],
+            ]);
+
+            $filename = sprintf('instagram_%03d_%s.jpg', $current, $post['id']);
             $destination = $galleryDir . DIRECTORY_SEPARATOR . $filename;
 
             if (ig_download_media((string)$post['image'], $destination, $downloadTimeout)) {
@@ -301,6 +302,13 @@ if ($mirrorToGallery && count($items) > 0) {
     $gallerySync['downloaded'] = $downloaded;
     $gallerySync['failed'] = $failed;
     $gallerySync['gallery_dir'] = $galleryDir;
+
+    ig_status('download', 99, 'Finalizando sincronização...', [
+        'current' => $total,
+        'total' => $total,
+        'downloaded' => $downloaded,
+        'failed' => $failed,
+    ]);
 }
 
 $output = [
@@ -315,7 +323,7 @@ $output = [
 ];
 
 $json = json_encode($output, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
-
 @file_put_contents($cacheFile, $json);
+ig_finish(true, 'Sincronização concluída.', ['percent' => 100, 'result' => $output]);
 
 echo $json;
