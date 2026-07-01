@@ -26,6 +26,15 @@ $heroOverride = <<<'HTML'
   mix-blend-mode:normal !important;
   mask-image:linear-gradient(to bottom,#000 60%,transparent);
 }
+@media(max-width:720px){
+  .hero-grid{
+    grid-template-columns:1fr !important;
+    padding-bottom:64px !important;
+  }
+  .hero-visual{
+    display:none !important;
+  }
+}
 </style>
 HTML;
 
