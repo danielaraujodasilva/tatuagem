@@ -16,4 +16,15 @@ return [
 
     // Tempo de cache em segundos. 21600 = 6 horas.
     'cache_ttl' => 21600,
+
+    // Espelha imagens/capas do Instagram para a pasta /galeria.
+    // O index.php atual já lê essa pasta, então isso troca a galeria sem mexer no layout.
+    'mirror_to_gallery' => true,
+
+    // true = move as imagens antigas da /galeria para uma pasta _backup_local_* na primeira sincronização.
+    // false = mantém imagens antigas junto com as do Instagram.
+    'replace_local_gallery' => true,
+
+    // Timeout para baixar cada imagem/capa do Instagram.
+    'download_timeout' => 30,
 ];
