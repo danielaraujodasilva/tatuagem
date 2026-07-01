@@ -496,6 +496,23 @@ td input[type="checkbox"] {
   font-size: 18px;
 }
 
+.promo-preview-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.promo-preview-stack-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.promo-preview-stack-row strong {
+  margin: 0;
+  font-size: 16px;
+}
+
 .promo-preview-box.final strong {
   color: #8dffad;
 }
@@ -856,7 +873,7 @@ function renderPromoRows() {
         <summary>
           <span class="promo-card-headline">
             <strong>${escapeHtml(item.titulo || "Promoção sem título")}</strong>
-            <span>${descontoPercent}% OFF · ${pieceCount} peça(s) · ${money(finalPrice)}</span>
+            <span>${descontoPercent}% OFF · ${pieceCount} peça(s) · ${money(total.price)} → ${money(finalPrice)}</span>
           </span>
         </summary>
         <div class="promo-card-body">
@@ -1003,8 +1020,17 @@ function updatePromoPreviews() {
     const preview = card.querySelector("[data-promo-preview]");
     preview.innerHTML = `
       <div class="promo-preview-box">
-        <span>Preço da promoção</span>
-        <strong>${money(finalPrice)}</strong>
+        <span>Resumo do preço</span>
+        <div class="promo-preview-stack">
+          <div class="promo-preview-stack-row">
+            <span>Bruto</span>
+            <strong>${money(total)}</strong>
+          </div>
+          <div class="promo-preview-stack-row">
+            <span>Com promoção</span>
+            <strong>${money(finalPrice)}</strong>
+          </div>
+        </div>
       </div>
     `;
   });
