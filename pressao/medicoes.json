@@ -1,0 +1,21 @@
+[
+  {"id":"bp-2026-07-03-0900","date":"2026-07-03","time":"09:00","systolic":148,"diastolic":93,"pulse":82},
+  {"id":"bp-2026-07-04-0731","date":"2026-07-04","time":"07:31","systolic":155,"diastolic":100,"pulse":73},
+  {"id":"bp-2026-07-04-1554","date":"2026-07-04","time":"15:54","systolic":146,"diastolic":100,"pulse":76},
+  {"id":"bp-2026-07-05-0651","date":"2026-07-05","time":"06:51","systolic":146,"diastolic":96,"pulse":73},
+  {"id":"bp-2026-07-06-0735","date":"2026-07-06","time":"07:35","systolic":138,"diastolic":97,"pulse":90},
+  {"id":"bp-2026-07-07-0829","date":"2026-07-07","time":"08:29","systolic":135,"diastolic":88,"pulse":75},
+  {"id":"bp-2026-07-08-1006","date":"2026-07-08","time":"10:06","systolic":133,"diastolic":89,"pulse":64},
+  {"id":"bp-2026-07-09","date":"2026-07-09","time":null,"systolic":125,"diastolic":95,"pulse":66},
+  {"id":"bp-2026-07-10","date":"2026-07-10","time":null,"systolic":152,"diastolic":103,"pulse":72},
+  {"id":"bp-2026-07-11","date":"2026-07-11","time":null,"systolic":128,"diastolic":76,"pulse":84},
+  {"id":"bp-2026-07-12","date":"2026-07-12","time":null,"systolic":138,"diastolic":96,"pulse":73},
+  {"id":"bp-2026-07-13","date":"2026-07-13","time":null,"systolic":144,"diastolic":91,"pulse":79},
+  {"id":"bp-2026-07-14","date":"2026-07-14","time":null,"systolic":128,"diastolic":77,"pulse":80},
+  {"id":"bp-2026-07-15","date":"2026-07-15","time":null,"systolic":129,"diastolic":90,"pulse":84},
+  {"id":"bp-2026-07-17","date":"2026-07-17","time":null,"systolic":128,"diastolic":84,"pulse":86},
+  {"id":"bp-2026-07-18-2200","date":"2026-07-18","time":"22:00","systolic":138,"diastolic":85,"pulse":79},
+  {"id":"bp-2026-07-19","date":"2026-07-19","time":null,"systolic":128,"diastolic":90,"pulse":73},
+  {"id":"bp-2026-07-20-0908","date":"2026-07-20","time":"09:08","systolic":141,"diastolic":87,"pulse":71},
+  {"id":"bp-2026-07-21-0750","date":"2026-07-21","time":"07:50","systolic":123,"diastolic":74,"pulse":73}
+]

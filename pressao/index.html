@@ -20,17 +20,17 @@
   <header class="hero">
     <div class="eyebrow"><span class="pulse-dot"></span>Acompanhamento domiciliar</div>
     <h1>Pressão arterial<br>em evolução.</h1>
-    <p>Resumo visual das medições realizadas entre 03 e 21 de julho de 2026, organizado para facilitar avaliação clínica e acompanhamento longitudinal.</p>
+    <p id="bpRangeText">Resumo visual das medições realizadas entre 03 e 21 de julho de 2026, organizado para facilitar avaliação clínica e acompanhamento longitudinal.</p>
   </header>
 
-  <section class="grid stats">
+  <section class="grid stats" id="bpSummaryStats">
     <article class="card stat"><small>Média do período</small><strong>137/90</strong><span>mmHg · 19 medições válidas</span></article>
     <article class="card stat"><small>Leitura mais recente</small><strong class="good">123/74</strong><span>21/07 · pulso 73 bpm</span></article>
     <article class="card stat"><small>Maior sistólica</small><strong class="warn">155</strong><span>04/07 às 07:31</span></article>
     <article class="card stat"><small>Maior diastólica</small><strong class="warn">103</strong><span>10/07 · horário pendente</span></article>
   </section>
 
-  <section class="card section">
+  <section class="card section" id="bpChartSection">
     <h2>Evolução das medições</h2>
     <div class="sub">Sistólica e diastólica em mmHg. Os horários com “--:--” serão corrigidos posteriormente a partir dos metadados originais das fotos.</div>
     <div class="chart-shell"><canvas id="bpChart" aria-label="Gráfico de evolução da pressão arterial"></canvas></div>
@@ -38,7 +38,7 @@
   </section>
 
   <section class="grid two">
-    <article class="card section">
+    <article class="card section" id="bpTableSection">
       <h2>Leituras completas</h2>
       <div class="sub">Dados documentados por fotografia do aparelho.</div>
       <div class="table-wrap">
@@ -75,7 +75,7 @@
     </aside>
   </section>
 
-  <section class="card section">
+  <section class="card section" id="bpTechnicalStats">
     <h2>Resumo técnico</h2>
     <div class="sub">Estatística descritiva simples do período, sem substituir diagnóstico, MRPA/MAPA ou avaliação médica.</div>
     <div class="grid stats" style="margin:0">
@@ -96,24 +96,50 @@
     <button class="print-btn" onclick="window.print()">Imprimir / salvar em PDF</button>
   </section>
 
-  <div class="footer">Atualizado em 21/07/2026 · Documento de acompanhamento pessoal para facilitar comunicação com a equipe de saúde.</div>
+  <div class="footer" id="bpFooter">Atualizado em 21/07/2026 · Documento de acompanhamento pessoal para facilitar comunicação com a equipe de saúde.</div>
 </main>
 <script>
-const data=[
-['03/07','09:00',148,93,82],['04/07','07:31',155,100,73],['04/07','15:54',146,100,76],['05/07','06:51',146,96,73],['06/07','07:35',138,97,90],['07/07','08:29',135,88,75],['08/07','10:06',133,89,64],['09/07','--:--',125,95,66],['10/07','--:--',152,103,72],['11/07','--:--',128,76,84],['12/07','--:--',138,96,73],['13/07','--:--',144,91,79],['14/07','--:--',128,77,80],['15/07','--:--',129,90,84],['17/07','--:--',128,84,86],['18/07','~22:00',138,85,79],['19/07','--:--',128,90,73],['20/07','09:08',141,87,71],['21/07','07:50',123,74,73]
-];
 const tbody=document.getElementById('rows');
-function badge(s,d){if(s<130&&d<85)return ['Boa','badge-ok'];if(s>=150||d>=100)return ['Elevada','badge-high'];return ['Atenção','badge-att']}
-data.forEach(r=>{const [txt,cls]=badge(r[2],r[3]);const tr=document.createElement('tr');tr.innerHTML=`<td>${r[0]}/26</td><td>${r[1]}</td><td><b>${r[2]}/${r[3]}</b></td><td>${r[4]} bpm</td><td><span class="badge ${cls}">${txt}</span></td>`;tbody.appendChild(tr)});
+const canvas=document.getElementById('bpChart');
+const ctx=canvas.getContext('2d');
+const heroRange=document.getElementById('bpRangeText');
+const summaryCards=document.querySelectorAll('#bpSummaryStats .stat');
+const technicalCards=document.querySelectorAll('#bpTechnicalStats .stat');
+const footer=document.getElementById('bpFooter');
+const monthNames=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 
-const canvas=document.getElementById('bpChart'),ctx=canvas.getContext('2d');let progress=0;
-function draw(){const dpr=Math.max(1,devicePixelRatio||1),rect=canvas.getBoundingClientRect();canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);const w=rect.width,h=rect.height,p={l:42,r:16,t:18,b:34};ctx.clearRect(0,0,w,h);const minY=65,maxY=165,x=i=>p.l+(i/(data.length-1))*(w-p.l-p.r),y=v=>p.t+(maxY-v)/(maxY-minY)*(h-p.t-p.b);
-  ctx.font='11px system-ui';ctx.fillStyle='#7890a7';ctx.strokeStyle='rgba(255,255,255,.08)';ctx.lineWidth=1;
-  [70,90,110,130,150].forEach(v=>{ctx.beginPath();ctx.moveTo(p.l,y(v));ctx.lineTo(w-p.r,y(v));ctx.stroke();ctx.fillText(v,8,y(v)+4)});
-  data.forEach((r,i)=>{if(i%2===0||w>760){ctx.fillStyle='#6f859a';ctx.save();ctx.translate(x(i),h-9);ctx.rotate(-.35);ctx.fillText(r[0],-16,0);ctx.restore()}});
-  const series=[{k:2,c:'#50c8ff'},{k:3,c:'#a78bfa'}];series.forEach(s=>{ctx.strokeStyle=s.c;ctx.lineWidth=2.6;ctx.lineJoin='round';ctx.lineCap='round';ctx.beginPath();data.forEach((r,i)=>{const xx=x(i),yy=y(r[s.k]);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)});ctx.stroke();data.forEach((r,i)=>{ctx.fillStyle=s.c;ctx.beginPath();ctx.arc(x(i),y(r[s.k]),3.2,0,Math.PI*2);ctx.fill()})});
+function pad2(value){return String(value).padStart(2,'0')}
+function parseDate(value){if(!value)return null;const date=new Date(`${value}T12:00:00`);return Number.isNaN(date.getTime())?null:date}
+function timeToMinutes(value){if(!value||value==='--:--')return 24*60;const match=/^(\d{2}):(\d{2})$/.exec(value);if(!match)return 24*60;return (parseInt(match[1],10)*60)+parseInt(match[2],10)}
+function formatDateShort(value){const date=parseDate(value);return date?`${pad2(date.getDate())}/${pad2(date.getMonth()+1)}/${String(date.getFullYear()).slice(-2)}`:(value||'')}
+function formatDateLong(value){const date=parseDate(value);return date?`${pad2(date.getDate())} de ${monthNames[date.getMonth()]} de ${date.getFullYear()}`:(value||'')}
+function formatDateRange(startValue,endValue){const start=parseDate(startValue);const end=parseDate(endValue);if(!start||!end)return '';if(start.getFullYear()===end.getFullYear()&&start.getMonth()===end.getMonth()){return `${pad2(start.getDate())} e ${pad2(end.getDate())} de ${monthNames[start.getMonth()]} de ${start.getFullYear()}`;}return `${formatDateLong(startValue)} a ${formatDateLong(endValue)}`}
+function normalizeMeasurement(item,index){const date=typeof item.date==='string'?item.date.trim():'';const time=typeof item.time==='string'&&item.time.trim()!==''?item.time.trim():'';const systolic=Number(item.systolic);const diastolic=Number(item.diastolic);const pulse=Number(item.pulse);if(!date||Number.isNaN(systolic)||Number.isNaN(diastolic)||Number.isNaN(pulse))return null;return {id:typeof item.id==='string'&&item.id?item.id:`bp-${index}`,date,time,systolic,diastolic,pulse}}
+function sortMeasurements(items){return items.slice().sort((a,b)=>{const dateA=a.date||'';const dateB=b.date||'';if(dateA!==dateB)return dateA.localeCompare(dateB);const timeA=timeToMinutes(a.time);const timeB=timeToMinutes(b.time);if(timeA!==timeB)return timeA-timeB;return (a.id||'').localeCompare(b.id||'')})}
+function badge(s,d){if(s<130&&d<85)return ['Boa','badge-ok'];if(s>=150||d>=100)return ['Elevada','badge-high'];return ['Atenção','badge-att']}
+function formatDecimal(value){return value.toFixed(1).replace('.0','').replace('.',',')}
+function computeStats(items){if(!items.length){return {count:0,avgSys:0,avgDia:0,avgPulse:0,maxSys:null,maxDia:null,latest:null,minSys:null,minDia:null,minDate:null,maxDate:null};}
+ let sys=0,dia=0,pulse=0,maxSys=items[0],maxDia=items[0],minSys=items[0],minDia=items[0];
+ for(const item of items){sys+=item.systolic;dia+=item.diastolic;pulse+=item.pulse;if(item.systolic>maxSys.systolic)maxSys=item;if(item.diastolic>maxDia.diastolic)maxDia=item;if(item.systolic<minSys.systolic)minSys=item;if(item.diastolic<minDia.diastolic)minDia=item;}
+ return {count:items.length,avgSys:sys/items.length,avgDia:dia/items.length,avgPulse:pulse/items.length,maxSys,maxDia,minSys,minDia,latest:items[items.length-1],minDate:items[0].date,maxDate:items[items.length-1].date};
 }
-let ro=new ResizeObserver(draw);ro.observe(canvas);draw();
+function renderRows(items){tbody.innerHTML='';items.forEach(item=>{const [txt,cls]=badge(item.systolic,item.diastolic);const tr=document.createElement('tr');tr.innerHTML=`<td>${formatDateShort(item.date)}</td><td>${item.time||'--:--'}</td><td><b>${item.systolic}/${item.diastolic}</b></td><td>${item.pulse} bpm</td><td><span class="badge ${cls}">${txt}</span></td>`;tbody.appendChild(tr);});}
+function updateSummary(items){const stats=computeStats(items);if(!items.length){heroRange.textContent='Nenhuma medição cadastrada ainda.';summaryCards[0].innerHTML='<small>Média do período</small><strong>--/--</strong><span>mmHg · 0 medições válidas</span>';summaryCards[1].innerHTML='<small>Leitura mais recente</small><strong class="good">--/--</strong><span>sem dados</span>';summaryCards[2].innerHTML='<small>Maior sistólica</small><strong class="warn">--</strong><span>sem dados</span>';summaryCards[3].innerHTML='<small>Maior diastólica</small><strong class="warn">--</strong><span>sem dados</span>';technicalCards[0].innerHTML='<small>Sistólica média</small><strong>--</strong><span>mín. -- · máx. --</span>';technicalCards[1].innerHTML='<small>Diastólica média</small><strong>--</strong><span>mín. -- · máx. --</span>';technicalCards[2].innerHTML='<small>Pulso médio</small><strong>--</strong><span>bpm</span>';technicalCards[3].innerHTML='<small>Amplitude observada</small><strong>--/--</strong><span>variação sistólica/diastólica em mmHg</span>';footer.textContent='Nenhuma medição cadastrada ainda.';return;}
+ heroRange.textContent=`Resumo visual das medições realizadas entre ${formatDateRange(stats.minDate, stats.maxDate)}, organizado para facilitar avaliação clínica e acompanhamento longitudinal.`;
+ summaryCards[0].innerHTML=`<small>Média do período</small><strong>${formatDecimal(stats.avgSys)}/${formatDecimal(stats.avgDia)}</strong><span>mmHg · ${stats.count} medições válidas</span>`;
+ summaryCards[1].innerHTML=`<small>Leitura mais recente</small><strong class="good">${stats.latest.systolic}/${stats.latest.diastolic}</strong><span>${formatDateShort(stats.latest.date)} · pulso ${stats.latest.pulse} bpm</span>`;
+ summaryCards[2].innerHTML=`<small>Maior sistólica</small><strong class="warn">${stats.maxSys.systolic}</strong><span>${formatDateShort(stats.maxSys.date)}${stats.maxSys.time ? ` às ${stats.maxSys.time}` : ''}</span>`;
+ summaryCards[3].innerHTML=`<small>Maior diastólica</small><strong class="warn">${stats.maxDia.diastolic}</strong><span>${formatDateShort(stats.maxDia.date)}${stats.maxDia.time ? ` · ${stats.maxDia.time}` : ' · horário pendente'}</span>`;
+ technicalCards[0].innerHTML=`<small>Sistólica média</small><strong>${formatDecimal(stats.avgSys)}</strong><span>mín. ${stats.minSys.systolic} · máx. ${stats.maxSys.systolic}</span>`;
+ technicalCards[1].innerHTML=`<small>Diastólica média</small><strong>${formatDecimal(stats.avgDia)}</strong><span>mín. ${stats.minDia.diastolic} · máx. ${stats.maxDia.diastolic}</span>`;
+ technicalCards[2].innerHTML=`<small>Pulso médio</small><strong>${formatDecimal(stats.avgPulse)}</strong><span>bpm</span>`;
+ technicalCards[3].innerHTML=`<small>Amplitude observada</small><strong>${stats.maxSys.systolic - stats.minSys.systolic}/${stats.maxDia.diastolic - stats.minDia.diastolic}</strong><span>variação sistólica/diastólica em mmHg</span>`;
+ footer.textContent=`Atualizado em ${formatDateLong(stats.maxDate)} · Documento de acompanhamento pessoal para facilitar comunicação com a equipe de saúde.`;
+}
+function drawChart(items){const dpr=Math.max(1,devicePixelRatio||1),rect=canvas.getBoundingClientRect();canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);const w=rect.width,h=rect.height,p={l:42,r:16,t:18,b:34};ctx.clearRect(0,0,w,h);if(!items.length){ctx.fillStyle='#92a7bd';ctx.font='14px system-ui';ctx.fillText('Sem dados para exibir.',p.l,p.t+24);return;}const minY=65,maxY=165,x=i=>p.l+(i/Math.max(items.length-1,1))*(w-p.l-p.r),y=v=>p.t+(maxY-v)/(maxY-minY)*(h-p.t-p.b);ctx.font='11px system-ui';ctx.fillStyle='#7890a7';ctx.strokeStyle='rgba(255,255,255,.08)';ctx.lineWidth=1;[70,90,110,130,150].forEach(v=>{ctx.beginPath();ctx.moveTo(p.l,y(v));ctx.lineTo(w-p.r,y(v));ctx.stroke();ctx.fillText(v,8,y(v)+4)});items.forEach((r,i)=>{if(i%2===0||w>760){ctx.fillStyle='#6f859a';ctx.save();ctx.translate(x(i),h-9);ctx.rotate(-.35);ctx.fillText(formatDateShort(r.date),-16,0);ctx.restore()}});const series=[{k:'systolic',c:'#50c8ff'},{k:'diastolic',c:'#a78bfa'}];series.forEach(s=>{ctx.strokeStyle=s.c;ctx.lineWidth=2.6;ctx.lineJoin='round';ctx.lineCap='round';ctx.beginPath();items.forEach((r,i)=>{const xx=x(i),yy=y(r[s.k]);i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy)});ctx.stroke();items.forEach((r,i)=>{ctx.fillStyle=s.c;ctx.beginPath();ctx.arc(x(i),y(r[s.k]),3.2,0,Math.PI*2);ctx.fill()})});}
+async function init(){let raw=[];try{const response=await fetch(`medicoes.json?v=${Date.now()}`,{cache:'no-store'});if(response.ok){const data=await response.json();if(Array.isArray(data))raw=data;}}catch(error){console.warn('Nao foi possivel carregar medicoes.json',error);}
+const normalized=sortMeasurements(raw.map(normalizeMeasurement).filter(Boolean));updateSummary(normalized);renderRows(normalized);drawChart(normalized);new ResizeObserver(()=>drawChart(normalized)).observe(canvas);}
+init();
 </script>
 </body>
 </html>
