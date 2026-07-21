@@ -1,4 +1,4 @@
-DirectoryIndex home.php index.php
+DirectoryIndex home.php index.php index.html
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
