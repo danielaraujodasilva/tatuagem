@@ -31,6 +31,7 @@ Alternativa local: copie `crm/config.local.example.php` para `crm/config.local.p
 - `DEPLOY_PATH`
 
 Alternativa local: copie `deploy.local.example.php` para `deploy.local.php` no servidor e preencha o `secret` com o mesmo segredo configurado no webhook do GitHub.
+Se usar o workflow `Deploy Production Site`, cadastre o mesmo valor em `DEPLOY_WEBHOOK_SECRET` nos secrets do repositório GitHub.
 
 ### Mercado Pago / Flash
 

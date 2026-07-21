@@ -1,0 +1,44 @@
+name: Deploy Production Site
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Trigger server deploy webhook
+        env:
+          DEPLOY_WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
+          DEPLOY_URL: https://danieltatuador.com/deploy.php
+        run: |
+          set -euo pipefail
+
+          if [ -z "${DEPLOY_WEBHOOK_SECRET:-}" ]; then
+            echo "Missing repository secret DEPLOY_WEBHOOK_SECRET." >&2
+            exit 1
+          fi
+
+          payload=$(printf '{"event":"push","repository":"%s","ref":"%s","sha":"%s","run_id":"%s"}' \
+            "$GITHUB_REPOSITORY" \
+            "$GITHUB_REF" \
+            "$GITHUB_SHA" \
+            "$GITHUB_RUN_ID")
+
+          signature="sha256=$(printf '%s' "$payload" | openssl dgst -sha256 -hmac "$DEPLOY_WEBHOOK_SECRET" | awk '{print $2}')"
+
+          curl --fail --show-error --silent \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "X-Hub-Signature-256: $signature" \
+            --data-binary "$payload" \
+            "$DEPLOY_URL"
