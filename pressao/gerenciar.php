@@ -78,6 +78,11 @@ function pressao_normalize_time(string $value): ?string
     return $value;
 }
 
+function pressao_normalize_observacoes(string $value): string
+{
+    return trim($value);
+}
+
 function pressao_normalize_measurement(array $input, ?string $id = null): array
 {
     $date = pressao_normalize_date((string)($input['date'] ?? ''));
@@ -85,6 +90,7 @@ function pressao_normalize_measurement(array $input, ?string $id = null): array
     $systolic = (int)preg_replace('/\D/', '', (string)($input['systolic'] ?? ''));
     $diastolic = (int)preg_replace('/\D/', '', (string)($input['diastolic'] ?? ''));
     $pulse = (int)preg_replace('/\D/', '', (string)($input['pulse'] ?? ''));
+    $observacoes = pressao_normalize_observacoes((string)($input['observacoes'] ?? ''));
 
     return [
         'id' => $id !== null && $id !== '' ? $id : pressao_generate_id([
@@ -96,6 +102,7 @@ function pressao_normalize_measurement(array $input, ?string $id = null): array
         'systolic' => $systolic,
         'diastolic' => $diastolic,
         'pulse' => $pulse,
+        'observacoes' => $observacoes,
     ];
 }
 
@@ -242,6 +249,7 @@ $form = [
     'systolic' => $editingItem['systolic'] ?? '',
     'diastolic' => $editingItem['diastolic'] ?? '',
     'pulse' => $editingItem['pulse'] ?? '',
+    'observacoes' => $editingItem['observacoes'] ?? '',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -254,6 +262,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'systolic' => (string)($_POST['systolic'] ?? ''),
         'diastolic' => (string)($_POST['diastolic'] ?? ''),
         'pulse' => (string)($_POST['pulse'] ?? ''),
+        'observacoes' => (string)($_POST['observacoes'] ?? ''),
     ];
 
     if ($action === 'delete') {
@@ -297,6 +306,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'systolic' => (string)($_POST['systolic'] ?? ''),
                 'diastolic' => (string)($_POST['diastolic'] ?? ''),
                 'pulse' => (string)($_POST['pulse'] ?? ''),
+                'observacoes' => (string)($_POST['observacoes'] ?? ''),
             ];
             $editingId = $postedId;
         } else {
@@ -380,11 +390,12 @@ $latestTime = $latest ? pressao_format_time($latest['time'] ?? null) : '--:--';
     .field{display:flex;flex-direction:column;gap:8px}
     .field.full{grid-column:1 / -1}
     label{font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;color:#bcd0e3;font-weight:800}
-    input{width:100%;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:#0c1726;color:var(--text);padding:12px 13px;font:inherit;outline:none;transition:.2s}
-    input:focus{border-color:rgba(80,200,255,.45);box-shadow:0 0 0 3px rgba(80,200,255,.1)}
+    input, textarea{width:100%;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:#0c1726;color:var(--text);padding:12px 13px;font:inherit;outline:none;transition:.2s}
+    textarea{min-height:96px;resize:vertical}
+    input:focus, textarea:focus{border-color:rgba(80,200,255,.45);box-shadow:0 0 0 3px rgba(80,200,255,.1)}
     .form-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
     .table-wrap{overflow:auto;border-radius:14px;border:1px solid rgba(255,255,255,.06)}
-    table{border-collapse:collapse;width:100%;min-width:760px;background:rgba(5,14,25,.35)}
+    table{border-collapse:collapse;width:100%;min-width:920px;background:rgba(5,14,25,.35)}
     th,td{text-align:left;padding:12px 13px;border-bottom:1px solid rgba(255,255,255,.055);font-size:.88rem;vertical-align:top}
     th{position:sticky;top:0;background:#111f31;color:#bcd0e3;font-size:.73rem;text-transform:uppercase;letter-spacing:.055em}
     tbody tr:hover{background:rgba(80,200,255,.055)}
@@ -452,6 +463,10 @@ $latestTime = $latest ? pressao_format_time($latest['time'] ?? null) : '--:--';
             <label for="pulse">Pulso</label>
             <input id="pulse" name="pulse" type="number" min="1" step="1" value="<?= pressao_h((string)$form['pulse']) ?>" required>
           </div>
+          <div class="field full">
+            <label for="observacoes">Observações</label>
+            <textarea id="observacoes" name="observacoes" placeholder="Ex.: medição após caminhada, aparelho com pilha fraca, estresse no dia, etc."><?= pressao_h((string)$form['observacoes']) ?></textarea>
+          </div>
         </div>
         <div class="form-actions">
           <button class="btn primary" type="submit"><?= $editingItem ? 'Salvar alteração' : 'Adicionar medição' ?></button>
@@ -471,6 +486,7 @@ $latestTime = $latest ? pressao_format_time($latest['time'] ?? null) : '--:--';
               <th>Hora</th>
               <th>PA</th>
               <th>Pulso</th>
+              <th>Observações</th>
               <th>Acoes</th>
             </tr>
           </thead>
@@ -481,6 +497,7 @@ $latestTime = $latest ? pressao_format_time($latest['time'] ?? null) : '--:--';
                 <td><?= pressao_h(pressao_format_time($item['time'] ?? null)) ?></td>
                 <td><strong><?= (int)$item['systolic'] ?>/<?= (int)$item['diastolic'] ?></strong></td>
                 <td><?= (int)$item['pulse'] ?> bpm</td>
+                <td style="white-space:pre-wrap;min-width:240px;max-width:320px;"><?php $observacoes = trim((string)($item['observacoes'] ?? '')); echo $observacoes !== '' ? pressao_h($observacoes) : '<span style="color:#71869a">-</span>'; ?></td>
                 <td>
                   <div class="actions">
                     <a class="btn mini" href="gerenciar.php?edit=<?= pressao_h((string)$item['id']) ?>">Editar</a>
