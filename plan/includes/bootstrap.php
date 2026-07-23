@@ -17,8 +17,7 @@ function db(): PDO
 
     foreach (['host', 'database', 'username'] as $field) {
         if (($config[$field] ?? '') === '') {
-            http_response_code(500);
-            die('Configuracao incompleta. Crie plan/config.local.php ou defina PLAN_DB_* no servidor.');
+            throw new RuntimeException('Configuracao incompleta. Crie plan/config.local.php ou defina PLAN_DB_* no servidor.');
         }
     }
 

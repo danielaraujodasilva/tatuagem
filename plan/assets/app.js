@@ -33,7 +33,13 @@ async function api(action, options = {}) {
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
-  const payload = await response.json();
+  const text = await response.text();
+  let payload;
+  try {
+    payload = JSON.parse(text);
+  } catch (error) {
+    throw new Error(text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || 'O servidor respondeu em formato inesperado.');
+  }
   if (!payload.ok) throw new Error(payload.message || 'Falha na requisicao.');
   return payload;
 }
