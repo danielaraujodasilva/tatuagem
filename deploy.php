@@ -69,6 +69,78 @@ function run_deploy_command(string $command): array
     ];
 }
 
+function copy_tree(string $source, string $target): void
+{
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($source, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::SELF_FIRST
+    );
+
+    foreach ($iterator as $item) {
+        $relative = substr($item->getPathname(), strlen($source) + 1);
+        if (preg_match('#(^|[\\\\/])(\.git|storage)([\\\\/]|$)#', $relative)) {
+            continue;
+        }
+        if (in_array(basename($relative), ['deploy.local.php', 'config.local.php'], true)) {
+            continue;
+        }
+
+        $destination = $target . DIRECTORY_SEPARATOR . $relative;
+        if ($item->isDir()) {
+            if (!is_dir($destination)) {
+                mkdir($destination, 0775, true);
+            }
+            continue;
+        }
+
+        $destinationDir = dirname($destination);
+        if (!is_dir($destinationDir)) {
+            mkdir($destinationDir, 0775, true);
+        }
+        copy($item->getPathname(), $destination);
+    }
+}
+
+function deploy_from_zip(string $repository, string $branch, string $deployPath): array
+{
+    if (!class_exists('ZipArchive')) {
+        return ['ok' => false, 'message' => 'Extensao ZipArchive indisponivel no PHP do servidor.'];
+    }
+
+    $url = 'https://codeload.github.com/' . $repository . '/zip/refs/heads/' . rawurlencode($branch);
+    $tmpBase = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'deploy_' . bin2hex(random_bytes(8));
+    $zipPath = $tmpBase . '.zip';
+    $extractPath = $tmpBase;
+
+    $zipContent = @file_get_contents($url);
+    if ($zipContent === false) {
+        return ['ok' => false, 'message' => 'Nao foi possivel baixar o ZIP do GitHub.', 'url' => $url];
+    }
+    file_put_contents($zipPath, $zipContent);
+
+    $zip = new ZipArchive();
+    if ($zip->open($zipPath) !== true) {
+        @unlink($zipPath);
+        return ['ok' => false, 'message' => 'Nao foi possivel abrir o ZIP baixado.'];
+    }
+
+    mkdir($extractPath, 0775, true);
+    $zip->extractTo($extractPath);
+    $zip->close();
+
+    $entries = glob($extractPath . DIRECTORY_SEPARATOR . '*', GLOB_ONLYDIR);
+    $sourceRoot = $entries[0] ?? '';
+    if ($sourceRoot === '' || !is_dir($sourceRoot)) {
+        @unlink($zipPath);
+        return ['ok' => false, 'message' => 'ZIP nao contem pasta raiz esperada.'];
+    }
+
+    copy_tree($sourceRoot, $deployPath);
+
+    @unlink($zipPath);
+    return ['ok' => true, 'message' => 'Arquivos sincronizados via ZIP.', 'source' => $url];
+}
+
 $headers = request_headers_lower();
 $delivery = $headers['x-github-delivery'] ?? bin2hex(random_bytes(6));
 $event = $headers['x-github-event'] ?? 'unknown';
@@ -100,6 +172,7 @@ if ($event === 'ping') {
 
 $data = json_decode($payload, true);
 $branch = (string)($deployConfig['branch'] ?? getenv('DEPLOY_BRANCH') ?: 'main');
+$repository = (string)($deployConfig['repository'] ?? getenv('DEPLOY_REPOSITORY') ?: (is_array($data) ? ($data['repository']['full_name'] ?? 'danielaraujodasilva/tatuagem') : 'danielaraujodasilva/tatuagem'));
 $expectedRef = 'refs/heads/' . $branch;
 $ref = is_array($data) ? (string)($data['ref'] ?? '') : '';
 
@@ -155,6 +228,16 @@ foreach ($commands as $command) {
 }
 
 clearstatcache(true);
+$fallback = null;
+if ($failed && !empty($deployConfig['zip_fallback_disabled']) !== true && getenv('DEPLOY_DISABLE_ZIP_FALLBACK') !== '1') {
+    deploy_log('zip_fallback_start', ['delivery' => $delivery, 'repository' => $repository, 'branch' => $branch]);
+    $fallback = deploy_from_zip($repository, $branch, $deployPath);
+    deploy_log('zip_fallback_done', ['delivery' => $delivery, 'result' => $fallback]);
+    if (!empty($fallback['ok'])) {
+        $failed = false;
+    }
+}
+
 if (!$failed && function_exists('opcache_reset')) {
     opcache_reset();
 }
@@ -163,9 +246,9 @@ flock($lock, LOCK_UN);
 fclose($lock);
 
 if ($failed) {
-    respond_json(['ok' => false, 'message' => 'Deploy falhou. Veja storage/logs/deploy.log.', 'results' => $results], 500);
+    respond_json(['ok' => false, 'message' => 'Deploy falhou. Veja storage/logs/deploy.log.', 'results' => $results, 'fallback' => $fallback], 500);
 }
 
 $head = trim((string)($results[count($results) - 1]['output'] ?? ''));
-deploy_log('success', ['delivery' => $delivery, 'head' => $head]);
-respond_json(['ok' => true, 'message' => 'Deploy atualizado.', 'head' => $head, 'results' => $results]);
+deploy_log('success', ['delivery' => $delivery, 'head' => $head, 'fallback' => $fallback]);
+respond_json(['ok' => true, 'message' => 'Deploy atualizado.', 'head' => $head, 'results' => $results, 'fallback' => $fallback]);
