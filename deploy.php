@@ -141,6 +141,54 @@ function deploy_from_zip(string $repository, string $branch, string $deployPath)
     return ['ok' => true, 'message' => 'Arquivos sincronizados via ZIP.', 'source' => $url];
 }
 
+function deploy_from_powershell_zip(string $repository, string $branch, string $deployPath): array
+{
+    $url = 'https://codeload.github.com/' . $repository . '/zip/refs/heads/' . rawurlencode($branch);
+    $tmpBase = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'deploy_' . bin2hex(random_bytes(8));
+    $zipPath = $tmpBase . '.zip';
+    $extractPath = $tmpBase;
+    $sourcePattern = $extractPath . DIRECTORY_SEPARATOR . '*';
+
+    $script = [
+        '$ErrorActionPreference = "Stop"',
+        '$url = ' . var_export($url, true),
+        '$zip = ' . var_export($zipPath, true),
+        '$extract = ' . var_export($extractPath, true),
+        '$dest = ' . var_export($deployPath, true),
+        'New-Item -ItemType Directory -Force -Path $extract | Out-Null',
+        '[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12',
+        'Invoke-WebRequest -Uri $url -OutFile $zip',
+        'Expand-Archive -Path $zip -DestinationPath $extract -Force',
+        '$root = Get-ChildItem -Path $extract -Directory | Select-Object -First 1',
+        'if (-not $root) { throw "ZIP sem pasta raiz" }',
+        'robocopy $root.FullName $dest /E /XD .git storage /XF deploy.local.php config.local.php /R:2 /W:1 /NFL /NDL /NP',
+        '$code = $LASTEXITCODE',
+        'Remove-Item -LiteralPath $zip -Force -ErrorAction SilentlyContinue',
+        'Remove-Item -LiteralPath $extract -Recurse -Force -ErrorAction SilentlyContinue',
+        'if ($code -gt 7) { exit $code }',
+        'exit 0',
+    ];
+
+    $plainScript = implode("\r\n", $script);
+    if (function_exists('mb_convert_encoding')) {
+        $powershellScript = mb_convert_encoding($plainScript, 'UTF-16LE', 'UTF-8');
+    } elseif (function_exists('iconv')) {
+        $powershellScript = iconv('UTF-8', 'UTF-16LE', $plainScript);
+    } else {
+        return ['ok' => false, 'message' => 'PHP sem mbstring/iconv para codificar comando PowerShell.'];
+    }
+    $encoded = base64_encode($powershellScript);
+    $command = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand ' . escapeshellarg($encoded);
+    $result = run_deploy_command($command);
+
+    return [
+        'ok' => $result['exit_code'] === 0,
+        'message' => $result['exit_code'] === 0 ? 'Arquivos sincronizados via PowerShell ZIP.' : 'PowerShell ZIP falhou.',
+        'source' => $url,
+        'result' => $result,
+    ];
+}
+
 $headers = request_headers_lower();
 $delivery = $headers['x-github-delivery'] ?? bin2hex(random_bytes(6));
 $event = $headers['x-github-event'] ?? 'unknown';
@@ -235,6 +283,13 @@ if ($failed && !empty($deployConfig['zip_fallback_disabled']) !== true && getenv
     deploy_log('zip_fallback_done', ['delivery' => $delivery, 'result' => $fallback]);
     if (!empty($fallback['ok'])) {
         $failed = false;
+    } elseif (stripos(PHP_OS_FAMILY, 'Windows') !== false && getenv('DEPLOY_DISABLE_POWERSHELL_FALLBACK') !== '1') {
+        deploy_log('powershell_fallback_start', ['delivery' => $delivery, 'repository' => $repository, 'branch' => $branch]);
+        $fallback = deploy_from_powershell_zip($repository, $branch, $deployPath);
+        deploy_log('powershell_fallback_done', ['delivery' => $delivery, 'result' => $fallback]);
+        if (!empty($fallback['ok'])) {
+            $failed = false;
+        }
     }
 }
 
