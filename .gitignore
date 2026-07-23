@@ -6,6 +6,8 @@ config.js
 *.bak
 *.tmp
 deploy.log
+storage/logs/
+storage/*.lock
 crm copy/
 crm/config.local.php
 crm/data/clientes_runtime.json
