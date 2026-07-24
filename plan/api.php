@@ -43,6 +43,7 @@ try {
         'save_budget' => save_budget(),
         'delete_budget' => delete_budget(),
         'save_goal' => save_goal(),
+        'delete_goal' => delete_goal(),
         'save_account' => save_account(),
         'delete_account' => delete_account(),
         'import_accounts' => import_accounts(),
@@ -785,9 +786,48 @@ function save_goal(): never
     if ($id > 0) {
         $data[] = $id;
         db()->prepare('UPDATE goals SET name=?, target_amount=?, current_amount=?, target_date=? WHERE id=?')->execute($data);
+        if ((int)db()->query('SELECT ROW_COUNT()')->fetchColumn() === 0) {
+            $exists = db()->prepare('SELECT id FROM goals WHERE id = ? LIMIT 1');
+            $exists->execute([$id]);
+            if (!$exists->fetchColumn()) {
+                json_response(['ok' => false, 'message' => 'Meta nao encontrada.'], 404);
+            }
+        }
+        audit('update', 'goal', $id, [
+            'name' => $data[0],
+            'target_amount' => $data[1],
+            'current_amount' => $data[2],
+            'target_date' => $data[3],
+        ]);
     } else {
         db()->prepare('INSERT INTO goals (name, target_amount, current_amount, target_date) VALUES (?, ?, ?, ?)')->execute($data);
+        $id = (int)db()->lastInsertId();
+        audit('create', 'goal', $id, [
+            'name' => $data[0],
+            'target_amount' => $data[1],
+            'current_amount' => $data[2],
+            'target_date' => $data[3],
+        ]);
     }
+    json_response(['ok' => true, 'id' => $id]);
+}
+
+function delete_goal(): never
+{
+    $id = (int)(json_input()['id'] ?? 0);
+    if ($id <= 0) {
+        json_response(['ok' => false, 'message' => 'Meta invalida.'], 422);
+    }
+
+    $stmt = db()->prepare('SELECT * FROM goals WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    $goal = $stmt->fetch();
+    if (!$goal) {
+        json_response(['ok' => false, 'message' => 'Meta nao encontrada.'], 404);
+    }
+
+    db()->prepare('DELETE FROM goals WHERE id = ?')->execute([$id]);
+    audit('delete', 'goal', $id, $goal);
     json_response(['ok' => true]);
 }
 

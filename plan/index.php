@@ -61,8 +61,11 @@ $csrf = csrf_token();
             <nav>
                 <button class="nav-item active" data-section="dashboard">Painel</button>
                 <button class="nav-item" data-section="transactions">Lancamentos</button>
-                <button class="nav-item" data-section="planning">Planejamento</button>
-                <button class="nav-item" data-section="automation">Recorrencias</button>
+                <button class="nav-item" data-section="accounts">Contas</button>
+                <button class="nav-item" data-section="categories">Categorias</button>
+                <button class="nav-item" data-section="budgets">Orcamentos</button>
+                <button class="nav-item" data-section="goals">Metas</button>
+                <button class="nav-item" data-section="recurring">Recorrencias</button>
             </nav>
             <a class="logout" href="logout.php">Sair</a>
         </aside>
@@ -113,7 +116,7 @@ $csrf = csrf_token();
                     <section class="panel">
                         <div class="panel-head">
                             <h2>Metas</h2>
-                            <button class="small-btn" data-open-modal="goalModal">Nova</button>
+                            <button class="small-btn" data-jump-section="goals">Gerenciar</button>
                         </div>
                         <div id="goalsList" class="stack-list"></div>
                     </section>
@@ -171,61 +174,75 @@ $csrf = csrf_token();
                 </div>
             </section>
 
-            <section class="section" id="planning">
-                <div class="split-grid">
-                    <section class="panel">
-                        <div class="panel-head">
-                            <h2>Orcamentos mensais</h2>
-                            <button class="small-btn" data-open-modal="budgetModal">Adicionar</button>
-                        </div>
-                        <div id="budgetsList" class="stack-list"></div>
-                    </section>
-                    <section class="panel">
-                        <div class="panel-head">
-                            <h2>Categorias</h2>
-                            <button class="small-btn" data-open-modal="categoryModal">Nova</button>
-                        </div>
-                        <div id="categoriesList" class="chip-list"></div>
-                    </section>
-                    <section class="panel">
-                        <div class="panel-head">
-                            <h2>Contas</h2>
-                            <button class="small-btn" data-open-modal="accountModal">Nova</button>
-                        </div>
-                        <div class="filters account-filters">
-                            <input id="accountSearchInput" list="transactionSearchOptions" placeholder="Buscar conta, descricao, pix">
-                            <input id="accountMonthFilter" type="month" value="<?= date('Y-m') ?>">
-                            <select id="accountStatusFilter">
-                                <option value="">Todos status</option>
-                                <option value="pending">Pendente</option>
-                                <option value="paid">Pago</option>
-                                <option value="late">Atrasado</option>
-                                <option value="ignored">Ignorado</option>
-                            </select>
-                            <select id="accountTransactionTypeFilter">
-                                <option value="">Todos tipos</option>
-                                <option value="expense">Despesa</option>
-                                <option value="income">Receita</option>
-                                <option value="transfer">Transferencia</option>
-                            </select>
-                            <select id="accountCategoryFilter" data-filter-categories></select>
-                            <select id="accountTypeFilter">
-                                <option value="">Todos tipos de conta</option>
-                                <option value="corrente">Corrente</option>
-                                <option value="credito">Cartao</option>
-                                <option value="investimento">Investimento</option>
-                                <option value="dinheiro">Dinheiro</option>
-                            </select>
-                            <input id="accountDueFromFilter" type="date" title="Vencimento inicial">
-                            <input id="accountDueToFilter" type="date" title="Vencimento final">
-                        </div>
-                        <div id="accountTotals" class="account-total-bar"></div>
-                        <div id="accountsList" class="stack-list"></div>
-                    </section>
-                </div>
+            <section class="section" id="accounts">
+                <section class="panel">
+                    <div class="panel-head">
+                        <h2>Contas</h2>
+                        <button class="small-btn" data-open-modal="accountModal">Nova</button>
+                    </div>
+                    <div class="filters account-filters">
+                        <input id="accountSearchInput" list="transactionSearchOptions" placeholder="Buscar conta, descricao, pix">
+                        <input id="accountMonthFilter" type="month" value="<?= date('Y-m') ?>">
+                        <select id="accountStatusFilter">
+                            <option value="">Todos status</option>
+                            <option value="pending">Pendente</option>
+                            <option value="paid">Pago</option>
+                            <option value="late">Atrasado</option>
+                            <option value="ignored">Ignorado</option>
+                        </select>
+                        <select id="accountTransactionTypeFilter">
+                            <option value="">Todos tipos</option>
+                            <option value="expense">Despesa</option>
+                            <option value="income">Receita</option>
+                            <option value="transfer">Transferencia</option>
+                        </select>
+                        <select id="accountCategoryFilter" data-filter-categories></select>
+                        <select id="accountTypeFilter">
+                            <option value="">Todos tipos de conta</option>
+                            <option value="corrente">Corrente</option>
+                            <option value="credito">Cartao</option>
+                            <option value="investimento">Investimento</option>
+                            <option value="dinheiro">Dinheiro</option>
+                        </select>
+                        <input id="accountDueFromFilter" type="date" title="Vencimento inicial">
+                        <input id="accountDueToFilter" type="date" title="Vencimento final">
+                    </div>
+                    <div id="accountTotals" class="account-total-bar"></div>
+                    <div id="accountsList" class="stack-list"></div>
+                </section>
             </section>
 
-            <section class="section" id="automation">
+            <section class="section" id="categories">
+                <section class="panel">
+                    <div class="panel-head">
+                        <h2>Categorias</h2>
+                        <button class="small-btn" data-open-modal="categoryModal">Nova</button>
+                    </div>
+                    <div id="categoriesList" class="chip-list"></div>
+                </section>
+            </section>
+
+            <section class="section" id="budgets">
+                <section class="panel">
+                    <div class="panel-head">
+                        <h2>Orcamentos mensais</h2>
+                        <button class="small-btn" data-open-modal="budgetModal">Adicionar</button>
+                    </div>
+                    <div id="budgetsList" class="stack-list"></div>
+                </section>
+            </section>
+
+            <section class="section" id="goals">
+                <section class="panel">
+                    <div class="panel-head">
+                        <h2>Metas</h2>
+                        <button class="small-btn" data-open-modal="goalModal">Nova</button>
+                    </div>
+                    <div id="goalsManageList" class="stack-list"></div>
+                </section>
+            </section>
+
+            <section class="section" id="recurring">
                 <div class="panel">
                     <div class="panel-head">
                         <h2>Despesas recorrentes</h2>
@@ -287,7 +304,8 @@ $csrf = csrf_token();
 
     <dialog id="goalModal" class="modal">
         <form id="goalForm" method="dialog" class="form-grid compact">
-            <h2>Meta</h2>
+            <input type="hidden" name="id">
+            <h2 id="goalFormTitle">Nova meta</h2>
             <label>Nome<input name="name" required></label>
             <label>Objetivo<input name="target_amount" inputmode="decimal" required></label>
             <label>Atual<input name="current_amount" inputmode="decimal" value="0"></label>

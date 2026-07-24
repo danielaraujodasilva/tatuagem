@@ -135,12 +135,20 @@ async function loadAccountSummaries() {
 
 function bindNavigation() {
   document.querySelectorAll('.nav-item').forEach(button => {
-    button.addEventListener('click', () => {
-      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-      document.querySelectorAll('.section').forEach(section => section.classList.remove('is-visible'));
-      button.classList.add('active');
-      document.querySelector(`#${button.dataset.section}`)?.classList.add('is-visible');
-    });
+    button.addEventListener('click', () => openSection(button.dataset.section));
+  });
+  document.querySelectorAll('[data-jump-section]').forEach(button => {
+    button.addEventListener('click', () => openSection(button.dataset.jumpSection));
+  });
+}
+
+function openSection(sectionId) {
+  if (!sectionId) return;
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.section === sectionId);
+  });
+  document.querySelectorAll('.section').forEach(section => {
+    section.classList.toggle('is-visible', section.id === sectionId);
   });
 }
 
@@ -152,6 +160,9 @@ function bindModals() {
       }
       if (button.dataset.openModal === 'budgetModal') {
         prepareBudgetForm();
+      }
+      if (button.dataset.openModal === 'goalModal') {
+        prepareGoalForm();
       }
       if (button.dataset.openModal === 'accountModal') {
         prepareAccountForm();
@@ -392,12 +403,43 @@ function renderBudgets() {
 }
 
 function renderGoals() {
-  const target = document.querySelector('#goalsList');
-  if (!target) return;
-  target.innerHTML = state.goals.map(goal => {
+  const summary = document.querySelector('#goalsList');
+  const manager = document.querySelector('#goalsManageList');
+  const rows = state.goals.map(goal => {
     const pct = Math.min(100, Math.round((Number(goal.current_amount) / Math.max(1, Number(goal.target_amount))) * 100));
-    return `<div class="list-row"><div><strong>${escapeHtml(goal.name)}</strong><small>${asMoney(goal.current_amount)} de ${asMoney(goal.target_amount)}</small><div class="progress"><span style="width:${pct}%"></span></div></div><span class="amount">${pct}%</span></div>`;
-  }).join('');
+    return { goal, pct };
+  });
+
+  if (summary) {
+    summary.innerHTML = rows.length ? rows.slice(0, 4).map(({ goal, pct }) => goalRow(goal, pct)).join('') : '<p class="muted">Nenhuma meta cadastrada ainda.</p>';
+  }
+
+  if (!manager) return;
+  manager.innerHTML = rows.length ? rows.map(({ goal, pct }) => `
+    <div class="list-row">
+      <div>
+        <strong>${escapeHtml(goal.name)}</strong>
+        <small>${asMoney(goal.current_amount)} de ${asMoney(goal.target_amount)}${goal.target_date ? ' · alvo ' + formatDate(goal.target_date) : ''}</small>
+        <div class="progress"><span style="width:${pct}%"></span></div>
+      </div>
+      <div class="row-actions">
+        <span class="amount">${pct}%</span>
+        <button class="icon-btn" title="Editar meta" data-goal-edit="${goal.id}">✎</button>
+        <button class="icon-btn" title="Excluir meta" data-goal-delete="${goal.id}">×</button>
+      </div>
+    </div>
+  `).join('') : '<p class="muted">Nenhuma meta cadastrada ainda.</p>';
+
+  manager.querySelectorAll('[data-goal-edit]').forEach(button => {
+    button.addEventListener('click', () => editGoal(Number(button.dataset.goalEdit)));
+  });
+  manager.querySelectorAll('[data-goal-delete]').forEach(button => {
+    button.addEventListener('click', () => deleteGoal(Number(button.dataset.goalDelete)));
+  });
+}
+
+function goalRow(goal, pct) {
+  return `<div class="list-row"><div><strong>${escapeHtml(goal.name)}</strong><small>${asMoney(goal.current_amount)} de ${asMoney(goal.target_amount)}</small><div class="progress"><span style="width:${pct}%"></span></div></div><span class="amount">${pct}%</span></div>`;
 }
 
 function renderAccounts() {
@@ -546,6 +588,36 @@ async function deleteBudget(id) {
   if (!budget) return;
   if (!confirm(`Excluir o orcamento de ${budget.category_name} em ${budget.month}?`)) return;
   await api('delete_budget', { method: 'POST', body: { id } });
+  await reloadPlanningData();
+}
+
+function editGoal(id) {
+  const goal = state.goals.find(item => Number(item.id) === id);
+  if (!goal) return;
+  prepareGoalForm(goal);
+  document.querySelector('#goalModal')?.showModal();
+}
+
+function prepareGoalForm(goal = null) {
+  const form = document.querySelector('#goalForm');
+  if (!form) return;
+  form.reset();
+  form.elements.id.value = goal?.id || '';
+  form.elements.name.value = goal?.name || '';
+  form.elements.target_amount.value = goal?.target_amount ?? '';
+  form.elements.current_amount.value = goal?.current_amount ?? '0';
+  form.elements.target_date.value = goal?.target_date || '';
+  const title = document.querySelector('#goalFormTitle');
+  if (title) {
+    title.textContent = goal ? 'Editar meta' : 'Nova meta';
+  }
+}
+
+async function deleteGoal(id) {
+  const goal = state.goals.find(item => Number(item.id) === id);
+  if (!goal) return;
+  if (!confirm(`Excluir a meta "${goal.name}"?`)) return;
+  await api('delete_goal', { method: 'POST', body: { id } });
   await reloadPlanningData();
 }
 
