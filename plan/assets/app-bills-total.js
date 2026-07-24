@@ -314,10 +314,26 @@ function bindForms() {
   Object.entries(forms).forEach(([id, action]) => {
     document.querySelector(`#${id}`)?.addEventListener('submit', async event => {
       event.preventDefault();
-      await api(action, { method: 'POST', body: formPayload(event.currentTarget) });
-      event.currentTarget.reset();
-      event.currentTarget.closest('dialog')?.close();
-      await reloadAllData();
+      const form = event.currentTarget;
+      const submitButton = form.querySelector('button[type="submit"], .primary-btn');
+      const previousText = submitButton?.textContent || '';
+      try {
+        if (submitButton) {
+          submitButton.disabled = true;
+          submitButton.textContent = 'Salvando...';
+        }
+        await api(action, { method: 'POST', body: formPayload(form) });
+        form.reset();
+        form.closest('dialog')?.close();
+        await reloadAllData();
+      } catch (error) {
+        alert(error.message || 'Nao foi possivel salvar.');
+      } finally {
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = previousText;
+        }
+      }
     });
   });
 }
