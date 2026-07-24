@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260724-6">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260724-7">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260724-6" defer></script>
+    <script src="assets/app-bills-total.js?v=20260724-7" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -59,19 +59,34 @@ $csrf = csrf_token();
                 <span>P</span>
                 <strong>Plan</strong>
             </a>
-            <nav>
-                <button class="nav-item active" data-section="dashboard">Painel</button>
-                <button class="nav-item" data-section="categoryAnalysis">Analise</button>
-                <button class="nav-item" data-section="bills">Contas do mes</button>
-                <button class="nav-item" data-section="movements">Extratos</button>
-                <button class="nav-item" data-section="reconciliation">Conciliacao</button>
-                <button class="nav-item" data-section="transactions">Importar planilha</button>
-                <button class="nav-item" data-section="banking">Importar extratos</button>
-                <button class="nav-item" data-section="accounts">Contas/Caixas</button>
-                <button class="nav-item" data-section="categories">Categorias</button>
-                <button class="nav-item" data-section="budgets">Orcamentos</button>
-                <button class="nav-item" data-section="goals">Metas</button>
-                <button class="nav-item" data-section="recurring">Recorrencias</button>
+            <nav aria-label="Navegacao principal">
+                <div class="nav-group">
+                    <p class="nav-group-label">Visao geral</p>
+                    <button class="nav-item active" data-section="dashboard">Painel</button>
+                    <button class="nav-item" data-section="categoryAnalysis">Analise</button>
+                </div>
+                <div class="nav-group">
+                    <p class="nav-group-label">Acompanhar</p>
+                    <button class="nav-item" data-section="bills">Contas do mes</button>
+                    <button class="nav-item" data-section="movements">Extratos</button>
+                    <button class="nav-item" data-section="reconciliation">Conciliacao</button>
+                </div>
+                <div class="nav-group">
+                    <p class="nav-group-label">Importar dados</p>
+                    <button class="nav-item" data-section="transactions">Importar planilha</button>
+                    <button class="nav-item" data-section="banking">Importar extratos</button>
+                </div>
+                <div class="nav-group">
+                    <p class="nav-group-label">Planejar</p>
+                    <button class="nav-item" data-section="budgets">Orcamentos</button>
+                    <button class="nav-item" data-section="goals">Metas</button>
+                    <button class="nav-item" data-section="recurring">Recorrencias</button>
+                </div>
+                <div class="nav-group">
+                    <p class="nav-group-label">Configurar</p>
+                    <button class="nav-item" data-section="accounts">Contas/Caixas</button>
+                    <button class="nav-item" data-section="categories">Categorias</button>
+                </div>
             </nav>
             <a class="logout" href="logout.php">Sair</a>
         </aside>
@@ -79,13 +94,19 @@ $csrf = csrf_token();
         <main class="workspace">
             <header class="topbar">
                 <div>
-                    <p class="eyebrow">Vida financeira</p>
-                    <h1>Controle financeiro pessoal</h1>
+                    <p class="eyebrow" id="pageKicker">Visao geral</p>
+                    <h1 id="pageTitle">Seu dinheiro em ordem</h1>
+                    <p class="topbar-description" id="pageDescription">Veja o que entrou, saiu e precisa da sua atencao no mes selecionado.</p>
                 </div>
                 <div class="top-actions">
-                    <input id="monthFilter" type="month" value="<?= date('Y-m') ?>">
-                    <button class="ghost-btn" id="refreshBtn">Atualizar</button>
-                    <button class="primary-btn" data-open-modal="transactionModal">Novo lancamento</button>
+                    <label class="month-control">
+                        <span>Mes de referencia</span>
+                        <input id="monthFilter" type="month" value="<?= date('Y-m') ?>">
+                    </label>
+                    <div class="top-actions-row">
+                        <button class="ghost-btn" id="refreshBtn">Atualizar</button>
+                        <button class="primary-btn" data-open-modal="transactionModal">Novo lancamento</button>
+                    </div>
                 </div>
             </header>
 
@@ -152,7 +173,7 @@ $csrf = csrf_token();
                     <div>
                         <p class="eyebrow">Tabela dinamica</p>
                         <h2>Analise por categoria</h2>
-                        <p>Abra cada categoria para ver valor, percentual e linhas que compõem o total. Use Extratos para dinheiro real, Contas para planejamento e Consolidado para explorar os dois juntos.</p>
+                        <p>Compare gastos e ganhos sem perder o detalhe. Abra uma categoria para ver valor, percentual e cada linha que compoe o total.</p>
                     </div>
                 </div>
 
@@ -160,7 +181,7 @@ $csrf = csrf_token();
                     <select id="analysisSourceFilter">
                         <option value="bank">Extratos bancarios</option>
                         <option value="transactions">Contas e planilha</option>
-                        <option value="combined">Consolidado exploratorio</option>
+                        <option value="combined">Consolidado: extratos + contas</option>
                     </select>
                     <select id="analysisDirectionFilter">
                         <option value="both">Gastos e ganhos</option>
@@ -197,6 +218,8 @@ $csrf = csrf_token();
                     <article class="metric-card warning"><span>Saldo filtrado</span><strong id="analysisNetTotal">R$ 0,00</strong></article>
                     <article class="metric-card"><span>Maior categoria</span><strong id="analysisTopCategory">-</strong></article>
                 </div>
+
+                <p class="section-hint">Dica: use o consolidado para investigar; para tomar decisoes, prefira separar o dinheiro real do planejamento.</p>
 
                 <div class="analysis-grid">
                     <section class="panel">
@@ -246,6 +269,25 @@ $csrf = csrf_token();
                     <article class="metric-card danger"><span>Atrasadas</span><strong id="billsLateCount">0</strong></article>
                 </div>
 
+                <div class="panel bills-filters">
+                    <div class="filter-heading">
+                        <div>
+                            <strong>Encontre uma conta</strong>
+                            <span>Filtre sem sair do mes selecionado</span>
+                        </div>
+                        <button type="button" class="link-btn" id="clearBillsFilters">Limpar filtros</button>
+                    </div>
+                    <input id="billsSearchInput" placeholder="Buscar conta, responsavel ou origem">
+                    <select id="billsStatusFilter">
+                        <option value="">Todos os status</option>
+                        <option value="pending">Pendentes</option>
+                        <option value="paid">Pagas</option>
+                        <option value="late">Atrasadas</option>
+                    </select>
+                    <select id="billsCategoryFilter"><option value="">Todas as categorias</option></select>
+                    <select id="billsOwnerFilter"><option value="">Todos os responsaveis</option></select>
+                </div>
+
                 <div class="bill-board">
                     <section class="panel bill-column">
                         <div class="panel-head">
@@ -289,7 +331,8 @@ $csrf = csrf_token();
                         <option value="yes">Conciliadas</option>
                         <option value="no">Sem conciliacao</option>
                     </select>
-                    <input id="movementSearchInput" placeholder="Buscar descricao, documento ou tipo">
+                    <input id="movementSearchInput" list="movementSearchOptions" placeholder="Buscar descricao, banco ou tipo">
+                    <datalist id="movementSearchOptions"></datalist>
                 </div>
 
                 <div class="kpi-grid banking-kpis">

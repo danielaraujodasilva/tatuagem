@@ -128,6 +128,7 @@ async function loadBankTransactions() {
   if (!payload.ok) throw new Error(payload.message || 'Erro ao carregar extratos.');
   state.bankTransactions = payload.bankTransactions || [];
   state.bankOverview = payload.bankOverview || null;
+  renderMovementSearchSuggestions();
   renderBanking();
   renderMovements();
   renderReconciliation();
@@ -158,6 +159,7 @@ async function loadTransactions() {
     }
   }
   state.overview = payload.overview;
+  renderSelects();
   renderTransactions();
   renderBills();
   renderOverview();
@@ -230,7 +232,30 @@ function bindNavigation() {
 function navigateToSection(sectionId) {
   document.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.section === sectionId));
   document.querySelectorAll('.section').forEach(section => section.classList.toggle('is-visible', section.id === sectionId));
+  updatePageContext(sectionId);
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+const pageContexts = {
+  dashboard: ['Visao geral', 'Seu dinheiro em ordem', 'Veja o que entrou, saiu e precisa da sua atencao no mes selecionado.'],
+  categoryAnalysis: ['Visao geral', 'Entenda seus padroes', 'Compare categorias, percentuais e linhas sem perder o contexto.'],
+  bills: ['Acompanhar', 'Contas do mes', 'Controle o que ja foi pago e o que ainda precisa de uma acao.'],
+  movements: ['Acompanhar', 'Extratos reais', 'Explore o dinheiro que realmente entrou e saiu das suas contas.'],
+  reconciliation: ['Acompanhar', 'Conferir e conciliar', 'Use esta fila para transformar importacoes em informacao confiavel.'],
+  transactions: ['Importar dados', 'Planilha de planejamento', 'Traga suas contas e preserve as edicoes feitas no sistema.'],
+  banking: ['Importar dados', 'Extratos bancarios', 'Importe, revise duplicidades e salve as movimentacoes do banco.'],
+  budgets: ['Planejar', 'Orcamentos mensais', 'Defina limites por categoria e acompanhe suas escolhas.'],
+  goals: ['Planejar', 'Metas', 'Acompanhe o progresso do que voce quer construir.'],
+  recurring: ['Planejar', 'Recorrencias', 'Mantenha regras prontas para contas que se repetem.'],
+  accounts: ['Configurar', 'Contas e caixas', 'Organize onde o seu dinheiro fica e ajuste saldos quando precisar.'],
+  categories: ['Configurar', 'Categorias', 'Use uma linguagem consistente para entender seus gastos.'],
+};
+
+function updatePageContext(sectionId) {
+  const context = pageContexts[sectionId] || pageContexts.dashboard;
+  setText('pageKicker', context[0]);
+  setText('pageTitle', context[1]);
+  setText('pageDescription', context[2]);
 }
 
 function bindModals() {
@@ -333,6 +358,16 @@ function bindFilters() {
   }, 250));
   ['searchInput', 'statusFilter', 'typeFilter'].forEach(id => {
     document.querySelector(`#${id}`)?.addEventListener('input', () => renderTransactions());
+  });
+  ['billsSearchInput', 'billsStatusFilter', 'billsCategoryFilter', 'billsOwnerFilter'].forEach(id => {
+    document.querySelector(`#${id}`)?.addEventListener('input', renderBills);
+  });
+  document.querySelector('#clearBillsFilters')?.addEventListener('click', () => {
+    ['billsSearchInput', 'billsStatusFilter', 'billsCategoryFilter', 'billsOwnerFilter'].forEach(id => {
+      const input = document.querySelector(`#${id}`);
+      if (input) input.value = '';
+    });
+    renderBills();
   });
   ['movementDateFrom', 'movementDateTo', 'movementSearchInput', 'movementBankFilter', 'movementCategoryFilter', 'movementDirectionFilter', 'movementMatchFilter'].forEach(id => {
     document.querySelector(`#${id}`)?.addEventListener('input', debounce(loadBankTransactions, 250));
@@ -516,6 +551,19 @@ function renderSelects() {
     const current = analysisCategory.value;
     analysisCategory.innerHTML = '<option value="">Todas categorias</option>' + categoryOptions;
     analysisCategory.value = state.categories.some(category => String(category.id) === current) ? current : '';
+  }
+  const billsCategory = document.querySelector('#billsCategoryFilter');
+  if (billsCategory) {
+    const current = billsCategory.value;
+    billsCategory.innerHTML = '<option value="">Todas as categorias</option>' + categoryOptions;
+    billsCategory.value = state.categories.some(category => String(category.id) === current) ? current : '';
+  }
+  const owners = [...new Set(state.transactions.map(row => clean(row.owner)).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const billsOwner = document.querySelector('#billsOwnerFilter');
+  if (billsOwner) {
+    const current = billsOwner.value;
+    billsOwner.innerHTML = '<option value="">Todos os responsaveis</option>' + owners.map(owner => `<option value="${escapeHtml(owner)}">${escapeHtml(owner)}</option>`).join('');
+    billsOwner.value = owners.includes(current) ? current : '';
   }
   document.querySelectorAll('[data-accounts]').forEach(select => {
     select.innerHTML = '<option value="">Sem conta</option>' + state.accounts.map(account => (
@@ -859,8 +907,24 @@ function filteredTransactions() {
   });
 }
 
+function filteredBills() {
+  const query = norm(document.querySelector('#billsSearchInput')?.value || '');
+  const status = document.querySelector('#billsStatusFilter')?.value || '';
+  const category = document.querySelector('#billsCategoryFilter')?.value || '';
+  const owner = document.querySelector('#billsOwnerFilter')?.value || '';
+  return state.transactions.filter(row => {
+    if (normalizedType(row) === 'income' || normalizedBillStatus(row) === 'ignored') return false;
+    const rowStatus = normalizedBillStatus(row) === 'pending' && isPastDate(row.due_date) ? 'late' : normalizedBillStatus(row);
+    if (status && rowStatus !== status) return false;
+    if (category && String(row.category_id || '') !== category) return false;
+    if (owner && clean(row.owner) !== owner) return false;
+    if (query && !norm([row.description, row.owner, row.source_sheet, row.category_name].join(' ')).includes(query)) return false;
+    return true;
+  });
+}
+
 function renderBills() {
-  const billRows = state.transactions.filter(row => normalizedType(row) !== 'income' && normalizedBillStatus(row) !== 'ignored');
+  const billRows = filteredBills();
   const paid = billRows.filter(row => normalizedBillStatus(row) === 'paid');
   const pending = billRows.filter(row => normalizedBillStatus(row) !== 'paid');
   const late = pending.filter(row => normalizedBillStatus(row) === 'late' || isPastDate(row.due_date));
@@ -916,6 +980,15 @@ function renderBillList(targetId, rows, mode) {
   });
   bindInlineCategoryControls(target);
   bindShareButtons(target);
+}
+
+function renderMovementSearchSuggestions() {
+  const target = document.querySelector('#movementSearchOptions');
+  if (!target) return;
+  const values = [...new Set(state.bankTransactions.flatMap(row => [row.description, row.bank_name]).map(clean).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+    .slice(0, 80);
+  target.innerHTML = values.map(value => `<option value="${escapeHtml(value)}"></option>`).join('');
 }
 
 function normalizedBillStatus(row) {
