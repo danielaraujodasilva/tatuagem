@@ -230,6 +230,7 @@ function bindModals() {
   document.querySelectorAll('[data-open-modal]').forEach(button => {
     button.addEventListener('click', () => {
       const modal = button.dataset.openModal;
+      if (modal === 'transactionModal') prepareTransactionForm();
       if (modal === 'categoryModal') prepareCategoryForm();
       if (modal === 'budgetModal') prepareBudgetForm();
       if (modal === 'goalModal') prepareGoalForm();
@@ -504,6 +505,10 @@ function renderBillList(targetId, rows, mode) {
       <div class="bill-card-side">
         <span class="amount">${asMoney(row.amount)}</span>
         <button class="small-btn" data-toggle="${row.id}" data-status="${normalizedBillStatus(row) === 'paid' ? 'pending' : 'paid'}">${normalizedBillStatus(row) === 'paid' ? 'Reabrir' : 'Marcar pago'}</button>
+        <div class="row-actions">
+          <button class="icon-btn" title="Editar conta" data-bill-edit="${row.id}">✎</button>
+          <button class="icon-btn" title="Excluir conta" data-bill-delete="${row.id}">×</button>
+        </div>
       </div>
     </article>
   `).join('') : `<p class="muted">Nenhuma conta ${mode === 'paid' ? 'paga' : 'pendente'} neste mes.</p>`;
@@ -511,6 +516,16 @@ function renderBillList(targetId, rows, mode) {
     button.addEventListener('click', async () => {
       await api('toggle_paid', { method: 'POST', body: { id: button.dataset.toggle, status: button.dataset.status } });
       await loadTransactions();
+    });
+  });
+  target.querySelectorAll('[data-bill-edit]').forEach(button => {
+    button.addEventListener('click', () => editTransaction(Number(button.dataset.billEdit)));
+  });
+  target.querySelectorAll('[data-bill-delete]').forEach(button => {
+    button.addEventListener('click', async () => {
+      if (!confirm('Excluir esta conta do mes?')) return;
+      await api('delete_transaction', { method: 'POST', body: { id: button.dataset.billDelete } });
+      await reloadAllData();
     });
   });
 }
@@ -1178,6 +1193,13 @@ function editTransaction(id) {
     else field.value = value ?? '';
   });
   document.querySelector('#transactionModal')?.showModal();
+}
+
+function prepareTransactionForm() {
+  const form = document.querySelector('#transactionForm');
+  if (!form) return;
+  form.reset();
+  form.elements.id.value = '';
 }
 
 function editCategory(id) {
