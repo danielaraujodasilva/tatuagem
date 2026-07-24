@@ -600,38 +600,83 @@ function renderCategoryParentOptions(excludeId = 0) {
 }
 
 function inlineCategorySelect(row, kind) {
-  const current = String(row.category_id || '');
-  const options = state.categories.map(category => (
-    `<option value="${category.id}" ${String(category.id) === current ? 'selected' : ''}>${escapeHtml(categoryOptionLabel(category))}</option>`
+  const currentId = Number(row.category_id || 0);
+  const current = state.categories.find(category => Number(category.id) === currentId);
+  const parentId = current?.parent_id ? Number(current.parent_id) : currentId;
+  const children = state.categories.filter(category => Number(category.parent_id) === parentId);
+  const parentOptions = state.categories.filter(category => !category.parent_id).map(category => (
+    `<option value="${category.id}" ${Number(category.id) === parentId ? 'selected' : ''}>${escapeHtml(category.name)}</option>`
   )).join('');
-  return `<select class="inline-category" data-inline-category="${kind}" data-inline-category-id="${row.id}" aria-label="Alterar categoria">
-    <option value="">Sem categoria</option>${options}
-  </select>`;
+  const childOptions = children.map(category => (
+    `<option value="${category.id}" ${Number(category.id) === currentId ? 'selected' : ''}>${escapeHtml(category.name)}</option>`
+  )).join('');
+  return `<div class="category-picker" data-category-picker data-inline-kind="${kind}" data-inline-id="${row.id}">
+    <select class="inline-category" data-inline-category aria-label="Alterar categoria principal">
+      <option value="">Sem categoria</option>${parentOptions}
+    </select>
+    <select class="inline-category inline-subcategory" data-inline-subcategory aria-label="Alterar subcategoria" ${children.length ? '' : 'hidden disabled'}>
+      <option value="">Escolha a subcategoria</option>${childOptions}
+    </select>
+  </div>`;
 }
 
 function bindInlineCategoryControls(root = document) {
   root.querySelectorAll('[data-inline-category]').forEach(select => {
-    select.addEventListener('change', () => updateInlineCategory(select));
+    select.addEventListener('change', () => handleInlineCategoryChange(select));
+  });
+  root.querySelectorAll('[data-inline-subcategory]').forEach(select => {
+    select.addEventListener('change', () => handleInlineCategoryChange(select));
   });
 }
 
-async function updateInlineCategory(select) {
-  const kind = select.dataset.inlineCategory;
-  const id = Number(select.dataset.inlineCategoryId);
-  const label = select.options[select.selectedIndex]?.text || 'Sem categoria';
+function handleInlineCategoryChange(select) {
+  const picker = select.closest('[data-category-picker]');
+  if (!picker) return;
+  if (select.hasAttribute('data-inline-category')) {
+    const parentId = Number(select.value || 0);
+    const children = state.categories.filter(category => Number(category.parent_id) === parentId);
+    syncInlineSubcategory(picker, parentId, '');
+    if (children.length) {
+      picker.querySelector('[data-inline-subcategory]')?.focus();
+      return;
+    }
+    updateInlineCategory(picker, select.value);
+    return;
+  }
+  if (select.value) updateInlineCategory(picker, select.value);
+}
+
+function syncInlineSubcategory(picker, parentId, selectedId = '') {
+  const subcategory = picker.querySelector('[data-inline-subcategory]');
+  if (!subcategory) return;
+  const children = state.categories.filter(category => Number(category.parent_id) === Number(parentId));
+  subcategory.innerHTML = '<option value="">Escolha a subcategoria</option>' + children.map(category => (
+    `<option value="${category.id}">${escapeHtml(category.name)}</option>`
+  )).join('');
+  subcategory.value = selectedId;
+  subcategory.hidden = children.length === 0;
+  subcategory.disabled = children.length === 0;
+  subcategory.required = children.length > 0;
+}
+
+async function updateInlineCategory(picker, categoryId) {
+  const kind = picker.dataset.inlineKind;
+  const id = Number(picker.dataset.inlineId);
+  const category = state.categories.find(item => Number(item.id) === Number(categoryId));
+  const label = category ? categoryOptionLabel(category) : 'Sem categoria';
   const applySimilar = confirm(`Categoria alterada para "${label}". Quer aplicar tambem nas ocorrencias parecidas que eu encontrar?`);
-  select.disabled = true;
+  picker.querySelectorAll('select').forEach(select => { select.disabled = true; });
   try {
     await api(kind === 'bank_transaction' ? 'update_bank_transaction_category' : 'update_transaction_category', {
       method: 'POST',
-      body: { id, category_id: select.value, apply_similar: applySimilar ? 1 : 0 },
+      body: { id, category_id: categoryId, apply_similar: applySimilar ? 1 : 0 },
     });
     await reloadAllData();
   } catch (error) {
     alert(error.message || 'Nao foi possivel atualizar a categoria.');
     await reloadAllData();
   } finally {
-    select.disabled = false;
+    picker.querySelectorAll('select').forEach(select => { select.disabled = false; });
   }
 }
 

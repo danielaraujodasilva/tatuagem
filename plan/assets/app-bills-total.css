@@ -285,6 +285,9 @@ td { vertical-align: middle; }
   font-size: 12px;
   font-weight: 800;
 }
+.category-picker { display: grid; gap: 6px; min-width: 170px; }
+.category-picker .inline-category { min-width: 170px; max-width: 240px; }
+.category-picker .inline-subcategory { background: #fffdf5; border-color: #e7c96b; }
 .inline-category:disabled { opacity: .68; cursor: wait; }
 .bill-category { margin: 7px 0; }
 .chip-list { display: flex; gap: 8px; flex-wrap: wrap; }
