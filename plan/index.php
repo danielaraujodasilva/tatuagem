@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260724-4">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260724-5">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260724-4" defer></script>
+    <script src="assets/app-bills-total.js?v=20260724-5" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -61,6 +61,7 @@ $csrf = csrf_token();
             </a>
             <nav>
                 <button class="nav-item active" data-section="dashboard">Painel</button>
+                <button class="nav-item" data-section="categoryAnalysis">Analise</button>
                 <button class="nav-item" data-section="bills">Contas do mes</button>
                 <button class="nav-item" data-section="movements">Extratos</button>
                 <button class="nav-item" data-section="reconciliation">Conciliacao</button>
@@ -142,6 +143,58 @@ $csrf = csrf_token();
                             <button class="small-btn" data-nav-target="goals">Gerenciar</button>
                         </div>
                         <div id="goalsList" class="stack-list"></div>
+                    </section>
+                </div>
+            </section>
+
+            <section class="section" id="categoryAnalysis">
+                <div class="section-intro">
+                    <div>
+                        <p class="eyebrow">Tabela dinamica</p>
+                        <h2>Analise por categoria</h2>
+                        <p>Abra cada categoria para ver valor, percentual e linhas que compõem o total. Use Extratos para dinheiro real, Contas para planejamento e Consolidado para explorar os dois juntos.</p>
+                    </div>
+                </div>
+
+                <div class="panel analysis-filters">
+                    <select id="analysisSourceFilter">
+                        <option value="bank">Extratos bancarios</option>
+                        <option value="transactions">Contas e planilha</option>
+                        <option value="combined">Consolidado exploratorio</option>
+                    </select>
+                    <select id="analysisDirectionFilter">
+                        <option value="both">Gastos e ganhos</option>
+                        <option value="expense">Somente gastos</option>
+                        <option value="income">Somente ganhos</option>
+                    </select>
+                    <input id="analysisSearchInput" placeholder="Buscar categoria, descricao, banco ou origem">
+                </div>
+
+                <div class="kpi-grid compact-kpis">
+                    <article class="metric-card danger"><span>Gastos filtrados</span><strong id="analysisExpenseTotal">R$ 0,00</strong></article>
+                    <article class="metric-card success"><span>Ganhos filtrados</span><strong id="analysisIncomeTotal">R$ 0,00</strong></article>
+                    <article class="metric-card warning"><span>Saldo filtrado</span><strong id="analysisNetTotal">R$ 0,00</strong></article>
+                    <article class="metric-card"><span>Maior categoria</span><strong id="analysisTopCategory">-</strong></article>
+                </div>
+
+                <div class="analysis-grid">
+                    <section class="panel">
+                        <div class="panel-head wrap">
+                            <div>
+                                <h2>Gastos por categoria</h2>
+                                <span id="analysisExpenseCount">0 categorias</span>
+                            </div>
+                        </div>
+                        <div id="expenseCategoryPivot" class="pivot-list"></div>
+                    </section>
+                    <section class="panel">
+                        <div class="panel-head wrap">
+                            <div>
+                                <h2>Ganhos por categoria</h2>
+                                <span id="analysisIncomeCount">0 categorias</span>
+                            </div>
+                        </div>
+                        <div id="incomeCategoryPivot" class="pivot-list"></div>
                     </section>
                 </div>
             </section>

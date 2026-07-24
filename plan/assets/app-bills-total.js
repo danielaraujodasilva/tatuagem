@@ -106,6 +106,7 @@ async function loadBootstrap() {
   renderStaticLists();
   renderOverview();
   renderReconciliation();
+  renderCategoryAnalysis();
 }
 
 async function loadBankTransactions() {
@@ -130,6 +131,7 @@ async function loadBankTransactions() {
   renderBanking();
   renderMovements();
   renderReconciliation();
+  renderCategoryAnalysis();
 }
 
 async function loadTransactions() {
@@ -160,6 +162,7 @@ async function loadTransactions() {
   renderBills();
   renderOverview();
   renderReconciliation();
+  renderCategoryAnalysis();
 }
 
 function buildClientOverview(month, rows, existingOverview = {}) {
@@ -344,6 +347,9 @@ function bindFilters() {
     await loadBootstrap();
     await loadTransactions();
     await loadBankTransactions();
+  });
+  ['analysisSourceFilter', 'analysisDirectionFilter', 'analysisSearchInput'].forEach(id => {
+    document.querySelector(`#${id}`)?.addEventListener('input', renderCategoryAnalysis);
   });
 }
 
@@ -556,6 +562,130 @@ function renderOverview() {
   renderUpcoming();
   renderCharts();
   renderBankingSummary();
+}
+
+function renderCategoryAnalysis() {
+  const source = document.querySelector('#analysisSourceFilter')?.value || 'bank';
+  const directionFilter = document.querySelector('#analysisDirectionFilter')?.value || 'both';
+  const query = norm(document.querySelector('#analysisSearchInput')?.value || '');
+  const items = analyticsItems(source).filter(item => {
+    if (directionFilter !== 'both' && item.direction !== directionFilter) return false;
+    if (!query) return true;
+    return norm([item.category, item.description, item.sourceLabel, item.meta].join(' ')).includes(query);
+  });
+  const expenses = items.filter(item => item.direction === 'expense');
+  const incomes = items.filter(item => item.direction === 'income');
+  const expenseGroups = groupAnalyticsByCategory(expenses);
+  const incomeGroups = groupAnalyticsByCategory(incomes);
+  const expenseTotal = sumAmounts(expenses);
+  const incomeTotal = sumAmounts(incomes);
+  const topGroup = [...expenseGroups, ...incomeGroups].sort((a, b) => b.total - a.total)[0];
+
+  setText('analysisExpenseTotal', asMoney(expenseTotal));
+  setText('analysisIncomeTotal', asMoney(incomeTotal));
+  setText('analysisNetTotal', asMoney(incomeTotal - expenseTotal));
+  setText('analysisTopCategory', topGroup ? `${topGroup.category} ${formatPercent(topGroup.total, topGroup.direction === 'income' ? incomeTotal : expenseTotal)}` : '-');
+  setText('analysisExpenseCount', `${expenseGroups.length} categorias`);
+  setText('analysisIncomeCount', `${incomeGroups.length} categorias`);
+  renderCategoryPivot('expenseCategoryPivot', expenseGroups, expenseTotal, 'expense');
+  renderCategoryPivot('incomeCategoryPivot', incomeGroups, incomeTotal, 'income');
+}
+
+function analyticsItems(source) {
+  const transactionItems = state.transactions.map(row => {
+    const type = normalizedType(row);
+    if (type === 'transfer' || normalizedBillStatus(row) === 'ignored') return null;
+    return {
+      id: row.id,
+      sourceType: 'transaction',
+      sourceLabel: 'Contas',
+      direction: type === 'income' ? 'income' : 'expense',
+      amount: Number(row.amount || 0),
+      category: row.category_name || 'Sem categoria',
+      date: row.due_date,
+      description: row.description || '(sem descricao)',
+      meta: [row.source_sheet || 'Manual', statusLabel(row.status), row.owner || ''].filter(Boolean).join(' · '),
+    };
+  }).filter(Boolean);
+
+  const bankItems = state.bankTransactions.map(row => ({
+    id: row.id,
+    sourceType: 'bank_transaction',
+    sourceLabel: row.bank_name || 'Extrato',
+    direction: row.direction === 'credit' ? 'income' : 'expense',
+    amount: Number(row.amount || 0),
+    category: row.category_name || 'Sem categoria',
+    date: row.transaction_date,
+    description: row.description || '(sem descricao)',
+    meta: [row.movement_type || row.document_number || row.source_file || '', row.matched_transaction_id ? 'Conciliado' : 'Sem conciliacao'].filter(Boolean).join(' · '),
+  }));
+
+  if (source === 'transactions') return transactionItems;
+  if (source === 'combined') return [...bankItems, ...transactionItems];
+  return bankItems;
+}
+
+function groupAnalyticsByCategory(items) {
+  const grouped = items.reduce((acc, item) => {
+    acc[item.category] ||= { category: item.category, direction: item.direction, total: 0, rows: [] };
+    acc[item.category].total += item.amount;
+    acc[item.category].rows.push(item);
+    return acc;
+  }, {});
+  return Object.values(grouped)
+    .map(group => ({ ...group, rows: group.rows.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || b.amount - a.amount) }))
+    .sort((a, b) => b.total - a.total);
+}
+
+function renderCategoryPivot(targetId, groups, total, direction) {
+  const target = document.querySelector(`#${targetId}`);
+  if (!target) return;
+  const label = direction === 'income' ? 'ganhos' : 'gastos';
+  target.innerHTML = groups.length ? groups.map((group, index) => {
+    const pct = formatPercent(group.total, total);
+    return `
+      <details class="pivot-group ${direction}" ${index < 4 ? 'open' : ''}>
+        <summary>
+          <span>
+            <strong>${escapeHtml(group.category)}</strong>
+            <small>${group.rows.length} itens · ${pct} dos ${label}</small>
+          </span>
+          <span class="amount ${direction === 'income' ? 'positive' : 'negative'}">${asMoney(group.total)}</span>
+        </summary>
+        <div class="pivot-bar"><span style="width:${Math.min(100, total ? (group.total / total) * 100 : 0)}%"></span></div>
+        <div class="pivot-rows">
+          ${group.rows.map(row => `
+            <button class="pivot-row" data-pivot-source="${row.sourceType}" data-pivot-id="${row.id}">
+              <span>${formatDate(row.date)}</span>
+              <strong>${escapeHtml(row.description)}</strong>
+              <small>${escapeHtml(row.sourceLabel)}${row.meta ? ' · ' + escapeHtml(row.meta) : ''}</small>
+              <em class="${direction === 'income' ? 'positive' : 'negative'}">${direction === 'income' ? '+' : '-'} ${asMoney(row.amount)}</em>
+            </button>
+          `).join('')}
+        </div>
+      </details>
+    `;
+  }).join('') : `<p class="muted">Nenhuma categoria de ${label} para os filtros atuais.</p>`;
+
+  target.querySelectorAll('[data-pivot-source]').forEach(button => {
+    button.addEventListener('click', () => openPivotItem(button.dataset.pivotSource, Number(button.dataset.pivotId)));
+  });
+}
+
+function openPivotItem(sourceType, id) {
+  if (sourceType === 'bank_transaction') {
+    navigateToSection('movements');
+    highlightSharedElement(`[data-bank-transaction-id="${id}"]`, 'Nao encontrei esta linha na tela atual de extratos.');
+    return;
+  }
+  const row = state.transactions.find(item => Number(item.id) === id);
+  navigateToSection(row && normalizedType(row) === 'income' ? 'transactions' : 'bills');
+  highlightSharedElement(`[data-transaction-id="${id}"]`, 'Nao encontrei este lancamento na tela atual.');
+}
+
+function formatPercent(value, total) {
+  if (!total) return '0%';
+  return `${((Number(value || 0) / Number(total || 1)) * 100).toFixed(1).replace('.', ',')}%`;
 }
 
 function renderWorkflowStrip() {
