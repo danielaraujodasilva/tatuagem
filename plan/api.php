@@ -984,8 +984,10 @@ function bank_transactions(): never
         $params[] = $_GET['bank'];
     }
     if (!empty($_GET['category_id'])) {
-        $where[] = 'bt.category_id = ?';
-        $params[] = (int)$_GET['category_id'];
+        $categoryId = (int)$_GET['category_id'];
+        $where[] = '(bt.category_id = ? OR c.parent_id = ?)';
+        $params[] = $categoryId;
+        $params[] = $categoryId;
     }
     if (!empty($_GET['direction']) && in_array($_GET['direction'], ['credit', 'debit'], true)) {
         $where[] = 'bt.direction = ?';

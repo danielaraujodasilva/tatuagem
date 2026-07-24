@@ -702,9 +702,10 @@ function renderCategoryAnalysis() {
   const groupSort = document.querySelector('#analysisGroupSort')?.value || 'value_desc';
   const rowSort = document.querySelector('#analysisRowSort')?.value || 'date_desc';
   const query = norm(document.querySelector('#analysisSearchInput')?.value || '');
+  const categoryIds = categoryFilterIds(categoryId);
   const items = analyticsItems(source).filter(item => {
     if (directionFilter !== 'both' && item.direction !== directionFilter) return false;
-    if (categoryId && String(item.category_id || '') !== categoryId) return false;
+    if (categoryId && !categoryIds.has(String(item.category_id || ''))) return false;
     if (minAmount && item.amount < minAmount) return false;
     if (maxAmount && item.amount > maxAmount) return false;
     if (!query) return true;
@@ -726,6 +727,21 @@ function renderCategoryAnalysis() {
   setText('analysisIncomeCount', `${incomeGroups.length} categorias`);
   renderCategoryPivot('expenseCategoryPivot', expenseGroups, expenseTotal, 'expense');
   renderCategoryPivot('incomeCategoryPivot', incomeGroups, incomeTotal, 'income');
+}
+
+function categoryFilterIds(selectedId) {
+  const ids = new Set(selectedId ? [String(selectedId)] : []);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    state.categories.forEach(category => {
+      if (category.parent_id && ids.has(String(category.parent_id)) && !ids.has(String(category.id))) {
+        ids.add(String(category.id));
+        changed = true;
+      }
+    });
+  }
+  return ids;
 }
 
 function analyticsItems(source) {
@@ -984,11 +1000,12 @@ function filteredBills() {
   const status = document.querySelector('#billsStatusFilter')?.value || '';
   const category = document.querySelector('#billsCategoryFilter')?.value || '';
   const owner = document.querySelector('#billsOwnerFilter')?.value || '';
+  const categoryIds = categoryFilterIds(category);
   return state.transactions.filter(row => {
     if (normalizedType(row) === 'income' || normalizedBillStatus(row) === 'ignored') return false;
     const rowStatus = normalizedBillStatus(row) === 'pending' && isPastDate(row.due_date) ? 'late' : normalizedBillStatus(row);
     if (status && rowStatus !== status) return false;
-    if (category && String(row.category_id || '') !== category) return false;
+    if (category && !categoryIds.has(String(row.category_id || ''))) return false;
     if (owner && clean(row.owner) !== owner) return false;
     if (query && !norm([row.description, row.owner, row.source_sheet, row.category_name].join(' ')).includes(query)) return false;
     return true;
