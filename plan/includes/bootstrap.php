@@ -88,13 +88,22 @@ function json_response(array $payload, int $status = 200): never
 
 function money_to_float(mixed $value): float
 {
-    if (is_numeric($value)) {
+    if (is_int($value) || is_float($value)) {
         return (float)$value;
     }
 
     $value = trim((string)$value);
-    $value = str_replace(['R$', ' ', '.'], '', $value);
-    $value = str_replace(',', '.', $value);
+    $value = str_replace(['R$', ' ', "\xc2\xa0"], '', $value);
+    $value = preg_replace('/[^\d,.\-]/', '', $value) ?? '';
+
+    if (str_contains($value, ',') && str_contains($value, '.')) {
+        $value = str_replace('.', '', $value);
+        $value = str_replace(',', '.', $value);
+    } elseif (str_contains($value, ',')) {
+        $value = str_replace(',', '.', $value);
+    } elseif (preg_match('/^-?\d{1,3}(\.\d{3})+$/', $value)) {
+        $value = str_replace('.', '', $value);
+    }
 
     return is_numeric($value) ? (float)$value : 0.0;
 }
