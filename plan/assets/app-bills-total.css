@@ -224,6 +224,18 @@ td { vertical-align: middle; }
   font-weight: 900;
 }
 .table-title-row { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.inline-category {
+  min-width: 160px;
+  max-width: 230px;
+  padding: 7px 9px;
+  border-radius: 999px;
+  background: #f8fbff;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+}
+.inline-category:disabled { opacity: .68; cursor: wait; }
+.bill-category { margin: 7px 0; }
 .chip-list { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip { padding: 8px 10px; border-radius: 999px; color: #fff; font-weight: 800; font-size: 12px; }
 .editable-chip { display: inline-flex; align-items: center; gap: 6px; padding-right: 6px; }

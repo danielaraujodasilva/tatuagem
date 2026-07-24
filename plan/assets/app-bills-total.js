@@ -509,6 +509,42 @@ function renderSelects() {
   });
 }
 
+function inlineCategorySelect(row, kind) {
+  const current = String(row.category_id || '');
+  const options = state.categories.map(category => (
+    `<option value="${category.id}" ${String(category.id) === current ? 'selected' : ''}>${escapeHtml(category.name)}</option>`
+  )).join('');
+  return `<select class="inline-category" data-inline-category="${kind}" data-inline-category-id="${row.id}" aria-label="Alterar categoria">
+    <option value="">Sem categoria</option>${options}
+  </select>`;
+}
+
+function bindInlineCategoryControls(root = document) {
+  root.querySelectorAll('[data-inline-category]').forEach(select => {
+    select.addEventListener('change', () => updateInlineCategory(select));
+  });
+}
+
+async function updateInlineCategory(select) {
+  const kind = select.dataset.inlineCategory;
+  const id = Number(select.dataset.inlineCategoryId);
+  const label = select.options[select.selectedIndex]?.text || 'Sem categoria';
+  const applySimilar = confirm(`Categoria alterada para "${label}". Quer aplicar tambem nas ocorrencias parecidas que eu encontrar?`);
+  select.disabled = true;
+  try {
+    await api(kind === 'bank_transaction' ? 'update_bank_transaction_category' : 'update_transaction_category', {
+      method: 'POST',
+      body: { id, category_id: select.value, apply_similar: applySimilar ? 1 : 0 },
+    });
+    await reloadAllData();
+  } catch (error) {
+    alert(error.message || 'Nao foi possivel atualizar a categoria.');
+    await reloadAllData();
+  } finally {
+    select.disabled = false;
+  }
+}
+
 function renderOverview() {
   const totals = state.overview?.totals || {};
   setText('kpiIncome', asMoney(totals.income));
@@ -586,7 +622,7 @@ function renderTransactions() {
       <td>${formatDate(row.due_date)}</td>
       <td><strong>${escapeHtml(row.description)}</strong><br><small>${row.payment_code ? escapeHtml(firstWords(row.payment_code, 6)) : 'Sem codigo de pagamento'} ${row.owner ? '· ' + escapeHtml(row.owner) : ''}</small></td>
       <td>${originBadge(row)}<br><small>${row.reference_month ? escapeHtml(row.reference_month) : formatDate(row.due_date)}</small></td>
-      <td><span class="tag" style="border-color:${row.category_color || '#dbe3ef'}">${escapeHtml(row.category_name || 'Sem categoria')}</span></td>
+      <td>${inlineCategorySelect(row, 'transaction')}</td>
       <td><span class="status ${row.status}">${statusLabel(row.status)}</span></td>
       <td class="amount">${asMoney(row.amount)}</td>
       <td>
@@ -616,6 +652,7 @@ function renderTransactions() {
   body.querySelectorAll('[data-edit]').forEach(button => {
     button.addEventListener('click', () => editTransaction(Number(button.dataset.edit)));
   });
+  bindInlineCategoryControls(body);
   bindShareButtons(body);
 }
 
@@ -668,7 +705,8 @@ function renderBillList(targetId, rows, mode) {
     <article class="bill-card ${mode}" data-transaction-id="${row.id}">
       <div>
         <strong>${escapeHtml(row.description)}</strong>
-        <small>${formatDate(row.due_date)} · ${escapeHtml(row.category_name || 'Sem categoria')}</small>
+        <small>${formatDate(row.due_date)}</small>
+        <div class="bill-category">${inlineCategorySelect(row, 'transaction')}</div>
         <small>${originBadge(row)} ${row.payment_code ? '· ' + escapeHtml(compactPaymentCode(row.payment_code)) : ''}</small>
       </div>
       <div class="bill-card-side">
@@ -698,6 +736,7 @@ function renderBillList(targetId, rows, mode) {
       await reloadAllData();
     });
   });
+  bindInlineCategoryControls(target);
   bindShareButtons(target);
 }
 
@@ -776,11 +815,12 @@ function renderBankTransactions() {
         </div>
         <small>${escapeHtml(row.movement_type || row.source_file || '')}</small>
       </td>
-      <td>${escapeHtml(row.category_name || 'A categorizar')}</td>
+      <td>${inlineCategorySelect(row, 'bank_transaction')}</td>
       <td>${row.matched_transaction_id ? `<span class="status paid">Conciliado</span><br><small>${escapeHtml(row.matched_description || '')}</small>` : '<span class="status pending">Sem match</span>'}</td>
       <td class="amount ${row.direction === 'credit' ? 'positive' : 'negative'}">${row.direction === 'credit' ? '+' : '-'} ${asMoney(row.amount)}</td>
     </tr>
   `).join('') : '<tr><td colspan="6" class="empty-cell">Nenhuma movimentacao bancaria encontrada para os filtros atuais.</td></tr>';
+  bindInlineCategoryControls(body);
   bindShareButtons(body);
 }
 
@@ -832,11 +872,12 @@ function renderCategorizedBankTable(rows) {
         </div>
         <small>${escapeHtml(row.movement_type || row.document_number || row.source_file || '')}</small>
       </td>
-      <td>${escapeHtml(row.category_name || 'A categorizar')}</td>
+      <td>${inlineCategorySelect(row, 'bank_transaction')}</td>
       <td>${row.matched_transaction_id ? `<span class="status paid">Conciliada</span><br><small>${escapeHtml(row.matched_description || '')}</small>` : '<span class="status pending">Sem conciliacao</span>'}</td>
       <td class="amount ${row.direction === 'credit' ? 'positive' : 'negative'}">${row.direction === 'credit' ? '+' : '-'} ${asMoney(row.amount)}</td>
     </tr>
   `).join('') : '<tr><td colspan="6" class="empty-cell">Nenhuma transacao encontrada para os filtros atuais.</td></tr>';
+  bindInlineCategoryControls(body);
   bindShareButtons(body);
 }
 
@@ -932,6 +973,7 @@ function renderUnmatchedBankList(rows) {
       <div>
         <strong>${escapeHtml(row.description)}</strong>
         <small>${formatDate(row.transaction_date)} · ${escapeHtml(row.movement_type || row.source_file || '')}</small>
+        <div class="bill-category">${inlineCategorySelect(row, 'bank_transaction')}</div>
       </div>
       <div class="bank-match-actions">
         <span class="amount ${row.direction === 'credit' ? 'positive' : 'negative'}">${row.direction === 'credit' ? '+' : '-'} ${asMoney(row.amount)}</span>
@@ -939,6 +981,7 @@ function renderUnmatchedBankList(rows) {
       </div>
     </div>
   `).join('') : '<p class="muted">Tudo que veio do extrato neste filtro ja foi conciliado ou ainda nao ha extrato importado.</p>';
+  bindInlineCategoryControls(target);
   bindShareButtons(target);
 }
 

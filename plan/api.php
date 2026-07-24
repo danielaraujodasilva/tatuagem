@@ -35,6 +35,7 @@ try {
         'save_transaction' => save_transaction(),
         'delete_transaction' => delete_transaction(),
         'toggle_paid' => toggle_paid(),
+        'update_transaction_category' => update_transaction_category(),
         'save_sheet_import' => save_sheet_import(),
         'save_category' => save_category(),
         'delete_category' => delete_category(),
@@ -48,6 +49,7 @@ try {
         'delete_recurring' => delete_recurring(),
         'bank_transactions' => bank_transactions(),
         'save_bank_import' => save_bank_import(),
+        'update_bank_transaction_category' => update_bank_transaction_category(),
         'create_share' => create_share(),
         'resolve_share' => resolve_share(),
         'overview' => overview(),
@@ -181,6 +183,115 @@ function toggle_paid(): never
     db()->prepare('UPDATE transactions SET status = ?, paid_at = ?, updated_at = NOW() WHERE id = ?')->execute([$status, $paidAt, $id]);
     audit('toggle_paid', 'transaction', $id, ['status' => $status]);
     json_response(['ok' => true]);
+}
+
+function update_transaction_category(): never
+{
+    $input = json_input();
+    $id = (int)($input['id'] ?? 0);
+    $categoryId = normalize_category_id($input['category_id'] ?? '');
+    $applySimilar = !empty($input['apply_similar']);
+
+    if ($id <= 0) {
+        json_response(['ok' => false, 'message' => 'Lancamento invalido.'], 422);
+    }
+    assert_category_exists($categoryId);
+
+    $stmt = db()->prepare('SELECT id, description FROM transactions WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    $target = $stmt->fetch();
+    if (!$target) {
+        json_response(['ok' => false, 'message' => 'Lancamento nao encontrado.'], 404);
+    }
+
+    $ids = [$id];
+    if ($applySimilar) {
+        $key = category_match_key((string)$target['description']);
+        $rows = db()->query('SELECT id, description FROM transactions')->fetchAll();
+        $ids = array_values(array_map(
+            fn(array $row) => (int)$row['id'],
+            array_filter($rows, fn(array $row) => category_match_key((string)$row['description']) === $key)
+        ));
+    }
+
+    update_category_for_ids('transactions', $ids, $categoryId);
+    audit('update_category', 'transaction', $id, ['category_id' => $categoryId, 'affected' => count($ids)]);
+    json_response(['ok' => true, 'affected' => count($ids)]);
+}
+
+function update_bank_transaction_category(): never
+{
+    ensure_bank_schema();
+    $input = json_input();
+    $id = (int)($input['id'] ?? 0);
+    $categoryId = normalize_category_id($input['category_id'] ?? '');
+    $applySimilar = !empty($input['apply_similar']);
+
+    if ($id <= 0) {
+        json_response(['ok' => false, 'message' => 'Movimentacao invalida.'], 422);
+    }
+    assert_category_exists($categoryId);
+
+    $stmt = db()->prepare('SELECT id, description FROM bank_transactions WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    $target = $stmt->fetch();
+    if (!$target) {
+        json_response(['ok' => false, 'message' => 'Movimentacao nao encontrada.'], 404);
+    }
+
+    $ids = [$id];
+    if ($applySimilar) {
+        $key = category_match_key((string)$target['description']);
+        $rows = db()->query('SELECT id, description FROM bank_transactions')->fetchAll();
+        $ids = array_values(array_map(
+            fn(array $row) => (int)$row['id'],
+            array_filter($rows, fn(array $row) => category_match_key((string)$row['description']) === $key)
+        ));
+    }
+
+    update_category_for_ids('bank_transactions', $ids, $categoryId);
+    audit('update_category', 'bank_transaction', $id, ['category_id' => $categoryId, 'affected' => count($ids)]);
+    json_response(['ok' => true, 'affected' => count($ids)]);
+}
+
+function normalize_category_id(mixed $value): ?int
+{
+    if ($value === '' || $value === null) {
+        return null;
+    }
+    return (int)$value;
+}
+
+function assert_category_exists(?int $categoryId): void
+{
+    if ($categoryId === null) {
+        return;
+    }
+    $stmt = db()->prepare('SELECT id FROM categories WHERE id = ? LIMIT 1');
+    $stmt->execute([$categoryId]);
+    if (!$stmt->fetchColumn()) {
+        json_response(['ok' => false, 'message' => 'Categoria nao encontrada.'], 422);
+    }
+}
+
+function update_category_for_ids(string $table, array $ids, ?int $categoryId): void
+{
+    $ids = array_values(array_unique(array_filter(array_map('intval', $ids), fn(int $id) => $id > 0)));
+    if (!$ids) {
+        return;
+    }
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $params = array_merge([$categoryId], $ids);
+    db()->prepare("UPDATE $table SET category_id = ? WHERE id IN ($placeholders)")->execute($params);
+}
+
+function category_match_key(string $description): string
+{
+    $key = strtolower(trim(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $description) ?: $description));
+    $key = preg_replace('/\b\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?\b/', ' ', $key) ?? $key;
+    $key = preg_replace('/\b\d{4,}\b/', ' ', $key) ?? $key;
+    $key = preg_replace('/[^a-z0-9]+/', ' ', $key) ?? $key;
+    return trim(preg_replace('/\s+/', ' ', $key) ?? $key);
 }
 
 function save_category(): never
