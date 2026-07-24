@@ -119,7 +119,7 @@ async function loadBankTransactions() {
     date_to: dateTo,
     q: document.querySelector('#movementSearchInput')?.value || document.querySelector('#bankSearchInput')?.value || '',
     bank: document.querySelector('#movementBankFilter')?.value || document.querySelector('#bankFilter')?.value || '',
-    category_id: document.querySelector('#movementCategoryFilter')?.value || '',
+    category_id: categoryFilterValue('movement'),
     direction: document.querySelector('#movementDirectionFilter')?.value || '',
     matched: document.querySelector('#movementMatchFilter')?.value || '',
   });
@@ -359,25 +359,29 @@ function bindFilters() {
   ['searchInput', 'statusFilter', 'typeFilter'].forEach(id => {
     document.querySelector(`#${id}`)?.addEventListener('input', () => renderTransactions());
   });
-  ['billsSearchInput', 'billsStatusFilter', 'billsCategoryFilter', 'billsOwnerFilter'].forEach(id => {
+  ['billsSearchInput', 'billsStatusFilter', 'billsOwnerFilter'].forEach(id => {
     document.querySelector(`#${id}`)?.addEventListener('input', renderBills);
   });
+  bindCategoryFilter('bills', renderBills);
   document.querySelector('#clearBillsFilters')?.addEventListener('click', () => {
-    ['billsSearchInput', 'billsStatusFilter', 'billsCategoryFilter', 'billsOwnerFilter'].forEach(id => {
+    ['billsSearchInput', 'billsStatusFilter', 'billsCategoryParentFilter', 'billsCategoryFilter', 'billsOwnerFilter'].forEach(id => {
       const input = document.querySelector(`#${id}`);
       if (input) input.value = '';
     });
+    syncCategoryFilter('bills');
     renderBills();
   });
-  ['movementDateFrom', 'movementDateTo', 'movementSearchInput', 'movementBankFilter', 'movementCategoryFilter', 'movementDirectionFilter', 'movementMatchFilter'].forEach(id => {
+  ['movementDateFrom', 'movementDateTo', 'movementSearchInput', 'movementBankFilter', 'movementDirectionFilter', 'movementMatchFilter'].forEach(id => {
     document.querySelector(`#${id}`)?.addEventListener('input', debounce(loadBankTransactions, 250));
   });
+  bindCategoryFilter('movement', () => loadBankTransactions());
   document.querySelector('#clearMovementFilters')?.addEventListener('click', async () => {
     syncMovementDatesFromMonth();
-    ['movementBankFilter', 'movementCategoryFilter', 'movementDirectionFilter', 'movementMatchFilter', 'movementSearchInput', 'bankFilter', 'bankSearchInput'].forEach(id => {
+    ['movementBankFilter', 'movementCategoryParentFilter', 'movementCategoryFilter', 'movementDirectionFilter', 'movementMatchFilter', 'movementSearchInput', 'bankFilter', 'bankSearchInput'].forEach(id => {
       const input = document.querySelector(`#${id}`);
       if (input) input.value = '';
     });
+    syncCategoryFilter('movement');
     await loadBankTransactions();
   });
   ['bankSearchInput', 'bankFilter'].forEach(id => {
@@ -391,9 +395,10 @@ function bindFilters() {
     await loadTransactions();
     await loadBankTransactions();
   });
-  ['analysisSourceFilter', 'analysisDirectionFilter', 'analysisCategoryFilter', 'analysisMinAmount', 'analysisMaxAmount', 'analysisGroupSort', 'analysisRowSort', 'analysisSearchInput'].forEach(id => {
+  ['analysisSourceFilter', 'analysisDirectionFilter', 'analysisMinAmount', 'analysisMaxAmount', 'analysisGroupSort', 'analysisRowSort', 'analysisSearchInput'].forEach(id => {
     document.querySelector(`#${id}`)?.addEventListener('input', renderCategoryAnalysis);
   });
+  bindCategoryFilter('analysis', renderCategoryAnalysis);
   document.querySelectorAll('[data-pivot-toggle]').forEach(button => {
     button.addEventListener('click', () => setPivotOpenState(button.dataset.pivotScope, button.dataset.pivotToggle === 'open'));
   });
@@ -458,10 +463,11 @@ async function focusSharedTarget(share, target) {
     if (from && date) from.value = date;
     if (to && date) to.value = date;
     if (search) search.value = '';
-    ['movementBankFilter', 'movementCategoryFilter', 'movementDirectionFilter', 'movementMatchFilter', 'bankFilter', 'bankSearchInput'].forEach(id => {
+    ['movementBankFilter', 'movementCategoryParentFilter', 'movementCategoryFilter', 'movementDirectionFilter', 'movementMatchFilter', 'bankFilter', 'bankSearchInput'].forEach(id => {
       const input = document.querySelector(`#${id}`);
       if (input) input.value = '';
     });
+    syncCategoryFilter('movement');
     await loadBankTransactions();
     navigateToSection('movements');
     highlightSharedElement(`[data-bank-transaction-id="${target.id}"]`, `Compartilhamento aberto: ${share.title}`);
@@ -542,30 +548,15 @@ function bindForms() {
 }
 
 function renderSelects() {
-  const categoryOptions = state.categories.map(category => (
+  const categoryOptions = state.categories.filter(category => !isUncategorizedCategory(category)).map(category => (
     `<option value="${category.id}">${escapeHtml(categoryOptionLabel(category))}</option>`
   )).join('');
   document.querySelectorAll('[data-categories]').forEach(select => {
     select.innerHTML = '<option value="">Sem categoria</option>' + categoryOptions;
   });
-  const movementCategory = document.querySelector('#movementCategoryFilter');
-  if (movementCategory) {
-    const current = movementCategory.value;
-    movementCategory.innerHTML = '<option value="">Todas categorias</option>' + categoryOptions;
-    movementCategory.value = current;
-  }
-  const analysisCategory = document.querySelector('#analysisCategoryFilter');
-  if (analysisCategory) {
-    const current = analysisCategory.value;
-    analysisCategory.innerHTML = '<option value="">Todas categorias</option>' + categoryOptions;
-    analysisCategory.value = state.categories.some(category => String(category.id) === current) ? current : '';
-  }
-  const billsCategory = document.querySelector('#billsCategoryFilter');
-  if (billsCategory) {
-    const current = billsCategory.value;
-    billsCategory.innerHTML = '<option value="">Todas as categorias</option>' + categoryOptions;
-    billsCategory.value = state.categories.some(category => String(category.id) === current) ? current : '';
-  }
+  renderCategoryFilter('analysis');
+  renderCategoryFilter('bills');
+  renderCategoryFilter('movement');
   const owners = [...new Set(state.transactions.map(row => clean(row.owner)).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   const billsOwner = document.querySelector('#billsOwnerFilter');
   if (billsOwner) {
@@ -581,13 +572,72 @@ function renderSelects() {
   renderCategoryParentOptions();
 }
 
+const categoryFilterScopes = {
+  analysis: { parent: 'analysisCategoryParentFilter', child: 'analysisCategoryFilter', allLabel: 'Todas as categorias' },
+  bills: { parent: 'billsCategoryParentFilter', child: 'billsCategoryFilter', allLabel: 'Todas as categorias' },
+  movement: { parent: 'movementCategoryParentFilter', child: 'movementCategoryFilter', allLabel: 'Todas as categorias' },
+};
+
+function renderCategoryFilter(scope) {
+  const config = categoryFilterScopes[scope];
+  if (!config) return;
+  const parent = document.querySelector(`#${config.parent}`);
+  const child = document.querySelector(`#${config.child}`);
+  if (!parent || !child) return;
+  const currentParent = parent.value;
+  const currentChild = child.value;
+  parent.innerHTML = `<option value="">${config.allLabel}</option>` + state.categories
+    .filter(category => !category.parent_id && !isUncategorizedCategory(category))
+    .map(category => `<option value="${category.id}">${escapeHtml(category.name)}</option>`)
+    .join('') + '<option value="__none__">Sem categoria</option>';
+  parent.value = currentParent === '__none__' || state.categories.some(category => String(category.id) === currentParent && !category.parent_id && !isUncategorizedCategory(category)) ? currentParent : '';
+  syncCategoryFilter(scope, currentChild);
+}
+
+function syncCategoryFilter(scope, preferredChild = null) {
+  const config = categoryFilterScopes[scope];
+  if (!config) return;
+  const parent = document.querySelector(`#${config.parent}`);
+  const child = document.querySelector(`#${config.child}`);
+  if (!parent || !child) return;
+  const parentId = parent.value;
+  const currentChild = preferredChild === null ? child.value : preferredChild;
+  const children = state.categories.filter(category => String(category.parent_id || '') === String(parentId));
+  child.innerHTML = '<option value="">Todas as subcategorias</option>' + children
+    .map(category => `<option value="${category.id}">${escapeHtml(category.name)}</option>`)
+    .join('');
+  child.value = children.some(category => String(category.id) === String(currentChild)) ? currentChild : '';
+  child.hidden = !parentId || children.length === 0;
+  child.disabled = !parentId || children.length === 0;
+}
+
+function bindCategoryFilter(scope, render) {
+  const config = categoryFilterScopes[scope];
+  if (!config) return;
+  document.querySelector(`#${config.parent}`)?.addEventListener('change', () => {
+    syncCategoryFilter(scope, '');
+    render();
+  });
+  document.querySelector(`#${config.child}`)?.addEventListener('change', render);
+}
+
+function categoryFilterValue(scope) {
+  const config = categoryFilterScopes[scope];
+  if (!config) return '';
+  return document.querySelector(`#${config.child}`)?.value || document.querySelector(`#${config.parent}`)?.value || '';
+}
+
 function categoryOptionLabel(category) {
   return category.parent_name ? `${category.parent_name} / ${category.name}` : category.name;
 }
 
+function isUncategorizedCategory(category) {
+  return norm(category?.name || '') === 'sem categoria';
+}
+
 function renderCategoryParentOptions(excludeId = 0) {
   const parents = state.categories
-    .filter(category => !category.parent_id && Number(category.id) !== Number(excludeId))
+    .filter(category => !category.parent_id && Number(category.id) !== Number(excludeId) && !isUncategorizedCategory(category))
     .sort((a, b) => String(a.name).localeCompare(String(b.name), 'pt-BR'));
   const options = '<option value="">Nenhuma (categoria principal)</option>' + parents
     .map(category => `<option value="${category.id}">${escapeHtml(category.name)}</option>`)
@@ -600,11 +650,12 @@ function renderCategoryParentOptions(excludeId = 0) {
 }
 
 function inlineCategorySelect(row, kind) {
-  const currentId = Number(row.category_id || 0);
-  const current = state.categories.find(category => Number(category.id) === currentId);
+  const storedCategory = state.categories.find(category => Number(category.id) === Number(row.category_id || 0));
+  const currentId = storedCategory && !isUncategorizedCategory(storedCategory) ? Number(row.category_id || 0) : 0;
+  const current = currentId ? storedCategory : null;
   const parentId = current?.parent_id ? Number(current.parent_id) : currentId;
   const children = state.categories.filter(category => Number(category.parent_id) === parentId);
-  const parentOptions = state.categories.filter(category => !category.parent_id).map(category => (
+  const parentOptions = state.categories.filter(category => !category.parent_id && !isUncategorizedCategory(category)).map(category => (
     `<option value="${category.id}" ${Number(category.id) === parentId ? 'selected' : ''}>${escapeHtml(category.name)}</option>`
   )).join('');
   const childOptions = children.map(category => (
@@ -696,7 +747,7 @@ function renderOverview() {
 function renderCategoryAnalysis() {
   const source = document.querySelector('#analysisSourceFilter')?.value || 'bank';
   const directionFilter = document.querySelector('#analysisDirectionFilter')?.value || 'both';
-  const categoryId = document.querySelector('#analysisCategoryFilter')?.value || '';
+  const categoryId = categoryFilterValue('analysis');
   const minAmount = parseMoney(document.querySelector('#analysisMinAmount')?.value || '');
   const maxAmount = parseMoney(document.querySelector('#analysisMaxAmount')?.value || '');
   const groupSort = document.querySelector('#analysisGroupSort')?.value || 'value_desc';
@@ -731,6 +782,11 @@ function renderCategoryAnalysis() {
 
 function categoryFilterIds(selectedId) {
   const ids = new Set(selectedId ? [String(selectedId)] : []);
+  if (selectedId === '__none__') {
+    ids.add('');
+    const uncategorized = state.categories.find(category => isUncategorizedCategory(category));
+    if (uncategorized) ids.add(String(uncategorized.id));
+  }
   let changed = true;
   while (changed) {
     changed = false;
@@ -998,7 +1054,7 @@ function filteredTransactions() {
 function filteredBills() {
   const query = norm(document.querySelector('#billsSearchInput')?.value || '');
   const status = document.querySelector('#billsStatusFilter')?.value || '';
-  const category = document.querySelector('#billsCategoryFilter')?.value || '';
+  const category = categoryFilterValue('bills');
   const owner = document.querySelector('#billsOwnerFilter')?.value || '';
   const categoryIds = categoryFilterIds(category);
   return state.transactions.filter(row => {
@@ -1645,12 +1701,13 @@ function renderCategories() {
   const parents = state.categories.filter(category => !category.parent_id);
   target.innerHTML = parents.map(parent => {
     const children = state.categories.filter(category => Number(category.parent_id) === Number(parent.id));
+    const addChildButton = isUncategorizedCategory(parent) ? '' : `<button class="icon-btn" title="Nova subcategoria" data-category-add-child="${parent.id}">+</button>`;
     return `
       <div class="category-group">
         <div class="category-group-head">
           <div><strong>${escapeHtml(parent.name)}</strong><small>Categoria principal</small></div>
           <div class="category-actions">
-            <button class="icon-btn" title="Nova subcategoria" data-category-add-child="${parent.id}">+</button>
+            ${addChildButton}
             <button class="icon-btn" title="Editar categoria" data-category-edit="${parent.id}">✎</button>
             <button class="icon-btn" title="Excluir categoria" data-category-delete="${parent.id}">×</button>
           </div>

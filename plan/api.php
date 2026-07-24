@@ -334,11 +334,15 @@ function assert_category_parent(int $categoryId, ?int $parentId): void
         json_response(['ok' => false, 'message' => 'Uma categoria nao pode ser pai dela mesma.'], 422);
     }
 
-    $stmt = db()->prepare('SELECT parent_id FROM categories WHERE id = ? LIMIT 1');
+    $stmt = db()->prepare('SELECT parent_id, name FROM categories WHERE id = ? LIMIT 1');
     $stmt->execute([$parentId]);
     $parent = $stmt->fetch();
     if (!$parent) {
         json_response(['ok' => false, 'message' => 'Categoria principal nao encontrada.'], 422);
+    }
+    $parentName = strtolower(trim((string)($parent['name'] ?? '')));
+    if ($parentName === 'sem categoria') {
+        json_response(['ok' => false, 'message' => 'Sem categoria e reservada para lancamentos sem classificacao.'], 422);
     }
     if ($parent['parent_id'] !== null) {
         json_response(['ok' => false, 'message' => 'Escolha uma categoria principal, nao outra subcategoria.'], 422);
@@ -984,10 +988,17 @@ function bank_transactions(): never
         $params[] = $_GET['bank'];
     }
     if (!empty($_GET['category_id'])) {
-        $categoryId = (int)$_GET['category_id'];
-        $where[] = '(bt.category_id = ? OR c.parent_id = ?)';
-        $params[] = $categoryId;
-        $params[] = $categoryId;
+        if ((string)$_GET['category_id'] === '__none__') {
+            $stmt = db()->query("SELECT id FROM categories WHERE LOWER(name) = 'sem categoria' LIMIT 1");
+            $uncategorizedId = (int)($stmt->fetchColumn() ?: 0);
+            $where[] = '(bt.category_id IS NULL OR bt.category_id = ?)';
+            $params[] = $uncategorizedId;
+        } else {
+            $categoryId = (int)$_GET['category_id'];
+            $where[] = '(bt.category_id = ? OR c.parent_id = ?)';
+            $params[] = $categoryId;
+            $params[] = $categoryId;
+        }
     }
     if (!empty($_GET['direction']) && in_array($_GET['direction'], ['credit', 'debit'], true)) {
         $where[] = 'bt.direction = ?';

@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260724-12">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260724-13">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260724-12" defer></script>
+    <script src="assets/app-bills-total.js?v=20260724-13" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -188,7 +188,8 @@ $csrf = csrf_token();
                         <option value="expense">Somente gastos</option>
                         <option value="income">Somente ganhos</option>
                     </select>
-                    <select id="analysisCategoryFilter"><option value="">Todas categorias</option></select>
+                    <select id="analysisCategoryParentFilter" aria-label="Categoria principal"><option value="">Todas as categorias</option></select>
+                    <select id="analysisCategoryFilter" aria-label="Subcategoria" hidden disabled><option value="">Todas as subcategorias</option></select>
                     <input id="analysisMinAmount" inputmode="decimal" placeholder="Valor minimo">
                     <input id="analysisMaxAmount" inputmode="decimal" placeholder="Valor maximo">
                     <select id="analysisGroupSort">
@@ -284,7 +285,8 @@ $csrf = csrf_token();
                         <option value="paid">Pagas</option>
                         <option value="late">Atrasadas</option>
                     </select>
-                    <select id="billsCategoryFilter"><option value="">Todas as categorias</option></select>
+                    <select id="billsCategoryParentFilter" aria-label="Categoria principal"><option value="">Todas as categorias</option></select>
+                    <select id="billsCategoryFilter" aria-label="Subcategoria" hidden disabled><option value="">Todas as subcategorias</option></select>
                     <select id="billsOwnerFilter"><option value="">Todos os responsaveis</option></select>
                 </div>
 
@@ -320,7 +322,8 @@ $csrf = csrf_token();
                     <input id="movementDateFrom" type="date" value="<?= date('Y-m-01') ?>">
                     <input id="movementDateTo" type="date" value="<?= date('Y-m-t') ?>">
                     <select id="movementBankFilter"><option value="">Todos bancos</option></select>
-                    <select id="movementCategoryFilter"><option value="">Todas categorias</option></select>
+                    <select id="movementCategoryParentFilter" aria-label="Categoria principal"><option value="">Todas as categorias</option></select>
+                    <select id="movementCategoryFilter" aria-label="Subcategoria" hidden disabled><option value="">Todas as subcategorias</option></select>
                     <select id="movementDirectionFilter">
                         <option value="">Entradas e saidas</option>
                         <option value="debit">Saidas</option>
