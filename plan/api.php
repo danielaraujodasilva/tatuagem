@@ -82,8 +82,10 @@ function transactions(): never
     }
 
     if (!empty($_GET['month'])) {
-        $where[] = "(t.reference_month = ? OR (t.reference_month IS NULL AND DATE_FORMAT(t.due_date, '%Y-%m') = ?))";
-        array_push($params, $_GET['month'], $_GET['month']);
+        $sheetPatterns = sheet_month_patterns($_GET['month']);
+        $sourceFallback = $sheetPatterns ? ' OR (t.reference_month IS NULL AND t.source_sheet IS NOT NULL AND (' . implode(' OR ', array_fill(0, count($sheetPatterns), 't.source_sheet LIKE ?')) . '))' : '';
+        $where[] = "(t.reference_month = ? OR (t.reference_month IS NULL AND DATE_FORMAT(t.due_date, '%Y-%m') = ?)$sourceFallback)";
+        array_push($params, $_GET['month'], $_GET['month'], ...$sheetPatterns);
     }
 
     if (!empty($_GET['q'])) {
@@ -264,6 +266,30 @@ function save_recurring(): never
         db()->prepare('INSERT INTO recurring_rules (description, amount, category_id, frequency, next_due_date, is_active) VALUES (?, ?, ?, ?, ?, ?)')->execute($data);
     }
     json_response(['ok' => true]);
+}
+
+function sheet_month_patterns(string $month): array
+{
+    if (!preg_match('/^(\d{4})-(\d{2})$/', $month, $match)) {
+        return [];
+    }
+    $names = [
+        '01' => 'Janeiro',
+        '02' => 'Fevereiro',
+        '03' => 'Marco',
+        '04' => 'Abril',
+        '05' => 'Maio',
+        '06' => 'Junho',
+        '07' => 'Julho',
+        '08' => 'Agosto',
+        '09' => 'Setembro',
+        '10' => 'Outubro',
+        '11' => 'Novembro',
+        '12' => 'Dezembro',
+    ];
+    $year = $match[1];
+    $name = $names[$match[2]] ?? '';
+    return $name === '' ? [] : ["%$name%$year%", "%$name-$year%", "%$name $year%"];
 }
 
 function ensure_finance_schema(): void
