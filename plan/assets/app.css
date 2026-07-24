@@ -213,6 +213,36 @@ td { vertical-align: middle; }
   gap: 18px;
   margin-bottom: 14px;
 }
+.sheet-import-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.sheet-import-panel h2 {
+  margin: 0 0 8px;
+  font-size: 22px;
+}
+.sheet-import-panel p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.mini-upload {
+  min-height: 96px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafc;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  padding: 14px;
+  text-align: center;
+}
+.mini-upload input { display: none; }
+.mini-upload strong { color: var(--blue); }
+.mini-upload span { color: var(--muted); font-size: 12px; }
 .bank-hero h2 { font-size: clamp(24px, 4vw, 38px); margin: 0 0 10px; }
 .bank-hero p { color: var(--muted); line-height: 1.55; margin: 0; max-width: 760px; }
 .upload-zone {
@@ -275,6 +305,7 @@ td { vertical-align: middle; }
   .top-actions, .filters { flex-wrap: wrap; }
   .kpi-grid, .dashboard-grid, .split-grid { grid-template-columns: 1fr; }
   .bank-hero { grid-template-columns: 1fr; }
+  .sheet-import-panel { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {

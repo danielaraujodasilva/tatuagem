@@ -34,6 +34,7 @@ try {
         'save_transaction' => save_transaction(),
         'delete_transaction' => delete_transaction(),
         'toggle_paid' => toggle_paid(),
+        'save_sheet_import' => save_sheet_import(),
         'save_category' => save_category(),
         'save_budget' => save_budget(),
         'save_goal' => save_goal(),
@@ -50,6 +51,7 @@ try {
 
 function bootstrap(array $user): never
 {
+    ensure_finance_schema();
     ensure_bank_schema();
     json_response([
         'ok' => true,
@@ -68,6 +70,7 @@ function bootstrap(array $user): never
 
 function transactions(): never
 {
+    ensure_finance_schema();
     $where = [];
     $params = [];
 
@@ -79,8 +82,8 @@ function transactions(): never
     }
 
     if (!empty($_GET['month'])) {
-        $where[] = "DATE_FORMAT(t.due_date, '%Y-%m') = ?";
-        $params[] = $_GET['month'];
+        $where[] = "(t.reference_month = ? OR (t.reference_month IS NULL AND DATE_FORMAT(t.due_date, '%Y-%m') = ?))";
+        array_push($params, $_GET['month'], $_GET['month']);
     }
 
     if (!empty($_GET['q'])) {
@@ -106,6 +109,7 @@ function transactions(): never
 
 function save_transaction(): never
 {
+    ensure_finance_schema();
     $input = json_input();
     $id = (int)($input['id'] ?? 0);
     $data = [
@@ -120,6 +124,7 @@ function save_transaction(): never
         'owner' => trim((string)($input['owner'] ?? '')),
         'payment_code' => trim((string)($input['payment_code'] ?? '')),
         'source_sheet' => trim((string)($input['source_sheet'] ?? 'manual')),
+        'reference_month' => trim((string)($input['reference_month'] ?? '')) ?: null,
         'notes' => trim((string)($input['notes'] ?? '')),
         'is_fixed' => !empty($input['is_fixed']) ? 1 : 0,
     ];
@@ -131,14 +136,14 @@ function save_transaction(): never
     if ($id > 0) {
         $sql = 'UPDATE transactions SET type=:type, amount=:amount, description=:description, category_id=:category_id, account_id=:account_id,
                 due_date=:due_date, paid_at=:paid_at, status=:status, owner=:owner, payment_code=:payment_code, source_sheet=:source_sheet,
-                notes=:notes, is_fixed=:is_fixed, updated_at=NOW() WHERE id=:id';
+                reference_month=:reference_month, notes=:notes, is_fixed=:is_fixed, updated_at=NOW() WHERE id=:id';
         $data['id'] = $id;
         db()->prepare($sql)->execute($data);
         audit('update', 'transaction', $id, $data);
     } else {
         $sql = 'INSERT INTO transactions (type, amount, description, category_id, account_id, due_date, paid_at, status, owner, payment_code,
-                source_sheet, notes, is_fixed, created_at, updated_at) VALUES (:type, :amount, :description, :category_id, :account_id,
-                :due_date, :paid_at, :status, :owner, :payment_code, :source_sheet, :notes, :is_fixed, NOW(), NOW())';
+                source_sheet, reference_month, notes, is_fixed, created_at, updated_at) VALUES (:type, :amount, :description, :category_id, :account_id,
+                :due_date, :paid_at, :status, :owner, :payment_code, :source_sheet, :reference_month, :notes, :is_fixed, NOW(), NOW())';
         db()->prepare($sql)->execute($data);
         $id = (int)db()->lastInsertId();
         audit('create', 'transaction', $id, $data);
@@ -259,6 +264,149 @@ function save_recurring(): never
         db()->prepare('INSERT INTO recurring_rules (description, amount, category_id, frequency, next_due_date, is_active) VALUES (?, ?, ?, ?, ?, ?)')->execute($data);
     }
     json_response(['ok' => true]);
+}
+
+function ensure_finance_schema(): void
+{
+    $stmt = db()->prepare("SELECT COUNT(*) total FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'transactions' AND COLUMN_NAME = 'reference_month'");
+    $stmt->execute();
+    if ((int)($stmt->fetch()['total'] ?? 0) === 0) {
+        db()->exec("ALTER TABLE transactions ADD COLUMN reference_month CHAR(7) NULL AFTER source_sheet");
+        db()->exec("ALTER TABLE transactions ADD INDEX idx_transactions_reference_month (reference_month)");
+    }
+}
+
+function save_sheet_import(): never
+{
+    ensure_finance_schema();
+    $input = json_input();
+    $rows = is_array($input['rows'] ?? null) ? $input['rows'] : [];
+    if (!$rows) {
+        json_response(['ok' => false, 'message' => 'Nenhuma linha valida para importar.'], 422);
+    }
+
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        $pdo->exec("DELETE FROM transactions WHERE source_sheet IS NOT NULL AND source_sheet <> '' AND source_sheet <> 'manual'");
+
+        $categoryStmt = $pdo->prepare('SELECT id FROM categories WHERE name = ? LIMIT 1');
+        $insertCategory = $pdo->prepare('INSERT INTO categories (name, color) VALUES (?, ?)');
+        $insert = $pdo->prepare('INSERT INTO transactions
+            (type, amount, description, category_id, account_id, due_date, paid_at, status, owner, payment_code, source_sheet, reference_month, notes, is_fixed, created_at, updated_at)
+            VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())');
+
+        $count = 0;
+        foreach ($rows as $row) {
+            $description = trim((string)($row['description'] ?? ''));
+            $sourceSheet = trim((string)($row['source_sheet'] ?? ''));
+            if ($description === '' && trim((string)($row['payment_code'] ?? '')) === '') {
+                continue;
+            }
+
+            $categoryName = normalize_category_name(trim((string)($row['category'] ?? 'Sem categoria')));
+            $categoryStmt->execute([$categoryName]);
+            $category = $categoryStmt->fetch();
+            if (!$category) {
+                $insertCategory->execute([$categoryName, category_color($categoryName)]);
+                $categoryId = (int)$pdo->lastInsertId();
+            } else {
+                $categoryId = (int)$category['id'];
+            }
+
+            $status = normalize_status((string)($row['status'] ?? 'pending'));
+            $type = normalize_transaction_type((string)($row['type'] ?? 'expense'));
+            $date = normalize_date($row['due_date'] ?? null);
+            $paidAt = $status === 'paid' ? ($date ?: date('Y-m-d')) : null;
+            $amount = max(0, money_to_float($row['amount'] ?? 0));
+            $notes = 'Importado automaticamente da planilha Google em ' . date('Y-m-d H:i:s');
+            if (!empty($row['row_number'])) {
+                $notes .= ' | Linha original: ' . (int)$row['row_number'];
+            }
+
+            $insert->execute([
+                $type,
+                $amount,
+                $description !== '' ? $description : '(sem descricao)',
+                $categoryId,
+                $date,
+                $paidAt,
+                $status,
+                trim((string)($row['owner'] ?? '')),
+                trim((string)($row['payment_code'] ?? '')),
+                $sourceSheet,
+                trim((string)($row['reference_month'] ?? '')) ?: null,
+                $notes,
+                !empty($row['is_fixed']) ? 1 : 0,
+            ]);
+            $count++;
+        }
+
+        audit('replace_google_sheet_import', 'transaction', null, ['rows' => $count]);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+
+    json_response(['ok' => true, 'imported' => $count]);
+}
+
+function normalize_category_name(string $category): string
+{
+    if ($category === '') {
+        return 'Sem categoria';
+    }
+    $map = [
+        'Saúde' => 'Saude',
+        'Alimentação' => 'Alimentacao',
+        'Educação' => 'Educacao',
+        'Serviços de utilidade pública' => 'Servicos',
+        'contabilidade' => 'Servicos',
+        'contabilidade ' => 'Servicos',
+        'Categoria personalizada 1' => 'Pessoal',
+    ];
+    return $map[$category] ?? $category;
+}
+
+function category_color(string $category): string
+{
+    return [
+        'Moradia' => '#2563eb',
+        'Pessoal' => '#7c3aed',
+        'Saude' => '#059669',
+        'Alimentacao' => '#ea580c',
+        'Transporte' => '#0891b2',
+        'Educacao' => '#9333ea',
+        'Impostos' => '#dc2626',
+        'Servicos' => '#0f766e',
+        'Investimentos' => '#16a34a',
+    ][$category] ?? '#64748b';
+}
+
+function normalize_status(string $status): string
+{
+    $normalized = strtolower(trim($status));
+    if (strpos($normalized, 'pago') !== false) {
+        return 'paid';
+    }
+    if (strpos($normalized, 'ignorado') !== false || strpos($normalized, 'nao pagar') !== false || strpos($normalized, 'não pagar') !== false) {
+        return 'ignored';
+    }
+    return 'pending';
+}
+
+function normalize_transaction_type(string $type): string
+{
+    $normalized = strtolower(trim($type));
+    if (strpos($normalized, 'entrada') !== false || strpos($normalized, 'receita') !== false) {
+        return 'income';
+    }
+    if (strpos($normalized, 'transfer') !== false) {
+        return 'transfer';
+    }
+    return 'expense';
 }
 
 function ensure_bank_schema(): void
@@ -553,6 +701,7 @@ function overview(): never
 
 function build_overview(): array
 {
+    ensure_finance_schema();
     $month = $_GET['month'] ?? date('Y-m');
     $monthStart = $month . '-01';
     $monthEnd = date('Y-m-t', strtotime($monthStart));
@@ -562,21 +711,21 @@ function build_overview(): array
         SUM(CASE WHEN type = 'expense' AND status <> 'ignored' THEN amount ELSE 0 END) expenses,
         SUM(CASE WHEN type = 'expense' AND status = 'paid' THEN amount ELSE 0 END) paid,
         SUM(CASE WHEN type = 'expense' AND status IN ('pending','late') THEN amount ELSE 0 END) pending
-        FROM transactions WHERE due_date BETWEEN ? AND ?");
-    $stmt->execute([$monthStart, $monthEnd]);
+        FROM transactions WHERE (reference_month = ? OR (reference_month IS NULL AND due_date BETWEEN ? AND ?))");
+    $stmt->execute([$month, $monthStart, $monthEnd]);
     $totals = $stmt->fetch() ?: [];
 
     $byCategory = db()->prepare("SELECT COALESCE(c.name, 'Sem categoria') name, COALESCE(c.color, '#64748b') color, SUM(t.amount) total
         FROM transactions t LEFT JOIN categories c ON c.id = t.category_id
-        WHERE t.type = 'expense' AND t.status <> 'ignored' AND t.due_date BETWEEN ? AND ?
+        WHERE t.type = 'expense' AND t.status <> 'ignored' AND (t.reference_month = ? OR (t.reference_month IS NULL AND t.due_date BETWEEN ? AND ?))
         GROUP BY name, color ORDER BY total DESC");
-    $byCategory->execute([$monthStart, $monthEnd]);
+    $byCategory->execute([$month, $monthStart, $monthEnd]);
 
-    $monthly = db()->query("SELECT DATE_FORMAT(due_date, '%Y-%m') month,
+    $monthly = db()->query("SELECT COALESCE(reference_month, DATE_FORMAT(due_date, '%Y-%m')) month,
         SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) income,
         SUM(CASE WHEN type = 'expense' AND status <> 'ignored' THEN amount ELSE 0 END) expenses,
         SUM(CASE WHEN type = 'expense' AND status IN ('pending','late') THEN amount ELSE 0 END) pending
-        FROM transactions WHERE due_date IS NOT NULL GROUP BY month ORDER BY month")->fetchAll();
+        FROM transactions WHERE reference_month IS NOT NULL OR due_date IS NOT NULL GROUP BY month ORDER BY month")->fetchAll();
 
     $upcoming = db()->prepare("SELECT t.*, c.name category_name FROM transactions t LEFT JOIN categories c ON c.id = t.category_id
         WHERE t.status IN ('pending','late') AND t.due_date <= DATE_ADD(CURDATE(), INTERVAL 21 DAY)

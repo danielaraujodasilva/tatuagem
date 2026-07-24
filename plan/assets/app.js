@@ -12,6 +12,7 @@ const state = {
   bankPreview: [],
   bankPreviewMeta: null,
   bankPreviewGroups: [],
+  sheetImportRows: [],
   overview: null,
   charts: {},
 };
@@ -73,9 +74,14 @@ async function bootApp() {
   bindForms();
   bindFilters();
   bindBanking();
+  bindSheetImport();
   await loadBootstrap();
   await loadTransactions();
   await loadBankTransactions();
+}
+
+function bindSheetImport() {
+  document.querySelector('#sheetWorkbookInput')?.addEventListener('change', handleSheetWorkbook);
 }
 
 async function loadBootstrap() {
@@ -556,6 +562,104 @@ function guessBankFromFile(fileName) {
   if (name.includes('santander')) return 'Santander';
   if (name.includes('pag')) return 'PagBank';
   return 'Banco';
+}
+
+async function handleSheetWorkbook(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const status = document.querySelector('#sheetImportStatus');
+  status.textContent = 'Lendo arquivo...';
+  try {
+    const rows = await parseOriginalBudgetWorkbook(file);
+    state.sheetImportRows = rows;
+    if (!rows.length) throw new Error('Nao encontrei lancamentos validos nas abas.');
+    const confirmed = confirm(`Encontrei ${rows.length} lancamentos em ${new Set(rows.map(row => row.source_sheet)).size} abas. Deseja substituir a carga atual da planilha no sistema?`);
+    if (!confirmed) {
+      status.textContent = `${rows.length} linhas lidas, importacao cancelada.`;
+      return;
+    }
+    status.textContent = 'Salvando no sistema...';
+    const payload = await api('save_sheet_import', { method: 'POST', body: { rows } });
+    status.textContent = `${payload.imported} lancamentos importados.`;
+    await loadBootstrap();
+    await loadTransactions();
+  } catch (error) {
+    status.textContent = error.message;
+    alert(error.message);
+  } finally {
+    event.target.value = '';
+  }
+}
+
+async function parseOriginalBudgetWorkbook(file) {
+  if (!window.XLSX) {
+    throw new Error('Leitor de planilhas ainda carregando. Tente novamente em alguns segundos.');
+  }
+  const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', raw: false, cellDates: false });
+  const allRows = [];
+  workbook.SheetNames.forEach(sheetName => {
+    if (norm(sheetName) === 'resumo') return;
+    const sheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
+    const headerIndex = rows.findIndex(row => row.some(cell => norm(cell) === 'valor') && row.some(cell => norm(cell).includes('descricao')) && row.some(cell => norm(cell).includes('pendente')));
+    if (headerIndex < 0) return;
+    const header = rows[headerIndex].map(cell => norm(cell));
+    const referenceMonth = referenceMonthFromSheet(sheetName);
+    rows.slice(headerIndex + 1).forEach((row, offset) => {
+      const item = rowToObject(header, row);
+      const amount = parseMoney(item.valor);
+      const description = clean(item.descricao || item.descrição);
+      const category = clean(item.categoria);
+      const dueDate = parseDate(item.vencimento);
+      const paymentCode = clean(item['boleto pix'] || item['boleto / pix'] || item.boleto || item.pix);
+      const status = clean(item['pendente pago'] || item['pendente / pago'] || item.pendente);
+      const type = clean(item['entrada saida'] || item['entrada/saida'] || item.tipo || 'Saida');
+      const owner = clean(item['fran daniel'] || item['fran/daniel'] || item.responsavel);
+      const extra = clean(row.slice(6).join(' '));
+      if (!description && !paymentCode && !dueDate && !amount && !status) return;
+      if (norm(description).includes('total de dividas') || norm(description).includes('ja pago') || norm(description).includes('falta pagar')) return;
+      allRows.push({
+        amount,
+        description,
+        category,
+        due_date: dueDate,
+        payment_code: paymentCode,
+        status,
+        type,
+        owner,
+        source_sheet: sheetName,
+        reference_month: referenceMonth,
+        row_number: headerIndex + offset + 2,
+        is_fixed: 0,
+        extra,
+      });
+    });
+  });
+  return allRows;
+}
+
+function referenceMonthFromSheet(sheetName) {
+  const normalized = norm(sheetName);
+  const months = {
+    janeiro: 1,
+    fevereiro: 2,
+    marco: 3,
+    abril: 4,
+    maio: 5,
+    junho: 6,
+    julho: 7,
+    agosto: 8,
+    setembro: 9,
+    outubro: 10,
+    novembro: 11,
+    dezembro: 12,
+  };
+  const monthName = Object.keys(months).find(name => normalized.includes(name));
+  const month = months[monthName] || 1;
+  const explicitYear = normalized.match(/20\\d{2}/)?.[0];
+  let year = explicitYear ? Number(explicitYear) : 2025;
+  if (!explicitYear && ['dezembro'].includes(monthName || '') && normalized === 'dezembro') year = 2024;
+  return `${year}-${String(month).padStart(2, '0')}`;
 }
 
 function renderCategories() {
