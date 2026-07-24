@@ -187,6 +187,19 @@ label { display: grid; gap: 7px; color: var(--muted); font-size: 13px; font-weig
 .dashboard-grid { display: grid; grid-template-columns: 1.35fr .9fr; gap: 14px; }
 .split-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .recon-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 14px; }
+.recon-guide { margin: 14px 0; background: linear-gradient(135deg, #f8fbff 0%, #fff 68%); }
+.recon-guide-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.recon-guide-head h2 { margin: 0 0 7px; font-size: 21px; }
+.recon-guide-head p:not(.eyebrow) { margin: 0; color: var(--muted); line-height: 1.5; max-width: 760px; }
+.guide-badge { flex: 0 0 auto; padding: 7px 10px; border-radius: 999px; background: #e0ecff; color: #1d4ed8; font-size: 12px; font-weight: 900; }
+.recon-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.recon-step { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.76); }
+.recon-step-number { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: #fff; font-weight: 900; }
+.recon-step strong { display: block; margin: 2px 0 5px; }
+.recon-step p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.recon-legend { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+.recon-legend strong { color: var(--text); }
+.recon-legend .status { padding: 3px 7px; margin-right: 3px; }
 .bill-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .movement-grid { display: grid; grid-template-columns: minmax(280px, .55fr) minmax(0, 1.45fr); gap: 14px; }
 .analysis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -583,6 +596,7 @@ tr.share-focus > td { background: #eff6ff; box-shadow: inset 0 2px 0 rgba(37,99,
   .topbar { align-items: stretch; flex-direction: column; }
   .top-actions, .filters { flex-wrap: wrap; }
   .kpi-grid, .dashboard-grid, .split-grid, .workflow-strip, .recon-grid, .bill-board, .movement-grid, .analysis-grid { grid-template-columns: 1fr; }
+  .recon-steps { grid-template-columns: 1fr; }
   .wide-panel { grid-column: auto; }
   .bank-hero { grid-template-columns: 1fr; }
   .sheet-import-panel { grid-template-columns: 1fr; }
@@ -607,6 +621,7 @@ tr.share-focus > td { background: #eff6ff; box-shadow: inset 0 2px 0 rgba(37,99,
   th, td { padding: 10px 8px; }
   .bank-hero { padding: 14px; }
   .upload-zone { min-height: 130px; }
+  .recon-guide-head { flex-direction: column; }
   .review-row, .bank-match-row { grid-template-columns: 1fr; }
   .review-row span, .review-row em, .bank-match-row .amount { justify-self: start; }
   .movement-filters, .analysis-filters, .bills-filters, .bill-card, .pivot-row { grid-template-columns: 1fr; }

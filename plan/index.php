@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260724-8">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260724-9">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260724-8" defer></script>
+    <script src="assets/app-bills-total.js?v=20260724-9" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -379,18 +379,58 @@ $csrf = csrf_token();
                 <div class="section-intro">
                     <div>
                         <p class="eyebrow">Depois da importacao</p>
-                        <h2>Central de uso dos dados</h2>
-                        <p>Aqui fica claro para onde cada importacao foi e qual e o proximo passo: revisar contas da planilha, conferir pagamentos encontrados no extrato e resolver itens sem conciliacao.</p>
+                        <h2>Confira o planejado contra o realizado</h2>
+                        <p>Conciliacao e a conferencia entre o que estava previsto na planilha e o que realmente apareceu no banco. O sistema tenta encontrar o par; voce revisa apenas o que ficou diferente ou sem resposta.</p>
                     </div>
                     <button class="primary-btn" data-nav-target="banking">Importar novo extrato</button>
                 </div>
 
                 <div class="kpi-grid compact-kpis">
-                    <article class="metric-card"><span>Da planilha neste mes</span><strong id="reconSheetRows">0</strong></article>
-                    <article class="metric-card success"><span>Pagos na planilha</span><strong id="reconPaidRows">0</strong></article>
-                    <article class="metric-card warning"><span>Pendentes na planilha</span><strong id="reconPendingRows">0</strong></article>
-                    <article class="metric-card danger"><span>Extrato sem match</span><strong id="reconUnmatchedRows">0</strong></article>
+                    <article class="metric-card"><span>Contas da planilha</span><strong id="reconSheetRows">0</strong></article>
+                    <article class="metric-card success"><span>Ja marcadas como pagas</span><strong id="reconPaidRows">0</strong></article>
+                    <article class="metric-card warning"><span>Ainda pendentes</span><strong id="reconPendingRows">0</strong></article>
+                    <article class="metric-card danger"><span>Movimentos do banco sem correspondencia</span><strong id="reconUnmatchedRows">0</strong></article>
                 </div>
+
+                <section class="panel recon-guide">
+                    <div class="recon-guide-head">
+                        <div>
+                            <p class="eyebrow">Sem complicacao</p>
+                            <h2>O que fazer nesta pagina</h2>
+                            <p>Conciliar nao e cadastrar uma conta nova. E confirmar se uma conta planejada foi paga e se o lancamento que apareceu no banco esta explicado no sistema.</p>
+                        </div>
+                        <span class="guide-badge">3 passos</span>
+                    </div>
+                    <div class="recon-steps">
+                        <article class="recon-step">
+                            <span class="recon-step-number">1</span>
+                            <div>
+                                <strong>Importe os dois lados</strong>
+                                <p>A planilha mostra o que deveria acontecer. O extrato mostra o que aconteceu de verdade.</p>
+                            </div>
+                        </article>
+                        <article class="recon-step">
+                            <span class="recon-step-number">2</span>
+                            <div>
+                                <strong>Deixe o sistema procurar os pares</strong>
+                                <p>Ele compara data, valor e descricao para tentar ligar uma conta a um movimento bancario.</p>
+                            </div>
+                        </article>
+                        <article class="recon-step">
+                            <span class="recon-step-number">3</span>
+                            <div>
+                                <strong>Resolva somente os alertas</strong>
+                                <p>Abra a fila, confira o detalhe, categorize quando necessario e marque como pago apenas se tiver certeza.</p>
+                            </div>
+                        </article>
+                    </div>
+                    <div class="recon-legend">
+                        <strong>Como ler os indicadores:</strong>
+                        <span><b class="status paid">Pago</b> a conta ja foi marcada como paga.</span>
+                        <span><b class="status pending">Pendente</b> ainda falta confirmar o pagamento.</span>
+                        <span><b class="status ignored">Sem correspondencia</b> o banco trouxe algo que precisa ser entendido.</span>
+                    </div>
+                </section>
 
                 <div class="recon-grid">
                     <section class="panel">
@@ -410,8 +450,8 @@ $csrf = csrf_token();
                     <section class="panel wide-panel">
                         <div class="panel-head wrap">
                             <div>
-                                <h2>Movimentacoes bancarias sem conciliacao</h2>
-                                <span>Use para descobrir pagamentos que ainda nao existem ou nao bateram com a planilha</span>
+                                <h2>Movimentos do banco que precisam de voce</h2>
+                                <span>Abra cada item, veja se reconhece a movimentacao e decida se ela deve virar uma conta, transferencia ou categoria.</span>
                             </div>
                             <button class="ghost-btn" data-nav-target="banking">Ver extratos</button>
                         </div>
