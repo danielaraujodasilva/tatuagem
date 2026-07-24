@@ -467,6 +467,25 @@ function bank_transactions(): never
         $where[] = 'bt.bank_name = ?';
         $params[] = $_GET['bank'];
     }
+    if (!empty($_GET['category_id'])) {
+        $where[] = 'bt.category_id = ?';
+        $params[] = (int)$_GET['category_id'];
+    }
+    if (!empty($_GET['direction']) && in_array($_GET['direction'], ['credit', 'debit'], true)) {
+        $where[] = 'bt.direction = ?';
+        $params[] = $_GET['direction'];
+    }
+    if (isset($_GET['matched']) && $_GET['matched'] !== '') {
+        $where[] = $_GET['matched'] === 'yes' ? 'bt.matched_transaction_id IS NOT NULL' : 'bt.matched_transaction_id IS NULL';
+    }
+    if (!empty($_GET['date_from'])) {
+        $where[] = 'bt.transaction_date >= ?';
+        $params[] = normalize_date($_GET['date_from']);
+    }
+    if (!empty($_GET['date_to'])) {
+        $where[] = 'bt.transaction_date <= ?';
+        $params[] = normalize_date($_GET['date_to']);
+    }
     if (!empty($_GET['month'])) {
         $where[] = "DATE_FORMAT(bt.transaction_date, '%Y-%m') = ?";
         $params[] = $_GET['month'];

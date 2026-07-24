@@ -163,6 +163,8 @@ nav { display: grid; gap: 8px; }
 .dashboard-grid { display: grid; grid-template-columns: 1.35fr .9fr; gap: 14px; }
 .split-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .recon-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 14px; }
+.bill-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.movement-grid { display: grid; grid-template-columns: minmax(280px, .55fr) minmax(0, 1.45fr); gap: 14px; }
 .wide-panel { grid-column: 1 / -1; }
 .panel { padding: 16px; min-width: 0; }
 .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
@@ -309,6 +311,29 @@ td { vertical-align: middle; }
   font-weight: 900;
   text-transform: uppercase;
 }
+.bill-column { min-height: 520px; }
+.bill-list { display: grid; gap: 10px; align-content: start; }
+.bill-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--amber);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
+}
+.bill-card.paid { border-left-color: var(--green); background: #fbfffd; }
+.bill-card strong { display: block; margin-bottom: 4px; }
+.bill-card small { display: block; color: var(--muted); line-height: 1.45; }
+.bill-card-side { display: grid; justify-items: end; gap: 8px; }
+.movement-filters {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(120px, 1fr)) minmax(220px, 1.4fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
 .sheet-import-panel {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 260px;
@@ -399,11 +424,12 @@ td { vertical-align: middle; }
   .logout { margin-top: 0; margin-left: auto; }
   .topbar { align-items: stretch; flex-direction: column; }
   .top-actions, .filters { flex-wrap: wrap; }
-  .kpi-grid, .dashboard-grid, .split-grid, .workflow-strip, .recon-grid { grid-template-columns: 1fr; }
+  .kpi-grid, .dashboard-grid, .split-grid, .workflow-strip, .recon-grid, .bill-board, .movement-grid { grid-template-columns: 1fr; }
   .wide-panel { grid-column: auto; }
   .bank-hero { grid-template-columns: 1fr; }
   .sheet-import-panel { grid-template-columns: 1fr; }
   .section-intro { align-items: stretch; flex-direction: column; }
+  .movement-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 640px) {
@@ -423,4 +449,6 @@ td { vertical-align: middle; }
   .upload-zone { min-height: 130px; }
   .review-row, .bank-match-row { grid-template-columns: 1fr; }
   .review-row span, .review-row em, .bank-match-row .amount { justify-self: start; }
+  .movement-filters, .bill-card { grid-template-columns: 1fr; }
+  .bill-card-side { justify-items: start; }
 }

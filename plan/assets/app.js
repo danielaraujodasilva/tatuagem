@@ -105,11 +105,18 @@ async function loadBootstrap() {
 }
 
 async function loadBankTransactions() {
+  const dateFrom = document.querySelector('#movementDateFrom')?.value || '';
+  const dateTo = document.querySelector('#movementDateTo')?.value || '';
   const params = new URLSearchParams({
     action: 'bank_transactions',
-    month: document.querySelector('#monthFilter')?.value || '',
-    q: document.querySelector('#bankSearchInput')?.value || '',
-    bank: document.querySelector('#bankFilter')?.value || '',
+    month: dateFrom || dateTo ? '' : document.querySelector('#monthFilter')?.value || '',
+    date_from: dateFrom,
+    date_to: dateTo,
+    q: document.querySelector('#movementSearchInput')?.value || document.querySelector('#bankSearchInput')?.value || '',
+    bank: document.querySelector('#movementBankFilter')?.value || document.querySelector('#bankFilter')?.value || '',
+    category_id: document.querySelector('#movementCategoryFilter')?.value || '',
+    direction: document.querySelector('#movementDirectionFilter')?.value || '',
+    matched: document.querySelector('#movementMatchFilter')?.value || '',
   });
   const response = await fetch(`api.php?${params.toString()}`, { headers: { 'X-CSRF-Token': state.csrf } });
   const payload = await response.json();
@@ -117,6 +124,7 @@ async function loadBankTransactions() {
   state.bankTransactions = payload.bankTransactions || [];
   state.bankOverview = payload.bankOverview || null;
   renderBanking();
+  renderMovements();
   renderReconciliation();
 }
 
@@ -124,9 +132,9 @@ async function loadTransactions() {
   const params = new URLSearchParams({
     action: 'transactions',
     month: document.querySelector('#monthFilter')?.value || '',
-    q: document.querySelector('#searchInput')?.value || '',
-    status: document.querySelector('#statusFilter')?.value || '',
-    type: document.querySelector('#typeFilter')?.value || '',
+    q: '',
+    status: '',
+    type: '',
   });
   const response = await fetch(`api.php?${params.toString()}`, { headers: { 'X-CSRF-Token': state.csrf } });
   const payload = await response.json();
@@ -134,6 +142,7 @@ async function loadTransactions() {
   state.transactions = payload.transactions;
   state.overview = payload.overview;
   renderTransactions();
+  renderBills();
   renderOverview();
   renderReconciliation();
 }
@@ -163,18 +172,50 @@ function bindModals() {
 }
 
 function bindFilters() {
-  ['monthFilter', 'searchInput', 'statusFilter', 'typeFilter'].forEach(id => {
-    document.querySelector(`#${id}`)?.addEventListener('input', debounce(loadTransactions, 250));
+  document.querySelector('#monthFilter')?.addEventListener('input', debounce(async () => {
+    syncMovementDatesFromMonth();
+    await loadTransactions();
+    await loadBankTransactions();
+  }, 250));
+  ['searchInput', 'statusFilter', 'typeFilter'].forEach(id => {
+    document.querySelector(`#${id}`)?.addEventListener('input', () => renderTransactions());
   });
-  document.querySelector('#monthFilter')?.addEventListener('input', debounce(loadBankTransactions, 250));
-  ['bankSearchInput', 'bankFilter'].forEach(id => {
+  ['movementDateFrom', 'movementDateTo', 'movementSearchInput', 'movementBankFilter', 'movementCategoryFilter', 'movementDirectionFilter', 'movementMatchFilter'].forEach(id => {
     document.querySelector(`#${id}`)?.addEventListener('input', debounce(loadBankTransactions, 250));
+  });
+  ['bankSearchInput', 'bankFilter'].forEach(id => {
+    document.querySelector(`#${id}`)?.addEventListener('input', debounce(() => {
+      mirrorLegacyBankFilters(id);
+      loadBankTransactions();
+    }, 250));
   });
   document.querySelector('#refreshBtn')?.addEventListener('click', async () => {
     await loadBootstrap();
     await loadTransactions();
     await loadBankTransactions();
   });
+}
+
+function syncMovementDatesFromMonth() {
+  const month = document.querySelector('#monthFilter')?.value;
+  if (!month) return;
+  const from = document.querySelector('#movementDateFrom');
+  const to = document.querySelector('#movementDateTo');
+  if (!from || !to) return;
+  const lastDay = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate();
+  from.value = `${month}-01`;
+  to.value = `${month}-${String(lastDay).padStart(2, '0')}`;
+}
+
+function mirrorLegacyBankFilters(changedId) {
+  if (changedId === 'bankSearchInput') {
+    const target = document.querySelector('#movementSearchInput');
+    if (target) target.value = document.querySelector('#bankSearchInput')?.value || '';
+  }
+  if (changedId === 'bankFilter') {
+    const target = document.querySelector('#movementBankFilter');
+    if (target) target.value = document.querySelector('#bankFilter')?.value || '';
+  }
 }
 
 function bindBanking() {
@@ -210,11 +251,18 @@ function bindForms() {
 }
 
 function renderSelects() {
+  const categoryOptions = state.categories.map(category => (
+    `<option value="${category.id}">${escapeHtml(category.name)}</option>`
+  )).join('');
   document.querySelectorAll('[data-categories]').forEach(select => {
-    select.innerHTML = '<option value="">Sem categoria</option>' + state.categories.map(category => (
-      `<option value="${category.id}">${escapeHtml(category.name)}</option>`
-    )).join('');
+    select.innerHTML = '<option value="">Sem categoria</option>' + categoryOptions;
   });
+  const movementCategory = document.querySelector('#movementCategoryFilter');
+  if (movementCategory) {
+    const current = movementCategory.value;
+    movementCategory.innerHTML = '<option value="">Todas categorias</option>' + categoryOptions;
+    movementCategory.value = current;
+  }
   document.querySelectorAll('[data-accounts]').forEach(select => {
     select.innerHTML = '<option value="">Sem conta</option>' + state.accounts.map(account => (
       `<option value="${account.id}">${escapeHtml(account.name)}</option>`
@@ -293,7 +341,8 @@ function drawChart(id, type, data) {
 function renderTransactions() {
   const body = document.querySelector('#transactionsBody');
   if (!body) return;
-  body.innerHTML = state.transactions.length ? state.transactions.map(row => `
+  const rows = filteredTransactions();
+  body.innerHTML = rows.length ? rows.map(row => `
     <tr>
       <td>${formatDate(row.due_date)}</td>
       <td><strong>${escapeHtml(row.description)}</strong><br><small>${row.payment_code ? escapeHtml(firstWords(row.payment_code, 6)) : 'Sem codigo de pagamento'} ${row.owner ? '· ' + escapeHtml(row.owner) : ''}</small></td>
@@ -339,6 +388,60 @@ function renderStaticLists() {
   renderBankFilter();
 }
 
+function filteredTransactions() {
+  const q = norm(document.querySelector('#searchInput')?.value || '');
+  const status = document.querySelector('#statusFilter')?.value || '';
+  const type = document.querySelector('#typeFilter')?.value || '';
+  return state.transactions.filter(row => {
+    if (status && row.status !== status) return false;
+    if (type && row.type !== type) return false;
+    if (q) {
+      const haystack = norm([row.description, row.payment_code, row.source_sheet, row.owner, row.category_name].join(' '));
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function renderBills() {
+  const paid = state.transactions.filter(row => row.status === 'paid' && row.type !== 'income');
+  const pending = state.transactions.filter(row => ['pending', 'late'].includes(row.status) && row.type !== 'income');
+  const late = pending.filter(row => row.status === 'late' || isPastDate(row.due_date));
+  setText('billsPaidTotal', asMoney(sumAmounts(paid)));
+  setText('billsPendingTotal', asMoney(sumAmounts(pending)));
+  setText('billsCount', String(paid.length + pending.length));
+  setText('billsLateCount', String(late.length));
+  setText('pendingBillsCount', `${pending.length} contas`);
+  setText('paidBillsCount', `${paid.length} contas`);
+  renderBillList('pendingBillsList', pending, 'pending');
+  renderBillList('paidBillsList', paid, 'paid');
+}
+
+function renderBillList(targetId, rows, mode) {
+  const target = document.querySelector(`#${targetId}`);
+  if (!target) return;
+  const sorted = [...rows].sort((a, b) => String(a.due_date || '').localeCompare(String(b.due_date || '')));
+  target.innerHTML = sorted.length ? sorted.map(row => `
+    <article class="bill-card ${mode}">
+      <div>
+        <strong>${escapeHtml(row.description)}</strong>
+        <small>${formatDate(row.due_date)} · ${escapeHtml(row.category_name || 'Sem categoria')}</small>
+        <small>${originBadge(row)} ${row.payment_code ? '· ' + escapeHtml(firstWords(row.payment_code, 5)) : ''}</small>
+      </div>
+      <div class="bill-card-side">
+        <span class="amount">${asMoney(row.amount)}</span>
+        <button class="small-btn" data-toggle="${row.id}" data-status="${row.status === 'paid' ? 'pending' : 'paid'}">${row.status === 'paid' ? 'Reabrir' : 'Marcar pago'}</button>
+      </div>
+    </article>
+  `).join('') : `<p class="muted">Nenhuma conta ${mode === 'paid' ? 'paga' : 'pendente'} neste mes.</p>`;
+  target.querySelectorAll('[data-toggle]').forEach(button => {
+    button.addEventListener('click', async () => {
+      await api('toggle_paid', { method: 'POST', body: { id: button.dataset.toggle, status: button.dataset.status } });
+      await loadTransactions();
+    });
+  });
+}
+
 function renderBanking() {
   renderBankingSummary();
   renderBankFilter();
@@ -361,11 +464,13 @@ function renderBankingSummary() {
 
 function renderBankFilter() {
   const select = document.querySelector('#bankFilter');
-  if (!select) return;
-  const current = select.value;
+  const movementSelect = document.querySelector('#movementBankFilter');
   const banks = [...new Set((state.bankOverview?.byBank || []).map(item => item.bank_name))];
-  select.innerHTML = '<option value="">Todos bancos</option>' + banks.map(bank => `<option value="${escapeHtml(bank)}">${escapeHtml(bank)}</option>`).join('');
-  select.value = banks.includes(current) ? current : '';
+  [select, movementSelect].filter(Boolean).forEach(item => {
+    const current = item.value;
+    item.innerHTML = '<option value="">Todos bancos</option>' + banks.map(bank => `<option value="${escapeHtml(bank)}">${escapeHtml(bank)}</option>`).join('');
+    item.value = banks.includes(current) ? current : '';
+  });
 }
 
 function renderBankAccountSelect() {
@@ -389,6 +494,55 @@ function renderBankTransactions() {
       <td class="amount ${row.direction === 'credit' ? 'positive' : 'negative'}">${row.direction === 'credit' ? '+' : '-'} ${asMoney(row.amount)}</td>
     </tr>
   `).join('') : '<tr><td colspan="6" class="empty-cell">Nenhuma movimentacao bancaria encontrada para os filtros atuais.</td></tr>';
+}
+
+function renderMovements() {
+  const rows = state.bankTransactions;
+  const credits = rows.filter(row => row.direction === 'credit');
+  const debits = rows.filter(row => row.direction === 'debit');
+  const matched = rows.filter(row => row.matched_transaction_id);
+  setText('movementCredits', asMoney(sumAmounts(credits)));
+  setText('movementDebits', asMoney(sumAmounts(debits)));
+  setText('movementNet', asMoney(sumAmounts(credits) - sumAmounts(debits)));
+  setText('movementMatched', String(matched.length));
+  setText('movementRowsCount', `${rows.length} linhas`);
+  renderMovementCategorySummary(rows);
+  renderCategorizedBankTable(rows);
+}
+
+function renderMovementCategorySummary(rows) {
+  const target = document.querySelector('#movementCategorySummary');
+  if (!target) return;
+  const grouped = rows.reduce((acc, row) => {
+    const key = row.category_name || 'A categorizar';
+    acc[key] ||= { count: 0, credits: 0, debits: 0 };
+    acc[key].count += 1;
+    if (row.direction === 'credit') acc[key].credits += Number(row.amount || 0);
+    else acc[key].debits += Number(row.amount || 0);
+    return acc;
+  }, {});
+  const entries = Object.entries(grouped).sort((a, b) => (b[1].credits + b[1].debits) - (a[1].credits + a[1].debits));
+  target.innerHTML = entries.length ? entries.map(([category, item]) => `
+    <div class="source-row">
+      <div><strong>${escapeHtml(category)}</strong><small>${item.count} transacoes · entradas ${asMoney(item.credits)}</small></div>
+      <span class="amount negative">${asMoney(item.debits)}</span>
+    </div>
+  `).join('') : '<p class="muted">Nenhuma transacao para os filtros atuais.</p>';
+}
+
+function renderCategorizedBankTable(rows) {
+  const body = document.querySelector('#categorizedBankBody');
+  if (!body) return;
+  body.innerHTML = rows.length ? rows.map(row => `
+    <tr>
+      <td>${formatDate(row.transaction_date)}</td>
+      <td><span class="bank-pill">${escapeHtml(row.bank_name)}</span></td>
+      <td><strong>${escapeHtml(row.description)}</strong><br><small>${escapeHtml(row.movement_type || row.document_number || row.source_file || '')}</small></td>
+      <td>${escapeHtml(row.category_name || 'A categorizar')}</td>
+      <td>${row.matched_transaction_id ? `<span class="status paid">Conciliada</span><br><small>${escapeHtml(row.matched_description || '')}</small>` : '<span class="status pending">Sem conciliacao</span>'}</td>
+      <td class="amount ${row.direction === 'credit' ? 'positive' : 'negative'}">${row.direction === 'credit' ? '+' : '-'} ${asMoney(row.amount)}</td>
+    </tr>
+  `).join('') : '<tr><td colspan="6" class="empty-cell">Nenhuma transacao encontrada para os filtros atuais.</td></tr>';
 }
 
 function renderReconciliation() {
@@ -847,6 +1001,18 @@ function editTransaction(id) {
 function setText(id, value) {
   const element = document.querySelector(`#${id}`);
   if (element) element.textContent = value;
+}
+
+function sumAmounts(rows) {
+  return rows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+}
+
+function isPastDate(value) {
+  if (!value) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const date = new Date(`${value}T00:00:00`);
+  return date < today;
 }
 
 function formatDate(value) {

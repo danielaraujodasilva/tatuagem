@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app.css?v=20260724-workflow">
+    <link rel="stylesheet" href="assets/app.css?v=20260724-core-screens">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app.js?v=20260724-workflow" defer></script>
+    <script src="assets/app.js?v=20260724-core-screens" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -61,9 +61,11 @@ $csrf = csrf_token();
             </a>
             <nav>
                 <button class="nav-item active" data-section="dashboard">Painel</button>
+                <button class="nav-item" data-section="bills">Contas</button>
+                <button class="nav-item" data-section="movements">Transacoes</button>
                 <button class="nav-item" data-section="reconciliation">Conciliacao</button>
-                <button class="nav-item" data-section="transactions">Lancamentos</button>
-                <button class="nav-item" data-section="banking">Extratos</button>
+                <button class="nav-item" data-section="transactions">Importar planilha</button>
+                <button class="nav-item" data-section="banking">Importar extratos</button>
                 <button class="nav-item" data-section="planning">Planejamento</button>
                 <button class="nav-item" data-section="automation">Recorrencias</button>
             </nav>
@@ -97,7 +99,7 @@ $csrf = csrf_token();
                         <strong id="sheetFlowCount">0 lancamentos</strong>
                         <small>Base de contas, vencimentos e categorias</small>
                     </button>
-                    <button class="workflow-card" data-nav-target="banking">
+                    <button class="workflow-card" data-nav-target="movements">
                         <span>2. Extratos</span>
                         <strong id="bankFlowCount">0 movimentacoes</strong>
                         <small>Pagamentos reais importados dos bancos</small>
@@ -137,6 +139,108 @@ $csrf = csrf_token();
                             <button class="small-btn" data-open-modal="goalModal">Nova</button>
                         </div>
                         <div id="goalsList" class="stack-list"></div>
+                    </section>
+                </div>
+            </section>
+
+            <section class="section" id="bills">
+                <div class="section-intro">
+                    <div>
+                        <p class="eyebrow">Contas do mes</p>
+                        <h2>Pagas e pendentes</h2>
+                        <p>Esta e a tela principal para controlar boletos, pix, mensalidades e contas da planilha no mes selecionado no topo.</p>
+                    </div>
+                    <button class="primary-btn" data-open-modal="transactionModal">Nova conta</button>
+                </div>
+
+                <div class="kpi-grid compact-kpis">
+                    <article class="metric-card success"><span>Pagas</span><strong id="billsPaidTotal">R$ 0,00</strong></article>
+                    <article class="metric-card warning"><span>Pendentes</span><strong id="billsPendingTotal">R$ 0,00</strong></article>
+                    <article class="metric-card"><span>Quantidade</span><strong id="billsCount">0</strong></article>
+                    <article class="metric-card danger"><span>Atrasadas</span><strong id="billsLateCount">0</strong></article>
+                </div>
+
+                <div class="bill-board">
+                    <section class="panel bill-column">
+                        <div class="panel-head">
+                            <h2>Pendentes</h2>
+                            <span id="pendingBillsCount">0 contas</span>
+                        </div>
+                        <div id="pendingBillsList" class="bill-list"></div>
+                    </section>
+                    <section class="panel bill-column">
+                        <div class="panel-head">
+                            <h2>Pagas</h2>
+                            <span id="paidBillsCount">0 contas</span>
+                        </div>
+                        <div id="paidBillsList" class="bill-list"></div>
+                    </section>
+                </div>
+            </section>
+
+            <section class="section" id="movements">
+                <div class="section-intro">
+                    <div>
+                        <p class="eyebrow">Extrato consolidado</p>
+                        <h2>Transacoes categorizadas</h2>
+                        <p>Use esta tela para entender para onde o dinheiro foi: periodo, banco, categoria, entradas, saidas e itens conciliados.</p>
+                    </div>
+                    <button class="primary-btn" data-nav-target="banking">Importar extrato</button>
+                </div>
+
+                <div class="panel movement-filters">
+                    <input id="movementDateFrom" type="date" value="<?= date('Y-m-01') ?>">
+                    <input id="movementDateTo" type="date" value="<?= date('Y-m-t') ?>">
+                    <select id="movementBankFilter"><option value="">Todos bancos</option></select>
+                    <select id="movementCategoryFilter"><option value="">Todas categorias</option></select>
+                    <select id="movementDirectionFilter">
+                        <option value="">Entradas e saidas</option>
+                        <option value="debit">Saidas</option>
+                        <option value="credit">Entradas</option>
+                    </select>
+                    <select id="movementMatchFilter">
+                        <option value="">Todos status</option>
+                        <option value="yes">Conciliadas</option>
+                        <option value="no">Sem conciliacao</option>
+                    </select>
+                    <input id="movementSearchInput" placeholder="Buscar descricao, documento ou tipo">
+                </div>
+
+                <div class="kpi-grid banking-kpis">
+                    <article class="metric-card"><span>Entradas filtradas</span><strong id="movementCredits">R$ 0,00</strong></article>
+                    <article class="metric-card danger"><span>Saidas filtradas</span><strong id="movementDebits">R$ 0,00</strong></article>
+                    <article class="metric-card warning"><span>Saldo do periodo</span><strong id="movementNet">R$ 0,00</strong></article>
+                    <article class="metric-card success"><span>Conciliadas</span><strong id="movementMatched">0</strong></article>
+                </div>
+
+                <div class="movement-grid">
+                    <section class="panel">
+                        <div class="panel-head">
+                            <h2>Resumo por categoria</h2>
+                            <span>Filtro atual</span>
+                        </div>
+                        <div id="movementCategorySummary" class="source-list"></div>
+                    </section>
+                    <section class="panel wide-panel">
+                        <div class="panel-head wrap">
+                            <h2>Transacoes</h2>
+                            <span id="movementRowsCount">0 linhas</span>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Banco</th>
+                                        <th>Descricao</th>
+                                        <th>Categoria</th>
+                                        <th>Status</th>
+                                        <th>Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="categorizedBankBody"></tbody>
+                            </table>
+                        </div>
                     </section>
                 </div>
             </section>
