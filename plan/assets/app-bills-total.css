@@ -215,6 +215,16 @@ td { vertical-align: middle; }
 .icon-btn { width: 34px; height: 34px; border-radius: 8px; background: var(--surface-2); color: var(--text); }
 .chip-list { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip { padding: 8px 10px; border-radius: 999px; color: #fff; font-weight: 800; font-size: 12px; }
+.editable-chip { display: inline-flex; align-items: center; gap: 6px; padding-right: 6px; }
+.chip-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .22);
+  color: #fff;
+  font-size: 12px;
+}
+.chip-btn:hover { background: rgba(255, 255, 255, .34); }
 .bank-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);

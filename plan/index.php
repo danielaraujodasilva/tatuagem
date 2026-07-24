@@ -61,13 +61,16 @@ $csrf = csrf_token();
             </a>
             <nav>
                 <button class="nav-item active" data-section="dashboard">Painel</button>
-                <button class="nav-item" data-section="bills">Contas</button>
-                <button class="nav-item" data-section="movements">Transacoes</button>
+                <button class="nav-item" data-section="bills">Contas do mes</button>
+                <button class="nav-item" data-section="movements">Extratos</button>
                 <button class="nav-item" data-section="reconciliation">Conciliacao</button>
                 <button class="nav-item" data-section="transactions">Importar planilha</button>
                 <button class="nav-item" data-section="banking">Importar extratos</button>
-                <button class="nav-item" data-section="planning">Planejamento</button>
-                <button class="nav-item" data-section="automation">Recorrencias</button>
+                <button class="nav-item" data-section="accounts">Contas/Caixas</button>
+                <button class="nav-item" data-section="categories">Categorias</button>
+                <button class="nav-item" data-section="budgets">Orcamentos</button>
+                <button class="nav-item" data-section="goals">Metas</button>
+                <button class="nav-item" data-section="recurring">Recorrencias</button>
             </nav>
             <a class="logout" href="logout.php">Sair</a>
         </aside>
@@ -136,7 +139,7 @@ $csrf = csrf_token();
                     <section class="panel">
                         <div class="panel-head">
                             <h2>Metas</h2>
-                            <button class="small-btn" data-open-modal="goalModal">Nova</button>
+                            <button class="small-btn" data-nav-target="goals">Gerenciar</button>
                         </div>
                         <div id="goalsList" class="stack-list"></div>
                     </section>
@@ -420,33 +423,47 @@ $csrf = csrf_token();
                 </section>
             </section>
 
-            <section class="section" id="planning">
-                <div class="split-grid">
-                    <section class="panel">
-                        <div class="panel-head">
-                            <h2>Orcamentos mensais</h2>
-                            <button class="small-btn" data-open-modal="budgetModal">Adicionar</button>
-                        </div>
-                        <div id="budgetsList" class="stack-list"></div>
-                    </section>
-                    <section class="panel">
-                        <div class="panel-head">
-                            <h2>Categorias</h2>
-                            <button class="small-btn" data-open-modal="categoryModal">Nova</button>
-                        </div>
-                        <div id="categoriesList" class="chip-list"></div>
-                    </section>
-                    <section class="panel">
-                        <div class="panel-head">
-                            <h2>Contas</h2>
-                            <button class="small-btn" data-open-modal="accountModal">Nova</button>
-                        </div>
-                        <div id="accountsList" class="stack-list"></div>
-                    </section>
-                </div>
+            <section class="section" id="accounts">
+                <section class="panel">
+                    <div class="panel-head">
+                        <h2>Contas/Caixas</h2>
+                        <button class="small-btn" data-open-modal="accountModal">Nova</button>
+                    </div>
+                    <div id="accountsList" class="stack-list"></div>
+                </section>
             </section>
 
-            <section class="section" id="automation">
+            <section class="section" id="categories">
+                <section class="panel">
+                    <div class="panel-head">
+                        <h2>Categorias</h2>
+                        <button class="small-btn" data-open-modal="categoryModal">Nova</button>
+                    </div>
+                    <div id="categoriesList" class="chip-list"></div>
+                </section>
+            </section>
+
+            <section class="section" id="budgets">
+                <section class="panel">
+                    <div class="panel-head">
+                        <h2>Orcamentos mensais</h2>
+                        <button class="small-btn" data-open-modal="budgetModal">Adicionar</button>
+                    </div>
+                    <div id="budgetsList" class="stack-list"></div>
+                </section>
+            </section>
+
+            <section class="section" id="goals">
+                <section class="panel">
+                    <div class="panel-head">
+                        <h2>Metas</h2>
+                        <button class="small-btn" data-open-modal="goalModal">Nova</button>
+                    </div>
+                    <div id="goalsManageList" class="stack-list"></div>
+                </section>
+            </section>
+
+            <section class="section" id="recurring">
                 <div class="panel">
                     <div class="panel-head">
                         <h2>Despesas recorrentes</h2>
@@ -479,7 +496,8 @@ $csrf = csrf_token();
 
     <dialog id="categoryModal" class="modal">
         <form id="categoryForm" method="dialog" class="form-grid compact">
-            <h2>Categoria</h2>
+            <input type="hidden" name="id">
+            <h2 id="categoryFormTitle">Nova categoria</h2>
             <label>Nome<input name="name" required></label>
             <label>Cor<input name="color" type="color" value="#2563eb"></label>
             <div class="modal-actions"><button type="button" class="ghost-btn" data-close>Cancelar</button><button class="primary-btn">Salvar</button></div>
@@ -488,7 +506,8 @@ $csrf = csrf_token();
 
     <dialog id="budgetModal" class="modal">
         <form id="budgetForm" method="dialog" class="form-grid compact">
-            <h2>Orcamento</h2>
+            <input type="hidden" name="id">
+            <h2 id="budgetFormTitle">Novo orcamento</h2>
             <label>Mes<input name="month" type="month" value="<?= date('Y-m') ?>" required></label>
             <label>Categoria<select name="category_id" data-categories required></select></label>
             <label>Limite<input name="limit_amount" inputmode="decimal" required></label>
@@ -498,7 +517,8 @@ $csrf = csrf_token();
 
     <dialog id="goalModal" class="modal">
         <form id="goalForm" method="dialog" class="form-grid compact">
-            <h2>Meta</h2>
+            <input type="hidden" name="id">
+            <h2 id="goalFormTitle">Nova meta</h2>
             <label>Nome<input name="name" required></label>
             <label>Objetivo<input name="target_amount" inputmode="decimal" required></label>
             <label>Atual<input name="current_amount" inputmode="decimal" value="0"></label>
@@ -509,7 +529,8 @@ $csrf = csrf_token();
 
     <dialog id="accountModal" class="modal">
         <form id="accountForm" method="dialog" class="form-grid compact">
-            <h2>Conta</h2>
+            <input type="hidden" name="id">
+            <h2 id="accountFormTitle">Nova conta/caixa</h2>
             <label>Nome<input name="name" required></label>
             <label>Tipo<select name="type"><option value="corrente">Corrente</option><option value="credito">Cartao</option><option value="investimento">Investimento</option><option value="dinheiro">Dinheiro</option></select></label>
             <label>Saldo inicial<input name="opening_balance" inputmode="decimal" value="0"></label>
@@ -519,7 +540,8 @@ $csrf = csrf_token();
 
     <dialog id="recurringModal" class="modal">
         <form id="recurringForm" method="dialog" class="form-grid compact">
-            <h2>Recorrencia</h2>
+            <input type="hidden" name="id">
+            <h2 id="recurringFormTitle">Nova recorrencia</h2>
             <label>Descricao<input name="description" required></label>
             <label>Valor<input name="amount" inputmode="decimal" required></label>
             <label>Categoria<select name="category_id" data-categories></select></label>

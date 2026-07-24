@@ -228,7 +228,15 @@ function navigateToSection(sectionId) {
 
 function bindModals() {
   document.querySelectorAll('[data-open-modal]').forEach(button => {
-    button.addEventListener('click', () => document.querySelector(`#${button.dataset.openModal}`)?.showModal());
+    button.addEventListener('click', () => {
+      const modal = button.dataset.openModal;
+      if (modal === 'categoryModal') prepareCategoryForm();
+      if (modal === 'budgetModal') prepareBudgetForm();
+      if (modal === 'goalModal') prepareGoalForm();
+      if (modal === 'accountModal') prepareAccountForm();
+      if (modal === 'recurringModal') prepareRecurringForm();
+      document.querySelector(`#${modal}`)?.showModal();
+    });
   });
   document.querySelectorAll('[data-close]').forEach(button => {
     button.addEventListener('click', () => button.closest('dialog')?.close());
@@ -308,8 +316,7 @@ function bindForms() {
       await api(action, { method: 'POST', body: formPayload(event.currentTarget) });
       event.currentTarget.reset();
       event.currentTarget.closest('dialog')?.close();
-      await loadBootstrap();
-      await loadTransactions();
+      await reloadAllData();
     });
   });
 }
@@ -1035,7 +1042,20 @@ function referenceMonthFromSheet(sheetName) {
 function renderCategories() {
   const target = document.querySelector('#categoriesList');
   if (!target) return;
-  target.innerHTML = state.categories.map(category => `<span class="chip" style="background:${category.color}">${escapeHtml(category.name)}</span>`).join('');
+  target.innerHTML = state.categories.map(category => `
+    <span class="chip editable-chip" style="background:${category.color}">
+      <span>${escapeHtml(category.name)}</span>
+      <button type="button" class="chip-btn" title="Editar categoria" data-category-edit="${category.id}">✎</button>
+      <button type="button" class="chip-btn" title="Excluir categoria" data-category-delete="${category.id}">×</button>
+    </span>
+  `).join('');
+
+  target.querySelectorAll('[data-category-edit]').forEach(button => {
+    button.addEventListener('click', () => editCategory(Number(button.dataset.categoryEdit)));
+  });
+  target.querySelectorAll('[data-category-delete]').forEach(button => {
+    button.addEventListener('click', () => deleteCategory(Number(button.dataset.categoryDelete)));
+  });
 }
 
 function renderBudgets() {
@@ -1044,34 +1064,107 @@ function renderBudgets() {
   target.innerHTML = state.budgets.map(item => `
     <div class="list-row">
       <div><strong>${escapeHtml(item.category_name)}</strong><small>${escapeHtml(item.month)}</small></div>
-      <span class="amount">${asMoney(item.limit_amount)}</span>
+      <div class="row-actions">
+        <span class="amount">${asMoney(item.limit_amount)}</span>
+        <button class="icon-btn" title="Editar orcamento" data-budget-edit="${item.id}">✎</button>
+        <button class="icon-btn" title="Excluir orcamento" data-budget-delete="${item.id}">×</button>
+      </div>
     </div>
   `).join('');
+
+  target.querySelectorAll('[data-budget-edit]').forEach(button => {
+    button.addEventListener('click', () => editBudget(Number(button.dataset.budgetEdit)));
+  });
+  target.querySelectorAll('[data-budget-delete]').forEach(button => {
+    button.addEventListener('click', () => deleteBudget(Number(button.dataset.budgetDelete)));
+  });
 }
 
 function renderGoals() {
-  const target = document.querySelector('#goalsList');
-  if (!target) return;
-  target.innerHTML = state.goals.map(goal => {
+  const summary = document.querySelector('#goalsList');
+  const manager = document.querySelector('#goalsManageList');
+  const rows = state.goals.map(goal => {
     const pct = Math.min(100, Math.round((Number(goal.current_amount) / Math.max(1, Number(goal.target_amount))) * 100));
-    return `<div class="list-row"><div><strong>${escapeHtml(goal.name)}</strong><small>${asMoney(goal.current_amount)} de ${asMoney(goal.target_amount)}</small><div class="progress"><span style="width:${pct}%"></span></div></div><span class="amount">${pct}%</span></div>`;
-  }).join('');
+    return { goal, pct };
+  });
+
+  if (summary) {
+    summary.innerHTML = rows.length ? rows.slice(0, 4).map(({ goal, pct }) => goalSummaryRow(goal, pct)).join('') : '<p class="muted">Nenhuma meta cadastrada ainda.</p>';
+  }
+
+  if (!manager) return;
+  manager.innerHTML = rows.length ? rows.map(({ goal, pct }) => `
+    <div class="list-row">
+      <div>
+        <strong>${escapeHtml(goal.name)}</strong>
+        <small>${asMoney(goal.current_amount)} de ${asMoney(goal.target_amount)}${goal.target_date ? ' · alvo ' + formatDate(goal.target_date) : ''}</small>
+        <div class="progress"><span style="width:${pct}%"></span></div>
+      </div>
+      <div class="row-actions">
+        <span class="amount">${pct}%</span>
+        <button class="icon-btn" title="Editar meta" data-goal-edit="${goal.id}">✎</button>
+        <button class="icon-btn" title="Excluir meta" data-goal-delete="${goal.id}">×</button>
+      </div>
+    </div>
+  `).join('') : '<p class="muted">Nenhuma meta cadastrada ainda.</p>';
+
+  manager.querySelectorAll('[data-goal-edit]').forEach(button => {
+    button.addEventListener('click', () => editGoal(Number(button.dataset.goalEdit)));
+  });
+  manager.querySelectorAll('[data-goal-delete]').forEach(button => {
+    button.addEventListener('click', () => deleteGoal(Number(button.dataset.goalDelete)));
+  });
+}
+
+function goalSummaryRow(goal, pct) {
+  return `<div class="list-row"><div><strong>${escapeHtml(goal.name)}</strong><small>${asMoney(goal.current_amount)} de ${asMoney(goal.target_amount)}</small><div class="progress"><span style="width:${pct}%"></span></div></div><span class="amount">${pct}%</span></div>`;
 }
 
 function renderAccounts() {
   const target = document.querySelector('#accountsList');
   if (!target) return;
   target.innerHTML = state.accounts.map(account => `
-    <div class="list-row"><div><strong>${escapeHtml(account.name)}</strong><small>${escapeHtml(account.type)}</small></div><span class="amount">${asMoney(account.opening_balance)}</span></div>
+    <div class="list-row">
+      <div><strong>${escapeHtml(account.name)}</strong><small>${escapeHtml(account.type)}</small></div>
+      <div class="row-actions">
+        <span class="amount">${asMoney(account.opening_balance)}</span>
+        <button class="icon-btn" title="Editar conta" data-account-edit="${account.id}">✎</button>
+        <button class="icon-btn" title="Excluir conta" data-account-delete="${account.id}">×</button>
+      </div>
+    </div>
   `).join('');
+
+  target.querySelectorAll('[data-account-edit]').forEach(button => {
+    button.addEventListener('click', () => editAccount(Number(button.dataset.accountEdit)));
+  });
+  target.querySelectorAll('[data-account-delete]').forEach(button => {
+    button.addEventListener('click', () => deleteAccount(Number(button.dataset.accountDelete)));
+  });
 }
 
 function renderRecurring() {
   const target = document.querySelector('#recurringList');
   if (!target) return;
   target.innerHTML = state.recurring.map(rule => `
-    <div class="list-row"><div><strong>${escapeHtml(rule.description)}</strong><small>${escapeHtml(rule.frequency)} · proximo ${formatDate(rule.next_due_date)}</small></div><span class="amount">${asMoney(rule.amount)}</span></div>
+    <div class="list-row">
+      <div>
+        <strong>${escapeHtml(rule.description)}</strong>
+        <small>${escapeHtml(frequencyLabel(rule.frequency))} · proximo ${formatDate(rule.next_due_date)} · ${rule.is_active == 1 ? 'ativa' : 'inativa'}${rule.category_name ? ' · ' + escapeHtml(rule.category_name) : ''}</small>
+      </div>
+      <div class="row-actions">
+        <span class="amount">${asMoney(rule.amount)}</span>
+        <button class="icon-btn" title="Editar recorrencia" data-recurring-edit="${rule.id}">✎</button>
+        <button class="icon-btn" title="Excluir recorrencia" data-recurring-delete="${rule.id}">×</button>
+      </div>
+    </div>
   `).join('');
+
+  target.querySelectorAll('[data-recurring-edit]').forEach(button => {
+    button.addEventListener('click', () => editRecurring(Number(button.dataset.recurringEdit)));
+  });
+  target.querySelectorAll('[data-recurring-delete]').forEach(button => {
+    button.addEventListener('click', () => deleteRecurring(Number(button.dataset.recurringDelete)));
+  });
 }
 
 function editTransaction(id) {
@@ -1085,6 +1178,145 @@ function editTransaction(id) {
     else field.value = value ?? '';
   });
   document.querySelector('#transactionModal')?.showModal();
+}
+
+function editCategory(id) {
+  const category = state.categories.find(item => Number(item.id) === id);
+  if (!category) return;
+  prepareCategoryForm(category);
+  document.querySelector('#categoryModal')?.showModal();
+}
+
+function prepareCategoryForm(category = null) {
+  const form = document.querySelector('#categoryForm');
+  if (!form) return;
+  form.reset();
+  form.elements.id.value = category?.id || '';
+  form.elements.name.value = category?.name || '';
+  form.elements.color.value = category?.color || '#2563eb';
+  setText('categoryFormTitle', category ? 'Editar categoria' : 'Nova categoria');
+}
+
+async function deleteCategory(id) {
+  const category = state.categories.find(item => Number(item.id) === id);
+  if (!category) return;
+  if (!confirm(`Excluir a categoria "${category.name}"? Lancamentos e extratos vinculados ficarao sem categoria.`)) return;
+  await api('delete_category', { method: 'POST', body: { id } });
+  await reloadAllData();
+}
+
+function editBudget(id) {
+  const budget = state.budgets.find(item => Number(item.id) === id);
+  if (!budget) return;
+  prepareBudgetForm(budget);
+  document.querySelector('#budgetModal')?.showModal();
+}
+
+function prepareBudgetForm(budget = null) {
+  const form = document.querySelector('#budgetForm');
+  if (!form) return;
+  form.reset();
+  form.elements.id.value = budget?.id || '';
+  form.elements.month.value = budget?.month || form.elements.month.defaultValue;
+  form.elements.category_id.value = budget?.category_id || '';
+  form.elements.limit_amount.value = budget?.limit_amount ?? '';
+  setText('budgetFormTitle', budget ? 'Editar orcamento' : 'Novo orcamento');
+}
+
+async function deleteBudget(id) {
+  const budget = state.budgets.find(item => Number(item.id) === id);
+  if (!budget) return;
+  if (!confirm(`Excluir o orcamento de ${budget.category_name} em ${budget.month}?`)) return;
+  await api('delete_budget', { method: 'POST', body: { id } });
+  await reloadAllData();
+}
+
+function editGoal(id) {
+  const goal = state.goals.find(item => Number(item.id) === id);
+  if (!goal) return;
+  prepareGoalForm(goal);
+  document.querySelector('#goalModal')?.showModal();
+}
+
+function prepareGoalForm(goal = null) {
+  const form = document.querySelector('#goalForm');
+  if (!form) return;
+  form.reset();
+  form.elements.id.value = goal?.id || '';
+  form.elements.name.value = goal?.name || '';
+  form.elements.target_amount.value = goal?.target_amount ?? '';
+  form.elements.current_amount.value = goal?.current_amount ?? '0';
+  form.elements.target_date.value = goal?.target_date || '';
+  setText('goalFormTitle', goal ? 'Editar meta' : 'Nova meta');
+}
+
+async function deleteGoal(id) {
+  const goal = state.goals.find(item => Number(item.id) === id);
+  if (!goal) return;
+  if (!confirm(`Excluir a meta "${goal.name}"?`)) return;
+  await api('delete_goal', { method: 'POST', body: { id } });
+  await reloadAllData();
+}
+
+function editAccount(id) {
+  const account = state.accounts.find(item => Number(item.id) === id);
+  if (!account) return;
+  prepareAccountForm(account);
+  document.querySelector('#accountModal')?.showModal();
+}
+
+function prepareAccountForm(account = null) {
+  const form = document.querySelector('#accountForm');
+  if (!form) return;
+  form.reset();
+  form.elements.id.value = account?.id || '';
+  form.elements.name.value = account?.name || '';
+  form.elements.type.value = account?.type || 'corrente';
+  form.elements.opening_balance.value = account?.opening_balance ?? '0';
+  setText('accountFormTitle', account ? 'Editar conta/caixa' : 'Nova conta/caixa');
+}
+
+async function deleteAccount(id) {
+  const account = state.accounts.find(item => Number(item.id) === id);
+  if (!account) return;
+  if (!confirm(`Excluir a conta/caixa "${account.name}"? Lancamentos e extratos vinculados ficarao sem conta.`)) return;
+  await api('delete_account', { method: 'POST', body: { id } });
+  await reloadAllData();
+}
+
+function editRecurring(id) {
+  const rule = state.recurring.find(item => Number(item.id) === id);
+  if (!rule) return;
+  prepareRecurringForm(rule);
+  document.querySelector('#recurringModal')?.showModal();
+}
+
+function prepareRecurringForm(rule = null) {
+  const form = document.querySelector('#recurringForm');
+  if (!form) return;
+  form.reset();
+  form.elements.id.value = rule?.id || '';
+  form.elements.description.value = rule?.description || '';
+  form.elements.amount.value = rule?.amount ?? '';
+  form.elements.category_id.value = rule?.category_id || '';
+  form.elements.frequency.value = rule?.frequency || 'monthly';
+  form.elements.next_due_date.value = rule?.next_due_date || '';
+  form.elements.is_active.checked = rule ? rule.is_active == 1 : true;
+  setText('recurringFormTitle', rule ? 'Editar recorrencia' : 'Nova recorrencia');
+}
+
+async function deleteRecurring(id) {
+  const rule = state.recurring.find(item => Number(item.id) === id);
+  if (!rule) return;
+  if (!confirm(`Excluir a regra recorrente "${rule.description}"?`)) return;
+  await api('delete_recurring', { method: 'POST', body: { id } });
+  await reloadAllData();
+}
+
+async function reloadAllData() {
+  await loadBootstrap();
+  await loadTransactions();
+  await loadBankTransactions();
 }
 
 function setText(id, value) {
@@ -1112,6 +1344,10 @@ function formatDate(value) {
 
 function statusLabel(status) {
   return { paid: 'Pago', pending: 'Pendente', late: 'Atrasado', ignored: 'Ignorado' }[status] || status;
+}
+
+function frequencyLabel(frequency) {
+  return { monthly: 'Mensal', weekly: 'Semanal', yearly: 'Anual' }[frequency] || frequency;
 }
 
 function escapeHtml(value) {

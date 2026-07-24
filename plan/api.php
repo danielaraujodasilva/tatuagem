@@ -36,10 +36,15 @@ try {
         'toggle_paid' => toggle_paid(),
         'save_sheet_import' => save_sheet_import(),
         'save_category' => save_category(),
+        'delete_category' => delete_category(),
         'save_budget' => save_budget(),
+        'delete_budget' => delete_budget(),
         'save_goal' => save_goal(),
+        'delete_goal' => delete_goal(),
         'save_account' => save_account(),
+        'delete_account' => delete_account(),
         'save_recurring' => save_recurring(),
+        'delete_recurring' => delete_recurring(),
         'bank_transactions' => bank_transactions(),
         'save_bank_import' => save_bank_import(),
         'overview' => overview(),
@@ -191,13 +196,71 @@ function save_category(): never
     json_response(['ok' => true, 'id' => $id]);
 }
 
+function delete_category(): never
+{
+    $id = (int)(json_input()['id'] ?? 0);
+    if ($id <= 0) {
+        json_response(['ok' => false, 'message' => 'Categoria invalida.'], 422);
+    }
+
+    $stmt = db()->prepare('SELECT name FROM categories WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    $name = (string)($stmt->fetchColumn() ?: '');
+    if ($name === '') {
+        json_response(['ok' => false, 'message' => 'Categoria nao encontrada.'], 404);
+    }
+    if (strtolower($name) === 'sem categoria') {
+        json_response(['ok' => false, 'message' => 'A categoria padrao nao pode ser excluida.'], 422);
+    }
+
+    db()->prepare('DELETE FROM categories WHERE id = ?')->execute([$id]);
+    audit('delete', 'category', $id, ['name' => $name]);
+    json_response(['ok' => true]);
+}
+
 function save_budget(): never
 {
     $input = json_input();
-    db()->prepare('INSERT INTO budgets (category_id, month, limit_amount)
-        VALUES (?, ?, ?)
-        ON DUPLICATE KEY UPDATE limit_amount = VALUES(limit_amount)')
-        ->execute([(int)$input['category_id'], (string)$input['month'], money_to_float($input['limit_amount'] ?? 0)]);
+    $id = (int)($input['id'] ?? 0);
+    $categoryId = (int)($input['category_id'] ?? 0);
+    $month = trim((string)($input['month'] ?? ''));
+    $limit = money_to_float($input['limit_amount'] ?? 0);
+
+    if ($categoryId <= 0 || !preg_match('/^\d{4}-\d{2}$/', $month)) {
+        json_response(['ok' => false, 'message' => 'Informe mes e categoria validos.'], 422);
+    }
+
+    if ($id > 0) {
+        $duplicate = db()->prepare('SELECT id FROM budgets WHERE category_id = ? AND month = ? AND id <> ? LIMIT 1');
+        $duplicate->execute([$categoryId, $month, $id]);
+        if ($duplicate->fetchColumn()) {
+            json_response(['ok' => false, 'message' => 'Ja existe orcamento para esta categoria neste mes.'], 409);
+        }
+        db()->prepare('UPDATE budgets SET category_id = ?, month = ?, limit_amount = ? WHERE id = ?')
+            ->execute([$categoryId, $month, $limit, $id]);
+    } else {
+        db()->prepare('INSERT INTO budgets (category_id, month, limit_amount)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE limit_amount = VALUES(limit_amount)')
+            ->execute([$categoryId, $month, $limit]);
+        $stmt = db()->prepare('SELECT id FROM budgets WHERE category_id = ? AND month = ? LIMIT 1');
+        $stmt->execute([$categoryId, $month]);
+        $id = (int)$stmt->fetchColumn();
+    }
+
+    audit('save', 'budget', $id, ['category_id' => $categoryId, 'month' => $month, 'limit_amount' => $limit]);
+    json_response(['ok' => true, 'id' => $id]);
+}
+
+function delete_budget(): never
+{
+    $id = (int)(json_input()['id'] ?? 0);
+    if ($id <= 0) {
+        json_response(['ok' => false, 'message' => 'Orcamento invalido.'], 422);
+    }
+
+    db()->prepare('DELETE FROM budgets WHERE id = ?')->execute([$id]);
+    audit('delete', 'budget', $id);
     json_response(['ok' => true]);
 }
 
@@ -217,9 +280,41 @@ function save_goal(): never
     if ($id > 0) {
         $data[] = $id;
         db()->prepare('UPDATE goals SET name=?, target_amount=?, current_amount=?, target_date=? WHERE id=?')->execute($data);
+        audit('update', 'goal', $id, [
+            'name' => $data[0],
+            'target_amount' => $data[1],
+            'current_amount' => $data[2],
+            'target_date' => $data[3],
+        ]);
     } else {
         db()->prepare('INSERT INTO goals (name, target_amount, current_amount, target_date) VALUES (?, ?, ?, ?)')->execute($data);
+        $id = (int)db()->lastInsertId();
+        audit('create', 'goal', $id, [
+            'name' => $data[0],
+            'target_amount' => $data[1],
+            'current_amount' => $data[2],
+            'target_date' => $data[3],
+        ]);
     }
+    json_response(['ok' => true, 'id' => $id]);
+}
+
+function delete_goal(): never
+{
+    $id = (int)(json_input()['id'] ?? 0);
+    if ($id <= 0) {
+        json_response(['ok' => false, 'message' => 'Meta invalida.'], 422);
+    }
+
+    $stmt = db()->prepare('SELECT * FROM goals WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    $goal = $stmt->fetch();
+    if (!$goal) {
+        json_response(['ok' => false, 'message' => 'Meta nao encontrada.'], 404);
+    }
+
+    db()->prepare('DELETE FROM goals WHERE id = ?')->execute([$id]);
+    audit('delete', 'goal', $id, $goal);
     json_response(['ok' => true]);
 }
 
@@ -240,7 +335,27 @@ function save_account(): never
         db()->prepare('UPDATE accounts SET name=?, type=?, opening_balance=? WHERE id=?')->execute($data);
     } else {
         db()->prepare('INSERT INTO accounts (name, type, opening_balance) VALUES (?, ?, ?)')->execute($data);
+        $id = (int)db()->lastInsertId();
     }
+    json_response(['ok' => true, 'id' => $id]);
+}
+
+function delete_account(): never
+{
+    $id = (int)(json_input()['id'] ?? 0);
+    if ($id <= 0) {
+        json_response(['ok' => false, 'message' => 'Conta invalida.'], 422);
+    }
+
+    $stmt = db()->prepare('SELECT * FROM accounts WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    $account = $stmt->fetch();
+    if (!$account) {
+        json_response(['ok' => false, 'message' => 'Conta nao encontrada.'], 404);
+    }
+
+    db()->prepare('DELETE FROM accounts WHERE id = ?')->execute([$id]);
+    audit('delete', 'account', $id, $account);
     json_response(['ok' => true]);
 }
 
@@ -248,11 +363,12 @@ function save_recurring(): never
 {
     $input = json_input();
     $id = (int)($input['id'] ?? 0);
+    $frequency = trim((string)($input['frequency'] ?? 'monthly'));
     $data = [
         trim((string)($input['description'] ?? '')),
         money_to_float($input['amount'] ?? 0),
         ($input['category_id'] ?? '') === '' ? null : (int)$input['category_id'],
-        trim((string)($input['frequency'] ?? 'monthly')),
+        in_array($frequency, ['monthly', 'weekly', 'yearly'], true) ? $frequency : 'monthly',
         normalize_date($input['next_due_date'] ?? null),
         !empty($input['is_active']) ? 1 : 0,
     ];
@@ -262,9 +378,45 @@ function save_recurring(): never
     if ($id > 0) {
         $data[] = $id;
         db()->prepare('UPDATE recurring_rules SET description=?, amount=?, category_id=?, frequency=?, next_due_date=?, is_active=? WHERE id=?')->execute($data);
+        audit('update', 'recurring_rule', $id, [
+            'description' => $data[0],
+            'amount' => $data[1],
+            'category_id' => $data[2],
+            'frequency' => $data[3],
+            'next_due_date' => $data[4],
+            'is_active' => $data[5],
+        ]);
     } else {
         db()->prepare('INSERT INTO recurring_rules (description, amount, category_id, frequency, next_due_date, is_active) VALUES (?, ?, ?, ?, ?, ?)')->execute($data);
+        $id = (int)db()->lastInsertId();
+        audit('create', 'recurring_rule', $id, [
+            'description' => $data[0],
+            'amount' => $data[1],
+            'category_id' => $data[2],
+            'frequency' => $data[3],
+            'next_due_date' => $data[4],
+            'is_active' => $data[5],
+        ]);
     }
+    json_response(['ok' => true, 'id' => $id]);
+}
+
+function delete_recurring(): never
+{
+    $id = (int)(json_input()['id'] ?? 0);
+    if ($id <= 0) {
+        json_response(['ok' => false, 'message' => 'Regra recorrente invalida.'], 422);
+    }
+
+    $stmt = db()->prepare('SELECT * FROM recurring_rules WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    $rule = $stmt->fetch();
+    if (!$rule) {
+        json_response(['ok' => false, 'message' => 'Regra recorrente nao encontrada.'], 404);
+    }
+
+    db()->prepare('DELETE FROM recurring_rules WHERE id = ?')->execute([$id]);
+    audit('delete', 'recurring_rule', $id, $rule);
     json_response(['ok' => true]);
 }
 
