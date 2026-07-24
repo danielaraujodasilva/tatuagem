@@ -806,14 +806,301 @@ async function copyAnalysisTable() {
     flashButtonLabel(button, 'Nada para copiar');
     return;
   }
-  const text = buildAnalysisWhatsappTable(analysis);
+  button.disabled = true;
+  flashButtonLabel(button, 'Gerando print...');
+  let image = null;
   try {
-    await copyTextToClipboard(text);
-    flashButtonLabel(button, 'Copiado');
+    image = await buildAnalysisWhatsappImage(analysis);
+    await copyImageToClipboard(image.blob);
+    flashButtonLabel(button, 'Print copiado');
   } catch (error) {
-    flashButtonLabel(button, 'Selecionei o texto');
-    selectFallbackText(text);
+    if (image?.blob) {
+      downloadBlob(image.blob, image.filename);
+      flashButtonLabel(button, 'Print baixado');
+      return;
+    }
+    const text = buildAnalysisWhatsappTable(analysis);
+    try {
+      await copyTextToClipboard(text);
+      flashButtonLabel(button, 'Texto copiado');
+    } catch (fallbackError) {
+      selectFallbackText(text);
+      flashButtonLabel(button, 'Texto selecionado');
+    }
+  } finally {
+    button.disabled = false;
   }
+}
+
+async function buildAnalysisWhatsappImage(analysis) {
+  const exportData = analysisExportData(analysis);
+  const width = 1280;
+  const padding = 34;
+  const gap = 14;
+  const rowBaseHeight = 34;
+  const detailRows = exportData.detailRows.map(row => ({
+    ...row,
+    wrappedDescription: wrapCanvasText(row.description, 42),
+    wrappedCategory: wrapCanvasText(row.category, 28),
+  }));
+  const summaryHeight = 42 + (exportData.summaryRows.length * rowBaseHeight);
+  const detailsHeight = 42 + detailRows.reduce((sum, row) => sum + Math.max(rowBaseHeight, 20 + (Math.max(row.wrappedDescription.length, row.wrappedCategory.length) * 18)), 0);
+  const height = padding + 74 + 72 + 40 + summaryHeight + gap + detailsHeight + padding;
+  const scale = Math.min(2, window.devicePixelRatio || 1);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+  drawAnalysisImage(ctx, { width, height, padding, analysis, exportData, detailRows });
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 0.95));
+  if (!blob) throw new Error('Nao foi possivel gerar o print.');
+  return { blob, filename: `analise-financeira-${new Date().toISOString().slice(0, 10)}.png` };
+}
+
+function drawAnalysisImage(ctx, options) {
+  const { width, height, padding, analysis, exportData, detailRows } = options;
+  ctx.fillStyle = '#eef4fb';
+  ctx.fillRect(0, 0, width, height);
+  ctx.fillStyle = '#ffffff';
+  roundRect(ctx, padding / 2, padding / 2, width - padding, height - padding, 16);
+  ctx.fill();
+
+  let y = padding + 12;
+  ctx.fillStyle = '#0f172a';
+  ctx.font = '800 34px Arial, sans-serif';
+  ctx.fillText('Analise financeira', padding, y);
+  y += 28;
+  ctx.fillStyle = '#475569';
+  ctx.font = '500 18px Arial, sans-serif';
+  ctx.fillText(truncateText(`Filtros: ${analysisFilterSummary()}`, 118), padding, y);
+  y += 32;
+
+  const kpis = [
+    { label: 'Gastos', value: asMoney(analysis.expenseTotal), color: '#dc2626' },
+    { label: 'Ganhos', value: asMoney(analysis.incomeTotal), color: '#059669' },
+    { label: 'Saldo', value: asMoney(analysis.incomeTotal - analysis.expenseTotal), color: '#d97706' },
+    { label: 'Linhas', value: String(analysis.items.length), color: '#2563eb' },
+  ];
+  const cardWidth = (width - (padding * 2) - 30) / 4;
+  kpis.forEach((kpi, index) => {
+    const x = padding + index * (cardWidth + 10);
+    ctx.fillStyle = '#f8fafc';
+    roundRect(ctx, x, y, cardWidth, 62, 10);
+    ctx.fill();
+    ctx.fillStyle = '#64748b';
+    ctx.font = '700 13px Arial, sans-serif';
+    ctx.fillText(kpi.label.toUpperCase(), x + 14, y + 22);
+    ctx.fillStyle = kpi.color;
+    ctx.font = '900 23px Arial, sans-serif';
+    ctx.fillText(kpi.value, x + 14, y + 49);
+  });
+  y += 92;
+
+  y = drawImageSectionTitle(ctx, 'Resumo por categoria', padding, y);
+  y = drawSummaryTable(ctx, exportData.summaryRows, padding, y, width - padding * 2);
+  y += 18;
+  y = drawImageSectionTitle(ctx, 'Linhas filtradas', padding, y);
+  drawDetailTable(ctx, detailRows, padding, y, width - padding * 2);
+}
+
+function drawImageSectionTitle(ctx, title, x, y) {
+  ctx.fillStyle = '#0f172a';
+  ctx.font = '800 22px Arial, sans-serif';
+  ctx.fillText(title, x, y);
+  return y + 16;
+}
+
+function drawSummaryTable(ctx, rows, x, y, width) {
+  const columns = [
+    { label: 'Tipo', width: 92 },
+    { label: 'Categoria', width: 230 },
+    { label: 'Subcategoria', width: 250 },
+    { label: 'Itens', width: 70 },
+    { label: 'Total', width: 155, align: 'right' },
+    { label: '%', width: 90, align: 'right' },
+  ];
+  const rowHeight = 34;
+  drawTableHeader(ctx, columns, x, y, width, rowHeight);
+  y += rowHeight;
+  rows.forEach((row, index) => {
+    drawTableRowBackground(ctx, x, y, width, rowHeight, index);
+    drawTableCells(ctx, columns, x, y, [
+      row.type,
+      row.category,
+      row.subcategory,
+      row.items,
+      row.total,
+      row.percent,
+    ], rowHeight);
+    y += rowHeight;
+  });
+  return y;
+}
+
+function drawDetailTable(ctx, rows, x, y, width) {
+  const columns = [
+    { label: 'Data', width: 112 },
+    { label: 'Tipo', width: 84 },
+    { label: 'Categoria', width: 280 },
+    { label: 'Descricao', width: 510 },
+    { label: 'Valor', width: 160, align: 'right' },
+  ];
+  const headerHeight = 34;
+  drawTableHeader(ctx, columns, x, y, width, headerHeight);
+  y += headerHeight;
+  rows.forEach((row, index) => {
+    const lineCount = Math.max(row.wrappedDescription.length, row.wrappedCategory.length, 1);
+    const rowHeight = Math.max(36, 18 + lineCount * 18);
+    drawTableRowBackground(ctx, x, y, width, rowHeight, index);
+    drawMultilineTableCells(ctx, columns, x, y, row, rowHeight);
+    y += rowHeight;
+  });
+}
+
+function drawTableHeader(ctx, columns, x, y, width, height) {
+  ctx.fillStyle = '#0f172a';
+  roundRect(ctx, x, y, width, height, 8);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 13px Arial, sans-serif';
+  let cursor = x;
+  columns.forEach(column => {
+    drawAlignedText(ctx, column.label, cursor + 10, y + 22, column.width - 20, column.align);
+    cursor += column.width;
+  });
+}
+
+function drawTableRowBackground(ctx, x, y, width, height, index) {
+  ctx.fillStyle = index % 2 ? '#ffffff' : '#f8fafc';
+  ctx.fillRect(x, y, width, height);
+  ctx.strokeStyle = '#dbe5f0';
+  ctx.beginPath();
+  ctx.moveTo(x, y + height);
+  ctx.lineTo(x + width, y + height);
+  ctx.stroke();
+}
+
+function drawTableCells(ctx, columns, x, y, values, height) {
+  ctx.fillStyle = '#0f172a';
+  ctx.font = '600 14px Arial, sans-serif';
+  let cursor = x;
+  columns.forEach((column, index) => {
+    drawAlignedText(ctx, truncateText(values[index], Math.max(8, Math.floor(column.width / 8))), cursor + 10, y + Math.round(height / 2) + 5, column.width - 20, column.align);
+    cursor += column.width;
+  });
+}
+
+function drawMultilineTableCells(ctx, columns, x, y, row, height) {
+  const values = [
+    [formatDate(row.date)],
+    [row.type],
+    row.wrappedCategory,
+    row.wrappedDescription,
+    [`${row.direction === 'income' ? '+' : '-'} ${asMoney(row.amount)}`],
+  ];
+  ctx.font = '600 14px Arial, sans-serif';
+  let cursor = x;
+  columns.forEach((column, index) => {
+    const color = index === 4 ? (row.direction === 'income' ? '#059669' : '#dc2626') : '#0f172a';
+    ctx.fillStyle = color;
+    values[index].forEach((line, lineIndex) => {
+      drawAlignedText(ctx, line, cursor + 10, y + 22 + lineIndex * 18, column.width - 20, column.align);
+    });
+    cursor += column.width;
+  });
+}
+
+function drawAlignedText(ctx, text, x, y, width, align) {
+  const value = String(text ?? '');
+  if (align === 'right') {
+    ctx.textAlign = 'right';
+    ctx.fillText(value, x + width, y);
+  } else {
+    ctx.textAlign = 'left';
+    ctx.fillText(value, x, y);
+  }
+}
+
+function roundRect(ctx, x, y, width, height, radius) {
+  const r = Math.min(radius, width / 2, height / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + width, y, x + width, y + height, r);
+  ctx.arcTo(x + width, y + height, x, y + height, r);
+  ctx.arcTo(x, y + height, x, y, r);
+  ctx.arcTo(x, y, x + width, y, r);
+  ctx.closePath();
+}
+
+function analysisExportData(analysis) {
+  const groups = [
+    ...analysis.expenseGroups.map(group => ({ ...group, label: 'Gasto', grandTotal: analysis.expenseTotal })),
+    ...analysis.incomeGroups.map(group => ({ ...group, label: 'Ganho', grandTotal: analysis.incomeTotal })),
+  ];
+  const summaryRows = [];
+  const detailRows = [];
+  groups.forEach(group => {
+    const entries = group.hasSubcategories
+      ? group.subgroups.map(subgroup => ({ subgroup, category: group.category, subcategory: subgroup.category, rows: subgroup.rows, total: subgroup.total }))
+      : [{ subgroup: null, category: group.category, subcategory: '-', rows: group.rows, total: group.total }];
+    entries.forEach(entry => {
+      summaryRows.push({
+        type: group.label,
+        category: entry.category,
+        subcategory: entry.subcategory,
+        items: entry.rows.length,
+        total: asMoney(entry.total),
+        percent: formatPercent(entry.total, group.grandTotal),
+      });
+      entry.rows.forEach(row => {
+        detailRows.push({ ...row, type: group.label, category: entry.subcategory === '-' ? entry.category : `${entry.category} / ${entry.subcategory}` });
+      });
+    });
+  });
+  return { groups, summaryRows, detailRows };
+}
+
+function wrapCanvasText(value, maxChars) {
+  const words = String(value ?? '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+  const lines = [];
+  let current = '';
+  words.forEach(word => {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length > maxChars && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+  });
+  if (current) lines.push(current);
+  return lines.length ? lines.slice(0, 4) : ['-'];
+}
+
+function truncateText(value, maxChars) {
+  const text = String(value ?? '').replace(/\s+/g, ' ').trim();
+  return text.length > maxChars ? `${text.slice(0, Math.max(0, maxChars - 3))}...` : text;
+}
+
+async function copyImageToClipboard(blob) {
+  if (!navigator.clipboard || typeof ClipboardItem === 'undefined') {
+    throw new Error('Clipboard de imagem indisponivel.');
+  }
+  await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function buildAnalysisWhatsappTable(analysis) {
