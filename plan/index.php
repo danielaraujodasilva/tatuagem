@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260724-9">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260724-10">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260724-9" defer></script>
+    <script src="assets/app-bills-total.js?v=20260724-10" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -458,6 +458,17 @@ $csrf = csrf_token();
                         <div id="unmatchedBankList" class="bank-match-list"></div>
                     </section>
                 </div>
+
+                <section class="panel recon-goals-panel">
+                    <div class="panel-head wrap">
+                        <div>
+                            <h2>Depois de conferir, acompanhe suas metas</h2>
+                            <span>Use o que foi confirmado para enxergar se voce esta avancando no que quer construir.</span>
+                        </div>
+                        <button class="small-btn" data-nav-target="goals">Gerenciar metas</button>
+                    </div>
+                    <div id="reconGoalsList" class="recon-goals-list"></div>
+                </section>
             </section>
 
             <section class="section" id="transactions">
@@ -602,10 +613,14 @@ $csrf = csrf_token();
             <section class="section" id="categories">
                 <section class="panel">
                     <div class="panel-head">
-                        <h2>Categorias</h2>
+                        <div>
+                            <h2>Categorias e subcategorias</h2>
+                            <span>Exemplo: Estudio / Marketing, Estudio / Insumos</span>
+                        </div>
                         <button class="small-btn" data-open-modal="categoryModal">Nova</button>
                     </div>
-                    <div id="categoriesList" class="chip-list"></div>
+                    <p class="section-hint">Crie uma categoria principal e, quando precisar de mais detalhe, escolha essa categoria no campo "Categoria principal".</p>
+                    <div id="categoriesList" class="category-tree"></div>
                 </section>
             </section>
 
@@ -665,6 +680,7 @@ $csrf = csrf_token();
             <input type="hidden" name="id">
             <h2 id="categoryFormTitle">Nova categoria</h2>
             <label>Nome<input name="name" required></label>
+            <label class="wide">Categoria principal<select name="parent_id" data-category-parents></select></label>
             <label>Cor<input name="color" type="color" value="#2563eb"></label>
             <div class="modal-actions"><button type="button" class="ghost-btn" data-close>Cancelar</button><button class="primary-btn">Salvar</button></div>
         </form>

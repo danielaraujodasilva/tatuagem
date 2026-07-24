@@ -69,11 +69,13 @@ function bootstrap(array $user): never
         'ok' => true,
         'user' => $user,
         'csrf' => csrf_token(),
-        'categories' => db()->query('SELECT * FROM categories ORDER BY name')->fetchAll(),
+        'categories' => db()->query('SELECT c.*, p.name parent_name FROM categories c LEFT JOIN categories p ON p.id = c.parent_id ORDER BY c.parent_id IS NOT NULL, p.name, c.name')->fetchAll(),
         'accounts' => db()->query('SELECT * FROM accounts ORDER BY name')->fetchAll(),
-        'budgets' => db()->query('SELECT b.*, c.name category_name, c.color FROM budgets b JOIN categories c ON c.id = b.category_id ORDER BY b.month DESC, c.name')->fetchAll(),
+        'budgets' => db()->query("SELECT b.*, COALESCE(NULLIF(CONCAT_WS(' / ', p.name, c.name), ''), 'Sem categoria') category_name, c.color, c.parent_id, p.name parent_name
+            FROM budgets b JOIN categories c ON c.id = b.category_id LEFT JOIN categories p ON p.id = c.parent_id ORDER BY b.month DESC, category_name")->fetchAll(),
         'goals' => db()->query('SELECT * FROM goals ORDER BY target_date IS NULL, target_date, name')->fetchAll(),
-        'recurring' => db()->query('SELECT r.*, c.name category_name FROM recurring_rules r LEFT JOIN categories c ON c.id = r.category_id ORDER BY next_due_date')->fetchAll(),
+        'recurring' => db()->query("SELECT r.*, COALESCE(NULLIF(CONCAT_WS(' / ', p.name, c.name), ''), 'Sem categoria') category_name, c.parent_id, p.name parent_name
+            FROM recurring_rules r LEFT JOIN categories c ON c.id = r.category_id LEFT JOIN categories p ON p.id = c.parent_id ORDER BY next_due_date")->fetchAll(),
         'bankImports' => db()->query('SELECT * FROM bank_imports ORDER BY imported_at DESC LIMIT 30')->fetchAll(),
         'bankOverview' => build_bank_overview(),
         'overview' => build_overview(),
@@ -106,9 +108,10 @@ function transactions(): never
         array_push($params, $term, $term, $term);
     }
 
-    $sql = "SELECT t.*, c.name category_name, c.color category_color, a.name account_name
+    $sql = "SELECT t.*, COALESCE(NULLIF(CONCAT_WS(' / ', pc.name, c.name), ''), 'Sem categoria') category_name, c.name category_leaf_name, c.parent_id category_parent_id, pc.name category_parent_name, c.color category_color, a.name account_name
             FROM transactions t
             LEFT JOIN categories c ON c.id = t.category_id
+            LEFT JOIN categories pc ON pc.id = c.parent_id
             LEFT JOIN accounts a ON a.id = t.account_id";
     if ($where) {
         $sql .= ' WHERE ' . implode(' AND ', $where);
@@ -259,7 +262,8 @@ function normalize_category_id(mixed $value): ?int
     if ($value === '' || $value === null) {
         return null;
     }
-    return (int)$value;
+    $id = (int)$value;
+    return $id > 0 ? $id : null;
 }
 
 function assert_category_exists(?int $categoryId): void
@@ -298,18 +302,47 @@ function save_category(): never
 {
     $input = json_input();
     $id = (int)($input['id'] ?? 0);
+    $wasUpdate = $id > 0;
     $name = trim((string)($input['name'] ?? ''));
     $color = trim((string)($input['color'] ?? '#2563eb'));
+    $parentId = normalize_category_id($input['parent_id'] ?? '');
     if ($name === '') {
         json_response(['ok' => false, 'message' => 'Nome obrigatorio.'], 422);
     }
+    assert_category_parent($id, $parentId);
+    $duplicate = db()->prepare('SELECT id FROM categories WHERE name = ? AND id <> ? LIMIT 1');
+    $duplicate->execute([$name, $id]);
+    if ($duplicate->fetchColumn()) {
+        json_response(['ok' => false, 'message' => 'Ja existe uma categoria com este nome.'], 409);
+    }
     if ($id > 0) {
-        db()->prepare('UPDATE categories SET name = ?, color = ? WHERE id = ?')->execute([$name, $color, $id]);
+        db()->prepare('UPDATE categories SET name = ?, color = ?, parent_id = ? WHERE id = ?')->execute([$name, $color, $parentId, $id]);
     } else {
-        db()->prepare('INSERT INTO categories (name, color) VALUES (?, ?)')->execute([$name, $color]);
+        db()->prepare('INSERT INTO categories (name, color, parent_id) VALUES (?, ?, ?)')->execute([$name, $color, $parentId]);
         $id = (int)db()->lastInsertId();
     }
+    audit($wasUpdate ? 'update' : 'create', 'category', $id, ['name' => $name, 'color' => $color, 'parent_id' => $parentId]);
     json_response(['ok' => true, 'id' => $id]);
+}
+
+function assert_category_parent(int $categoryId, ?int $parentId): void
+{
+    if ($parentId === null) {
+        return;
+    }
+    if ($parentId === $categoryId) {
+        json_response(['ok' => false, 'message' => 'Uma categoria nao pode ser pai dela mesma.'], 422);
+    }
+
+    $stmt = db()->prepare('SELECT parent_id FROM categories WHERE id = ? LIMIT 1');
+    $stmt->execute([$parentId]);
+    $parent = $stmt->fetch();
+    if (!$parent) {
+        json_response(['ok' => false, 'message' => 'Categoria principal nao encontrada.'], 422);
+    }
+    if ($parent['parent_id'] !== null) {
+        json_response(['ok' => false, 'message' => 'Escolha uma categoria principal, nao outra subcategoria.'], 422);
+    }
 }
 
 function delete_category(): never
@@ -327,6 +360,12 @@ function delete_category(): never
     }
     if (strtolower($name) === 'sem categoria') {
         json_response(['ok' => false, 'message' => 'A categoria padrao nao pode ser excluida.'], 422);
+    }
+
+    $children = db()->prepare('SELECT COUNT(*) FROM categories WHERE parent_id = ?');
+    $children->execute([$id]);
+    if ((int)$children->fetchColumn() > 0) {
+        json_response(['ok' => false, 'message' => 'Mova ou exclua as subcategorias antes de excluir esta categoria principal.'], 422);
     }
 
     db()->prepare('DELETE FROM categories WHERE id = ?')->execute([$id]);
@@ -656,9 +695,10 @@ function resolve_share(): never
 function share_target_row(string $entityType, int $entityId): ?array
 {
     if ($entityType === 'transaction') {
-        $stmt = db()->prepare("SELECT t.*, c.name category_name, c.color category_color, a.name account_name
+        $stmt = db()->prepare("SELECT t.*, COALESCE(NULLIF(CONCAT_WS(' / ', pc.name, c.name), ''), 'Sem categoria') category_name, c.name category_leaf_name, c.parent_id category_parent_id, pc.name category_parent_name, c.color category_color, a.name account_name
             FROM transactions t
             LEFT JOIN categories c ON c.id = t.category_id
+            LEFT JOIN categories pc ON pc.id = c.parent_id
             LEFT JOIN accounts a ON a.id = t.account_id
             WHERE t.id = ?
             LIMIT 1");
@@ -668,10 +708,11 @@ function share_target_row(string $entityType, int $entityId): ?array
 
     if ($entityType === 'bank_transaction') {
         ensure_bank_schema();
-        $stmt = db()->prepare("SELECT bt.*, a.name account_name, c.name category_name, t.description matched_description
+        $stmt = db()->prepare("SELECT bt.*, a.name account_name, COALESCE(NULLIF(CONCAT_WS(' / ', pc.name, c.name), ''), 'Sem categoria') category_name, c.name category_leaf_name, c.parent_id category_parent_id, pc.name category_parent_name, t.description matched_description
             FROM bank_transactions bt
             LEFT JOIN accounts a ON a.id = bt.account_id
             LEFT JOIN categories c ON c.id = bt.category_id
+            LEFT JOIN categories pc ON pc.id = c.parent_id
             LEFT JOIN transactions t ON t.id = bt.matched_transaction_id
             WHERE bt.id = ?
             LIMIT 1");
@@ -741,6 +782,14 @@ function ensure_finance_schema(): void
     if ((int)($stmt->fetch()['total'] ?? 0) === 0) {
         db()->exec("ALTER TABLE transactions ADD COLUMN reference_month CHAR(7) NULL AFTER source_sheet");
         db()->exec("ALTER TABLE transactions ADD INDEX idx_transactions_reference_month (reference_month)");
+    }
+
+    $categoryColumn = db()->prepare("SELECT COUNT(*) total FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'categories' AND COLUMN_NAME = 'parent_id'");
+    $categoryColumn->execute();
+    if ((int)($categoryColumn->fetch()['total'] ?? 0) === 0) {
+        db()->exec("ALTER TABLE categories ADD COLUMN parent_id INT UNSIGNED NULL AFTER color");
+        db()->exec("ALTER TABLE categories ADD INDEX idx_categories_parent (parent_id)");
     }
 }
 
@@ -963,11 +1012,12 @@ function bank_transactions(): never
         array_push($params, $term, $term, $term);
     }
 
-    $sql = "SELECT bt.*, a.name account_name, c.name category_name, t.description matched_description
-            FROM bank_transactions bt
-            LEFT JOIN accounts a ON a.id = bt.account_id
-            LEFT JOIN categories c ON c.id = bt.category_id
-            LEFT JOIN transactions t ON t.id = bt.matched_transaction_id";
+    $sql = "SELECT bt.*, a.name account_name, COALESCE(NULLIF(CONCAT_WS(' / ', pc.name, c.name), ''), 'Sem categoria') category_name, c.name category_leaf_name, c.parent_id category_parent_id, pc.name category_parent_name, t.description matched_description
+        FROM bank_transactions bt
+        LEFT JOIN accounts a ON a.id = bt.account_id
+        LEFT JOIN categories c ON c.id = bt.category_id
+        LEFT JOIN categories pc ON pc.id = c.parent_id
+        LEFT JOIN transactions t ON t.id = bt.matched_transaction_id";
     if ($where) {
         $sql .= ' WHERE ' . implode(' AND ', $where);
     }
@@ -1201,8 +1251,8 @@ function build_overview(): array
     $stmt->execute([$month, $monthStart, $monthEnd]);
     $totals = $stmt->fetch() ?: [];
 
-    $byCategory = db()->prepare("SELECT COALESCE(c.name, 'Sem categoria') name, COALESCE(c.color, '#64748b') color, SUM(t.amount) total
-        FROM transactions t LEFT JOIN categories c ON c.id = t.category_id
+    $byCategory = db()->prepare("SELECT COALESCE(NULLIF(CONCAT_WS(' / ', pc.name, c.name), ''), 'Sem categoria') name, COALESCE(c.color, '#64748b') color, SUM(t.amount) total
+        FROM transactions t LEFT JOIN categories c ON c.id = t.category_id LEFT JOIN categories pc ON pc.id = c.parent_id
         WHERE t.type = 'expense' AND t.status <> 'ignored' AND (t.reference_month = ? OR (t.reference_month IS NULL AND t.due_date BETWEEN ? AND ?))
         GROUP BY name, color ORDER BY total DESC");
     $byCategory->execute([$month, $monthStart, $monthEnd]);
@@ -1213,7 +1263,7 @@ function build_overview(): array
         SUM(CASE WHEN type = 'expense' AND status IN ('pending','late') THEN amount ELSE 0 END) pending
         FROM transactions WHERE reference_month IS NOT NULL OR due_date IS NOT NULL GROUP BY month ORDER BY month")->fetchAll();
 
-    $upcoming = db()->prepare("SELECT t.*, c.name category_name FROM transactions t LEFT JOIN categories c ON c.id = t.category_id
+    $upcoming = db()->prepare("SELECT t.*, COALESCE(NULLIF(CONCAT_WS(' / ', pc.name, c.name), ''), 'Sem categoria') category_name FROM transactions t LEFT JOIN categories c ON c.id = t.category_id LEFT JOIN categories pc ON pc.id = c.parent_id
         WHERE t.status IN ('pending','late') AND t.due_date <= DATE_ADD(CURDATE(), INTERVAL 21 DAY)
         ORDER BY t.due_date ASC LIMIT 10");
     $upcoming->execute();

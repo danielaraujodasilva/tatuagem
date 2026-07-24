@@ -543,7 +543,7 @@ function bindForms() {
 
 function renderSelects() {
   const categoryOptions = state.categories.map(category => (
-    `<option value="${category.id}">${escapeHtml(category.name)}</option>`
+    `<option value="${category.id}">${escapeHtml(categoryOptionLabel(category))}</option>`
   )).join('');
   document.querySelectorAll('[data-categories]').forEach(select => {
     select.innerHTML = '<option value="">Sem categoria</option>' + categoryOptions;
@@ -578,12 +578,31 @@ function renderSelects() {
       `<option value="${account.id}">${escapeHtml(account.name)}</option>`
     )).join('');
   });
+  renderCategoryParentOptions();
+}
+
+function categoryOptionLabel(category) {
+  return category.parent_name ? `${category.parent_name} / ${category.name}` : category.name;
+}
+
+function renderCategoryParentOptions(excludeId = 0) {
+  const parents = state.categories
+    .filter(category => !category.parent_id && Number(category.id) !== Number(excludeId))
+    .sort((a, b) => String(a.name).localeCompare(String(b.name), 'pt-BR'));
+  const options = '<option value="">Nenhuma (categoria principal)</option>' + parents
+    .map(category => `<option value="${category.id}">${escapeHtml(category.name)}</option>`)
+    .join('');
+  document.querySelectorAll('[data-category-parents]').forEach(select => {
+    const current = select.value;
+    select.innerHTML = options;
+    select.value = current;
+  });
 }
 
 function inlineCategorySelect(row, kind) {
   const current = String(row.category_id || '');
   const options = state.categories.map(category => (
-    `<option value="${category.id}" ${String(category.id) === current ? 'selected' : ''}>${escapeHtml(category.name)}</option>`
+    `<option value="${category.id}" ${String(category.id) === current ? 'selected' : ''}>${escapeHtml(categoryOptionLabel(category))}</option>`
   )).join('');
   return `<select class="inline-category" data-inline-category="${kind}" data-inline-category-id="${row.id}" aria-label="Alterar categoria">
     <option value="">Sem categoria</option>${options}
@@ -1156,6 +1175,19 @@ function renderReconciliation() {
   renderSourceBreakdown(sheetRows);
   renderReviewQueue({ sheetRows, pendingRows, unmatchedBank, matchedBank });
   renderUnmatchedBankList(unmatchedBank);
+  renderReconciliationGoals();
+}
+
+function renderReconciliationGoals() {
+  const target = document.querySelector('#reconGoalsList');
+  if (!target) return;
+  const rows = state.goals.map(goal => {
+    const pct = Math.min(100, Math.round((Number(goal.current_amount) / Math.max(1, Number(goal.target_amount))) * 100));
+    return { goal, pct };
+  });
+  target.innerHTML = rows.length
+    ? rows.slice(0, 4).map(({ goal, pct }) => goalSummaryRow(goal, pct)).join('')
+    : '<p class="muted">Nenhuma meta cadastrada. Depois de conferir os dados, crie uma para acompanhar um objetivo.</p>';
 }
 
 function renderSourceBreakdown(rows) {
@@ -1548,16 +1580,42 @@ function referenceMonthFromSheet(sheetName) {
 function renderCategories() {
   const target = document.querySelector('#categoriesList');
   if (!target) return;
-  target.innerHTML = state.categories.map(category => `
-    <span class="chip editable-chip" style="background:${category.color}">
-      <span>${escapeHtml(category.name)}</span>
-      <button type="button" class="chip-btn" title="Editar categoria" data-category-edit="${category.id}">✎</button>
-      <button type="button" class="chip-btn" title="Excluir categoria" data-category-delete="${category.id}">×</button>
-    </span>
-  `).join('');
+  const parents = state.categories.filter(category => !category.parent_id);
+  target.innerHTML = parents.map(parent => {
+    const children = state.categories.filter(category => Number(category.parent_id) === Number(parent.id));
+    return `
+      <div class="category-group">
+        <div class="category-group-head">
+          <div><strong>${escapeHtml(parent.name)}</strong><small>Categoria principal</small></div>
+          <div class="category-actions">
+            <button class="icon-btn" title="Nova subcategoria" data-category-add-child="${parent.id}">+</button>
+            <button class="icon-btn" title="Editar categoria" data-category-edit="${parent.id}">✎</button>
+            <button class="icon-btn" title="Excluir categoria" data-category-delete="${parent.id}">×</button>
+          </div>
+        </div>
+        <div class="category-children">
+          ${children.length ? children.map(child => `
+            <div class="category-child">
+              <span class="category-child-label">${escapeHtml(child.name)}</span>
+              <span class="category-actions">
+                <button class="icon-btn" title="Editar subcategoria" data-category-edit="${child.id}">✎</button>
+                <button class="icon-btn" title="Excluir subcategoria" data-category-delete="${child.id}">×</button>
+              </span>
+            </div>
+          `).join('') : '<span class="category-empty">Sem subcategorias. Use + para criar uma.</span>'}
+        </div>
+      </div>
+    `;
+  }).join('');
 
   target.querySelectorAll('[data-category-edit]').forEach(button => {
     button.addEventListener('click', () => editCategory(Number(button.dataset.categoryEdit)));
+  });
+  target.querySelectorAll('[data-category-add-child]').forEach(button => {
+    button.addEventListener('click', () => {
+      prepareCategoryForm(null, Number(button.dataset.categoryAddChild));
+      document.querySelector('#categoryModal')?.showModal();
+    });
   });
   target.querySelectorAll('[data-category-delete]').forEach(button => {
     button.addEventListener('click', () => deleteCategory(Number(button.dataset.categoryDelete)));
@@ -1700,14 +1758,16 @@ function editCategory(id) {
   document.querySelector('#categoryModal')?.showModal();
 }
 
-function prepareCategoryForm(category = null) {
+function prepareCategoryForm(category = null, parentId = '') {
   const form = document.querySelector('#categoryForm');
   if (!form) return;
   form.reset();
   form.elements.id.value = category?.id || '';
   form.elements.name.value = category?.name || '';
+  renderCategoryParentOptions(category?.id || 0);
+  form.elements.parent_id.value = parentId || category?.parent_id || '';
   form.elements.color.value = category?.color || '#2563eb';
-  setText('categoryFormTitle', category ? 'Editar categoria' : 'Nova categoria');
+  setText('categoryFormTitle', category ? 'Editar categoria' : parentId ? 'Nova subcategoria' : 'Nova categoria');
 }
 
 async function deleteCategory(id) {

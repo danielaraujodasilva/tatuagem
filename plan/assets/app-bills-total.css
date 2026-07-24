@@ -200,6 +200,21 @@ label { display: grid; gap: 7px; color: var(--muted); font-size: 13px; font-weig
 .recon-legend { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
 .recon-legend strong { color: var(--text); }
 .recon-legend .status { padding: 3px 7px; margin-right: 3px; }
+.recon-goals-panel { margin-top: 14px; background: linear-gradient(135deg, #fffdf5 0%, #fff 70%); }
+.recon-goals-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.recon-goals-list .list-row { padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,.78); }
+.category-tree { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.category-group { padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.category-group-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+.category-group-head strong { font-size: 16px; }
+.category-group-head small { display: block; color: var(--muted); margin-top: 3px; }
+.category-children { display: grid; gap: 7px; padding-left: 12px; border-left: 2px solid #dbeafe; }
+.category-child { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0 8px 10px; border-bottom: 1px solid var(--line); }
+.category-child:last-child { border-bottom: 0; }
+.category-child-label { color: var(--muted); font-weight: 800; }
+.category-actions { display: flex; gap: 5px; }
+.category-actions .icon-btn { width: 30px; height: 30px; }
+.category-empty { color: var(--muted); font-size: 13px; }
 .bill-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .movement-grid { display: grid; grid-template-columns: minmax(280px, .55fr) minmax(0, 1.45fr); gap: 14px; }
 .analysis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -597,6 +612,7 @@ tr.share-focus > td { background: #eff6ff; box-shadow: inset 0 2px 0 rgba(37,99,
   .top-actions, .filters { flex-wrap: wrap; }
   .kpi-grid, .dashboard-grid, .split-grid, .workflow-strip, .recon-grid, .bill-board, .movement-grid, .analysis-grid { grid-template-columns: 1fr; }
   .recon-steps { grid-template-columns: 1fr; }
+  .recon-goals-list, .category-tree { grid-template-columns: 1fr; }
   .wide-panel { grid-column: auto; }
   .bank-hero { grid-template-columns: 1fr; }
   .sheet-import-panel { grid-template-columns: 1fr; }

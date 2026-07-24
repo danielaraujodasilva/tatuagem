@@ -16,7 +16,10 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS categories (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(120) NOT NULL UNIQUE,
-  color VARCHAR(16) NOT NULL DEFAULT '#2563eb'
+  color VARCHAR(16) NOT NULL DEFAULT '#2563eb',
+  parent_id INT UNSIGNED NULL,
+  INDEX idx_categories_parent (parent_id),
+  CONSTRAINT fk_categories_parent FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS accounts (
