@@ -317,7 +317,8 @@ $csrf = csrf_token();
 
     <dialog id="recurringModal" class="modal">
         <form id="recurringForm" method="dialog" class="form-grid compact">
-            <h2>Recorrencia</h2>
+            <input type="hidden" name="id">
+            <h2 id="recurringFormTitle">Nova recorrencia</h2>
             <label>Descricao<input name="description" required></label>
             <label>Valor<input name="amount" inputmode="decimal" required></label>
             <label>Categoria<select name="category_id" data-categories></select></label>

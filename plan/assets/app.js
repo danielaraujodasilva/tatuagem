@@ -156,6 +156,9 @@ function bindModals() {
       if (button.dataset.openModal === 'accountModal') {
         prepareAccountForm();
       }
+      if (button.dataset.openModal === 'recurringModal') {
+        prepareRecurringForm();
+      }
       document.querySelector(`#${button.dataset.openModal}`)?.showModal();
     });
   });
@@ -455,8 +458,25 @@ function renderRecurring() {
   const target = document.querySelector('#recurringList');
   if (!target) return;
   target.innerHTML = state.recurring.map(rule => `
-    <div class="list-row"><div><strong>${escapeHtml(rule.description)}</strong><small>${escapeHtml(rule.frequency)} · proximo ${formatDate(rule.next_due_date)}</small></div><span class="amount">${asMoney(rule.amount)}</span></div>
+    <div class="list-row">
+      <div>
+        <strong>${escapeHtml(rule.description)}</strong>
+        <small>${escapeHtml(frequencyLabel(rule.frequency))} · proximo ${formatDate(rule.next_due_date)} · ${rule.is_active == 1 ? 'ativa' : 'inativa'}${rule.category_name ? ' · ' + escapeHtml(rule.category_name) : ''}</small>
+      </div>
+      <div class="row-actions">
+        <span class="amount">${asMoney(rule.amount)}</span>
+        <button class="icon-btn" title="Editar recorrencia" data-recurring-edit="${rule.id}">✎</button>
+        <button class="icon-btn" title="Excluir recorrencia" data-recurring-delete="${rule.id}">×</button>
+      </div>
+    </div>
   `).join('');
+
+  target.querySelectorAll('[data-recurring-edit]').forEach(button => {
+    button.addEventListener('click', () => editRecurring(Number(button.dataset.recurringEdit)));
+  });
+  target.querySelectorAll('[data-recurring-delete]').forEach(button => {
+    button.addEventListener('click', () => deleteRecurring(Number(button.dataset.recurringDelete)));
+  });
 }
 
 function editTransaction(id) {
@@ -664,6 +684,38 @@ async function deleteAccount(id) {
   await reloadPlanningData();
 }
 
+function editRecurring(id) {
+  const rule = state.recurring.find(item => Number(item.id) === id);
+  if (!rule) return;
+  prepareRecurringForm(rule);
+  document.querySelector('#recurringModal')?.showModal();
+}
+
+function prepareRecurringForm(rule = null) {
+  const form = document.querySelector('#recurringForm');
+  if (!form) return;
+  form.reset();
+  form.elements.id.value = rule?.id || '';
+  form.elements.description.value = rule?.description || '';
+  form.elements.amount.value = rule?.amount ?? '';
+  form.elements.category_id.value = rule?.category_id || '';
+  form.elements.frequency.value = rule?.frequency || 'monthly';
+  form.elements.next_due_date.value = rule?.next_due_date || '';
+  form.elements.is_active.checked = rule ? rule.is_active == 1 : true;
+  const title = document.querySelector('#recurringFormTitle');
+  if (title) {
+    title.textContent = rule ? 'Editar recorrencia' : 'Nova recorrencia';
+  }
+}
+
+async function deleteRecurring(id) {
+  const rule = state.recurring.find(item => Number(item.id) === id);
+  if (!rule) return;
+  if (!confirm(`Excluir a regra recorrente "${rule.description}"?`)) return;
+  await api('delete_recurring', { method: 'POST', body: { id } });
+  await reloadPlanningData();
+}
+
 async function reloadPlanningData() {
   await loadBootstrap();
   await loadAccountSummaries();
@@ -783,6 +835,10 @@ function formatDateTime(value) {
 
 function statusLabel(status) {
   return { paid: 'Pago', pending: 'Pendente', late: 'Atrasado', ignored: 'Ignorado' }[status] || status;
+}
+
+function frequencyLabel(frequency) {
+  return { monthly: 'Mensal', weekly: 'Semanal', yearly: 'Anual' }[frequency] || frequency;
 }
 
 function escapeHtml(value) {

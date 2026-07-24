@@ -49,6 +49,7 @@ try {
         'account_history' => account_history(),
         'resolve_account_conflict' => resolve_account_conflict(),
         'save_recurring' => save_recurring(),
+        'delete_recurring' => delete_recurring(),
         'overview' => overview(),
         default => json_response(['ok' => false, 'message' => 'Acao desconhecida.'], 404),
     };
@@ -1146,11 +1147,12 @@ function save_recurring(): never
 {
     $input = json_input();
     $id = (int)($input['id'] ?? 0);
+    $frequency = trim((string)($input['frequency'] ?? 'monthly'));
     $data = [
         trim((string)($input['description'] ?? '')),
         money_to_float($input['amount'] ?? 0),
         ($input['category_id'] ?? '') === '' ? null : (int)$input['category_id'],
-        trim((string)($input['frequency'] ?? 'monthly')),
+        in_array($frequency, ['monthly', 'weekly', 'yearly'], true) ? $frequency : 'monthly',
         normalize_date($input['next_due_date'] ?? null),
         !empty($input['is_active']) ? 1 : 0,
     ];
@@ -1160,9 +1162,52 @@ function save_recurring(): never
     if ($id > 0) {
         $data[] = $id;
         db()->prepare('UPDATE recurring_rules SET description=?, amount=?, category_id=?, frequency=?, next_due_date=?, is_active=? WHERE id=?')->execute($data);
+        if ((int)db()->query('SELECT ROW_COUNT()')->fetchColumn() === 0) {
+            $exists = db()->prepare('SELECT id FROM recurring_rules WHERE id = ? LIMIT 1');
+            $exists->execute([$id]);
+            if (!$exists->fetchColumn()) {
+                json_response(['ok' => false, 'message' => 'Regra recorrente nao encontrada.'], 404);
+            }
+        }
+        audit('update', 'recurring_rule', $id, [
+            'description' => $data[0],
+            'amount' => $data[1],
+            'category_id' => $data[2],
+            'frequency' => $data[3],
+            'next_due_date' => $data[4],
+            'is_active' => $data[5],
+        ]);
     } else {
         db()->prepare('INSERT INTO recurring_rules (description, amount, category_id, frequency, next_due_date, is_active) VALUES (?, ?, ?, ?, ?, ?)')->execute($data);
+        $id = (int)db()->lastInsertId();
+        audit('create', 'recurring_rule', $id, [
+            'description' => $data[0],
+            'amount' => $data[1],
+            'category_id' => $data[2],
+            'frequency' => $data[3],
+            'next_due_date' => $data[4],
+            'is_active' => $data[5],
+        ]);
     }
+    json_response(['ok' => true, 'id' => $id]);
+}
+
+function delete_recurring(): never
+{
+    $id = (int)(json_input()['id'] ?? 0);
+    if ($id <= 0) {
+        json_response(['ok' => false, 'message' => 'Regra recorrente invalida.'], 422);
+    }
+
+    $stmt = db()->prepare('SELECT * FROM recurring_rules WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    $rule = $stmt->fetch();
+    if (!$rule) {
+        json_response(['ok' => false, 'message' => 'Regra recorrente nao encontrada.'], 404);
+    }
+
+    db()->prepare('DELETE FROM recurring_rules WHERE id = ?')->execute([$id]);
+    audit('delete', 'recurring_rule', $id, $rule);
     json_response(['ok' => true]);
 }
 
