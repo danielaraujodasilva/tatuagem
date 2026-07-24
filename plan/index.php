@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260724-5">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260724-6">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260724-5" defer></script>
+    <script src="assets/app-bills-total.js?v=20260724-6" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -167,7 +167,28 @@ $csrf = csrf_token();
                         <option value="expense">Somente gastos</option>
                         <option value="income">Somente ganhos</option>
                     </select>
+                    <select id="analysisCategoryFilter"><option value="">Todas categorias</option></select>
+                    <input id="analysisMinAmount" inputmode="decimal" placeholder="Valor minimo">
+                    <input id="analysisMaxAmount" inputmode="decimal" placeholder="Valor maximo">
+                    <select id="analysisGroupSort">
+                        <option value="value_desc">Categorias: maior valor</option>
+                        <option value="value_asc">Categorias: menor valor</option>
+                        <option value="name_asc">Categorias: A-Z</option>
+                        <option value="name_desc">Categorias: Z-A</option>
+                        <option value="count_desc">Categorias: mais itens</option>
+                    </select>
+                    <select id="analysisRowSort">
+                        <option value="date_desc">Linhas: mais recentes</option>
+                        <option value="date_asc">Linhas: mais antigas</option>
+                        <option value="value_desc">Linhas: maior valor</option>
+                        <option value="value_asc">Linhas: menor valor</option>
+                        <option value="description_asc">Linhas: descricao A-Z</option>
+                    </select>
                     <input id="analysisSearchInput" placeholder="Buscar categoria, descricao, banco ou origem">
+                    <div class="analysis-actions">
+                        <button type="button" class="ghost-btn" data-pivot-toggle="open" data-pivot-scope="all">Abrir tudo</button>
+                        <button type="button" class="ghost-btn" data-pivot-toggle="close" data-pivot-scope="all">Fechar tudo</button>
+                    </div>
                 </div>
 
                 <div class="kpi-grid compact-kpis">
@@ -184,6 +205,10 @@ $csrf = csrf_token();
                                 <h2>Gastos por categoria</h2>
                                 <span id="analysisExpenseCount">0 categorias</span>
                             </div>
+                            <div class="pivot-actions">
+                                <button type="button" class="small-btn" data-pivot-toggle="open" data-pivot-scope="expense">Abrir gastos</button>
+                                <button type="button" class="small-btn" data-pivot-toggle="close" data-pivot-scope="expense">Fechar gastos</button>
+                            </div>
                         </div>
                         <div id="expenseCategoryPivot" class="pivot-list"></div>
                     </section>
@@ -192,6 +217,10 @@ $csrf = csrf_token();
                             <div>
                                 <h2>Ganhos por categoria</h2>
                                 <span id="analysisIncomeCount">0 categorias</span>
+                            </div>
+                            <div class="pivot-actions">
+                                <button type="button" class="small-btn" data-pivot-toggle="open" data-pivot-scope="income">Abrir ganhos</button>
+                                <button type="button" class="small-btn" data-pivot-toggle="close" data-pivot-scope="income">Fechar ganhos</button>
                             </div>
                         </div>
                         <div id="incomeCategoryPivot" class="pivot-list"></div>

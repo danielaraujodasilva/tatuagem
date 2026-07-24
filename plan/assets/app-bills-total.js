@@ -348,8 +348,11 @@ function bindFilters() {
     await loadTransactions();
     await loadBankTransactions();
   });
-  ['analysisSourceFilter', 'analysisDirectionFilter', 'analysisSearchInput'].forEach(id => {
+  ['analysisSourceFilter', 'analysisDirectionFilter', 'analysisCategoryFilter', 'analysisMinAmount', 'analysisMaxAmount', 'analysisGroupSort', 'analysisRowSort', 'analysisSearchInput'].forEach(id => {
     document.querySelector(`#${id}`)?.addEventListener('input', renderCategoryAnalysis);
+  });
+  document.querySelectorAll('[data-pivot-toggle]').forEach(button => {
+    button.addEventListener('click', () => setPivotOpenState(button.dataset.pivotScope, button.dataset.pivotToggle === 'open'));
   });
 }
 
@@ -508,6 +511,12 @@ function renderSelects() {
     movementCategory.innerHTML = '<option value="">Todas categorias</option>' + categoryOptions;
     movementCategory.value = current;
   }
+  const analysisCategory = document.querySelector('#analysisCategoryFilter');
+  if (analysisCategory) {
+    const current = analysisCategory.value;
+    analysisCategory.innerHTML = '<option value="">Todas categorias</option>' + categoryOptions;
+    analysisCategory.value = state.categories.some(category => String(category.id) === current) ? current : '';
+  }
   document.querySelectorAll('[data-accounts]').forEach(select => {
     select.innerHTML = '<option value="">Sem conta</option>' + state.accounts.map(account => (
       `<option value="${account.id}">${escapeHtml(account.name)}</option>`
@@ -567,16 +576,24 @@ function renderOverview() {
 function renderCategoryAnalysis() {
   const source = document.querySelector('#analysisSourceFilter')?.value || 'bank';
   const directionFilter = document.querySelector('#analysisDirectionFilter')?.value || 'both';
+  const categoryId = document.querySelector('#analysisCategoryFilter')?.value || '';
+  const minAmount = parseMoney(document.querySelector('#analysisMinAmount')?.value || '');
+  const maxAmount = parseMoney(document.querySelector('#analysisMaxAmount')?.value || '');
+  const groupSort = document.querySelector('#analysisGroupSort')?.value || 'value_desc';
+  const rowSort = document.querySelector('#analysisRowSort')?.value || 'date_desc';
   const query = norm(document.querySelector('#analysisSearchInput')?.value || '');
   const items = analyticsItems(source).filter(item => {
     if (directionFilter !== 'both' && item.direction !== directionFilter) return false;
+    if (categoryId && String(item.category_id || '') !== categoryId) return false;
+    if (minAmount && item.amount < minAmount) return false;
+    if (maxAmount && item.amount > maxAmount) return false;
     if (!query) return true;
     return norm([item.category, item.description, item.sourceLabel, item.meta].join(' ')).includes(query);
   });
   const expenses = items.filter(item => item.direction === 'expense');
   const incomes = items.filter(item => item.direction === 'income');
-  const expenseGroups = groupAnalyticsByCategory(expenses);
-  const incomeGroups = groupAnalyticsByCategory(incomes);
+  const expenseGroups = groupAnalyticsByCategory(expenses, rowSort, groupSort);
+  const incomeGroups = groupAnalyticsByCategory(incomes, rowSort, groupSort);
   const expenseTotal = sumAmounts(expenses);
   const incomeTotal = sumAmounts(incomes);
   const topGroup = [...expenseGroups, ...incomeGroups].sort((a, b) => b.total - a.total)[0];
@@ -601,6 +618,7 @@ function analyticsItems(source) {
       sourceLabel: 'Contas',
       direction: type === 'income' ? 'income' : 'expense',
       amount: Number(row.amount || 0),
+      category_id: row.category_id || '',
       category: row.category_name || 'Sem categoria',
       date: row.due_date,
       description: row.description || '(sem descricao)',
@@ -614,6 +632,7 @@ function analyticsItems(source) {
     sourceLabel: row.bank_name || 'Extrato',
     direction: row.direction === 'credit' ? 'income' : 'expense',
     amount: Number(row.amount || 0),
+    category_id: row.category_id || '',
     category: row.category_name || 'Sem categoria',
     date: row.transaction_date,
     description: row.description || '(sem descricao)',
@@ -625,7 +644,7 @@ function analyticsItems(source) {
   return bankItems;
 }
 
-function groupAnalyticsByCategory(items) {
+function groupAnalyticsByCategory(items, rowSort = 'date_desc', groupSort = 'value_desc') {
   const grouped = items.reduce((acc, item) => {
     acc[item.category] ||= { category: item.category, direction: item.direction, total: 0, rows: [] };
     acc[item.category].total += item.amount;
@@ -633,8 +652,30 @@ function groupAnalyticsByCategory(items) {
     return acc;
   }, {});
   return Object.values(grouped)
-    .map(group => ({ ...group, rows: group.rows.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || b.amount - a.amount) }))
-    .sort((a, b) => b.total - a.total);
+    .map(group => ({ ...group, rows: sortAnalyticsRows(group.rows, rowSort) }))
+    .sort((a, b) => compareAnalyticsGroups(a, b, groupSort));
+}
+
+function sortAnalyticsRows(rows, sortMode) {
+  const sorted = [...rows];
+  const byDate = (a, b) => String(a.date || '').localeCompare(String(b.date || '')) || a.description.localeCompare(b.description);
+  const byAmount = (a, b) => a.amount - b.amount || byDate(a, b);
+  sorted.sort((a, b) => {
+    if (sortMode === 'date_asc') return byDate(a, b);
+    if (sortMode === 'value_desc') return -byAmount(a, b);
+    if (sortMode === 'value_asc') return byAmount(a, b);
+    if (sortMode === 'description_asc') return a.description.localeCompare(b.description) || byDate(a, b);
+    return -byDate(a, b);
+  });
+  return sorted;
+}
+
+function compareAnalyticsGroups(a, b, sortMode) {
+  if (sortMode === 'value_asc') return a.total - b.total || a.category.localeCompare(b.category);
+  if (sortMode === 'name_asc') return a.category.localeCompare(b.category);
+  if (sortMode === 'name_desc') return b.category.localeCompare(a.category);
+  if (sortMode === 'count_desc') return b.rows.length - a.rows.length || b.total - a.total;
+  return b.total - a.total || a.category.localeCompare(b.category);
 }
 
 function renderCategoryPivot(targetId, groups, total, direction) {
@@ -669,6 +710,13 @@ function renderCategoryPivot(targetId, groups, total, direction) {
 
   target.querySelectorAll('[data-pivot-source]').forEach(button => {
     button.addEventListener('click', () => openPivotItem(button.dataset.pivotSource, Number(button.dataset.pivotId)));
+  });
+}
+
+function setPivotOpenState(scope, isOpen) {
+  const selector = scope === 'all' ? '.pivot-group' : `.pivot-group.${scope}`;
+  document.querySelectorAll(selector).forEach(group => {
+    group.open = isOpen;
   });
 }
 
