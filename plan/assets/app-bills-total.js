@@ -15,6 +15,8 @@ const state = {
   sheetImportRows: [],
   overview: null,
   charts: {},
+  pendingShare: null,
+  handledShareToken: '',
 };
 
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -75,10 +77,12 @@ async function bootApp() {
   bindFilters();
   bindBanking();
   bindSheetImport();
+  bindSharing();
   await loadBootstrap();
   await loadTransactions();
   await loadBankTransactions();
   renderReconciliation();
+  await handleSharedLink();
 }
 
 function bindSheetImport() {
@@ -244,6 +248,80 @@ function bindModals() {
   });
 }
 
+function bindSharing() {
+  document.querySelector('#createShareLink')?.addEventListener('click', createShareLinkFromModal);
+  document.querySelector('#copyShareLink')?.addEventListener('click', copyShareLink);
+}
+
+function bindShareButtons(root = document) {
+  root.querySelectorAll('[data-share-type][data-share-id]').forEach(button => {
+    button.addEventListener('click', () => openShareModal(button.dataset.shareType, Number(button.dataset.shareId)));
+  });
+}
+
+function openShareModal(entityType, entityId) {
+  const target = findShareTarget(entityType, entityId);
+  state.pendingShare = { entity_type: entityType, entity_id: entityId };
+  const summary = document.querySelector('#shareSummary');
+  const url = document.querySelector('#shareUrl');
+  const note = document.querySelector('#shareNote');
+  const message = document.querySelector('#shareMessage');
+  if (summary) summary.textContent = shareSummary(entityType, target);
+  if (url) url.value = '';
+  if (note) note.value = '';
+  if (message) message.textContent = 'O link exige login e abre este item ja destacado na tela certa.';
+  document.querySelector('#shareModal')?.showModal();
+}
+
+async function createShareLinkFromModal() {
+  if (!state.pendingShare) return;
+  const button = document.querySelector('#createShareLink');
+  const message = document.querySelector('#shareMessage');
+  const url = document.querySelector('#shareUrl');
+  button.disabled = true;
+  button.textContent = 'Gerando...';
+  if (message) message.textContent = '';
+  try {
+    const payload = await api('create_share', {
+      method: 'POST',
+      body: {
+        ...state.pendingShare,
+        note: document.querySelector('#shareNote')?.value || '',
+      },
+    });
+    if (url) {
+      url.value = payload.url;
+      url.select();
+    }
+    if (message) message.textContent = 'Link criado. Ele so abre para quem estiver logado.';
+  } catch (error) {
+    if (message) message.textContent = error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Gerar link';
+  }
+}
+
+async function copyShareLink() {
+  const input = document.querySelector('#shareUrl');
+  const message = document.querySelector('#shareMessage');
+  if (!input?.value) {
+    if (message) message.textContent = 'Gere o link primeiro.';
+    return;
+  }
+  input.select();
+  try {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(input.value);
+    } else {
+      document.execCommand('copy');
+    }
+    if (message) message.textContent = 'Link copiado.';
+  } catch (error) {
+    if (message) message.textContent = 'Nao consegui copiar automaticamente, mas deixei o link selecionado.';
+  }
+}
+
 function bindFilters() {
   document.querySelector('#monthFilter')?.addEventListener('input', debounce(async () => {
     syncMovementDatesFromMonth();
@@ -289,6 +367,79 @@ function mirrorLegacyBankFilters(changedId) {
     const target = document.querySelector('#movementBankFilter');
     if (target) target.value = document.querySelector('#bankFilter')?.value || '';
   }
+}
+
+function findShareTarget(entityType, entityId) {
+  const list = entityType === 'bank_transaction' ? state.bankTransactions : state.transactions;
+  return list.find(row => Number(row.id) === Number(entityId)) || null;
+}
+
+function shareSummary(entityType, row) {
+  if (!row) return 'Este item sera compartilhado por link seguro e exigira login para abrir.';
+  if (entityType === 'bank_transaction') {
+    return `${row.description} | ${formatDate(row.transaction_date)} | ${row.bank_name || 'Banco'} | ${row.direction === 'credit' ? 'entrada' : 'saida'} ${asMoney(row.amount)}`;
+  }
+  return `${row.description} | ${formatDate(row.due_date)} | ${statusLabel(row.status)} | ${asMoney(row.amount)}`;
+}
+
+async function handleSharedLink() {
+  const token = new URLSearchParams(location.search).get('share') || '';
+  if (!token || state.handledShareToken === token) return;
+  state.handledShareToken = token;
+  try {
+    const params = new URLSearchParams({ action: 'resolve_share', token });
+    const response = await fetch(`api.php?${params.toString()}`, { headers: { 'X-CSRF-Token': state.csrf } });
+    const payload = await response.json();
+    if (!payload.ok) throw new Error(payload.message || 'Nao consegui abrir este compartilhamento.');
+    await focusSharedTarget(payload.share, payload.target);
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function focusSharedTarget(share, target) {
+  if (share.entity_type === 'bank_transaction') {
+    const date = target.transaction_date || '';
+    const from = document.querySelector('#movementDateFrom');
+    const to = document.querySelector('#movementDateTo');
+    const search = document.querySelector('#movementSearchInput');
+    if (from && date) from.value = date;
+    if (to && date) to.value = date;
+    if (search) search.value = '';
+    ['movementBankFilter', 'movementCategoryFilter', 'movementDirectionFilter', 'movementMatchFilter', 'bankFilter', 'bankSearchInput'].forEach(id => {
+      const input = document.querySelector(`#${id}`);
+      if (input) input.value = '';
+    });
+    await loadBankTransactions();
+    navigateToSection('movements');
+    highlightSharedElement(`[data-bank-transaction-id="${target.id}"]`, `Compartilhamento aberto: ${share.title}`);
+    return;
+  }
+
+  const month = target.reference_month || String(target.due_date || '').slice(0, 7);
+  const monthFilter = document.querySelector('#monthFilter');
+  if (monthFilter && month) monthFilter.value = month;
+  ['searchInput', 'statusFilter', 'typeFilter'].forEach(id => {
+    const input = document.querySelector(`#${id}`);
+    if (input) input.value = '';
+  });
+  await loadTransactions();
+  navigateToSection(normalizedType(target) === 'income' ? 'transactions' : 'bills');
+  highlightSharedElement(`[data-transaction-id="${target.id}"]`, `Compartilhamento aberto: ${share.title}`);
+}
+
+function highlightSharedElement(selector, fallbackMessage) {
+  document.querySelectorAll('.share-focus').forEach(item => item.classList.remove('share-focus'));
+  requestAnimationFrame(() => {
+    const target = document.querySelector(selector);
+    if (!target) {
+      alert(fallbackMessage);
+      return;
+    }
+    target.classList.add('share-focus');
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => target.classList.remove('share-focus'), 9000);
+  });
 }
 
 function bindBanking() {
@@ -431,7 +582,7 @@ function renderTransactions() {
   if (!body) return;
   const rows = filteredTransactions();
   body.innerHTML = rows.length ? rows.map(row => `
-    <tr>
+    <tr data-transaction-id="${row.id}">
       <td>${formatDate(row.due_date)}</td>
       <td><strong>${escapeHtml(row.description)}</strong><br><small>${row.payment_code ? escapeHtml(firstWords(row.payment_code, 6)) : 'Sem codigo de pagamento'} ${row.owner ? '· ' + escapeHtml(row.owner) : ''}</small></td>
       <td>${originBadge(row)}<br><small>${row.reference_month ? escapeHtml(row.reference_month) : formatDate(row.due_date)}</small></td>
@@ -441,6 +592,7 @@ function renderTransactions() {
       <td>
         <div class="row-actions">
           <button class="icon-btn" title="Marcar pago/pendente" data-toggle="${row.id}" data-status="${row.status === 'paid' ? 'pending' : 'paid'}">✓</button>
+          <button class="icon-btn" title="Compartilhar link" data-share-type="transaction" data-share-id="${row.id}">↗</button>
           <button class="icon-btn" title="Editar" data-edit="${row.id}">✎</button>
           <button class="icon-btn" title="Excluir" data-delete="${row.id}">×</button>
         </div>
@@ -464,6 +616,7 @@ function renderTransactions() {
   body.querySelectorAll('[data-edit]').forEach(button => {
     button.addEventListener('click', () => editTransaction(Number(button.dataset.edit)));
   });
+  bindShareButtons(body);
 }
 
 function renderStaticLists() {
@@ -512,7 +665,7 @@ function renderBillList(targetId, rows, mode) {
   if (!target) return;
   const sorted = [...rows].sort((a, b) => String(a.due_date || '').localeCompare(String(b.due_date || '')));
   target.innerHTML = sorted.length ? sorted.map(row => `
-    <article class="bill-card ${mode}">
+    <article class="bill-card ${mode}" data-transaction-id="${row.id}">
       <div>
         <strong>${escapeHtml(row.description)}</strong>
         <small>${formatDate(row.due_date)} · ${escapeHtml(row.category_name || 'Sem categoria')}</small>
@@ -522,6 +675,7 @@ function renderBillList(targetId, rows, mode) {
         <span class="amount">${asMoney(row.amount)}</span>
         <button class="small-btn" data-toggle="${row.id}" data-status="${normalizedBillStatus(row) === 'paid' ? 'pending' : 'paid'}">${normalizedBillStatus(row) === 'paid' ? 'Reabrir' : 'Marcar pago'}</button>
         <div class="row-actions">
+          <button class="icon-btn" title="Compartilhar link" data-share-type="transaction" data-share-id="${row.id}">↗</button>
           <button class="icon-btn" title="Editar conta" data-bill-edit="${row.id}">✎</button>
           <button class="icon-btn" title="Excluir conta" data-bill-delete="${row.id}">×</button>
         </div>
@@ -544,6 +698,7 @@ function renderBillList(targetId, rows, mode) {
       await reloadAllData();
     });
   });
+  bindShareButtons(target);
 }
 
 function normalizedBillStatus(row) {
@@ -611,15 +766,22 @@ function renderBankTransactions() {
   const body = document.querySelector('#bankTransactionsBody');
   if (!body) return;
   body.innerHTML = state.bankTransactions.length ? state.bankTransactions.map(row => `
-    <tr>
+    <tr data-bank-transaction-id="${row.id}">
       <td><span class="bank-pill">${escapeHtml(row.bank_name)}</span></td>
       <td>${formatDate(row.transaction_date)}</td>
-      <td><strong>${escapeHtml(row.description)}</strong><br><small>${escapeHtml(row.movement_type || row.source_file || '')}</small></td>
+      <td>
+        <div class="table-title-row">
+          <strong>${escapeHtml(row.description)}</strong>
+          <button class="link-btn" title="Compartilhar link" data-share-type="bank_transaction" data-share-id="${row.id}">Link</button>
+        </div>
+        <small>${escapeHtml(row.movement_type || row.source_file || '')}</small>
+      </td>
       <td>${escapeHtml(row.category_name || 'A categorizar')}</td>
       <td>${row.matched_transaction_id ? `<span class="status paid">Conciliado</span><br><small>${escapeHtml(row.matched_description || '')}</small>` : '<span class="status pending">Sem match</span>'}</td>
       <td class="amount ${row.direction === 'credit' ? 'positive' : 'negative'}">${row.direction === 'credit' ? '+' : '-'} ${asMoney(row.amount)}</td>
     </tr>
   `).join('') : '<tr><td colspan="6" class="empty-cell">Nenhuma movimentacao bancaria encontrada para os filtros atuais.</td></tr>';
+  bindShareButtons(body);
 }
 
 function renderMovements() {
@@ -660,15 +822,22 @@ function renderCategorizedBankTable(rows) {
   const body = document.querySelector('#categorizedBankBody');
   if (!body) return;
   body.innerHTML = rows.length ? rows.map(row => `
-    <tr>
+    <tr data-bank-transaction-id="${row.id}">
       <td>${formatDate(row.transaction_date)}</td>
       <td><span class="bank-pill">${escapeHtml(row.bank_name)}</span></td>
-      <td><strong>${escapeHtml(row.description)}</strong><br><small>${escapeHtml(row.movement_type || row.document_number || row.source_file || '')}</small></td>
+      <td>
+        <div class="table-title-row">
+          <strong>${escapeHtml(row.description)}</strong>
+          <button class="link-btn" title="Compartilhar link" data-share-type="bank_transaction" data-share-id="${row.id}">Link</button>
+        </div>
+        <small>${escapeHtml(row.movement_type || row.document_number || row.source_file || '')}</small>
+      </td>
       <td>${escapeHtml(row.category_name || 'A categorizar')}</td>
       <td>${row.matched_transaction_id ? `<span class="status paid">Conciliada</span><br><small>${escapeHtml(row.matched_description || '')}</small>` : '<span class="status pending">Sem conciliacao</span>'}</td>
       <td class="amount ${row.direction === 'credit' ? 'positive' : 'negative'}">${row.direction === 'credit' ? '+' : '-'} ${asMoney(row.amount)}</td>
     </tr>
   `).join('') : '<tr><td colspan="6" class="empty-cell">Nenhuma transacao encontrada para os filtros atuais.</td></tr>';
+  bindShareButtons(body);
 }
 
 function renderReconciliation() {
@@ -758,15 +927,19 @@ function renderUnmatchedBankList(rows) {
   const target = document.querySelector('#unmatchedBankList');
   if (!target) return;
   target.innerHTML = rows.length ? rows.slice(0, 12).map(row => `
-    <div class="bank-match-row">
+    <div class="bank-match-row" data-bank-transaction-id="${row.id}">
       <span class="bank-pill">${escapeHtml(row.bank_name)}</span>
       <div>
         <strong>${escapeHtml(row.description)}</strong>
         <small>${formatDate(row.transaction_date)} · ${escapeHtml(row.movement_type || row.source_file || '')}</small>
       </div>
-      <span class="amount ${row.direction === 'credit' ? 'positive' : 'negative'}">${row.direction === 'credit' ? '+' : '-'} ${asMoney(row.amount)}</span>
+      <div class="bank-match-actions">
+        <span class="amount ${row.direction === 'credit' ? 'positive' : 'negative'}">${row.direction === 'credit' ? '+' : '-'} ${asMoney(row.amount)}</span>
+        <button class="link-btn" title="Compartilhar link" data-share-type="bank_transaction" data-share-id="${row.id}">Link</button>
+      </div>
     </div>
   `).join('') : '<p class="muted">Tudo que veio do extrato neste filtro ja foi conciliado ou ainda nao ha extrato importado.</p>';
+  bindShareButtons(target);
 }
 
 function originBadge(row) {

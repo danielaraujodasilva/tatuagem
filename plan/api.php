@@ -8,6 +8,7 @@ $action = $_GET['action'] ?? '';
 try {
     if ($action === 'login') {
         verify_csrf();
+        ensure_default_users();
         $input = json_input();
         $stmt = db()->prepare('SELECT * FROM users WHERE email = ? AND is_active = 1 LIMIT 1');
         $stmt->execute([trim((string)($input['email'] ?? ''))]);
@@ -47,6 +48,8 @@ try {
         'delete_recurring' => delete_recurring(),
         'bank_transactions' => bank_transactions(),
         'save_bank_import' => save_bank_import(),
+        'create_share' => create_share(),
+        'resolve_share' => resolve_share(),
         'overview' => overview(),
         default => json_response(['ok' => false, 'message' => 'Acao desconhecida.'], 404),
     };
@@ -58,6 +61,8 @@ function bootstrap(array $user): never
 {
     ensure_finance_schema();
     ensure_bank_schema();
+    ensure_share_schema();
+    ensure_default_users();
     json_response([
         'ok' => true,
         'user' => $user,
@@ -442,6 +447,179 @@ function sheet_month_patterns(string $month): array
     $year = $match[1];
     $name = $names[$match[2]] ?? '';
     return $name === '' ? [] : ["%$name%$year%", "%$name-$year%", "%$name $year%"];
+}
+
+function ensure_default_users(): void
+{
+    $stmt = db()->prepare("INSERT INTO users (name, email, password_hash, is_active)
+        VALUES (?, ?, ?, 1)
+        ON DUPLICATE KEY UPDATE name = VALUES(name), password_hash = VALUES(password_hash), is_active = VALUES(is_active)");
+    $stmt->execute([
+        'Francielen',
+        'francielen.admw@gmail.com',
+        '$2y$10$JSGPLsvrC/9v0nM5aJa14e0KT0pchXipO5iBkhJxj51lyLu6F9LvG',
+    ]);
+}
+
+function ensure_share_schema(): void
+{
+    db()->exec("CREATE TABLE IF NOT EXISTS share_links (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        token CHAR(32) NOT NULL,
+        entity_type VARCHAR(40) NOT NULL,
+        entity_id BIGINT UNSIGNED NOT NULL,
+        title VARCHAR(220) NOT NULL,
+        note TEXT NULL,
+        created_by INT UNSIGNED NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        last_viewed_at DATETIME NULL,
+        UNIQUE KEY uniq_share_links_token (token),
+        INDEX idx_share_links_target (entity_type, entity_id),
+        INDEX idx_share_links_created_by (created_by),
+        CONSTRAINT fk_share_links_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+}
+
+function create_share(): never
+{
+    ensure_share_schema();
+    $input = json_input();
+    $entityType = trim((string)($input['entity_type'] ?? ''));
+    $entityId = (int)($input['entity_id'] ?? 0);
+    $note = trim((string)($input['note'] ?? ''));
+
+    if (!in_array($entityType, ['transaction', 'bank_transaction'], true) || $entityId <= 0) {
+        json_response(['ok' => false, 'message' => 'Item invalido para compartilhar.'], 422);
+    }
+
+    $target = share_target_row($entityType, $entityId);
+    if (!$target) {
+        json_response(['ok' => false, 'message' => 'Nao encontrei este item para compartilhar.'], 404);
+    }
+
+    $token = bin2hex(random_bytes(16));
+    $title = share_target_title($entityType, $target);
+    $stmt = db()->prepare('INSERT INTO share_links (token, entity_type, entity_id, title, note, created_by, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, NOW())');
+    $stmt->execute([
+        $token,
+        $entityType,
+        $entityId,
+        $title,
+        $note === '' ? null : substr($note, 0, 1200),
+        $_SESSION['user_id'] ?? null,
+    ]);
+
+    audit('create_share', 'share_link', (int)db()->lastInsertId(), ['target' => $entityType, 'target_id' => $entityId]);
+    json_response(['ok' => true, 'token' => $token, 'url' => plan_share_url($token), 'title' => $title]);
+}
+
+function resolve_share(): never
+{
+    ensure_share_schema();
+    $token = trim((string)($_GET['token'] ?? ''));
+    if (!preg_match('/^[a-f0-9]{32}$/', $token)) {
+        json_response(['ok' => false, 'message' => 'Link de compartilhamento invalido.'], 422);
+    }
+
+    $stmt = db()->prepare("SELECT s.*, u.name created_by_name
+        FROM share_links s
+        LEFT JOIN users u ON u.id = s.created_by
+        WHERE s.token = ?
+        LIMIT 1");
+    $stmt->execute([$token]);
+    $share = $stmt->fetch();
+    if (!$share) {
+        json_response(['ok' => false, 'message' => 'Link de compartilhamento nao encontrado.'], 404);
+    }
+
+    $target = share_target_row((string)$share['entity_type'], (int)$share['entity_id']);
+    if (!$target) {
+        json_response(['ok' => false, 'message' => 'O item compartilhado nao existe mais.'], 404);
+    }
+
+    db()->prepare('UPDATE share_links SET last_viewed_at = NOW() WHERE id = ?')->execute([(int)$share['id']]);
+    json_response(['ok' => true, 'share' => $share, 'target' => $target]);
+}
+
+function share_target_row(string $entityType, int $entityId): ?array
+{
+    if ($entityType === 'transaction') {
+        $stmt = db()->prepare("SELECT t.*, c.name category_name, c.color category_color, a.name account_name
+            FROM transactions t
+            LEFT JOIN categories c ON c.id = t.category_id
+            LEFT JOIN accounts a ON a.id = t.account_id
+            WHERE t.id = ?
+            LIMIT 1");
+        $stmt->execute([$entityId]);
+        return $stmt->fetch() ?: null;
+    }
+
+    if ($entityType === 'bank_transaction') {
+        ensure_bank_schema();
+        $stmt = db()->prepare("SELECT bt.*, a.name account_name, c.name category_name, t.description matched_description
+            FROM bank_transactions bt
+            LEFT JOIN accounts a ON a.id = bt.account_id
+            LEFT JOIN categories c ON c.id = bt.category_id
+            LEFT JOIN transactions t ON t.id = bt.matched_transaction_id
+            WHERE bt.id = ?
+            LIMIT 1");
+        $stmt->execute([$entityId]);
+        return $stmt->fetch() ?: null;
+    }
+
+    return null;
+}
+
+function share_target_title(string $entityType, array $target): string
+{
+    if ($entityType === 'bank_transaction') {
+        return trim(sprintf(
+            '%s em %s - %s',
+            $target['description'] ?? 'Movimentacao bancaria',
+            format_share_date($target['transaction_date'] ?? null),
+            money_label((float)($target['amount'] ?? 0))
+        ));
+    }
+
+    return trim(sprintf(
+        '%s - %s (%s)',
+        $target['description'] ?? 'Lancamento',
+        money_label((float)($target['amount'] ?? 0)),
+        status_text((string)($target['status'] ?? 'pending'))
+    ));
+}
+
+function plan_share_url(string $token): string
+{
+    $scheme = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http');
+    $host = $_SERVER['HTTP_HOST'] ?? '';
+    $dir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/plan/api.php')), '/');
+    return $scheme . '://' . $host . $dir . '/index.php?share=' . rawurlencode($token);
+}
+
+function money_label(float $value): string
+{
+    return 'R$ ' . number_format($value, 2, ',', '.');
+}
+
+function status_text(string $status): string
+{
+    return [
+        'paid' => 'pago',
+        'pending' => 'pendente',
+        'late' => 'atrasado',
+        'ignored' => 'ignorado',
+    ][$status] ?? $status;
+}
+
+function format_share_date(?string $date): string
+{
+    if (!$date) {
+        return 'sem data';
+    }
+    $parsed = DateTime::createFromFormat('Y-m-d', substr($date, 0, 10));
+    return $parsed ? $parsed->format('d/m/Y') : $date;
 }
 
 function ensure_finance_schema(): void

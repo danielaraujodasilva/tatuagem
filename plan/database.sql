@@ -95,6 +95,22 @@ CREATE TABLE IF NOT EXISTS audit_log (
   CONSTRAINT fk_audit_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS share_links (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  token CHAR(32) NOT NULL,
+  entity_type VARCHAR(40) NOT NULL,
+  entity_id BIGINT UNSIGNED NOT NULL,
+  title VARCHAR(220) NOT NULL,
+  note TEXT NULL,
+  created_by INT UNSIGNED NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_viewed_at DATETIME NULL,
+  UNIQUE KEY uniq_share_links_token (token),
+  INDEX idx_share_links_target (entity_type, entity_id),
+  INDEX idx_share_links_created_by (created_by),
+  CONSTRAINT fk_share_links_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS bank_imports (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   bank_name VARCHAR(80) NOT NULL,
@@ -142,6 +158,10 @@ CREATE TABLE IF NOT EXISTS bank_transactions (
 
 INSERT INTO users (name, email, password_hash, is_active)
 VALUES ('Daniel Araujo da Silva', 'danielaraujodasilva@gmail.com', '$2y$10$gUYC1izF2GaU5LZuMIx3EO0xvgAmM5CxJKTmsoQ7Avwj.7keVc1V.', 1)
+ON DUPLICATE KEY UPDATE name = VALUES(name), password_hash = VALUES(password_hash), is_active = VALUES(is_active);
+
+INSERT INTO users (name, email, password_hash, is_active)
+VALUES ('Francielen', 'francielen.admw@gmail.com', '$2y$10$JSGPLsvrC/9v0nM5aJa14e0KT0pchXipO5iBkhJxj51lyLu6F9LvG', 1)
 ON DUPLICATE KEY UPDATE name = VALUES(name), password_hash = VALUES(password_hash), is_active = VALUES(is_active);
 
 INSERT INTO categories (name, color) VALUES

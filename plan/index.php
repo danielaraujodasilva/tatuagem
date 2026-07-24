@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260724-2">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260724-3">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260724-2" defer></script>
+    <script src="assets/app-bills-total.js?v=20260724-3" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -550,6 +550,25 @@ $csrf = csrf_token();
             <label class="check-row"><input name="is_active" type="checkbox" checked> Ativa</label>
             <div class="modal-actions"><button type="button" class="ghost-btn" data-close>Cancelar</button><button class="primary-btn">Salvar</button></div>
         </form>
+    </dialog>
+
+    <dialog id="shareModal" class="modal">
+        <div class="form-grid compact">
+            <h2>Compartilhar item</h2>
+            <p id="shareSummary" class="share-summary wide"></p>
+            <label class="wide">Mensagem opcional para quem abrir
+                <textarea id="shareNote" rows="3" placeholder="Ex.: Fran, olha essa conta de aluguel: ela ainda esta pendente."></textarea>
+            </label>
+            <label class="wide">Link gerado
+                <input id="shareUrl" readonly placeholder="Clique em Gerar link para criar">
+            </label>
+            <p id="shareMessage" class="form-message wide"></p>
+            <div class="modal-actions">
+                <button type="button" class="ghost-btn" data-close>Fechar</button>
+                <button type="button" class="ghost-btn" id="copyShareLink">Copiar link</button>
+                <button type="button" class="primary-btn" id="createShareLink">Gerar link</button>
+            </div>
+        </div>
     </dialog>
 <?php endif; ?>
 </body>

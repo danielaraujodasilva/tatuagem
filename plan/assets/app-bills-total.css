@@ -213,6 +213,17 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; }
 td { vertical-align: middle; }
 .row-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .icon-btn { width: 34px; height: 34px; border-radius: 8px; background: var(--surface-2); color: var(--text); }
+.link-btn {
+  width: auto;
+  height: 30px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #e0ecff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 900;
+}
+.table-title-row { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
 .chip-list { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip { padding: 8px 10px; border-radius: 999px; color: #fff; font-weight: 800; font-size: 12px; }
 .editable-chip { display: inline-flex; align-items: center; gap: 6px; padding-right: 6px; }
@@ -341,6 +352,7 @@ td { vertical-align: middle; }
 .bill-card strong { display: block; margin-bottom: 4px; }
 .bill-card small { display: block; color: var(--muted); line-height: 1.45; }
 .bill-card-side { display: grid; justify-items: end; gap: 8px; }
+.bank-match-actions { display: grid; justify-items: end; gap: 6px; }
 .movement-filters {
   display: grid;
   grid-template-columns: repeat(6, minmax(120px, 1fr)) minmax(220px, 1.4fr);
@@ -424,6 +436,17 @@ td { vertical-align: middle; }
 }
 .form-grid.compact { max-width: 560px; }
 .form-grid h2, .wide, .check-row, .modal-actions { grid-column: 1 / -1; }
+.share-summary {
+  margin: -8px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.share-focus {
+  outline: 3px solid rgba(37,99,235,.42);
+  box-shadow: 0 0 0 7px rgba(37,99,235,.12);
+}
+tr.share-focus { outline: 0; box-shadow: none; }
+tr.share-focus > td { background: #eff6ff; box-shadow: inset 0 2px 0 rgba(37,99,235,.22), inset 0 -2px 0 rgba(37,99,235,.22); }
 .check-row { display: flex; align-items: center; gap: 10px; }
 .check-row input { width: auto; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px; }
