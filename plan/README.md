@@ -11,6 +11,8 @@ Sistema PHP/MySQL para gerenciamento financeiro baseado na planilha "Orçamento 
 - Lançamentos do extrato também gravam histórico em `transaction_versions` e conflitos em `transaction_import_conflicts`.
 - Ao categorizar um lançamento, o sistema pode criar uma regra em `transaction_category_rules` e aplicar aos lançamentos com descrição equivalente.
 - A assinatura de descrição ignora diferenças como datas e números soltos, aproximando linhas como posto de gasolina em dias diferentes.
+- A tela de lançamentos tem filtros por texto, autocomplete, status, tipo, categoria, conta, recorrência, datas e faixa de valor.
+- A tela de contas mostra totais filtráveis por mês/período, status, tipo de lançamento, categoria, tipo de conta e texto.
 
 ## Instalação
 

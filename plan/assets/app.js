@@ -2,10 +2,12 @@ const state = {
   csrf: window.PLAN_BOOT?.csrf || '',
   categories: [],
   accounts: [],
+  accountSummaries: [],
   accountHistory: null,
   accountHistoryId: null,
   transactionHistory: null,
   transactionHistoryId: null,
+  transactionSuggestions: [],
   budgets: [],
   goals: [],
   recurring: [],
@@ -65,6 +67,7 @@ async function bootApp() {
   bindForms();
   bindFilters();
   await loadBootstrap();
+  await loadAccountSummaries();
   await loadTransactions();
 }
 
@@ -74,12 +77,14 @@ async function loadBootstrap() {
     csrf: payload.csrf,
     categories: payload.categories,
     accounts: payload.accounts,
+    transactionSuggestions: payload.transaction_suggestions || [],
     budgets: payload.budgets,
     goals: payload.goals,
     recurring: payload.recurring,
     overview: payload.overview,
   });
   renderSelects();
+  renderDatalists();
   renderStaticLists();
   renderOverview();
 }
@@ -91,6 +96,13 @@ async function loadTransactions() {
     q: document.querySelector('#searchInput')?.value || '',
     status: document.querySelector('#statusFilter')?.value || '',
     type: document.querySelector('#typeFilter')?.value || '',
+    category_id: document.querySelector('#categoryFilter')?.value || '',
+    account_id: document.querySelector('#accountFilter')?.value || '',
+    is_fixed: document.querySelector('#fixedFilter')?.value || '',
+    due_from: document.querySelector('#dueFromFilter')?.value || '',
+    due_to: document.querySelector('#dueToFilter')?.value || '',
+    amount_min: document.querySelector('#amountMinFilter')?.value || '',
+    amount_max: document.querySelector('#amountMaxFilter')?.value || '',
   });
   const response = await fetch(`api.php?${params.toString()}`, { headers: { 'X-CSRF-Token': state.csrf } });
   const payload = await response.json();
@@ -99,6 +111,26 @@ async function loadTransactions() {
   state.overview = payload.overview;
   renderTransactions();
   renderOverview();
+}
+
+async function loadAccountSummaries() {
+  const params = new URLSearchParams({
+    action: 'account_summaries',
+    month: document.querySelector('#accountMonthFilter')?.value || '',
+    q: document.querySelector('#accountSearchInput')?.value || '',
+    status: document.querySelector('#accountStatusFilter')?.value || '',
+    type: document.querySelector('#accountTransactionTypeFilter')?.value || '',
+    category_id: document.querySelector('#accountCategoryFilter')?.value || '',
+    account_type: document.querySelector('#accountTypeFilter')?.value || '',
+    due_from: document.querySelector('#accountDueFromFilter')?.value || '',
+    due_to: document.querySelector('#accountDueToFilter')?.value || '',
+  });
+  const response = await fetch(`api.php?${params.toString()}`, { headers: { 'X-CSRF-Token': state.csrf } });
+  const payload = await response.json();
+  if (!payload.ok) throw new Error(payload.message || 'Erro ao carregar contas.');
+  state.accountSummaries = payload.accounts;
+  renderAccounts();
+  renderAccountTotals();
 }
 
 function bindNavigation() {
@@ -127,11 +159,15 @@ function bindModals() {
 }
 
 function bindFilters() {
-  ['monthFilter', 'searchInput', 'statusFilter', 'typeFilter'].forEach(id => {
+  ['monthFilter', 'searchInput', 'statusFilter', 'typeFilter', 'categoryFilter', 'accountFilter', 'fixedFilter', 'dueFromFilter', 'dueToFilter', 'amountMinFilter', 'amountMaxFilter'].forEach(id => {
     document.querySelector(`#${id}`)?.addEventListener('input', debounce(loadTransactions, 250));
+  });
+  ['accountSearchInput', 'accountMonthFilter', 'accountStatusFilter', 'accountTransactionTypeFilter', 'accountCategoryFilter', 'accountTypeFilter', 'accountDueFromFilter', 'accountDueToFilter'].forEach(id => {
+    document.querySelector(`#${id}`)?.addEventListener('input', debounce(loadAccountSummaries, 250));
   });
   document.querySelector('#refreshBtn')?.addEventListener('click', async () => {
     await loadBootstrap();
+    await loadAccountSummaries();
     await loadTransactions();
   });
 }
@@ -156,6 +192,7 @@ function bindForms() {
       event.currentTarget.reset();
       event.currentTarget.closest('dialog')?.close();
       await loadBootstrap();
+      await loadAccountSummaries();
       await loadTransactions();
     });
   });
@@ -172,6 +209,29 @@ function renderSelects() {
       `<option value="${account.id}">${escapeHtml(account.name)}</option>`
     )).join('');
   });
+  document.querySelectorAll('[data-filter-categories]').forEach(select => {
+    select.innerHTML = '<option value="">Todas categorias</option>' + state.categories.map(category => (
+      `<option value="${category.id}">${escapeHtml(category.name)}</option>`
+    )).join('');
+  });
+  document.querySelectorAll('[data-filter-accounts]').forEach(select => {
+    select.innerHTML = '<option value="">Todas contas</option>' + state.accounts.map(account => (
+      `<option value="${account.id}">${escapeHtml(account.name)}</option>`
+    )).join('');
+  });
+}
+
+function renderDatalists() {
+  const target = document.querySelector('#transactionSearchOptions');
+  if (!target) return;
+  const suggestions = [
+    ...state.transactionSuggestions.map(item => item.description),
+    ...state.accounts.map(account => account.name),
+    ...state.categories.map(category => category.name),
+  ].filter(Boolean);
+  target.innerHTML = [...new Set(suggestions)].slice(0, 300).map(value => (
+    `<option value="${escapeHtml(value)}"></option>`
+  )).join('');
 }
 
 function renderOverview() {
@@ -310,14 +370,15 @@ function renderGoals() {
 function renderAccounts() {
   const target = document.querySelector('#accountsList');
   if (!target) return;
-  target.innerHTML = state.accounts.map(account => `
+  const rows = state.accountSummaries.length ? state.accountSummaries : state.accounts;
+  target.innerHTML = rows.map(account => `
     <div class="list-row">
       <div>
         <strong>${escapeHtml(account.name)}</strong>
-        <small>${escapeHtml(account.type)} · ${escapeHtml(account.last_change_source === 'sheet' ? 'Importação' : 'Edição manual')}${account.updated_at ? ' · ' + formatDateTime(account.updated_at) : ''}</small>
+        <small>${escapeHtml(account.type)} · ${Number(account.transaction_count || 0)} lancamento(s)${account.updated_at ? ' · ' + formatDateTime(account.updated_at) : ''}</small>
       </div>
       <div class="row-actions">
-        <span class="amount">${asMoney(account.opening_balance)}</span>
+        <span class="amount">${asMoney(account.balance ?? account.opening_balance)}</span>
         <button class="icon-btn" title="Historico" data-account-history="${account.id}">↺</button>
         <button class="icon-btn" title="Editar" data-account-edit="${account.id}">✎</button>
       </div>
@@ -330,6 +391,30 @@ function renderAccounts() {
   target.querySelectorAll('[data-account-history]').forEach(button => {
     button.addEventListener('click', () => openAccountHistory(Number(button.dataset.accountHistory)));
   });
+}
+
+function renderAccountTotals() {
+  const target = document.querySelector('#accountTotals');
+  if (!target) return;
+  const rows = state.accountSummaries || [];
+  const totals = rows.reduce((acc, row) => {
+    acc.income += Number(row.income || 0);
+    acc.expenses += Number(row.expenses || 0);
+    acc.paid += Number(row.paid || 0);
+    acc.pending += Number(row.pending || 0);
+    acc.balance += Number(row.balance || 0);
+    acc.count += Number(row.transaction_count || 0);
+    return acc;
+  }, { income: 0, expenses: 0, paid: 0, pending: 0, balance: 0, count: 0 });
+
+  target.innerHTML = `
+    <span><strong>${asMoney(totals.income)}</strong><small>Receitas</small></span>
+    <span><strong>${asMoney(totals.expenses)}</strong><small>Despesas</small></span>
+    <span><strong>${asMoney(totals.paid)}</strong><small>Pago</small></span>
+    <span><strong>${asMoney(totals.pending)}</strong><small>Pendente</small></span>
+    <span><strong>${asMoney(totals.balance)}</strong><small>Saldo filtrado</small></span>
+    <span><strong>${totals.count}</strong><small>Lancamentos</small></span>
+  `;
 }
 
 function renderRecurring() {

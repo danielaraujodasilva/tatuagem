@@ -31,6 +31,7 @@ try {
     match ($action) {
         'bootstrap' => bootstrap($user),
         'transactions' => transactions(),
+        'account_summaries' => account_summaries(),
         'save_transaction' => save_transaction(),
         'import_transactions' => import_transactions(),
         'transaction_history' => transaction_history(),
@@ -60,6 +61,7 @@ function bootstrap(array $user): never
         'csrf' => csrf_token(),
         'categories' => db()->query('SELECT * FROM categories ORDER BY name')->fetchAll(),
         'accounts' => db()->query('SELECT * FROM accounts ORDER BY name')->fetchAll(),
+        'transaction_suggestions' => db()->query('SELECT description FROM transactions GROUP BY description ORDER BY MAX(updated_at) DESC LIMIT 250')->fetchAll(),
         'budgets' => db()->query('SELECT b.*, c.name category_name, c.color FROM budgets b JOIN categories c ON c.id = b.category_id ORDER BY b.month DESC, c.name')->fetchAll(),
         'goals' => db()->query('SELECT * FROM goals ORDER BY target_date IS NULL, target_date, name')->fetchAll(),
         'recurring' => db()->query('SELECT r.*, c.name category_name FROM recurring_rules r LEFT JOIN categories c ON c.id = r.category_id ORDER BY next_due_date')->fetchAll(),
@@ -69,26 +71,7 @@ function bootstrap(array $user): never
 
 function transactions(): never
 {
-    $where = [];
-    $params = [];
-
-    foreach (['status', 'type', 'category_id', 'account_id'] as $field) {
-        if (isset($_GET[$field]) && $_GET[$field] !== '') {
-            $where[] = "t.$field = ?";
-            $params[] = $_GET[$field];
-        }
-    }
-
-    if (!empty($_GET['month'])) {
-        $where[] = "DATE_FORMAT(t.due_date, '%Y-%m') = ?";
-        $params[] = $_GET['month'];
-    }
-
-    if (!empty($_GET['q'])) {
-        $where[] = '(t.description LIKE ? OR t.payment_code LIKE ? OR t.notes LIKE ?)';
-        $term = '%' . $_GET['q'] . '%';
-        array_push($params, $term, $term, $term);
-    }
+    [$where, $params] = transaction_filter_parts('t', $_GET);
 
     $sql = "SELECT t.*, c.name category_name, c.color category_color, a.name account_name
             FROM transactions t
@@ -103,6 +86,95 @@ function transactions(): never
     $stmt->execute($params);
 
     json_response(['ok' => true, 'transactions' => $stmt->fetchAll(), 'overview' => build_overview()]);
+}
+
+function account_summaries(): never
+{
+    [$joinWhere, $params] = transaction_filter_parts('t', $_GET, ['account_id', 'account_type', 'q']);
+    $accountWhere = [];
+    $accountParams = [];
+    $having = '';
+    $havingParams = [];
+
+    if (!empty($_GET['account_type'])) {
+        $accountWhere[] = 'a.type = ?';
+        $accountParams[] = $_GET['account_type'];
+    }
+
+    if (!empty($_GET['q'])) {
+        $term = '%' . $_GET['q'] . '%';
+        $joinWhere[] = '(a.name LIKE ? OR t.description LIKE ? OR t.payment_code LIKE ? OR t.notes LIKE ? OR t.owner LIKE ? OR t.source_sheet LIKE ?)';
+        array_push($params, $term, $term, $term, $term, $term, $term);
+        $having = ' HAVING a.name LIKE ? OR transaction_count > 0';
+        $havingParams[] = $term;
+    }
+
+    $sql = "SELECT a.*,
+            COUNT(t.id) transaction_count,
+            COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) income,
+            COALESCE(SUM(CASE WHEN t.type = 'expense' AND t.status <> 'ignored' THEN t.amount ELSE 0 END), 0) expenses,
+            COALESCE(SUM(CASE WHEN t.type = 'expense' AND t.status = 'paid' THEN t.amount ELSE 0 END), 0) paid,
+            COALESCE(SUM(CASE WHEN t.type = 'expense' AND t.status IN ('pending','late') THEN t.amount ELSE 0 END), 0) pending,
+            COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount WHEN t.type = 'expense' AND t.status <> 'ignored' THEN -t.amount ELSE 0 END), 0) balance
+        FROM accounts a
+        LEFT JOIN transactions t ON t.account_id = a.id";
+
+    if ($joinWhere) {
+        $sql .= ' AND ' . implode(' AND ', $joinWhere);
+    }
+    if ($accountWhere) {
+        $sql .= ' WHERE ' . implode(' AND ', $accountWhere);
+    }
+    $sql .= ' GROUP BY a.id' . $having . ' ORDER BY a.name';
+
+    $stmt = db()->prepare($sql);
+    $stmt->execute(array_merge($params, $accountParams, $havingParams));
+    json_response(['ok' => true, 'accounts' => $stmt->fetchAll()]);
+}
+
+function transaction_filter_parts(string $alias, array $input, array $exclude = []): array
+{
+    $where = [];
+    $params = [];
+
+    foreach (['status', 'type', 'category_id', 'account_id'] as $field) {
+        if (!in_array($field, $exclude, true) && isset($input[$field]) && $input[$field] !== '') {
+            $where[] = "{$alias}.{$field} = ?";
+            $params[] = $input[$field];
+        }
+    }
+
+    if (!empty($input['month'])) {
+        $where[] = "DATE_FORMAT({$alias}.due_date, '%Y-%m') = ?";
+        $params[] = $input['month'];
+    }
+    if (!empty($input['due_from'])) {
+        $where[] = "{$alias}.due_date >= ?";
+        $params[] = normalize_date($input['due_from']);
+    }
+    if (!empty($input['due_to'])) {
+        $where[] = "{$alias}.due_date <= ?";
+        $params[] = normalize_date($input['due_to']);
+    }
+    if (isset($input['amount_min']) && $input['amount_min'] !== '') {
+        $where[] = "{$alias}.amount >= ?";
+        $params[] = money_to_float($input['amount_min']);
+    }
+    if (isset($input['amount_max']) && $input['amount_max'] !== '') {
+        $where[] = "{$alias}.amount <= ?";
+        $params[] = money_to_float($input['amount_max']);
+    }
+    if (isset($input['is_fixed']) && $input['is_fixed'] !== '') {
+        $where[] = "{$alias}.is_fixed = ?";
+        $params[] = (int)$input['is_fixed'];
+    }
+    if (!empty($input['q'])) {
+        $where[] = "({$alias}.description LIKE ? OR {$alias}.payment_code LIKE ? OR {$alias}.notes LIKE ? OR {$alias}.owner LIKE ? OR {$alias}.source_sheet LIKE ?)";
+        $term = '%' . $input['q'] . '%';
+        array_push($params, $term, $term, $term, $term, $term);
+    }
+
+    return [$where, $params];
 }
 
 function save_transaction(): never

@@ -125,7 +125,8 @@ $csrf = csrf_token();
                     <div class="panel-head wrap">
                         <h2>Lancamentos</h2>
                         <div class="filters">
-                            <input id="searchInput" placeholder="Buscar descricao, pix ou boleto">
+                            <input id="searchInput" list="transactionSearchOptions" placeholder="Buscar descricao, pix, boleto, responsavel">
+                            <datalist id="transactionSearchOptions"></datalist>
                             <select id="statusFilter">
                                 <option value="">Todos status</option>
                                 <option value="pending">Pendente</option>
@@ -139,6 +140,17 @@ $csrf = csrf_token();
                                 <option value="income">Receita</option>
                                 <option value="transfer">Transferencia</option>
                             </select>
+                            <select id="categoryFilter" data-filter-categories></select>
+                            <select id="accountFilter" data-filter-accounts></select>
+                            <select id="fixedFilter">
+                                <option value="">Fixos e avulsos</option>
+                                <option value="1">Somente fixos</option>
+                                <option value="0">Somente avulsos</option>
+                            </select>
+                            <input id="dueFromFilter" type="date" title="Vencimento inicial">
+                            <input id="dueToFilter" type="date" title="Vencimento final">
+                            <input id="amountMinFilter" inputmode="decimal" placeholder="Valor min.">
+                            <input id="amountMaxFilter" inputmode="decimal" placeholder="Valor max.">
                         </div>
                     </div>
                     <div class="table-wrap">
@@ -180,6 +192,34 @@ $csrf = csrf_token();
                             <h2>Contas</h2>
                             <button class="small-btn" data-open-modal="accountModal">Nova</button>
                         </div>
+                        <div class="filters account-filters">
+                            <input id="accountSearchInput" list="transactionSearchOptions" placeholder="Buscar conta, descricao, pix">
+                            <input id="accountMonthFilter" type="month" value="<?= date('Y-m') ?>">
+                            <select id="accountStatusFilter">
+                                <option value="">Todos status</option>
+                                <option value="pending">Pendente</option>
+                                <option value="paid">Pago</option>
+                                <option value="late">Atrasado</option>
+                                <option value="ignored">Ignorado</option>
+                            </select>
+                            <select id="accountTransactionTypeFilter">
+                                <option value="">Todos tipos</option>
+                                <option value="expense">Despesa</option>
+                                <option value="income">Receita</option>
+                                <option value="transfer">Transferencia</option>
+                            </select>
+                            <select id="accountCategoryFilter" data-filter-categories></select>
+                            <select id="accountTypeFilter">
+                                <option value="">Todos tipos de conta</option>
+                                <option value="corrente">Corrente</option>
+                                <option value="credito">Cartao</option>
+                                <option value="investimento">Investimento</option>
+                                <option value="dinheiro">Dinheiro</option>
+                            </select>
+                            <input id="accountDueFromFilter" type="date" title="Vencimento inicial">
+                            <input id="accountDueToFilter" type="date" title="Vencimento final">
+                        </div>
+                        <div id="accountTotals" class="account-total-bar"></div>
                         <div id="accountsList" class="stack-list"></div>
                     </section>
                 </div>
