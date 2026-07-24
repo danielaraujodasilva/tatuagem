@@ -493,6 +493,65 @@ td { vertical-align: middle; }
 }
 .pivot-bar span { display: block; height: 100%; background: var(--red); }
 .pivot-group.income .pivot-bar span { background: var(--green); }
+.pivot-subactions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 0 14px 10px;
+}
+.pivot-subactions span {
+  margin-right: auto;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.pivot-subactions .small-btn { min-height: 30px; }
+.pivot-subgroups {
+  display: grid;
+  gap: 8px;
+  padding: 0 10px 10px;
+}
+.pivot-subgroup {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fbff;
+  overflow: hidden;
+}
+.pivot-subgroup summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+.pivot-subgroup summary::-webkit-details-marker { display: none; }
+.pivot-subgroup summary::before {
+  content: "+";
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #e8f0ff;
+  color: var(--blue);
+  font-weight: 900;
+}
+.pivot-subgroup[open] summary::before { content: "-"; }
+.pivot-subgroup summary strong { display: block; font-size: 14px; }
+.pivot-subgroup summary small { display: block; color: var(--muted); margin-top: 2px; }
+.pivot-subbar {
+  height: 5px;
+  margin: 0 12px 4px;
+  background: #e5ebf4;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.pivot-subbar span { display: block; height: 100%; background: var(--red); }
+.pivot-subgroup.income .pivot-subbar span { background: var(--green); }
 .pivot-rows { display: grid; padding: 0 10px 10px; }
 .pivot-row {
   display: grid;

@@ -774,8 +774,8 @@ function renderCategoryAnalysis() {
   setText('analysisIncomeTotal', asMoney(incomeTotal));
   setText('analysisNetTotal', asMoney(incomeTotal - expenseTotal));
   setText('analysisTopCategory', topGroup ? `${topGroup.category} ${formatPercent(topGroup.total, topGroup.direction === 'income' ? incomeTotal : expenseTotal)}` : '-');
-  setText('analysisExpenseCount', `${expenseGroups.length} categorias`);
-  setText('analysisIncomeCount', `${incomeGroups.length} categorias`);
+  setText('analysisExpenseCount', countLabel(expenseGroups.length, 'categoria', 'categorias'));
+  setText('analysisIncomeCount', countLabel(incomeGroups.length, 'categoria', 'categorias'));
   renderCategoryPivot('expenseCategoryPivot', expenseGroups, expenseTotal, 'expense');
   renderCategoryPivot('incomeCategoryPivot', incomeGroups, incomeTotal, 'income');
 }
@@ -812,6 +812,9 @@ function analyticsItems(source) {
       amount: Number(row.amount || 0),
       category_id: row.category_id || '',
       category: row.category_name || 'Sem categoria',
+      category_leaf_name: row.category_leaf_name || row.category_name || 'Sem categoria',
+      category_parent_id: row.category_parent_id || '',
+      category_parent_name: row.category_parent_name || '',
       date: row.due_date,
       description: row.description || '(sem descricao)',
       meta: [row.source_sheet || 'Manual', statusLabel(row.status), row.owner || ''].filter(Boolean).join(' · '),
@@ -826,6 +829,9 @@ function analyticsItems(source) {
     amount: Number(row.amount || 0),
     category_id: row.category_id || '',
     category: row.category_name || 'Sem categoria',
+    category_leaf_name: row.category_leaf_name || row.category_name || 'Sem categoria',
+    category_parent_id: row.category_parent_id || '',
+    category_parent_name: row.category_parent_name || '',
     date: row.transaction_date,
     description: row.description || '(sem descricao)',
     meta: [row.movement_type || row.document_number || row.source_file || '', row.matched_transaction_id ? 'Conciliado' : 'Sem conciliacao'].filter(Boolean).join(' · '),
@@ -838,14 +844,49 @@ function analyticsItems(source) {
 
 function groupAnalyticsByCategory(items, rowSort = 'date_desc', groupSort = 'value_desc') {
   const grouped = items.reduce((acc, item) => {
-    acc[item.category] ||= { category: item.category, direction: item.direction, total: 0, rows: [] };
-    acc[item.category].total += item.amount;
-    acc[item.category].rows.push(item);
+    const parent = analyticsParentCategory(item);
+    const leaf = analyticsLeafCategory(item, parent);
+    acc[parent.key] ||= { ...parent, category: parent.name, direction: item.direction, total: 0, rows: [], subgroups: {}, hasSubcategories: parent.hasSubcategories };
+    acc[parent.key].hasSubcategories ||= parent.hasSubcategories;
+    acc[parent.key].total += item.amount;
+    acc[parent.key].rows.push(item);
+    acc[parent.key].subgroups[leaf.key] ||= { ...leaf, category: leaf.name, direction: item.direction, total: 0, rows: [] };
+    acc[parent.key].subgroups[leaf.key].total += item.amount;
+    acc[parent.key].subgroups[leaf.key].rows.push(item);
     return acc;
   }, {});
   return Object.values(grouped)
-    .map(group => ({ ...group, rows: sortAnalyticsRows(group.rows, rowSort) }))
+    .map(group => ({
+      ...group,
+      rows: sortAnalyticsRows(group.rows, rowSort),
+      subgroups: Object.values(group.subgroups)
+        .map(subgroup => ({ ...subgroup, rows: sortAnalyticsRows(subgroup.rows, rowSort) }))
+        .sort((a, b) => compareAnalyticsGroups(a, b, groupSort)),
+    }))
     .sort((a, b) => compareAnalyticsGroups(a, b, groupSort));
+}
+
+function analyticsParentCategory(item) {
+  if (item.category_parent_id) {
+    return { key: `parent:${item.category_parent_id}`, id: item.category_parent_id, name: item.category_parent_name || item.category || 'Sem categoria', hasSubcategories: true };
+  }
+  const id = item.category_id || '__none__';
+  return { key: `category:${id}`, id, name: item.category || 'Sem categoria', hasSubcategories: id !== '__none__' && categoryHasChildren(id) };
+}
+
+function analyticsLeafCategory(item, parent) {
+  if (item.category_parent_id) {
+    const id = item.category_id || '__none__';
+    return { key: `leaf:${id}`, id, name: item.category_leaf_name || item.category || 'Sem subcategoria' };
+  }
+  if (parent.id && parent.id !== '__none__' && categoryHasChildren(parent.id)) {
+    return { key: `direct:${parent.id}`, id: '', name: 'Sem subcategoria' };
+  }
+  return { key: `direct:${parent.key}`, id: '', name: parent.name };
+}
+
+function categoryHasChildren(categoryId) {
+  return state.categories.some(category => Number(category.parent_id) === Number(categoryId));
 }
 
 function sortAnalyticsRows(rows, sortMode) {
@@ -881,21 +922,12 @@ function renderCategoryPivot(targetId, groups, total, direction) {
         <summary>
           <span>
             <strong>${escapeHtml(group.category)}</strong>
-            <small>${group.rows.length} itens · ${pct} dos ${label}</small>
+            <small>${countLabel(group.rows.length, 'item', 'itens')} · ${pct} dos ${label}</small>
           </span>
           <span class="amount ${direction === 'income' ? 'positive' : 'negative'}">${asMoney(group.total)}</span>
         </summary>
         <div class="pivot-bar"><span style="width:${Math.min(100, total ? (group.total / total) * 100 : 0)}%"></span></div>
-        <div class="pivot-rows">
-          ${group.rows.map(row => `
-            <button class="pivot-row" data-pivot-source="${row.sourceType}" data-pivot-id="${row.id}">
-              <span>${formatDate(row.date)}</span>
-              <strong>${escapeHtml(row.description)}</strong>
-              <small>${escapeHtml(row.sourceLabel)}${row.meta ? ' · ' + escapeHtml(row.meta) : ''}</small>
-              <em class="${direction === 'income' ? 'positive' : 'negative'}">${direction === 'income' ? '+' : '-'} ${asMoney(row.amount)}</em>
-            </button>
-          `).join('')}
-        </div>
+        ${renderPivotGroupBody(group, direction, index)}
       </details>
     `;
   }).join('') : `<p class="muted">Nenhuma categoria de ${label} para os filtros atuais.</p>`;
@@ -903,12 +935,69 @@ function renderCategoryPivot(targetId, groups, total, direction) {
   target.querySelectorAll('[data-pivot-source]').forEach(button => {
     button.addEventListener('click', () => openPivotItem(button.dataset.pivotSource, Number(button.dataset.pivotId)));
   });
+  target.querySelectorAll('[data-pivot-subtoggle]').forEach(button => {
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      const group = button.closest('.pivot-group');
+      if (!group) return;
+      group.querySelectorAll('.pivot-subgroup').forEach(subgroup => {
+        subgroup.open = button.dataset.pivotSubtoggle === 'open';
+      });
+    });
+  });
+}
+
+function renderPivotGroupBody(group, direction, groupIndex) {
+  if (!group.hasSubcategories) {
+    return `<div class="pivot-rows">${renderPivotRows(group.rows, direction)}</div>`;
+  }
+  return `
+    <div class="pivot-subactions">
+      <span>${countLabel(group.subgroups.length, 'subcategoria', 'subcategorias')}</span>
+      <button type="button" class="small-btn" data-pivot-subtoggle="open">Abrir subcategorias</button>
+      <button type="button" class="small-btn" data-pivot-subtoggle="close">Fechar subcategorias</button>
+    </div>
+    <div class="pivot-subgroups">
+      ${group.subgroups.map((subgroup, index) => renderPivotSubgroup(subgroup, group.total, direction, groupIndex < 4 && index < 4)).join('')}
+    </div>
+  `;
+}
+
+function renderPivotSubgroup(subgroup, parentTotal, direction, isOpen) {
+  const pct = formatPercent(subgroup.total, parentTotal);
+  return `
+    <details class="pivot-subgroup ${direction}" ${isOpen ? 'open' : ''}>
+      <summary>
+        <span>
+          <strong>${escapeHtml(subgroup.category)}</strong>
+          <small>${countLabel(subgroup.rows.length, 'item', 'itens')} · ${pct} dentro da categoria</small>
+        </span>
+        <span class="amount ${direction === 'income' ? 'positive' : 'negative'}">${asMoney(subgroup.total)}</span>
+      </summary>
+      <div class="pivot-subbar"><span style="width:${Math.min(100, parentTotal ? (subgroup.total / parentTotal) * 100 : 0)}%"></span></div>
+      <div class="pivot-rows">${renderPivotRows(subgroup.rows, direction)}</div>
+    </details>
+  `;
+}
+
+function renderPivotRows(rows, direction) {
+  return rows.map(row => `
+    <button class="pivot-row" data-pivot-source="${row.sourceType}" data-pivot-id="${row.id}">
+      <span>${formatDate(row.date)}</span>
+      <strong>${escapeHtml(row.description)}</strong>
+      <small>${escapeHtml(row.sourceLabel)}${row.meta ? ' · ' + escapeHtml(row.meta) : ''}</small>
+      <em class="${direction === 'income' ? 'positive' : 'negative'}">${direction === 'income' ? '+' : '-'} ${asMoney(row.amount)}</em>
+    </button>
+  `).join('');
 }
 
 function setPivotOpenState(scope, isOpen) {
   const selector = scope === 'all' ? '.pivot-group' : `.pivot-group.${scope}`;
   document.querySelectorAll(selector).forEach(group => {
     group.open = isOpen;
+    group.querySelectorAll('.pivot-subgroup').forEach(subgroup => {
+      subgroup.open = isOpen;
+    });
   });
 }
 
@@ -926,6 +1015,10 @@ function openPivotItem(sourceType, id) {
 function formatPercent(value, total) {
   if (!total) return '0%';
   return `${((Number(value || 0) / Number(total || 1)) * 100).toFixed(1).replace('.', ',')}%`;
+}
+
+function countLabel(count, singular, plural) {
+  return `${count} ${Number(count) === 1 ? singular : plural}`;
 }
 
 function renderWorkflowStrip() {
