@@ -24,7 +24,48 @@ CREATE TABLE IF NOT EXISTS accounts (
   name VARCHAR(120) NOT NULL,
   type VARCHAR(40) NOT NULL DEFAULT 'corrente',
   opening_balance DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  source_key VARCHAR(120) NULL,
+  source_updated_at DATETIME NULL,
+  last_manual_edit_at DATETIME NULL,
+  last_imported_at DATETIME NULL,
+  last_change_source ENUM('manual','sheet') NOT NULL DEFAULT 'manual',
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS account_versions (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  account_id INT UNSIGNED NOT NULL,
+  user_id INT UNSIGNED NULL,
+  action VARCHAR(40) NOT NULL,
+  source_mode VARCHAR(20) NOT NULL DEFAULT 'manual',
+  source_updated_at DATETIME NULL,
+  before_json JSON NULL,
+  after_json JSON NULL,
+  changes_json JSON NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_account_versions_account_date (account_id, created_at),
+  INDEX idx_account_versions_user_date (user_id, created_at),
+  CONSTRAINT fk_account_versions_account FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
+  CONSTRAINT fk_account_versions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS account_import_conflicts (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  account_id INT UNSIGNED NULL,
+  import_key VARCHAR(120) NULL,
+  source_updated_at DATETIME NULL,
+  payload_json JSON NOT NULL,
+  current_json JSON NULL,
+  conflict_reason VARCHAR(255) NOT NULL,
+  resolution VARCHAR(32) NULL,
+  resolved_by INT UNSIGNED NULL,
+  resolved_at DATETIME NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_account_conflicts_account_date (account_id, created_at),
+  INDEX idx_account_conflicts_resolution (resolution, created_at),
+  CONSTRAINT fk_account_conflicts_account FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL,
+  CONSTRAINT fk_account_conflicts_user FOREIGN KEY (resolved_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS transactions (

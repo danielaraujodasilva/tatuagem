@@ -2,6 +2,13 @@
 
 Sistema PHP/MySQL para gerenciamento financeiro baseado na planilha "Orçamento mensal" do Google Sheets.
 
+## Novidades recentes
+
+- Contas agora podem ser editadas diretamente no painel.
+- Toda edição de conta grava histórico em `account_versions`.
+- Importações de planilha usam `source_updated_at` para evitar que um dado antigo sobrescreva uma edição mais recente no sistema.
+- Conflitos de importação ficam salvos em `account_import_conflicts` e podem ser resolvidos na tela de histórico da conta.
+
 ## Instalação
 
 1. Importe `plan/database.sql` no phpMyAdmin.

@@ -180,6 +180,7 @@ nav { display: grid; gap: 8px; }
 .list-row:last-child { border-bottom: 0; }
 .list-row strong { display: block; }
 .list-row small { color: var(--muted); }
+.muted { color: var(--muted); }
 .amount { font-weight: 900; white-space: nowrap; }
 .status {
   display: inline-flex;
@@ -200,7 +201,7 @@ table { width: 100%; border-collapse: collapse; min-width: 760px; }
 th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid var(--line); }
 th { color: var(--muted); font-size: 12px; text-transform: uppercase; }
 td { vertical-align: middle; }
-.row-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.row-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; }
 .icon-btn { width: 34px; height: 34px; border-radius: 8px; background: var(--surface-2); color: var(--text); }
 .chip-list { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip { padding: 8px 10px; border-radius: 999px; color: #fff; font-weight: 800; font-size: 12px; }

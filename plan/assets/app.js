@@ -2,6 +2,8 @@ const state = {
   csrf: window.PLAN_BOOT?.csrf || '',
   categories: [],
   accounts: [],
+  accountHistory: null,
+  accountHistoryId: null,
   budgets: [],
   goals: [],
   recurring: [],
@@ -110,7 +112,12 @@ function bindNavigation() {
 
 function bindModals() {
   document.querySelectorAll('[data-open-modal]').forEach(button => {
-    button.addEventListener('click', () => document.querySelector(`#${button.dataset.openModal}`)?.showModal());
+    button.addEventListener('click', () => {
+      if (button.dataset.openModal === 'accountModal') {
+        prepareAccountForm();
+      }
+      document.querySelector(`#${button.dataset.openModal}`)?.showModal();
+    });
   });
   document.querySelectorAll('[data-close]').forEach(button => {
     button.addEventListener('click', () => button.closest('dialog')?.close());
@@ -294,8 +301,25 @@ function renderAccounts() {
   const target = document.querySelector('#accountsList');
   if (!target) return;
   target.innerHTML = state.accounts.map(account => `
-    <div class="list-row"><div><strong>${escapeHtml(account.name)}</strong><small>${escapeHtml(account.type)}</small></div><span class="amount">${asMoney(account.opening_balance)}</span></div>
+    <div class="list-row">
+      <div>
+        <strong>${escapeHtml(account.name)}</strong>
+        <small>${escapeHtml(account.type)} · ${escapeHtml(account.last_change_source === 'sheet' ? 'Importação' : 'Edição manual')}${account.updated_at ? ' · ' + formatDateTime(account.updated_at) : ''}</small>
+      </div>
+      <div class="row-actions">
+        <span class="amount">${asMoney(account.opening_balance)}</span>
+        <button class="icon-btn" title="Historico" data-account-history="${account.id}">↺</button>
+        <button class="icon-btn" title="Editar" data-account-edit="${account.id}">✎</button>
+      </div>
+    </div>
   `).join('');
+
+  target.querySelectorAll('[data-account-edit]').forEach(button => {
+    button.addEventListener('click', () => editAccount(Number(button.dataset.accountEdit)));
+  });
+  target.querySelectorAll('[data-account-history]').forEach(button => {
+    button.addEventListener('click', () => openAccountHistory(Number(button.dataset.accountHistory)));
+  });
 }
 
 function renderRecurring() {
@@ -319,6 +343,117 @@ function editTransaction(id) {
   document.querySelector('#transactionModal')?.showModal();
 }
 
+function editAccount(id) {
+  const row = state.accounts.find(item => Number(item.id) === id);
+  if (!row) return;
+  prepareAccountForm(row);
+  document.querySelector('#accountModal')?.showModal();
+}
+
+function prepareAccountForm(account = null) {
+  const form = document.querySelector('#accountForm');
+  if (!form) return;
+  form.reset();
+  form.elements.id.value = account?.id || '';
+  form.elements.name.value = account?.name || '';
+  form.elements.type.value = account?.type || 'corrente';
+  form.elements.opening_balance.value = account?.opening_balance ?? '0';
+  const title = document.querySelector('#accountFormTitle');
+  if (title) {
+    title.textContent = account ? 'Editar conta' : 'Nova conta';
+  }
+}
+
+async function openAccountHistory(id) {
+  state.accountHistoryId = id;
+  const response = await fetch(`api.php?action=account_history&id=${id}`, {
+    headers: { 'X-CSRF-Token': state.csrf },
+  });
+  const payload = await response.json();
+  if (!payload.ok) throw new Error(payload.message || 'Falha ao carregar historico.');
+  state.accountHistory = payload;
+  renderAccountHistory();
+  document.querySelector('#accountHistoryModal')?.showModal();
+}
+
+function renderAccountHistory() {
+  const target = document.querySelector('#accountHistoryBody');
+  const title = document.querySelector('#accountHistoryTitle');
+  if (!target || !state.accountHistory) return;
+
+  const account = state.accountHistory.account || {};
+  if (title) {
+    title.textContent = `Historico: ${account.name || 'Conta'}`;
+  }
+
+  const versions = state.accountHistory.versions || [];
+  const conflicts = state.accountHistory.conflicts || [];
+
+  target.innerHTML = `
+    <section class="stack-list">
+      <div class="list-row">
+        <div>
+          <strong>Versões registradas</strong>
+          <small>${versions.length} atualização(ões) salvas no histórico</small>
+        </div>
+      </div>
+      ${versions.length ? versions.map(version => `
+        <div class="list-row">
+          <div>
+            <strong>${escapeHtml(version.action || 'update')}</strong>
+            <small>${escapeHtml(version.source_mode || 'manual')} · ${formatDateTime(version.created_at)}${version.user_name ? ' · ' + escapeHtml(version.user_name) : ''}</small>
+          </div>
+          <span class="amount">${version.changes_json ? 'ajustes' : 'snapshot'}</span>
+        </div>
+      `).join('') : '<p class="muted">Nenhuma versão registrada ainda.</p>'}
+    </section>
+    <section class="stack-list" style="margin-top:16px">
+      <div class="list-row">
+        <div>
+          <strong>Conflitos de importação</strong>
+          <small>${conflicts.length} conflito(s) detectado(s)</small>
+        </div>
+      </div>
+      ${conflicts.length ? conflicts.map(conflict => `
+        <div class="list-row">
+          <div>
+            <strong>${escapeHtml(conflict.conflict_reason)}</strong>
+            <small>${formatDateTime(conflict.created_at)}${conflict.resolution ? ' · Resolvido' : ' · Pendente'}</small>
+          </div>
+          <div class="row-actions">
+            ${conflict.resolution ? `<span class="status ${conflict.resolution === 'accept_import' ? 'paid' : 'ignored'}">${conflict.resolution === 'accept_import' ? 'Importação aceita' : 'Mantido local'}</span>` : `
+              <button class="ghost-btn" data-conflict-keep="${conflict.id}">Manter local</button>
+              <button class="primary-btn" data-conflict-accept="${conflict.id}">Aceitar importação</button>
+            `}
+          </div>
+        </div>
+      `).join('') : '<p class="muted">Nenhum conflito pendente.</p>'}
+    </section>
+  `;
+
+  target.querySelectorAll('[data-conflict-keep]').forEach(button => {
+    button.addEventListener('click', async () => {
+      await resolveAccountConflict(Number(button.dataset.conflictKeep), 'keep_local');
+    });
+  });
+  target.querySelectorAll('[data-conflict-accept]').forEach(button => {
+    button.addEventListener('click', async () => {
+      await resolveAccountConflict(Number(button.dataset.conflictAccept), 'accept_import');
+    });
+  });
+}
+
+async function resolveAccountConflict(conflictId, resolution) {
+  await api('resolve_account_conflict', {
+    method: 'POST',
+    body: { conflict_id: conflictId, resolution },
+  });
+  await loadBootstrap();
+  if (state.accountHistoryId) {
+    await openAccountHistory(state.accountHistoryId);
+  }
+}
+
 function setText(id, value) {
   const element = document.querySelector(`#${id}`);
   if (element) element.textContent = value;
@@ -328,6 +463,16 @@ function formatDate(value) {
   if (!value) return 'Sem data';
   const [year, month, day] = value.split('-');
   return `${day}/${month}/${year}`;
+}
+
+function formatDateTime(value) {
+  if (!value) return 'Sem data';
+  const parsed = new Date(String(value).replace(' ', 'T'));
+  if (Number.isNaN(parsed.getTime())) return String(value);
+  return new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(parsed);
 }
 
 function statusLabel(status) {

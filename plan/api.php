@@ -38,6 +38,9 @@ try {
         'save_budget' => save_budget(),
         'save_goal' => save_goal(),
         'save_account' => save_account(),
+        'import_accounts' => import_accounts(),
+        'account_history' => account_history(),
+        'resolve_account_conflict' => resolve_account_conflict(),
         'save_recurring' => save_recurring(),
         'overview' => overview(),
         default => json_response(['ok' => false, 'message' => 'Acao desconhecida.'], 404),
@@ -223,13 +226,327 @@ function save_account(): never
     if ($data[0] === '') {
         json_response(['ok' => false, 'message' => 'Nome obrigatorio.'], 422);
     }
+
     if ($id > 0) {
-        $data[] = $id;
-        db()->prepare('UPDATE accounts SET name=?, type=?, opening_balance=? WHERE id=?')->execute($data);
+        $current = fetch_account($id);
+        if (!$current) {
+            json_response(['ok' => false, 'message' => 'Conta nao encontrada.'], 404);
+        }
+
+        $before = account_snapshot($current);
+        $update = [
+            'name' => $data[0],
+            'type' => $data[1],
+            'opening_balance' => $data[2],
+            'id' => $id,
+        ];
+        db()->prepare('UPDATE accounts SET name=:name, type=:type, opening_balance=:opening_balance, last_manual_edit_at=NOW(), last_change_source=\'manual\', updated_at=NOW() WHERE id=:id')->execute($update);
+        $after = fetch_account($id);
+        save_account_version($id, 'update', 'manual', null, $before, account_snapshot($after ?: []));
+        audit('update', 'account', $id, account_change_diff($before, account_snapshot($after ?: [])));
     } else {
-        db()->prepare('INSERT INTO accounts (name, type, opening_balance) VALUES (?, ?, ?)')->execute($data);
+        db()->prepare('INSERT INTO accounts (name, type, opening_balance, last_manual_edit_at, last_change_source, updated_at) VALUES (?, ?, ?, NOW(), \'manual\', NOW())')->execute($data);
+        $id = (int)db()->lastInsertId();
+        $after = fetch_account($id);
+        save_account_version($id, 'create', 'manual', null, null, account_snapshot($after ?: []));
+        audit('create', 'account', $id, account_snapshot($after ?: []));
     }
+    json_response(['ok' => true, 'id' => $id]);
+}
+
+function import_accounts(): never
+{
+    $input = json_input();
+    $rows = $input['rows'] ?? null;
+    if (!is_array($rows)) {
+        $rows = [$input];
+    }
+
+    $result = [
+        'imported' => 0,
+        'conflicts' => 0,
+        'items' => [],
+    ];
+
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+
+        $result['items'][] = import_account_row($row, false, $result);
+    }
+
+    json_response(['ok' => true, 'result' => $result]);
+}
+
+function account_history(): never
+{
+    $id = (int)($_GET['id'] ?? 0);
+    if ($id <= 0) {
+        json_response(['ok' => false, 'message' => 'Conta invalida.'], 422);
+    }
+
+    $account = fetch_account($id);
+    if (!$account) {
+        json_response(['ok' => false, 'message' => 'Conta nao encontrada.'], 404);
+    }
+
+    $versions = db()->prepare('SELECT v.*, u.name user_name
+        FROM account_versions v
+        LEFT JOIN users u ON u.id = v.user_id
+        WHERE v.account_id = ?
+        ORDER BY v.created_at DESC, v.id DESC');
+    $versions->execute([$id]);
+
+    $conflicts = db()->prepare('SELECT c.*, u.name resolved_by_name
+        FROM account_import_conflicts c
+        LEFT JOIN users u ON u.id = c.resolved_by
+        WHERE c.account_id = ?
+        ORDER BY c.created_at DESC, c.id DESC');
+    $conflicts->execute([$id]);
+
+    json_response([
+        'ok' => true,
+        'account' => account_snapshot($account),
+        'versions' => $versions->fetchAll(),
+        'conflicts' => $conflicts->fetchAll(),
+    ]);
+}
+
+function resolve_account_conflict(): never
+{
+    $input = json_input();
+    $conflictId = (int)($input['conflict_id'] ?? 0);
+    $resolution = (string)($input['resolution'] ?? '');
+
+    if ($conflictId <= 0 || !in_array($resolution, ['keep_local', 'accept_import'], true)) {
+        json_response(['ok' => false, 'message' => 'Conflito invalido.'], 422);
+    }
+
+    $stmt = db()->prepare('SELECT * FROM account_import_conflicts WHERE id = ? LIMIT 1');
+    $stmt->execute([$conflictId]);
+    $conflict = $stmt->fetch();
+    if (!$conflict) {
+        json_response(['ok' => false, 'message' => 'Conflito nao encontrado.'], 404);
+    }
+    if (!empty($conflict['resolved_at'])) {
+        json_response(['ok' => false, 'message' => 'Conflito ja resolvido.'], 409);
+    }
+
+    $payload = json_decode((string)$conflict['payload_json'], true);
+    if (!is_array($payload)) {
+        json_response(['ok' => false, 'message' => 'Payload de conflito invalido.'], 500);
+    }
+
+    if ($resolution === 'accept_import') {
+        $forced = import_account_row($payload, true);
+        if (($forced['status'] ?? '') !== 'imported') {
+            json_response(['ok' => false, 'message' => 'Nao foi possivel aplicar a importacao.'], 409);
+        }
+    }
+
+    db()->prepare('UPDATE account_import_conflicts
+        SET resolution = ?, resolved_by = ?, resolved_at = NOW()
+        WHERE id = ?')
+        ->execute([$resolution, $_SESSION['user_id'] ?? null, $conflictId]);
+
+    audit('resolve_conflict', 'account', (int)$conflict['account_id'], [
+        'conflict_id' => $conflictId,
+        'resolution' => $resolution,
+    ]);
+
     json_response(['ok' => true]);
+}
+
+function account_snapshot(array $row): array
+{
+    return [
+        'id' => (int)($row['id'] ?? 0),
+        'name' => (string)($row['name'] ?? ''),
+        'type' => (string)($row['type'] ?? ''),
+        'opening_balance' => (float)($row['opening_balance'] ?? 0),
+        'source_key' => $row['source_key'] ?? null,
+        'source_updated_at' => $row['source_updated_at'] ?? null,
+        'last_manual_edit_at' => $row['last_manual_edit_at'] ?? null,
+        'last_imported_at' => $row['last_imported_at'] ?? null,
+        'last_change_source' => $row['last_change_source'] ?? null,
+        'updated_at' => $row['updated_at'] ?? null,
+        'created_at' => $row['created_at'] ?? null,
+    ];
+}
+
+function account_change_diff(array $before, array $after): array
+{
+    $changes = [];
+    foreach (['name', 'type', 'opening_balance', 'source_key', 'source_updated_at', 'last_manual_edit_at', 'last_imported_at', 'last_change_source'] as $field) {
+        $beforeValue = $before[$field] ?? null;
+        $afterValue = $after[$field] ?? null;
+        if ($beforeValue !== $afterValue) {
+            $changes[$field] = ['before' => $beforeValue, 'after' => $afterValue];
+        }
+    }
+
+    return $changes;
+}
+
+function save_account_version(int $accountId, string $action, string $sourceMode, ?string $sourceUpdatedAt, ?array $before, ?array $after): void
+{
+    $stmt = db()->prepare('INSERT INTO account_versions (account_id, user_id, action, source_mode, source_updated_at, before_json, after_json, changes_json, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())');
+    $stmt->execute([
+        $accountId,
+        $_SESSION['user_id'] ?? null,
+        $action,
+        $sourceMode,
+        $sourceUpdatedAt,
+        $before ? json_encode($before, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
+        $after ? json_encode($after, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
+        json_encode(account_change_diff($before ?? [], $after ?? []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+    ]);
+}
+
+function fetch_account(int $id): ?array
+{
+    $stmt = db()->prepare('SELECT * FROM accounts WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    $account = $stmt->fetch();
+
+    return $account ?: null;
+}
+
+function account_import_match(array $input): array
+{
+    $id = (int)($input['id'] ?? 0);
+    $sourceKey = trim((string)($input['source_key'] ?? $input['external_id'] ?? $input['sync_key'] ?? ''));
+    $name = trim((string)($input['name'] ?? ''));
+
+    if ($id > 0) {
+        $account = fetch_account($id);
+        if ($account) {
+            return ['account' => $account, 'match' => 'id'];
+        }
+    }
+
+    if ($sourceKey !== '') {
+        $stmt = db()->prepare('SELECT * FROM accounts WHERE source_key = ? LIMIT 1');
+        $stmt->execute([$sourceKey]);
+        $account = $stmt->fetch();
+        if ($account) {
+            return ['account' => $account, 'match' => 'source_key'];
+        }
+    }
+
+    if ($name !== '') {
+        $stmt = db()->prepare('SELECT * FROM accounts WHERE name = ? LIMIT 1');
+        $stmt->execute([$name]);
+        $account = $stmt->fetch();
+        if ($account) {
+            return ['account' => $account, 'match' => 'name'];
+        }
+    }
+
+    return ['account' => null, 'match' => 'new'];
+}
+
+function account_import_cutoff(array $account): ?int
+{
+    $timestamps = [];
+    foreach (['updated_at', 'last_manual_edit_at', 'last_imported_at', 'source_updated_at'] as $field) {
+        if (!empty($account[$field])) {
+            $timestamps[] = strtotime((string)$account[$field]);
+        }
+    }
+
+    $timestamps = array_filter($timestamps, static fn ($value) => $value !== false && $value !== null);
+
+    return $timestamps ? max($timestamps) : null;
+}
+
+function record_account_import_conflict(?int $accountId, ?string $sourceKey, ?string $sourceUpdatedAt, array $payload, array $current, string $reason): int
+{
+    $stmt = db()->prepare('INSERT INTO account_import_conflicts (account_id, import_key, source_updated_at, payload_json, current_json, conflict_reason, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, NOW())');
+    $stmt->execute([
+        $accountId,
+        $sourceKey ?: null,
+        $sourceUpdatedAt,
+        json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        json_encode($current, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        $reason,
+    ]);
+
+    return (int)db()->lastInsertId();
+}
+
+function import_account_row(array $input, bool $force = false, ?array &$result = null): array
+{
+    $name = trim((string)($input['name'] ?? ''));
+    $type = trim((string)($input['type'] ?? 'corrente'));
+    $openingBalance = money_to_float($input['opening_balance'] ?? $input['balance'] ?? 0);
+    $sourceKey = trim((string)($input['source_key'] ?? $input['external_id'] ?? $input['sync_key'] ?? $name));
+    $sourceUpdatedAt = normalize_datetime($input['source_updated_at'] ?? $input['sheet_updated_at'] ?? $input['imported_at'] ?? null);
+
+    if ($name === '') {
+        return ['status' => 'skipped', 'message' => 'Nome obrigatorio.'];
+    }
+
+    $match = account_import_match($input);
+    $account = $match['account'];
+
+    if ($account) {
+        $current = account_snapshot($account);
+        $cutoff = account_import_cutoff($account);
+        $incomingTime = $sourceUpdatedAt ? strtotime($sourceUpdatedAt) : false;
+
+        if (!$force && ($incomingTime === false || ($cutoff !== null && $incomingTime <= $cutoff))) {
+            $reason = $incomingTime === false
+                ? 'Importacao sem timestamp nao pode sobrescrever um registro ja editado.'
+                : 'Importacao mais antiga que a alteracao local mais recente.';
+            $conflictId = record_account_import_conflict((int)$account['id'], $sourceKey ?: null, $sourceUpdatedAt, $input, $current, $reason);
+            save_account_version((int)$account['id'], 'import_conflict', 'sheet', $sourceUpdatedAt, $current, $current);
+            audit('import_conflict', 'account', (int)$account['id'], [
+                'conflict_id' => $conflictId,
+                'reason' => $reason,
+                'source_key' => $sourceKey,
+            ]);
+
+            if (is_array($result)) {
+                $result['conflicts']++;
+            }
+
+            return ['status' => 'conflict', 'conflict_id' => $conflictId, 'account_id' => (int)$account['id']];
+        }
+
+        $stmt = db()->prepare('UPDATE accounts
+            SET name = ?, type = ?, opening_balance = ?, source_key = ?, source_updated_at = ?, last_imported_at = NOW(), last_change_source = \'sheet\', updated_at = NOW()
+            WHERE id = ?');
+        $stmt->execute([$name, $type, $openingBalance, $sourceKey ?: null, $sourceUpdatedAt, (int)$account['id']]);
+
+        $afterRow = fetch_account((int)$account['id']) ?: [];
+        $after = account_snapshot($afterRow);
+        save_account_version((int)$account['id'], $force ? 'import_resolved' : 'import_update', 'sheet', $sourceUpdatedAt, $current, $after);
+        audit($force ? 'import_resolved' : 'import_update', 'account', (int)$account['id'], account_change_diff($current, $after));
+
+        if (is_array($result)) {
+            $result['imported']++;
+        }
+
+        return ['status' => 'imported', 'account_id' => (int)$account['id']];
+    }
+
+    $stmt = db()->prepare('INSERT INTO accounts (name, type, opening_balance, source_key, source_updated_at, last_imported_at, last_change_source, updated_at)
+        VALUES (?, ?, ?, ?, ?, NOW(), \'sheet\', NOW())');
+    $stmt->execute([$name, $type, $openingBalance, $sourceKey ?: null, $sourceUpdatedAt]);
+    $accountId = (int)db()->lastInsertId();
+    $after = account_snapshot(fetch_account($accountId) ?: []);
+    save_account_version($accountId, 'import_create', 'sheet', $sourceUpdatedAt, null, $after);
+    audit('import_create', 'account', $accountId, $after);
+
+    if (is_array($result)) {
+        $result['imported']++;
+    }
+
+    return ['status' => 'imported', 'account_id' => $accountId];
 }
 
 function save_recurring(): never

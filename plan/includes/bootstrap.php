@@ -9,6 +9,7 @@ session_start();
 function db(): PDO
 {
     static $pdo = null;
+    static $schemaReady = false;
     global $config;
 
     if ($pdo instanceof PDO) {
@@ -28,6 +29,11 @@ function db(): PDO
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
     ]);
+
+    if (!$schemaReady) {
+        ensure_plan_schema($pdo);
+        $schemaReady = true;
+    }
 
     return $pdo;
 }
@@ -117,6 +123,24 @@ function normalize_date(?string $date): ?string
     return null;
 }
 
+function normalize_datetime(?string $value): ?string
+{
+    $value = trim((string)$value);
+    if ($value === '') {
+        return null;
+    }
+
+    foreach (['Y-m-d H:i:s', 'Y-m-d H:i', 'Y-m-d\TH:i:sP', 'Y-m-d\TH:i:s', 'd/m/Y H:i:s', 'd/m/Y H:i', 'Y-m-d'] as $format) {
+        $parsed = DateTime::createFromFormat($format, $value);
+        if ($parsed instanceof DateTime) {
+            return $parsed->format('Y-m-d H:i:s');
+        }
+    }
+
+    $timestamp = strtotime($value);
+    return $timestamp ? date('Y-m-d H:i:s', $timestamp) : null;
+}
+
 function audit(string $action, string $entity, ?int $entityId, array $changes = []): void
 {
     $stmt = db()->prepare('INSERT INTO audit_log (user_id, action, entity, entity_id, changes_json, created_at) VALUES (?, ?, ?, ?, ?, NOW())');
@@ -127,4 +151,65 @@ function audit(string $action, string $entity, ?int $entityId, array $changes = 
         $entityId,
         json_encode($changes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
     ]);
+}
+
+function ensure_plan_schema(PDO $pdo): void
+{
+    $pdo->exec("CREATE TABLE IF NOT EXISTS account_versions (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        account_id INT UNSIGNED NOT NULL,
+        user_id INT UNSIGNED NULL,
+        action VARCHAR(40) NOT NULL,
+        source_mode VARCHAR(20) NOT NULL DEFAULT 'manual',
+        source_updated_at DATETIME NULL,
+        before_json JSON NULL,
+        after_json JSON NULL,
+        changes_json JSON NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_account_versions_account_date (account_id, created_at),
+        INDEX idx_account_versions_user_date (user_id, created_at),
+        CONSTRAINT fk_account_versions_account FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
+        CONSTRAINT fk_account_versions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS account_import_conflicts (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        account_id INT UNSIGNED NULL,
+        import_key VARCHAR(120) NULL,
+        source_updated_at DATETIME NULL,
+        payload_json JSON NOT NULL,
+        current_json JSON NULL,
+        conflict_reason VARCHAR(255) NOT NULL,
+        resolution VARCHAR(32) NULL,
+        resolved_by INT UNSIGNED NULL,
+        resolved_at DATETIME NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_account_conflicts_account_date (account_id, created_at),
+        INDEX idx_account_conflicts_resolution (resolution, created_at),
+        CONSTRAINT fk_account_conflicts_account FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL,
+        CONSTRAINT fk_account_conflicts_user FOREIGN KEY (resolved_by) REFERENCES users(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    $accountColumns = [
+        'updated_at' => "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+        'source_key' => "VARCHAR(120) NULL",
+        'source_updated_at' => "DATETIME NULL",
+        'last_manual_edit_at' => "DATETIME NULL",
+        'last_imported_at' => "DATETIME NULL",
+        'last_change_source' => "ENUM('manual','sheet') NOT NULL DEFAULT 'manual'",
+    ];
+
+    foreach ($accountColumns as $column => $definition) {
+        if (!column_exists($pdo, 'accounts', $column)) {
+            $pdo->exec("ALTER TABLE accounts ADD COLUMN {$column} {$definition}");
+        }
+    }
+}
+
+function column_exists(PDO $pdo, string $table, string $column): bool
+{
+    $stmt = $pdo->prepare('SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ? LIMIT 1');
+    $stmt->execute([$table, $column]);
+
+    return (bool)$stmt->fetchColumn();
 }

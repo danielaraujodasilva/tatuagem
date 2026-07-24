@@ -248,12 +248,21 @@ $csrf = csrf_token();
 
     <dialog id="accountModal" class="modal">
         <form id="accountForm" method="dialog" class="form-grid compact">
-            <h2>Conta</h2>
+            <input type="hidden" name="id">
+            <h2 id="accountFormTitle">Nova conta</h2>
             <label>Nome<input name="name" required></label>
             <label>Tipo<select name="type"><option value="corrente">Corrente</option><option value="credito">Cartao</option><option value="investimento">Investimento</option><option value="dinheiro">Dinheiro</option></select></label>
             <label>Saldo inicial<input name="opening_balance" inputmode="decimal" value="0"></label>
             <div class="modal-actions"><button type="button" class="ghost-btn" data-close>Cancelar</button><button class="primary-btn">Salvar</button></div>
         </form>
+    </dialog>
+
+    <dialog id="accountHistoryModal" class="modal">
+        <div class="form-grid compact">
+            <h2 id="accountHistoryTitle">Historico da conta</h2>
+            <div id="accountHistoryBody" class="wide"></div>
+            <div class="modal-actions"><button type="button" class="ghost-btn" data-close>Fechar</button></div>
+        </div>
     </dialog>
 
     <dialog id="recurringModal" class="modal">
