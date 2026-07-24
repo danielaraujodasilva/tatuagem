@@ -32,6 +32,9 @@ try {
         'bootstrap' => bootstrap($user),
         'transactions' => transactions(),
         'save_transaction' => save_transaction(),
+        'import_transactions' => import_transactions(),
+        'transaction_history' => transaction_history(),
+        'resolve_transaction_conflict' => resolve_transaction_conflict(),
         'delete_transaction' => delete_transaction(),
         'toggle_paid' => toggle_paid(),
         'save_category' => save_category(),
@@ -106,10 +109,56 @@ function save_transaction(): never
 {
     $input = json_input();
     $id = (int)($input['id'] ?? 0);
-    $data = [
+    $data = transaction_data_from_input($input);
+
+    if ($data['description'] === '' || $data['amount'] < 0) {
+        json_response(['ok' => false, 'message' => 'Informe descricao e valor valido.'], 422);
+    }
+
+    if ($id > 0) {
+        $current = fetch_transaction($id);
+        if (!$current) {
+            json_response(['ok' => false, 'message' => 'Lancamento nao encontrado.'], 404);
+        }
+
+        $before = transaction_snapshot($current);
+        $sql = 'UPDATE transactions SET type=:type, amount=:amount, description=:description, category_id=:category_id, account_id=:account_id,
+                due_date=:due_date, paid_at=:paid_at, status=:status, owner=:owner, payment_code=:payment_code, source_sheet=:source_sheet,
+                notes=:notes, is_fixed=:is_fixed, description_signature=:description_signature, last_manual_edit_at=NOW(),
+                last_change_source=\'manual\', updated_at=NOW() WHERE id=:id';
+        $data['id'] = $id;
+        db()->prepare($sql)->execute($data);
+        $after = transaction_snapshot(fetch_transaction($id) ?: []);
+        save_transaction_version($id, 'update', 'manual', null, $before, $after);
+        audit('update', 'transaction', $id, transaction_change_diff($before, $after));
+    } else {
+        $sql = 'INSERT INTO transactions (type, amount, description, category_id, account_id, due_date, paid_at, status, owner, payment_code,
+                source_sheet, notes, is_fixed, description_signature, last_manual_edit_at, last_change_source, created_at, updated_at)
+                VALUES (:type, :amount, :description, :category_id, :account_id, :due_date, :paid_at, :status, :owner, :payment_code,
+                :source_sheet, :notes, :is_fixed, :description_signature, NOW(), \'manual\', NOW(), NOW())';
+        db()->prepare($sql)->execute($data);
+        $id = (int)db()->lastInsertId();
+        $after = transaction_snapshot(fetch_transaction($id) ?: []);
+        save_transaction_version($id, 'create', 'manual', null, null, $after);
+        audit('create', 'transaction', $id, $after);
+    }
+
+    $ruleResult = null;
+    if (!empty($input['apply_category_rule']) && !empty($data['category_id'])) {
+        $ruleResult = apply_transaction_category_rule($id, (int)$data['category_id']);
+    }
+
+    json_response(['ok' => true, 'id' => $id, 'rule' => $ruleResult]);
+}
+
+function transaction_data_from_input(array $input): array
+{
+    $description = trim((string)($input['description'] ?? ''));
+
+    return [
         'type' => in_array(($input['type'] ?? 'expense'), ['income', 'expense', 'transfer'], true) ? $input['type'] : 'expense',
         'amount' => money_to_float($input['amount'] ?? 0),
-        'description' => trim((string)($input['description'] ?? '')),
+        'description' => $description,
         'category_id' => ($input['category_id'] ?? '') === '' ? null : (int)$input['category_id'],
         'account_id' => ($input['account_id'] ?? '') === '' ? null : (int)$input['account_id'],
         'due_date' => normalize_date($input['due_date'] ?? null),
@@ -120,29 +169,99 @@ function save_transaction(): never
         'source_sheet' => trim((string)($input['source_sheet'] ?? 'manual')),
         'notes' => trim((string)($input['notes'] ?? '')),
         'is_fixed' => !empty($input['is_fixed']) ? 1 : 0,
+        'description_signature' => transaction_signature($description),
     ];
+}
 
-    if ($data['description'] === '' || $data['amount'] < 0) {
-        json_response(['ok' => false, 'message' => 'Informe descricao e valor valido.'], 422);
+function import_transactions(): never
+{
+    $input = json_input();
+    $rows = $input['rows'] ?? null;
+    if (!is_array($rows)) {
+        $rows = [$input];
     }
 
-    if ($id > 0) {
-        $sql = 'UPDATE transactions SET type=:type, amount=:amount, description=:description, category_id=:category_id, account_id=:account_id,
-                due_date=:due_date, paid_at=:paid_at, status=:status, owner=:owner, payment_code=:payment_code, source_sheet=:source_sheet,
-                notes=:notes, is_fixed=:is_fixed, updated_at=NOW() WHERE id=:id';
-        $data['id'] = $id;
-        db()->prepare($sql)->execute($data);
-        audit('update', 'transaction', $id, $data);
-    } else {
-        $sql = 'INSERT INTO transactions (type, amount, description, category_id, account_id, due_date, paid_at, status, owner, payment_code,
-                source_sheet, notes, is_fixed, created_at, updated_at) VALUES (:type, :amount, :description, :category_id, :account_id,
-                :due_date, :paid_at, :status, :owner, :payment_code, :source_sheet, :notes, :is_fixed, NOW(), NOW())';
-        db()->prepare($sql)->execute($data);
-        $id = (int)db()->lastInsertId();
-        audit('create', 'transaction', $id, $data);
+    $result = ['imported' => 0, 'conflicts' => 0, 'items' => []];
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $result['items'][] = import_transaction_row($row, false, $result);
     }
 
-    json_response(['ok' => true, 'id' => $id]);
+    json_response(['ok' => true, 'result' => $result]);
+}
+
+function transaction_history(): never
+{
+    $id = (int)($_GET['id'] ?? 0);
+    if ($id <= 0) {
+        json_response(['ok' => false, 'message' => 'Lancamento invalido.'], 422);
+    }
+
+    $transaction = fetch_transaction($id);
+    if (!$transaction) {
+        json_response(['ok' => false, 'message' => 'Lancamento nao encontrado.'], 404);
+    }
+
+    $versions = db()->prepare('SELECT v.*, u.name user_name
+        FROM transaction_versions v
+        LEFT JOIN users u ON u.id = v.user_id
+        WHERE v.transaction_id = ?
+        ORDER BY v.created_at DESC, v.id DESC');
+    $versions->execute([$id]);
+
+    $conflicts = db()->prepare('SELECT c.*, u.name resolved_by_name
+        FROM transaction_import_conflicts c
+        LEFT JOIN users u ON u.id = c.resolved_by
+        WHERE c.transaction_id = ?
+        ORDER BY c.created_at DESC, c.id DESC');
+    $conflicts->execute([$id]);
+
+    json_response([
+        'ok' => true,
+        'transaction' => transaction_snapshot($transaction),
+        'versions' => $versions->fetchAll(),
+        'conflicts' => $conflicts->fetchAll(),
+    ]);
+}
+
+function resolve_transaction_conflict(): never
+{
+    $input = json_input();
+    $conflictId = (int)($input['conflict_id'] ?? 0);
+    $resolution = (string)($input['resolution'] ?? '');
+
+    if ($conflictId <= 0 || !in_array($resolution, ['keep_local', 'accept_import'], true)) {
+        json_response(['ok' => false, 'message' => 'Conflito invalido.'], 422);
+    }
+
+    $stmt = db()->prepare('SELECT * FROM transaction_import_conflicts WHERE id = ? LIMIT 1');
+    $stmt->execute([$conflictId]);
+    $conflict = $stmt->fetch();
+    if (!$conflict) {
+        json_response(['ok' => false, 'message' => 'Conflito nao encontrado.'], 404);
+    }
+    if (!empty($conflict['resolved_at'])) {
+        json_response(['ok' => false, 'message' => 'Conflito ja resolvido.'], 409);
+    }
+
+    $payload = json_decode((string)$conflict['payload_json'], true);
+    if ($resolution === 'accept_import' && is_array($payload)) {
+        import_transaction_row($payload, true);
+    }
+
+    db()->prepare('UPDATE transaction_import_conflicts
+        SET resolution = ?, resolved_by = ?, resolved_at = NOW()
+        WHERE id = ?')
+        ->execute([$resolution, $_SESSION['user_id'] ?? null, $conflictId]);
+
+    audit('resolve_conflict', 'transaction', (int)$conflict['transaction_id'], [
+        'conflict_id' => $conflictId,
+        'resolution' => $resolution,
+    ]);
+
+    json_response(['ok' => true]);
 }
 
 function delete_transaction(): never
@@ -159,9 +278,320 @@ function toggle_paid(): never
     $id = (int)($input['id'] ?? 0);
     $status = ($input['status'] ?? '') === 'paid' ? 'paid' : 'pending';
     $paidAt = $status === 'paid' ? date('Y-m-d') : null;
-    db()->prepare('UPDATE transactions SET status = ?, paid_at = ?, updated_at = NOW() WHERE id = ?')->execute([$status, $paidAt, $id]);
-    audit('toggle_paid', 'transaction', $id, ['status' => $status]);
+    $before = transaction_snapshot(fetch_transaction($id) ?: []);
+    db()->prepare('UPDATE transactions SET status = ?, paid_at = ?, last_manual_edit_at = NOW(), last_change_source = \'manual\', updated_at = NOW() WHERE id = ?')->execute([$status, $paidAt, $id]);
+    $after = transaction_snapshot(fetch_transaction($id) ?: []);
+    save_transaction_version($id, 'toggle_paid', 'manual', null, $before, $after);
+    audit('toggle_paid', 'transaction', $id, transaction_change_diff($before, $after));
     json_response(['ok' => true]);
+}
+
+function fetch_transaction(int $id): ?array
+{
+    $stmt = db()->prepare('SELECT * FROM transactions WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    $transaction = $stmt->fetch();
+
+    return $transaction ?: null;
+}
+
+function transaction_snapshot(array $row): array
+{
+    return [
+        'id' => (int)($row['id'] ?? 0),
+        'type' => (string)($row['type'] ?? ''),
+        'amount' => (float)($row['amount'] ?? 0),
+        'description' => (string)($row['description'] ?? ''),
+        'category_id' => isset($row['category_id']) ? (int)$row['category_id'] : null,
+        'account_id' => isset($row['account_id']) ? (int)$row['account_id'] : null,
+        'due_date' => $row['due_date'] ?? null,
+        'paid_at' => $row['paid_at'] ?? null,
+        'status' => (string)($row['status'] ?? ''),
+        'owner' => $row['owner'] ?? null,
+        'payment_code' => $row['payment_code'] ?? null,
+        'source_sheet' => $row['source_sheet'] ?? null,
+        'notes' => $row['notes'] ?? null,
+        'is_fixed' => (int)($row['is_fixed'] ?? 0),
+        'source_key' => $row['source_key'] ?? null,
+        'source_updated_at' => $row['source_updated_at'] ?? null,
+        'last_manual_edit_at' => $row['last_manual_edit_at'] ?? null,
+        'last_imported_at' => $row['last_imported_at'] ?? null,
+        'last_change_source' => $row['last_change_source'] ?? null,
+        'description_signature' => $row['description_signature'] ?? null,
+        'updated_at' => $row['updated_at'] ?? null,
+        'created_at' => $row['created_at'] ?? null,
+    ];
+}
+
+function transaction_change_diff(array $before, array $after): array
+{
+    $changes = [];
+    foreach (['type', 'amount', 'description', 'category_id', 'account_id', 'due_date', 'paid_at', 'status', 'owner', 'payment_code', 'source_sheet', 'notes', 'is_fixed', 'source_key', 'source_updated_at', 'last_manual_edit_at', 'last_imported_at', 'last_change_source', 'description_signature'] as $field) {
+        $beforeValue = $before[$field] ?? null;
+        $afterValue = $after[$field] ?? null;
+        if ($beforeValue !== $afterValue) {
+            $changes[$field] = ['before' => $beforeValue, 'after' => $afterValue];
+        }
+    }
+
+    return $changes;
+}
+
+function save_transaction_version(int $transactionId, string $action, string $sourceMode, ?string $sourceUpdatedAt, ?array $before, ?array $after): void
+{
+    $stmt = db()->prepare('INSERT INTO transaction_versions (transaction_id, user_id, action, source_mode, source_updated_at, before_json, after_json, changes_json, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())');
+    $stmt->execute([
+        $transactionId,
+        $_SESSION['user_id'] ?? null,
+        $action,
+        $sourceMode,
+        $sourceUpdatedAt,
+        $before ? json_encode($before, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
+        $after ? json_encode($after, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
+        json_encode(transaction_change_diff($before ?? [], $after ?? []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+    ]);
+}
+
+function transaction_import_match(array $input): array
+{
+    $id = (int)($input['id'] ?? 0);
+    $sourceKey = trim((string)($input['source_key'] ?? $input['external_id'] ?? $input['sync_key'] ?? ''));
+    $description = trim((string)($input['description'] ?? ''));
+    $dueDate = normalize_date($input['due_date'] ?? null);
+    $amount = money_to_float($input['amount'] ?? 0);
+
+    if ($id > 0) {
+        $transaction = fetch_transaction($id);
+        if ($transaction) {
+            return ['transaction' => $transaction, 'match' => 'id'];
+        }
+    }
+
+    if ($sourceKey !== '') {
+        $stmt = db()->prepare('SELECT * FROM transactions WHERE source_key = ? LIMIT 1');
+        $stmt->execute([$sourceKey]);
+        $transaction = $stmt->fetch();
+        if ($transaction) {
+            return ['transaction' => $transaction, 'match' => 'source_key'];
+        }
+    }
+
+    if ($description !== '' && $dueDate !== null) {
+        $stmt = db()->prepare('SELECT * FROM transactions WHERE description_signature = ? AND due_date = ? AND amount = ? LIMIT 1');
+        $stmt->execute([transaction_signature($description), $dueDate, $amount]);
+        $transaction = $stmt->fetch();
+        if ($transaction) {
+            return ['transaction' => $transaction, 'match' => 'signature_date_amount'];
+        }
+    }
+
+    return ['transaction' => null, 'match' => 'new'];
+}
+
+function transaction_import_cutoff(array $transaction): ?int
+{
+    $timestamps = [];
+    foreach (['updated_at', 'last_manual_edit_at', 'last_imported_at', 'source_updated_at'] as $field) {
+        if (!empty($transaction[$field])) {
+            $timestamps[] = strtotime((string)$transaction[$field]);
+        }
+    }
+
+    $timestamps = array_filter($timestamps, static fn ($value) => $value !== false && $value !== null);
+
+    return $timestamps ? max($timestamps) : null;
+}
+
+function record_transaction_import_conflict(?int $transactionId, ?string $sourceKey, ?string $sourceUpdatedAt, array $payload, array $current, string $reason): int
+{
+    $stmt = db()->prepare('INSERT INTO transaction_import_conflicts (transaction_id, import_key, source_updated_at, payload_json, current_json, conflict_reason, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, NOW())');
+    $stmt->execute([
+        $transactionId,
+        $sourceKey ?: null,
+        $sourceUpdatedAt,
+        json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        json_encode($current, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        $reason,
+    ]);
+
+    return (int)db()->lastInsertId();
+}
+
+function import_transaction_row(array $input, bool $force = false, ?array &$result = null): array
+{
+    $data = transaction_data_from_input($input);
+    if ($data['description'] === '') {
+        return ['status' => 'skipped', 'message' => 'Descricao obrigatoria.'];
+    }
+
+    $sourceKey = trim((string)($input['source_key'] ?? $input['external_id'] ?? $input['sync_key'] ?? transaction_source_key($data)));
+    $sourceUpdatedAt = normalize_datetime($input['source_updated_at'] ?? $input['sheet_updated_at'] ?? $input['imported_at'] ?? null);
+    $data['source_sheet'] = trim((string)($input['source_sheet'] ?? $data['source_sheet'] ?? 'import'));
+    $data['category_id'] = $data['category_id'] ?: infer_transaction_category_id($data['description']);
+
+    $match = transaction_import_match($input + ['source_key' => $sourceKey]);
+    $transaction = $match['transaction'];
+    if ($transaction) {
+        $current = transaction_snapshot($transaction);
+        $cutoff = transaction_import_cutoff($transaction);
+        $incomingTime = $sourceUpdatedAt ? strtotime($sourceUpdatedAt) : false;
+
+        if (!$force && ($incomingTime === false || ($cutoff !== null && $incomingTime <= $cutoff))) {
+            $reason = $incomingTime === false
+                ? 'Importacao sem timestamp nao pode sobrescrever um lancamento editado.'
+                : 'Importacao mais antiga que a alteracao local mais recente.';
+            $conflictId = record_transaction_import_conflict((int)$transaction['id'], $sourceKey, $sourceUpdatedAt, $input, $current, $reason);
+            save_transaction_version((int)$transaction['id'], 'import_conflict', 'sheet', $sourceUpdatedAt, $current, $current);
+            audit('import_conflict', 'transaction', (int)$transaction['id'], [
+                'conflict_id' => $conflictId,
+                'reason' => $reason,
+                'source_key' => $sourceKey,
+            ]);
+            if (is_array($result)) {
+                $result['conflicts']++;
+            }
+            return ['status' => 'conflict', 'conflict_id' => $conflictId, 'transaction_id' => (int)$transaction['id']];
+        }
+
+        $before = $current;
+        $data['id'] = (int)$transaction['id'];
+        $data['source_key'] = $sourceKey;
+        $data['source_updated_at'] = $sourceUpdatedAt;
+        db()->prepare('UPDATE transactions SET type=:type, amount=:amount, description=:description, category_id=:category_id, account_id=:account_id,
+            due_date=:due_date, paid_at=:paid_at, status=:status, owner=:owner, payment_code=:payment_code, source_sheet=:source_sheet,
+            notes=:notes, is_fixed=:is_fixed, description_signature=:description_signature, source_key=:source_key,
+            source_updated_at=:source_updated_at, last_imported_at=NOW(), last_change_source=\'sheet\', updated_at=NOW()
+            WHERE id=:id')->execute($data);
+        $after = transaction_snapshot(fetch_transaction((int)$transaction['id']) ?: []);
+        save_transaction_version((int)$transaction['id'], $force ? 'import_resolved' : 'import_update', 'sheet', $sourceUpdatedAt, $before, $after);
+        audit($force ? 'import_resolved' : 'import_update', 'transaction', (int)$transaction['id'], transaction_change_diff($before, $after));
+
+        if (is_array($result)) {
+            $result['imported']++;
+        }
+        return ['status' => 'imported', 'transaction_id' => (int)$transaction['id']];
+    }
+
+    $data['source_key'] = $sourceKey;
+    $data['source_updated_at'] = $sourceUpdatedAt;
+    db()->prepare('INSERT INTO transactions (type, amount, description, category_id, account_id, due_date, paid_at, status, owner, payment_code,
+        source_sheet, notes, is_fixed, description_signature, source_key, source_updated_at, last_imported_at, last_change_source, created_at, updated_at)
+        VALUES (:type, :amount, :description, :category_id, :account_id, :due_date, :paid_at, :status, :owner, :payment_code,
+        :source_sheet, :notes, :is_fixed, :description_signature, :source_key, :source_updated_at, NOW(), \'sheet\', NOW(), NOW())')->execute($data);
+    $id = (int)db()->lastInsertId();
+    $after = transaction_snapshot(fetch_transaction($id) ?: []);
+    save_transaction_version($id, 'import_create', 'sheet', $sourceUpdatedAt, null, $after);
+    audit('import_create', 'transaction', $id, $after);
+
+    if (is_array($result)) {
+        $result['imported']++;
+    }
+    return ['status' => 'imported', 'transaction_id' => $id];
+}
+
+function transaction_source_key(array $data): string
+{
+    return sha1(implode('|', [
+        $data['description_signature'] ?? '',
+        $data['due_date'] ?? '',
+        number_format((float)($data['amount'] ?? 0), 2, '.', ''),
+        $data['type'] ?? '',
+        $data['source_sheet'] ?? '',
+    ]));
+}
+
+function infer_transaction_category_id(string $description): ?int
+{
+    $signature = transaction_signature($description);
+    if ($signature !== '') {
+        $stmt = db()->prepare('SELECT category_id FROM transaction_category_rules WHERE signature = ? AND is_active = 1 LIMIT 1');
+        $stmt->execute([$signature]);
+        $ruleCategory = $stmt->fetchColumn();
+        if ($ruleCategory) {
+            return (int)$ruleCategory;
+        }
+    }
+
+    $rules = [
+        'Moradia' => ['APARTAMENTO', 'CONDOMINIO', 'CONDOMINIO', 'VIVO', 'INTERNET', 'LUZ', 'AGUA', 'CAIXA ENGENHEIRO'],
+        'Saude' => ['CONVENIO', 'DENTISTA', 'DENTE', 'TERAPIA', 'MARIANA', 'MARISA'],
+        'Educacao' => ['FACULDADE', 'MONITOR', 'ESCOLA', 'CURSO'],
+        'Investimentos' => ['PREVIDENCIA', 'INVESTIMENTO', 'RESERVA'],
+        'Impostos' => ['IMPOSTO', 'IRPF', 'RECEITA FEDERAL'],
+        'Transporte' => ['AUTO POSTO', 'POSTO', 'UBER', '99 ', 'COMBUSTIVEL', 'ESTACIONAMENTO'],
+        'Servicos' => ['FACEBOOK SERVICOS ONLINE', 'GOOGLE', 'META', 'APPLE', 'MICROSOFT', 'SERVICOS ONLINE'],
+        'Alimentacao' => ['IFOOD', 'RESTAURANTE', 'MERCADO', 'SUPERMERCADO', 'PADARIA'],
+        'Pessoal' => ['MARKETING ESTUDIO', 'MAZINHO', 'CARTAO FRAN', 'PIX ENVIADO'],
+    ];
+
+    foreach ($rules as $category => $needles) {
+        foreach ($needles as $needle) {
+            if (str_contains($signature, transaction_signature($needle))) {
+                return category_id_by_name($category);
+            }
+        }
+    }
+
+    return null;
+}
+
+function category_id_by_name(string $name): ?int
+{
+    static $cache = [];
+    if (array_key_exists($name, $cache)) {
+        return $cache[$name];
+    }
+
+    $stmt = db()->prepare('SELECT id FROM categories WHERE name = ? LIMIT 1');
+    $stmt->execute([$name]);
+    $id = $stmt->fetchColumn();
+    $cache[$name] = $id ? (int)$id : null;
+
+    return $cache[$name];
+}
+
+function apply_transaction_category_rule(int $transactionId, int $categoryId): array
+{
+    $source = fetch_transaction($transactionId);
+    if (!$source) {
+        return ['updated' => 0];
+    }
+
+    $signature = transaction_signature((string)$source['description']);
+    if ($signature === '') {
+        return ['updated' => 0];
+    }
+
+    db()->prepare('INSERT INTO transaction_category_rules (signature, example_description, category_id, created_from_transaction_id, hit_count, last_matched_at, is_active, created_at, updated_at)
+        VALUES (?, ?, ?, ?, 0, NOW(), 1, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE example_description = VALUES(example_description), category_id = VALUES(category_id), created_from_transaction_id = VALUES(created_from_transaction_id), is_active = 1, updated_at = NOW()')
+        ->execute([$signature, (string)$source['description'], $categoryId, $transactionId]);
+
+    $stmt = db()->prepare('SELECT * FROM transactions WHERE description_signature = ? AND id <> ? AND (category_id IS NULL OR category_id <> ?)');
+    $stmt->execute([$signature, $transactionId, $categoryId]);
+    $rows = $stmt->fetchAll();
+    $updated = 0;
+
+    foreach ($rows as $row) {
+        $before = transaction_snapshot($row);
+        db()->prepare('UPDATE transactions SET category_id = ?, last_manual_edit_at = NOW(), last_change_source = \'manual\', updated_at = NOW() WHERE id = ?')
+            ->execute([$categoryId, (int)$row['id']]);
+        $after = transaction_snapshot(fetch_transaction((int)$row['id']) ?: []);
+        save_transaction_version((int)$row['id'], 'bulk_category_rule', 'manual', null, $before, $after);
+        $updated++;
+    }
+
+    db()->prepare('UPDATE transaction_category_rules SET hit_count = hit_count + ?, last_matched_at = NOW() WHERE signature = ?')
+        ->execute([$updated, $signature]);
+    audit('bulk_category_rule', 'transaction', $transactionId, [
+        'signature' => $signature,
+        'category_id' => $categoryId,
+        'updated' => $updated,
+    ]);
+
+    return ['updated' => $updated, 'signature' => $signature];
 }
 
 function save_category(): never

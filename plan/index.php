@@ -216,6 +216,14 @@ $csrf = csrf_token();
         </form>
     </dialog>
 
+    <dialog id="transactionHistoryModal" class="modal">
+        <div class="form-grid compact">
+            <h2 id="transactionHistoryTitle">Historico do lancamento</h2>
+            <div id="transactionHistoryBody" class="wide"></div>
+            <div class="modal-actions"><button type="button" class="ghost-btn" data-close>Fechar</button></div>
+        </div>
+    </dialog>
+
     <dialog id="categoryModal" class="modal">
         <form id="categoryForm" method="dialog" class="form-grid compact">
             <h2>Categoria</h2>

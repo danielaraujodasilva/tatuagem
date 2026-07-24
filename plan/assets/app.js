@@ -4,6 +4,8 @@ const state = {
   accounts: [],
   accountHistory: null,
   accountHistoryId: null,
+  transactionHistory: null,
+  transactionHistoryId: null,
   budgets: [],
   goals: [],
   recurring: [],
@@ -146,7 +148,11 @@ function bindForms() {
   Object.entries(forms).forEach(([id, action]) => {
     document.querySelector(`#${id}`)?.addEventListener('submit', async event => {
       event.preventDefault();
-      await api(action, { method: 'POST', body: formPayload(event.currentTarget) });
+      const payload = formPayload(event.currentTarget);
+      if (id === 'transactionForm') {
+        payload.apply_category_rule = shouldApplyTransactionCategoryRule(payload) ? 1 : 0;
+      }
+      await api(action, { method: 'POST', body: payload });
       event.currentTarget.reset();
       event.currentTarget.closest('dialog')?.close();
       await loadBootstrap();
@@ -238,6 +244,7 @@ function renderTransactions() {
       <td>
         <div class="row-actions">
           <button class="icon-btn" title="Marcar pago/pendente" data-toggle="${row.id}" data-status="${row.status === 'paid' ? 'pending' : 'paid'}">✓</button>
+          <button class="icon-btn" title="Historico" data-transaction-history="${row.id}">↺</button>
           <button class="icon-btn" title="Editar" data-edit="${row.id}">✎</button>
           <button class="icon-btn" title="Excluir" data-delete="${row.id}">×</button>
         </div>
@@ -260,6 +267,9 @@ function renderTransactions() {
   });
   body.querySelectorAll('[data-edit]').forEach(button => {
     button.addEventListener('click', () => editTransaction(Number(button.dataset.edit)));
+  });
+  body.querySelectorAll('[data-transaction-history]').forEach(button => {
+    button.addEventListener('click', () => openTransactionHistory(Number(button.dataset.transactionHistory)));
   });
 }
 
@@ -341,6 +351,112 @@ function editTransaction(id) {
     else field.value = value ?? '';
   });
   document.querySelector('#transactionModal')?.showModal();
+}
+
+function shouldApplyTransactionCategoryRule(payload) {
+  if (!payload.id || !payload.category_id) return false;
+  const current = state.transactions.find(item => Number(item.id) === Number(payload.id));
+  if (!current || String(current.category_id || '') === String(payload.category_id || '')) return false;
+  const signature = current.description_signature || transactionSignature(current.description || '');
+  const matches = state.transactions.filter(item => (
+    Number(item.id) !== Number(payload.id) &&
+    (item.description_signature || transactionSignature(item.description || '')) === signature &&
+    String(item.category_id || '') !== String(payload.category_id || '')
+  ));
+  const countText = matches.length ? `${matches.length} ocorrencia(s) parecida(s)` : 'as proximas ocorrencias parecidas';
+
+  return confirm(`Aplicar esta categoria tambem para ${countText}?`);
+}
+
+async function openTransactionHistory(id) {
+  state.transactionHistoryId = id;
+  const response = await fetch(`api.php?action=transaction_history&id=${id}`, {
+    headers: { 'X-CSRF-Token': state.csrf },
+  });
+  const payload = await response.json();
+  if (!payload.ok) throw new Error(payload.message || 'Falha ao carregar historico.');
+  state.transactionHistory = payload;
+  renderTransactionHistory();
+  document.querySelector('#transactionHistoryModal')?.showModal();
+}
+
+function renderTransactionHistory() {
+  const target = document.querySelector('#transactionHistoryBody');
+  const title = document.querySelector('#transactionHistoryTitle');
+  if (!target || !state.transactionHistory) return;
+
+  const transaction = state.transactionHistory.transaction || {};
+  if (title) {
+    title.textContent = `Historico: ${transaction.description || 'Lancamento'}`;
+  }
+
+  const versions = state.transactionHistory.versions || [];
+  const conflicts = state.transactionHistory.conflicts || [];
+
+  target.innerHTML = `
+    <section class="stack-list">
+      <div class="list-row">
+        <div>
+          <strong>Versões registradas</strong>
+          <small>${versions.length} atualização(ões) salvas no histórico</small>
+        </div>
+      </div>
+      ${versions.length ? versions.map(version => `
+        <div class="list-row">
+          <div>
+            <strong>${escapeHtml(version.action || 'update')}</strong>
+            <small>${escapeHtml(version.source_mode || 'manual')} · ${formatDateTime(version.created_at)}${version.user_name ? ' · ' + escapeHtml(version.user_name) : ''}</small>
+          </div>
+          <span class="amount">${version.changes_json ? 'ajustes' : 'snapshot'}</span>
+        </div>
+      `).join('') : '<p class="muted">Nenhuma versão registrada ainda.</p>'}
+    </section>
+    <section class="stack-list" style="margin-top:16px">
+      <div class="list-row">
+        <div>
+          <strong>Conflitos de importação</strong>
+          <small>${conflicts.length} conflito(s) detectado(s)</small>
+        </div>
+      </div>
+      ${conflicts.length ? conflicts.map(conflict => `
+        <div class="list-row">
+          <div>
+            <strong>${escapeHtml(conflict.conflict_reason)}</strong>
+            <small>${formatDateTime(conflict.created_at)}${conflict.resolution ? ' · Resolvido' : ' · Pendente'}</small>
+          </div>
+          <div class="row-actions">
+            ${conflict.resolution ? `<span class="status ${conflict.resolution === 'accept_import' ? 'paid' : 'ignored'}">${conflict.resolution === 'accept_import' ? 'Importação aceita' : 'Mantido local'}</span>` : `
+              <button class="ghost-btn" data-transaction-conflict-keep="${conflict.id}">Manter local</button>
+              <button class="primary-btn" data-transaction-conflict-accept="${conflict.id}">Aceitar importação</button>
+            `}
+          </div>
+        </div>
+      `).join('') : '<p class="muted">Nenhum conflito pendente.</p>'}
+    </section>
+  `;
+
+  target.querySelectorAll('[data-transaction-conflict-keep]').forEach(button => {
+    button.addEventListener('click', async () => {
+      await resolveTransactionConflict(Number(button.dataset.transactionConflictKeep), 'keep_local');
+    });
+  });
+  target.querySelectorAll('[data-transaction-conflict-accept]').forEach(button => {
+    button.addEventListener('click', async () => {
+      await resolveTransactionConflict(Number(button.dataset.transactionConflictAccept), 'accept_import');
+    });
+  });
+}
+
+async function resolveTransactionConflict(conflictId, resolution) {
+  await api('resolve_transaction_conflict', {
+    method: 'POST',
+    body: { conflict_id: conflictId, resolution },
+  });
+  await loadBootstrap();
+  await loadTransactions();
+  if (state.transactionHistoryId) {
+    await openTransactionHistory(state.transactionHistoryId);
+  }
 }
 
 function editAccount(id) {
@@ -487,6 +603,19 @@ function escapeHtml(value) {
     '"': '&quot;',
     "'": '&#039;',
   })[match]);
+}
+
+function transactionSignature(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/\b\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?\b/g, ' ')
+    .replace(/\b\d{4}\b/g, ' ')
+    .replace(/\b\d+\b/g, ' ')
+    .replace(/[^A-Z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function debounce(fn, wait) {

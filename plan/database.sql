@@ -83,6 +83,12 @@ CREATE TABLE IF NOT EXISTS transactions (
   source_sheet VARCHAR(80) NULL,
   notes TEXT NULL,
   is_fixed TINYINT(1) NOT NULL DEFAULT 0,
+  source_key VARCHAR(160) NULL,
+  source_updated_at DATETIME NULL,
+  last_manual_edit_at DATETIME NULL,
+  last_imported_at DATETIME NULL,
+  last_change_source ENUM('manual','sheet') NOT NULL DEFAULT 'manual',
+  description_signature VARCHAR(255) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_transactions_due_status (due_date, status),
@@ -90,6 +96,58 @@ CREATE TABLE IF NOT EXISTS transactions (
   INDEX idx_transactions_account (account_id),
   CONSTRAINT fk_transactions_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
   CONSTRAINT fk_transactions_account FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS transaction_versions (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  transaction_id INT UNSIGNED NULL,
+  user_id INT UNSIGNED NULL,
+  action VARCHAR(40) NOT NULL,
+  source_mode VARCHAR(20) NOT NULL DEFAULT 'manual',
+  source_updated_at DATETIME NULL,
+  before_json JSON NULL,
+  after_json JSON NULL,
+  changes_json JSON NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_transaction_versions_transaction_date (transaction_id, created_at),
+  INDEX idx_transaction_versions_user_date (user_id, created_at),
+  CONSTRAINT fk_transaction_versions_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE SET NULL,
+  CONSTRAINT fk_transaction_versions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS transaction_import_conflicts (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  transaction_id INT UNSIGNED NULL,
+  import_key VARCHAR(160) NULL,
+  source_updated_at DATETIME NULL,
+  payload_json JSON NOT NULL,
+  current_json JSON NULL,
+  conflict_reason VARCHAR(255) NOT NULL,
+  resolution VARCHAR(32) NULL,
+  resolved_by INT UNSIGNED NULL,
+  resolved_at DATETIME NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_transaction_conflicts_transaction_date (transaction_id, created_at),
+  INDEX idx_transaction_conflicts_resolution (resolution, created_at),
+  CONSTRAINT fk_transaction_conflicts_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE SET NULL,
+  CONSTRAINT fk_transaction_conflicts_user FOREIGN KEY (resolved_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS transaction_category_rules (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  signature VARCHAR(255) NOT NULL,
+  example_description VARCHAR(220) NOT NULL,
+  category_id INT UNSIGNED NOT NULL,
+  created_from_transaction_id INT UNSIGNED NULL,
+  hit_count INT UNSIGNED NOT NULL DEFAULT 0,
+  last_matched_at DATETIME NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_transaction_rule_signature (signature),
+  INDEX idx_transaction_rule_category (category_id),
+  CONSTRAINT fk_transaction_rule_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
+  CONSTRAINT fk_transaction_rule_transaction FOREIGN KEY (created_from_transaction_id) REFERENCES transactions(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS budgets (
@@ -161,7 +219,7 @@ INSERT INTO transactions
 (type, amount, description, category_id, account_id, due_date, paid_at, status, owner, payment_code, source_sheet, notes, is_fixed)
 VALUES
 ('expense', 700.00, 'marketing Estudio', (SELECT id FROM categories WHERE name='Pessoal'), 1, '2026-03-10', '2026-03-10', 'paid', 'Daniel', NULL, 'Março - 2026', 'Importado da planilha; codigos de pagamento foram omitidos do seed publico.', 1),
-('expense', 1150.00, 'Mazinho', (SELECT id FROM categories WHERE name='Sem categoria'), 1, '2026-03-10', '2026-03-10', 'paid', 'Daniel', NULL, 'Março - 2026', NULL, 1),
+('expense', 1150.00, 'Mazinho', (SELECT id FROM categories WHERE name='Pessoal'), 1, '2026-03-10', '2026-03-10', 'paid', 'Daniel', NULL, 'Março - 2026', NULL, 1),
 ('expense', 301.51, 'Condominio', (SELECT id FROM categories WHERE name='Moradia'), 1, '2026-03-10', '2026-03-10', 'paid', 'Daniel', NULL, 'Março - 2026', NULL, 1),
 ('expense', 210.93, 'convenio dentista', (SELECT id FROM categories WHERE name='Saude'), 1, '2026-03-18', '2026-03-18', 'paid', NULL, NULL, 'Março - 2026', NULL, 1),
 ('expense', 1575.00, 'Apartamento', (SELECT id FROM categories WHERE name='Moradia'), 1, '2026-03-30', NULL, 'pending', NULL, NULL, 'Março - 2026', NULL, 1),
@@ -174,7 +232,7 @@ VALUES
 ('expense', 550.00, 'marketing Estudio', (SELECT id FROM categories WHERE name='Pessoal'), 1, '2026-05-10', '2026-05-10', 'paid', 'Daniel', NULL, 'Maio-2026', NULL, 1),
 ('expense', 292.92, 'Condominio', (SELECT id FROM categories WHERE name='Moradia'), 1, '2026-05-10', '2026-05-10', 'paid', NULL, NULL, 'Maio-2026', NULL, 1),
 ('expense', 784.72, 'Boleto Imposto de Renda', (SELECT id FROM categories WHERE name='Impostos'), 1, '2026-05-30', NULL, 'pending', NULL, NULL, 'Maio-2026', NULL, 0),
-('expense', 190.54, 'agua catende erika', (SELECT id FROM categories WHERE name='Pessoal'), 1, '2026-05-21', NULL, 'pending', NULL, NULL, 'Maio-2026', NULL, 0),
+('expense', 190.54, 'agua catende erika', (SELECT id FROM categories WHERE name='Moradia'), 1, '2026-05-21', NULL, 'pending', NULL, NULL, 'Maio-2026', NULL, 0),
 ('expense', 625.00, 'marketing Estudio', (SELECT id FROM categories WHERE name='Pessoal'), 1, '2026-06-10', '2026-06-10', 'paid', 'Daniel', NULL, 'Junho-2026', NULL, 1),
 ('expense', 210.93, 'convenio dente cod barra', (SELECT id FROM categories WHERE name='Saude'), 1, '2026-06-18', NULL, 'pending', NULL, NULL, 'Junho-2026', NULL, 1),
 ('expense', 1575.00, 'Apartamento', (SELECT id FROM categories WHERE name='Moradia'), 1, '2026-06-30', '2026-06-30', 'paid', NULL, NULL, 'Junho-2026', NULL, 1),
@@ -187,6 +245,26 @@ VALUES
 ('expense', 1575.00, 'Apartamento', (SELECT id FROM categories WHERE name='Moradia'), 1, '2026-07-30', NULL, 'pending', NULL, NULL, 'Julho-2026', NULL, 1),
 ('expense', 396.38, 'Boleto Imposto de Renda', (SELECT id FROM categories WHERE name='Impostos'), 1, '2026-07-30', '2026-07-30', 'paid', NULL, NULL, 'Julho-2026', NULL, 0),
 ('expense', 32.07, 'luz', (SELECT id FROM categories WHERE name='Moradia'), 1, '2026-08-06', '2026-08-06', 'paid', NULL, NULL, 'Julho-2026', NULL, 1);
+
+INSERT INTO transaction_category_rules (signature, example_description, category_id, hit_count, last_matched_at, is_active) VALUES
+('PIX ENVIADO FACEBOOK SERVICOS ONLINE', 'PIX ENVIADO FACEBOOK SERVICOS ONLINE', (SELECT id FROM categories WHERE name='Servicos'), 0, NOW(), 1),
+('DEBITO VISA ELECTRON BRASIL AUTO POSTO AGUIA SX', 'DEBITO VISA ELECTRON BRASIL 23/07 AUTO POSTO AGUIA SX', (SELECT id FROM categories WHERE name='Transporte'), 0, NOW(), 1),
+('MARKETING ESTUDIO', 'marketing Estudio', (SELECT id FROM categories WHERE name='Pessoal'), 4, NOW(), 1),
+('MAZINHO', 'Mazinho', (SELECT id FROM categories WHERE name='Pessoal'), 1, NOW(), 1),
+('CONDOMINIO', 'Condominio', (SELECT id FROM categories WHERE name='Moradia'), 2, NOW(), 1),
+('APARTAMENTO', 'Apartamento', (SELECT id FROM categories WHERE name='Moradia'), 3, NOW(), 1),
+('BOLETO IMPOSTO DE RENDA', 'Boleto Imposto de Renda', (SELECT id FROM categories WHERE name='Impostos'), 3, NOW(), 1),
+('FACULDADE MONITOR PIXCOPCOLA', 'faculdade monitor-pixcopcola', (SELECT id FROM categories WHERE name='Educacao'), 2, NOW(), 1),
+('PREVIDENCIA CAIXA', 'PREVIDENCIA CAIXA', (SELECT id FROM categories WHERE name='Investimentos'), 1, NOW(), 1),
+('VIVO PIXCOPICOLA', 'Vivo pixcopicola', (SELECT id FROM categories WHERE name='Moradia'), 1, NOW(), 1),
+('LUZ', 'luz', (SELECT id FROM categories WHERE name='Moradia'), 1, NOW(), 1),
+('AGUA CATENDE ERIKA', 'agua catende erika', (SELECT id FROM categories WHERE name='Moradia'), 1, NOW(), 1),
+('CONVENIO DENTISTA', 'convenio dentista', (SELECT id FROM categories WHERE name='Saude'), 1, NOW(), 1),
+('CONVENIO DENTISTA PIX COPIACOLA', 'convenio dentista-pix copiacola', (SELECT id FROM categories WHERE name='Saude'), 1, NOW(), 1),
+('CONVENIO DENTE COD BARRA', 'convenio dente cod barra', (SELECT id FROM categories WHERE name='Saude'), 1, NOW(), 1),
+('MARISA TERAPIA', 'Marisa Terapia', (SELECT id FROM categories WHERE name='Saude'), 1, NOW(), 1),
+('MARIANA TERAPIA', 'Mariana Terapia', (SELECT id FROM categories WHERE name='Saude'), 1, NOW(), 1)
+ON DUPLICATE KEY UPDATE category_id = VALUES(category_id), example_description = VALUES(example_description), is_active = VALUES(is_active), updated_at = NOW();
 
 INSERT INTO budgets (category_id, month, limit_amount) VALUES
 ((SELECT id FROM categories WHERE name='Moradia'), '2026-07', 2500.00),
