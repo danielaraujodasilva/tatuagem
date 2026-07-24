@@ -147,6 +147,12 @@ function bindNavigation() {
 function bindModals() {
   document.querySelectorAll('[data-open-modal]').forEach(button => {
     button.addEventListener('click', () => {
+      if (button.dataset.openModal === 'categoryModal') {
+        prepareCategoryForm();
+      }
+      if (button.dataset.openModal === 'budgetModal') {
+        prepareBudgetForm();
+      }
       if (button.dataset.openModal === 'accountModal') {
         prepareAccountForm();
       }
@@ -344,7 +350,20 @@ function renderStaticLists() {
 function renderCategories() {
   const target = document.querySelector('#categoriesList');
   if (!target) return;
-  target.innerHTML = state.categories.map(category => `<span class="chip" style="background:${category.color}">${escapeHtml(category.name)}</span>`).join('');
+  target.innerHTML = state.categories.map(category => `
+    <span class="chip editable-chip" style="background:${category.color}">
+      <span>${escapeHtml(category.name)}</span>
+      <button type="button" class="chip-btn" title="Editar categoria" data-category-edit="${category.id}">✎</button>
+      <button type="button" class="chip-btn" title="Excluir categoria" data-category-delete="${category.id}">×</button>
+    </span>
+  `).join('');
+
+  target.querySelectorAll('[data-category-edit]').forEach(button => {
+    button.addEventListener('click', () => editCategory(Number(button.dataset.categoryEdit)));
+  });
+  target.querySelectorAll('[data-category-delete]').forEach(button => {
+    button.addEventListener('click', () => deleteCategory(Number(button.dataset.categoryDelete)));
+  });
 }
 
 function renderBudgets() {
@@ -353,9 +372,20 @@ function renderBudgets() {
   target.innerHTML = state.budgets.map(item => `
     <div class="list-row">
       <div><strong>${escapeHtml(item.category_name)}</strong><small>${escapeHtml(item.month)}</small></div>
-      <span class="amount">${asMoney(item.limit_amount)}</span>
+      <div class="row-actions">
+        <span class="amount">${asMoney(item.limit_amount)}</span>
+        <button class="icon-btn" title="Editar orcamento" data-budget-edit="${item.id}">✎</button>
+        <button class="icon-btn" title="Excluir orcamento" data-budget-delete="${item.id}">×</button>
+      </div>
     </div>
   `).join('');
+
+  target.querySelectorAll('[data-budget-edit]').forEach(button => {
+    button.addEventListener('click', () => editBudget(Number(button.dataset.budgetEdit)));
+  });
+  target.querySelectorAll('[data-budget-delete]').forEach(button => {
+    button.addEventListener('click', () => deleteBudget(Number(button.dataset.budgetDelete)));
+  });
 }
 
 function renderGoals() {
@@ -381,6 +411,7 @@ function renderAccounts() {
         <span class="amount">${asMoney(account.balance ?? account.opening_balance)}</span>
         <button class="icon-btn" title="Historico" data-account-history="${account.id}">↺</button>
         <button class="icon-btn" title="Editar" data-account-edit="${account.id}">✎</button>
+        <button class="icon-btn" title="Excluir" data-account-delete="${account.id}">×</button>
       </div>
     </div>
   `).join('');
@@ -390,6 +421,9 @@ function renderAccounts() {
   });
   target.querySelectorAll('[data-account-history]').forEach(button => {
     button.addEventListener('click', () => openAccountHistory(Number(button.dataset.accountHistory)));
+  });
+  target.querySelectorAll('[data-account-delete]').forEach(button => {
+    button.addEventListener('click', () => deleteAccount(Number(button.dataset.accountDelete)));
   });
 }
 
@@ -436,6 +470,63 @@ function editTransaction(id) {
     else field.value = value ?? '';
   });
   document.querySelector('#transactionModal')?.showModal();
+}
+
+function editCategory(id) {
+  const category = state.categories.find(item => Number(item.id) === id);
+  if (!category) return;
+  prepareCategoryForm(category);
+  document.querySelector('#categoryModal')?.showModal();
+}
+
+function prepareCategoryForm(category = null) {
+  const form = document.querySelector('#categoryForm');
+  if (!form) return;
+  form.reset();
+  form.elements.id.value = category?.id || '';
+  form.elements.name.value = category?.name || '';
+  form.elements.color.value = category?.color || '#2563eb';
+  const title = document.querySelector('#categoryFormTitle');
+  if (title) {
+    title.textContent = category ? 'Editar categoria' : 'Nova categoria';
+  }
+}
+
+async function deleteCategory(id) {
+  const category = state.categories.find(item => Number(item.id) === id);
+  if (!category) return;
+  if (!confirm(`Excluir a categoria "${category.name}"? Os lancamentos vinculados ficarao sem categoria.`)) return;
+  await api('delete_category', { method: 'POST', body: { id } });
+  await reloadPlanningData();
+}
+
+function editBudget(id) {
+  const budget = state.budgets.find(item => Number(item.id) === id);
+  if (!budget) return;
+  prepareBudgetForm(budget);
+  document.querySelector('#budgetModal')?.showModal();
+}
+
+function prepareBudgetForm(budget = null) {
+  const form = document.querySelector('#budgetForm');
+  if (!form) return;
+  form.reset();
+  form.elements.id.value = budget?.id || '';
+  form.elements.month.value = budget?.month || form.elements.month.defaultValue;
+  form.elements.category_id.value = budget?.category_id || '';
+  form.elements.limit_amount.value = budget?.limit_amount ?? '';
+  const title = document.querySelector('#budgetFormTitle');
+  if (title) {
+    title.textContent = budget ? 'Editar orcamento' : 'Novo orcamento';
+  }
+}
+
+async function deleteBudget(id) {
+  const budget = state.budgets.find(item => Number(item.id) === id);
+  if (!budget) return;
+  if (!confirm(`Excluir o orcamento de ${budget.category_name} em ${budget.month}?`)) return;
+  await api('delete_budget', { method: 'POST', body: { id } });
+  await reloadPlanningData();
 }
 
 function shouldApplyTransactionCategoryRule(payload) {
@@ -563,6 +654,20 @@ function prepareAccountForm(account = null) {
   if (title) {
     title.textContent = account ? 'Editar conta' : 'Nova conta';
   }
+}
+
+async function deleteAccount(id) {
+  const account = state.accounts.find(item => Number(item.id) === id);
+  if (!account) return;
+  if (!confirm(`Excluir a conta "${account.name}"? Os lancamentos vinculados ficarao sem conta.`)) return;
+  await api('delete_account', { method: 'POST', body: { id } });
+  await reloadPlanningData();
+}
+
+async function reloadPlanningData() {
+  await loadBootstrap();
+  await loadAccountSummaries();
+  await loadTransactions();
 }
 
 async function openAccountHistory(id) {

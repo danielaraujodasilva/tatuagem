@@ -39,9 +39,12 @@ try {
         'delete_transaction' => delete_transaction(),
         'toggle_paid' => toggle_paid(),
         'save_category' => save_category(),
+        'delete_category' => delete_category(),
         'save_budget' => save_budget(),
+        'delete_budget' => delete_budget(),
         'save_goal' => save_goal(),
         'save_account' => save_account(),
+        'delete_account' => delete_account(),
         'import_accounts' => import_accounts(),
         'account_history' => account_history(),
         'resolve_account_conflict' => resolve_account_conflict(),
@@ -684,13 +687,84 @@ function save_category(): never
     json_response(['ok' => true, 'id' => $id]);
 }
 
+function delete_category(): never
+{
+    $id = (int)(json_input()['id'] ?? 0);
+    if ($id <= 0) {
+        json_response(['ok' => false, 'message' => 'Categoria invalida.'], 422);
+    }
+
+    $stmt = db()->prepare('SELECT name FROM categories WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    $name = (string)($stmt->fetchColumn() ?: '');
+    if ($name === '') {
+        json_response(['ok' => false, 'message' => 'Categoria nao encontrada.'], 404);
+    }
+    if (strtolower($name) === 'sem categoria') {
+        json_response(['ok' => false, 'message' => 'A categoria padrao nao pode ser excluida.'], 422);
+    }
+
+    db()->prepare('DELETE FROM categories WHERE id = ?')->execute([$id]);
+    audit('delete', 'category', $id, ['name' => $name]);
+    json_response(['ok' => true]);
+}
+
 function save_budget(): never
 {
     $input = json_input();
-    db()->prepare('INSERT INTO budgets (category_id, month, limit_amount)
-        VALUES (?, ?, ?)
-        ON DUPLICATE KEY UPDATE limit_amount = VALUES(limit_amount)')
-        ->execute([(int)$input['category_id'], (string)$input['month'], money_to_float($input['limit_amount'] ?? 0)]);
+    $id = (int)($input['id'] ?? 0);
+    $categoryId = (int)($input['category_id'] ?? 0);
+    $month = trim((string)($input['month'] ?? ''));
+    $limit = money_to_float($input['limit_amount'] ?? 0);
+
+    if ($categoryId <= 0 || !preg_match('/^\d{4}-\d{2}$/', $month)) {
+        json_response(['ok' => false, 'message' => 'Informe mes e categoria validos.'], 422);
+    }
+
+    $action = $id > 0 ? 'update' : 'create';
+    if ($id > 0) {
+        $duplicate = db()->prepare('SELECT id FROM budgets WHERE category_id = ? AND month = ? AND id <> ? LIMIT 1');
+        $duplicate->execute([$categoryId, $month, $id]);
+        if ($duplicate->fetchColumn()) {
+            json_response(['ok' => false, 'message' => 'Ja existe orcamento para esta categoria neste mes.'], 409);
+        }
+
+        db()->prepare('UPDATE budgets SET category_id = ?, month = ?, limit_amount = ? WHERE id = ?')
+            ->execute([$categoryId, $month, $limit, $id]);
+        if ((int)db()->query('SELECT ROW_COUNT()')->fetchColumn() === 0) {
+            $exists = db()->prepare('SELECT id FROM budgets WHERE id = ? LIMIT 1');
+            $exists->execute([$id]);
+            if (!$exists->fetchColumn()) {
+                json_response(['ok' => false, 'message' => 'Orcamento nao encontrado.'], 404);
+            }
+        }
+    } else {
+        db()->prepare('INSERT INTO budgets (category_id, month, limit_amount)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE limit_amount = VALUES(limit_amount)')
+            ->execute([$categoryId, $month, $limit]);
+        $stmt = db()->prepare('SELECT id FROM budgets WHERE category_id = ? AND month = ? LIMIT 1');
+        $stmt->execute([$categoryId, $month]);
+        $id = (int)$stmt->fetchColumn();
+    }
+
+    audit($action, 'budget', $id, [
+        'category_id' => $categoryId,
+        'month' => $month,
+        'limit_amount' => $limit,
+    ]);
+    json_response(['ok' => true, 'id' => $id]);
+}
+
+function delete_budget(): never
+{
+    $id = (int)(json_input()['id'] ?? 0);
+    if ($id <= 0) {
+        json_response(['ok' => false, 'message' => 'Orcamento invalido.'], 422);
+    }
+
+    db()->prepare('DELETE FROM budgets WHERE id = ?')->execute([$id]);
+    audit('delete', 'budget', $id);
     json_response(['ok' => true]);
 }
 
@@ -754,6 +828,23 @@ function save_account(): never
         audit('create', 'account', $id, account_snapshot($after ?: []));
     }
     json_response(['ok' => true, 'id' => $id]);
+}
+
+function delete_account(): never
+{
+    $id = (int)(json_input()['id'] ?? 0);
+    if ($id <= 0) {
+        json_response(['ok' => false, 'message' => 'Conta invalida.'], 422);
+    }
+
+    $account = fetch_account($id);
+    if (!$account) {
+        json_response(['ok' => false, 'message' => 'Conta nao encontrada.'], 404);
+    }
+
+    db()->prepare('DELETE FROM accounts WHERE id = ?')->execute([$id]);
+    audit('delete', 'account', $id, account_snapshot($account));
+    json_response(['ok' => true]);
 }
 
 function import_accounts(): never

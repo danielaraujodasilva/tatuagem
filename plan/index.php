@@ -266,7 +266,8 @@ $csrf = csrf_token();
 
     <dialog id="categoryModal" class="modal">
         <form id="categoryForm" method="dialog" class="form-grid compact">
-            <h2>Categoria</h2>
+            <input type="hidden" name="id">
+            <h2 id="categoryFormTitle">Nova categoria</h2>
             <label>Nome<input name="name" required></label>
             <label>Cor<input name="color" type="color" value="#2563eb"></label>
             <div class="modal-actions"><button type="button" class="ghost-btn" data-close>Cancelar</button><button class="primary-btn">Salvar</button></div>
@@ -275,7 +276,8 @@ $csrf = csrf_token();
 
     <dialog id="budgetModal" class="modal">
         <form id="budgetForm" method="dialog" class="form-grid compact">
-            <h2>Orcamento</h2>
+            <input type="hidden" name="id">
+            <h2 id="budgetFormTitle">Novo orcamento</h2>
             <label>Mes<input name="month" type="month" value="<?= date('Y-m') ?>" required></label>
             <label>Categoria<select name="category_id" data-categories required></select></label>
             <label>Limite<input name="limit_amount" inputmode="decimal" required></label>
