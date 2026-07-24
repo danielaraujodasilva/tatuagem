@@ -78,6 +78,7 @@ async function bootApp() {
   await loadBootstrap();
   await loadTransactions();
   await loadBankTransactions();
+  renderReconciliation();
 }
 
 function bindSheetImport() {
@@ -100,6 +101,7 @@ async function loadBootstrap() {
   renderSelects();
   renderStaticLists();
   renderOverview();
+  renderReconciliation();
 }
 
 async function loadBankTransactions() {
@@ -115,6 +117,7 @@ async function loadBankTransactions() {
   state.bankTransactions = payload.bankTransactions || [];
   state.bankOverview = payload.bankOverview || null;
   renderBanking();
+  renderReconciliation();
 }
 
 async function loadTransactions() {
@@ -132,17 +135,22 @@ async function loadTransactions() {
   state.overview = payload.overview;
   renderTransactions();
   renderOverview();
+  renderReconciliation();
 }
 
 function bindNavigation() {
   document.querySelectorAll('.nav-item').forEach(button => {
-    button.addEventListener('click', () => {
-      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-      document.querySelectorAll('.section').forEach(section => section.classList.remove('is-visible'));
-      button.classList.add('active');
-      document.querySelector(`#${button.dataset.section}`)?.classList.add('is-visible');
-    });
+    button.addEventListener('click', () => navigateToSection(button.dataset.section));
   });
+  document.querySelectorAll('[data-nav-target]').forEach(button => {
+    button.addEventListener('click', () => navigateToSection(button.dataset.navTarget));
+  });
+}
+
+function navigateToSection(sectionId) {
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.section === sectionId));
+  document.querySelectorAll('.section').forEach(section => section.classList.toggle('is-visible', section.id === sectionId));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function bindModals() {
@@ -221,9 +229,19 @@ function renderOverview() {
   setText('kpiPaid', asMoney(totals.paid));
   setText('kpiPending', asMoney(totals.pending));
   setText('balanceBadge', `Saldo ${asMoney(totals.balance)}`);
+  renderWorkflowStrip();
   renderUpcoming();
   renderCharts();
   renderBankingSummary();
+}
+
+function renderWorkflowStrip() {
+  const sheetRows = state.transactions.filter(row => row.source_sheet && row.source_sheet !== 'manual').length;
+  const bankRows = state.bankTransactions.length;
+  const unmatched = state.bankTransactions.filter(row => !row.matched_transaction_id).length;
+  setText('sheetFlowCount', `${sheetRows} lancamentos`);
+  setText('bankFlowCount', `${bankRows} movimentacoes`);
+  setText('matchFlowCount', `${unmatched} sem match`);
 }
 
 function renderUpcoming() {
@@ -275,10 +293,11 @@ function drawChart(id, type, data) {
 function renderTransactions() {
   const body = document.querySelector('#transactionsBody');
   if (!body) return;
-  body.innerHTML = state.transactions.map(row => `
+  body.innerHTML = state.transactions.length ? state.transactions.map(row => `
     <tr>
       <td>${formatDate(row.due_date)}</td>
-      <td><strong>${escapeHtml(row.description)}</strong><br><small>${escapeHtml(row.source_sheet || 'manual')} ${row.owner ? '· ' + escapeHtml(row.owner) : ''}</small></td>
+      <td><strong>${escapeHtml(row.description)}</strong><br><small>${row.payment_code ? escapeHtml(firstWords(row.payment_code, 6)) : 'Sem codigo de pagamento'} ${row.owner ? '· ' + escapeHtml(row.owner) : ''}</small></td>
+      <td>${originBadge(row)}<br><small>${row.reference_month ? escapeHtml(row.reference_month) : formatDate(row.due_date)}</small></td>
       <td><span class="tag" style="border-color:${row.category_color || '#dbe3ef'}">${escapeHtml(row.category_name || 'Sem categoria')}</span></td>
       <td><span class="status ${row.status}">${statusLabel(row.status)}</span></td>
       <td class="amount">${asMoney(row.amount)}</td>
@@ -290,7 +309,7 @@ function renderTransactions() {
         </div>
       </td>
     </tr>
-  `).join('');
+  `).join('') : '<tr><td colspan="7" class="empty-cell">Nenhum lancamento encontrado para os filtros atuais.</td></tr>';
 
   body.querySelectorAll('[data-toggle]').forEach(button => {
     button.addEventListener('click', async () => {
@@ -337,6 +356,7 @@ function renderBankingSummary() {
   setText('bankDebits', asMoney(debits));
   setText('bankMatched', String(matched));
   setText('bankLatestBalance', asMoney(latestBalance));
+  renderWorkflowStrip();
 }
 
 function renderBankFilter() {
@@ -359,7 +379,7 @@ function renderBankAccountSelect() {
 function renderBankTransactions() {
   const body = document.querySelector('#bankTransactionsBody');
   if (!body) return;
-  body.innerHTML = state.bankTransactions.map(row => `
+  body.innerHTML = state.bankTransactions.length ? state.bankTransactions.map(row => `
     <tr>
       <td><span class="bank-pill">${escapeHtml(row.bank_name)}</span></td>
       <td>${formatDate(row.transaction_date)}</td>
@@ -368,7 +388,111 @@ function renderBankTransactions() {
       <td>${row.matched_transaction_id ? `<span class="status paid">Conciliado</span><br><small>${escapeHtml(row.matched_description || '')}</small>` : '<span class="status pending">Sem match</span>'}</td>
       <td class="amount ${row.direction === 'credit' ? 'positive' : 'negative'}">${row.direction === 'credit' ? '+' : '-'} ${asMoney(row.amount)}</td>
     </tr>
+  `).join('') : '<tr><td colspan="6" class="empty-cell">Nenhuma movimentacao bancaria encontrada para os filtros atuais.</td></tr>';
+}
+
+function renderReconciliation() {
+  renderWorkflowStrip();
+  const sheetRows = state.transactions.filter(row => row.source_sheet && row.source_sheet !== 'manual');
+  const paidRows = sheetRows.filter(row => row.status === 'paid');
+  const pendingRows = sheetRows.filter(row => row.status === 'pending' || row.status === 'late');
+  const unmatchedBank = state.bankTransactions.filter(row => !row.matched_transaction_id);
+  const matchedBank = state.bankTransactions.filter(row => row.matched_transaction_id);
+
+  setText('reconSheetRows', String(sheetRows.length));
+  setText('reconPaidRows', String(paidRows.length));
+  setText('reconPendingRows', String(pendingRows.length));
+  setText('reconUnmatchedRows', String(unmatchedBank.length));
+
+  renderSourceBreakdown(sheetRows);
+  renderReviewQueue({ sheetRows, pendingRows, unmatchedBank, matchedBank });
+  renderUnmatchedBankList(unmatchedBank);
+}
+
+function renderSourceBreakdown(rows) {
+  const target = document.querySelector('#sourceBreakdown');
+  if (!target) return;
+  const grouped = rows.reduce((acc, row) => {
+    const key = row.source_sheet || 'Manual';
+    acc[key] ||= { count: 0, total: 0, paid: 0, pending: 0 };
+    acc[key].count += 1;
+    acc[key].total += Number(row.amount || 0);
+    if (row.status === 'paid') acc[key].paid += 1;
+    if (row.status === 'pending' || row.status === 'late') acc[key].pending += 1;
+    return acc;
+  }, {});
+  const entries = Object.entries(grouped).sort((a, b) => b[1].total - a[1].total);
+  target.innerHTML = entries.length ? entries.map(([source, item]) => `
+    <div class="source-row">
+      <div>
+        <strong>${escapeHtml(source)}</strong>
+        <small>${item.count} lancamentos · ${item.paid} pagos · ${item.pending} pendentes</small>
+      </div>
+      <span class="amount">${asMoney(item.total)}</span>
+    </div>
+  `).join('') : '<p class="muted">Importe a planilha para ver as abas aqui.</p>';
+}
+
+function renderReviewQueue({ pendingRows, unmatchedBank, matchedBank }) {
+  const target = document.querySelector('#reviewQueue');
+  if (!target) return;
+  const items = [
+    {
+      title: 'Contas pendentes da planilha',
+      meta: `${pendingRows.length} itens ainda aparecem como pendentes`,
+      amount: pendingRows.reduce((sum, row) => sum + Number(row.amount || 0), 0),
+      action: 'Abrir lancamentos',
+      section: 'transactions',
+      tone: 'warning',
+    },
+    {
+      title: 'Pagamentos encontrados no banco',
+      meta: `${matchedBank.length} movimentacoes ja bateram com lancamentos`,
+      amount: matchedBank.reduce((sum, row) => sum + Number(row.amount || 0), 0),
+      action: 'Abrir extratos',
+      section: 'banking',
+      tone: 'success',
+    },
+    {
+      title: 'Movimentacoes sem correspondencia',
+      meta: `${unmatchedBank.length} itens do extrato precisam de revisao`,
+      amount: unmatchedBank.reduce((sum, row) => sum + Number(row.amount || 0), 0),
+      action: 'Revisar agora',
+      section: 'banking',
+      tone: 'danger',
+    },
+  ];
+  target.innerHTML = items.map(item => `
+    <button class="review-row ${item.tone}" data-nav-target="${item.section}">
+      <div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.meta)}</small></div>
+      <span>${asMoney(item.amount)}</span>
+      <em>${escapeHtml(item.action)}</em>
+    </button>
   `).join('');
+  target.querySelectorAll('[data-nav-target]').forEach(button => {
+    button.addEventListener('click', () => navigateToSection(button.dataset.navTarget));
+  });
+}
+
+function renderUnmatchedBankList(rows) {
+  const target = document.querySelector('#unmatchedBankList');
+  if (!target) return;
+  target.innerHTML = rows.length ? rows.slice(0, 12).map(row => `
+    <div class="bank-match-row">
+      <span class="bank-pill">${escapeHtml(row.bank_name)}</span>
+      <div>
+        <strong>${escapeHtml(row.description)}</strong>
+        <small>${formatDate(row.transaction_date)} · ${escapeHtml(row.movement_type || row.source_file || '')}</small>
+      </div>
+      <span class="amount ${row.direction === 'credit' ? 'positive' : 'negative'}">${row.direction === 'credit' ? '+' : '-'} ${asMoney(row.amount)}</span>
+    </div>
+  `).join('') : '<p class="muted">Tudo que veio do extrato neste filtro ja foi conciliado ou ainda nao ha extrato importado.</p>';
+}
+
+function originBadge(row) {
+  const source = row.source_sheet && row.source_sheet !== 'manual' ? row.source_sheet : 'Manual';
+  const label = row.source_sheet && row.source_sheet !== 'manual' ? 'Planilha' : 'Manual';
+  return `<span class="source-badge">${label}</span> <small>${escapeHtml(source)}</small>`;
 }
 
 async function handleBankFiles(event) {
@@ -501,7 +625,7 @@ async function saveBankImport() {
       imported += Number(payload.imported || 0);
       matched += Number(payload.matched || 0);
     }
-    alert(`Importacao salva: ${imported} linhas, ${matched} conciliadas.`);
+    alert(`Importacao salva: ${imported} linhas, ${matched} conciliadas. Vou abrir a central de conciliacao para voce revisar o que ficou pendente.`);
     state.bankPreview = [];
     state.bankPreviewMeta = null;
     state.bankPreviewGroups = [];
@@ -509,6 +633,7 @@ async function saveBankImport() {
     await loadBootstrap();
     await loadTransactions();
     await loadBankTransactions();
+    navigateToSection('reconciliation');
   } finally {
     button.disabled = false;
     button.textContent = 'Salvar importacao';
@@ -583,6 +708,8 @@ async function handleSheetWorkbook(event) {
     status.textContent = `${payload.imported} lancamentos importados.`;
     await loadBootstrap();
     await loadTransactions();
+    await loadBankTransactions();
+    navigateToSection('reconciliation');
   } catch (error) {
     status.textContent = error.message;
     alert(error.message);
@@ -656,7 +783,7 @@ function referenceMonthFromSheet(sheetName) {
   };
   const monthName = Object.keys(months).find(name => normalized.includes(name));
   const month = months[monthName] || 1;
-  const explicitYear = normalized.match(/20\\d{2}/)?.[0];
+  const explicitYear = normalized.match(/20\d{2}/)?.[0];
   let year = explicitYear ? Number(explicitYear) : 2025;
   if (!explicitYear && ['dezembro'].includes(monthName || '') && normalized === 'dezembro') year = 2024;
   return `${year}-${String(month).padStart(2, '0')}`;

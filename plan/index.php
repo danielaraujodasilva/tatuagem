@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app.css?v=20260724-sheet-import">
+    <link rel="stylesheet" href="assets/app.css?v=20260724-workflow">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app.js?v=20260724-sheet-import" defer></script>
+    <script src="assets/app.js?v=20260724-workflow" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -61,6 +61,7 @@ $csrf = csrf_token();
             </a>
             <nav>
                 <button class="nav-item active" data-section="dashboard">Painel</button>
+                <button class="nav-item" data-section="reconciliation">Conciliacao</button>
                 <button class="nav-item" data-section="transactions">Lancamentos</button>
                 <button class="nav-item" data-section="banking">Extratos</button>
                 <button class="nav-item" data-section="planning">Planejamento</button>
@@ -88,6 +89,24 @@ $csrf = csrf_token();
                     <article class="metric-card danger"><span>Despesas</span><strong id="kpiExpenses">R$ 0,00</strong></article>
                     <article class="metric-card success"><span>Pago</span><strong id="kpiPaid">R$ 0,00</strong></article>
                     <article class="metric-card warning"><span>Falta pagar</span><strong id="kpiPending">R$ 0,00</strong></article>
+                </div>
+
+                <div class="workflow-strip">
+                    <button class="workflow-card" data-nav-target="transactions">
+                        <span>1. Planilha</span>
+                        <strong id="sheetFlowCount">0 lancamentos</strong>
+                        <small>Base de contas, vencimentos e categorias</small>
+                    </button>
+                    <button class="workflow-card" data-nav-target="banking">
+                        <span>2. Extratos</span>
+                        <strong id="bankFlowCount">0 movimentacoes</strong>
+                        <small>Pagamentos reais importados dos bancos</small>
+                    </button>
+                    <button class="workflow-card action" data-nav-target="reconciliation">
+                        <span>3. Conciliacao</span>
+                        <strong id="matchFlowCount">0 pendencias</strong>
+                        <small>Veja o que bateu e o que precisa revisar</small>
+                    </button>
                 </div>
 
                 <div class="dashboard-grid">
@@ -118,6 +137,51 @@ $csrf = csrf_token();
                             <button class="small-btn" data-open-modal="goalModal">Nova</button>
                         </div>
                         <div id="goalsList" class="stack-list"></div>
+                    </section>
+                </div>
+            </section>
+
+            <section class="section" id="reconciliation">
+                <div class="section-intro">
+                    <div>
+                        <p class="eyebrow">Depois da importacao</p>
+                        <h2>Central de uso dos dados</h2>
+                        <p>Aqui fica claro para onde cada importacao foi e qual e o proximo passo: revisar contas da planilha, conferir pagamentos encontrados no extrato e resolver itens sem conciliacao.</p>
+                    </div>
+                    <button class="primary-btn" data-nav-target="banking">Importar novo extrato</button>
+                </div>
+
+                <div class="kpi-grid compact-kpis">
+                    <article class="metric-card"><span>Da planilha neste mes</span><strong id="reconSheetRows">0</strong></article>
+                    <article class="metric-card success"><span>Pagos na planilha</span><strong id="reconPaidRows">0</strong></article>
+                    <article class="metric-card warning"><span>Pendentes na planilha</span><strong id="reconPendingRows">0</strong></article>
+                    <article class="metric-card danger"><span>Extrato sem match</span><strong id="reconUnmatchedRows">0</strong></article>
+                </div>
+
+                <div class="recon-grid">
+                    <section class="panel">
+                        <div class="panel-head">
+                            <h2>Origem dos lancamentos</h2>
+                            <span>Mes selecionado</span>
+                        </div>
+                        <div id="sourceBreakdown" class="source-list"></div>
+                    </section>
+                    <section class="panel">
+                        <div class="panel-head">
+                            <h2>Fila de revisao</h2>
+                            <span>Acao sugerida</span>
+                        </div>
+                        <div id="reviewQueue" class="stack-list"></div>
+                    </section>
+                    <section class="panel wide-panel">
+                        <div class="panel-head wrap">
+                            <div>
+                                <h2>Movimentacoes bancarias sem conciliacao</h2>
+                                <span>Use para descobrir pagamentos que ainda nao existem ou nao bateram com a planilha</span>
+                            </div>
+                            <button class="ghost-btn" data-nav-target="banking">Ver extratos</button>
+                        </div>
+                        <div id="unmatchedBankList" class="bank-match-list"></div>
                     </section>
                 </div>
             </section>
@@ -161,6 +225,7 @@ $csrf = csrf_token();
                                 <tr>
                                     <th>Vencimento</th>
                                     <th>Descricao</th>
+                                    <th>Origem</th>
                                     <th>Categoria</th>
                                     <th>Status</th>
                                     <th>Valor</th>
