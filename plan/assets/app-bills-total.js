@@ -372,6 +372,14 @@ function bindFilters() {
   ['movementDateFrom', 'movementDateTo', 'movementSearchInput', 'movementBankFilter', 'movementCategoryFilter', 'movementDirectionFilter', 'movementMatchFilter'].forEach(id => {
     document.querySelector(`#${id}`)?.addEventListener('input', debounce(loadBankTransactions, 250));
   });
+  document.querySelector('#clearMovementFilters')?.addEventListener('click', async () => {
+    syncMovementDatesFromMonth();
+    ['movementBankFilter', 'movementCategoryFilter', 'movementDirectionFilter', 'movementMatchFilter', 'movementSearchInput', 'bankFilter', 'bankSearchInput'].forEach(id => {
+      const input = document.querySelector(`#${id}`);
+      if (input) input.value = '';
+    });
+    await loadBankTransactions();
+  });
   ['bankSearchInput', 'bankFilter'].forEach(id => {
     document.querySelector(`#${id}`)?.addEventListener('input', debounce(() => {
       mirrorLegacyBankFilters(id);

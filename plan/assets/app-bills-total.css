@@ -394,6 +394,7 @@ td { vertical-align: middle; }
   gap: 10px;
   margin-bottom: 14px;
 }
+.movement-filters .secondary-btn { white-space: nowrap; }
 .bills-filters {
   display: grid;
   grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(150px, 1fr));
