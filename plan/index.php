@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260724-14">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260724-15">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260724-14" defer></script>
+    <script src="assets/app-bills-total.js?v=20260724-15" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -208,6 +208,7 @@ $csrf = csrf_token();
                     </select>
                     <input id="analysisSearchInput" placeholder="Buscar categoria, descricao, banco ou origem">
                     <div class="analysis-actions">
+                        <button type="button" class="primary-btn" id="copyAnalysisTable">Copiar para WhatsApp</button>
                         <button type="button" class="ghost-btn" data-pivot-toggle="open" data-pivot-scope="all">Abrir tudo</button>
                         <button type="button" class="ghost-btn" data-pivot-toggle="close" data-pivot-scope="all">Fechar tudo</button>
                     </div>

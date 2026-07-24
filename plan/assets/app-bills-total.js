@@ -17,6 +17,7 @@ const state = {
   charts: {},
   pendingShare: null,
   handledShareToken: '',
+  lastAnalysis: null,
 };
 
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -399,6 +400,7 @@ function bindFilters() {
     document.querySelector(`#${id}`)?.addEventListener('input', renderCategoryAnalysis);
   });
   bindCategoryFilter('analysis', renderCategoryAnalysis);
+  document.querySelector('#copyAnalysisTable')?.addEventListener('click', copyAnalysisTable);
   document.querySelectorAll('[data-pivot-toggle]').forEach(button => {
     button.addEventListener('click', () => setPivotOpenState(button.dataset.pivotScope, button.dataset.pivotToggle === 'open'));
   });
@@ -769,6 +771,22 @@ function renderCategoryAnalysis() {
   const expenseTotal = sumAmounts(expenses);
   const incomeTotal = sumAmounts(incomes);
   const topGroup = [...expenseGroups, ...incomeGroups].sort((a, b) => b.total - a.total)[0];
+  state.lastAnalysis = {
+    source,
+    directionFilter,
+    categoryId,
+    minAmount,
+    maxAmount,
+    groupSort,
+    rowSort,
+    query,
+    items,
+    expenseGroups,
+    incomeGroups,
+    expenseTotal,
+    incomeTotal,
+    topGroup,
+  };
 
   setText('analysisExpenseTotal', asMoney(expenseTotal));
   setText('analysisIncomeTotal', asMoney(incomeTotal));
@@ -778,6 +796,150 @@ function renderCategoryAnalysis() {
   setText('analysisIncomeCount', countLabel(incomeGroups.length, 'categoria', 'categorias'));
   renderCategoryPivot('expenseCategoryPivot', expenseGroups, expenseTotal, 'expense');
   renderCategoryPivot('incomeCategoryPivot', incomeGroups, incomeTotal, 'income');
+}
+
+async function copyAnalysisTable() {
+  if (!state.lastAnalysis) renderCategoryAnalysis();
+  const analysis = state.lastAnalysis;
+  const button = document.querySelector('#copyAnalysisTable');
+  if (!analysis || !analysis.items.length) {
+    flashButtonLabel(button, 'Nada para copiar');
+    return;
+  }
+  const text = buildAnalysisWhatsappTable(analysis);
+  try {
+    await copyTextToClipboard(text);
+    flashButtonLabel(button, 'Copiado');
+  } catch (error) {
+    flashButtonLabel(button, 'Selecionei o texto');
+    selectFallbackText(text);
+  }
+}
+
+function buildAnalysisWhatsappTable(analysis) {
+  const lines = [];
+  const groups = [
+    ...analysis.expenseGroups.map(group => ({ ...group, label: 'Gasto', grandTotal: analysis.expenseTotal })),
+    ...analysis.incomeGroups.map(group => ({ ...group, label: 'Ganho', grandTotal: analysis.incomeTotal })),
+  ];
+  lines.push('ANALISE FINANCEIRA');
+  lines.push(`Filtros: ${analysisFilterSummary()}`);
+  lines.push(`Gastos: ${asMoney(analysis.expenseTotal)} | Ganhos: ${asMoney(analysis.incomeTotal)} | Saldo: ${asMoney(analysis.incomeTotal - analysis.expenseTotal)}`);
+  lines.push('');
+  lines.push('RESUMO POR CATEGORIA');
+  lines.push(tableLine(['Tipo', 'Categoria', 'Subcategoria', 'Itens', 'Total', '%'], [7, 18, 18, 5, 14, 7]));
+  lines.push(tableDivider([7, 18, 18, 5, 14, 7]));
+  groups.forEach(group => {
+    if (group.hasSubcategories) {
+      group.subgroups.forEach(subgroup => {
+        lines.push(tableLine([
+          group.label,
+          group.category,
+          subgroup.category,
+          subgroup.rows.length,
+          asMoney(subgroup.total),
+          formatPercent(subgroup.total, group.grandTotal),
+        ], [7, 18, 18, 5, 14, 7]));
+      });
+      return;
+    }
+    lines.push(tableLine([
+      group.label,
+      group.category,
+      '-',
+      group.rows.length,
+      asMoney(group.total),
+      formatPercent(group.total, group.grandTotal),
+    ], [7, 18, 18, 5, 14, 7]));
+  });
+  lines.push('');
+  lines.push('LINHAS');
+  lines.push(tableLine(['Data', 'Tipo', 'Categoria', 'Descricao', 'Valor'], [10, 7, 24, 34, 14]));
+  lines.push(tableDivider([10, 7, 24, 34, 14]));
+  groups.forEach(group => {
+    const rows = group.hasSubcategories ? group.subgroups.flatMap(subgroup => (
+      subgroup.rows.map(row => ({ ...row, exportCategory: `${group.category} / ${subgroup.category}`, exportType: group.label }))
+    )) : group.rows.map(row => ({ ...row, exportCategory: group.category, exportType: group.label }));
+    rows.forEach(row => {
+      lines.push(tableLine([
+        formatDate(row.date),
+        row.exportType,
+        row.exportCategory,
+        row.description,
+        `${row.direction === 'income' ? '+' : '-'} ${asMoney(row.amount)}`,
+      ], [10, 7, 24, 34, 14]));
+    });
+  });
+  return '```' + lines.join('\n') + '```';
+}
+
+function analysisFilterSummary() {
+  const labels = [
+    selectLabel('analysisSourceFilter'),
+    selectLabel('analysisDirectionFilter'),
+    selectLabel('analysisCategoryParentFilter'),
+    selectLabel('analysisCategoryFilter'),
+  ].filter(label => label && !/^Todas /.test(label));
+  const min = document.querySelector('#analysisMinAmount')?.value;
+  const max = document.querySelector('#analysisMaxAmount')?.value;
+  const query = document.querySelector('#analysisSearchInput')?.value?.trim();
+  if (min) labels.push(`min ${min}`);
+  if (max) labels.push(`max ${max}`);
+  if (query) labels.push(`busca "${query}"`);
+  return labels.length ? labels.join(' | ') : 'sem filtros adicionais';
+}
+
+function selectLabel(id) {
+  const select = document.querySelector(`#${id}`);
+  if (!select || select.disabled || !select.value) return '';
+  return select.selectedOptions?.[0]?.textContent?.trim() || '';
+}
+
+function tableLine(values, widths) {
+  return values.map((value, index) => fitCell(value, widths[index])).join(' | ');
+}
+
+function tableDivider(widths) {
+  return widths.map(width => '-'.repeat(width)).join('-+-');
+}
+
+function fitCell(value, width) {
+  const text = String(value ?? '').replace(/\s+/g, ' ').trim();
+  const clean = text.length > width ? text.slice(0, Math.max(0, width - 3)) + '...' : text;
+  return clean.padEnd(width, ' ');
+}
+
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const textarea = selectFallbackText(text);
+  document.execCommand('copy');
+  textarea.remove();
+}
+
+function selectFallbackText(text) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', 'readonly');
+  textarea.style.position = 'fixed';
+  textarea.style.inset = '0 auto auto 0';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  return textarea;
+}
+
+function flashButtonLabel(button, label) {
+  if (!button) return;
+  const original = button.dataset.originalLabel || button.textContent;
+  button.dataset.originalLabel = original;
+  button.textContent = label;
+  window.clearTimeout(button._labelTimer);
+  button._labelTimer = window.setTimeout(() => {
+    button.textContent = original;
+  }, 1800);
 }
 
 function categoryFilterIds(selectedId) {
