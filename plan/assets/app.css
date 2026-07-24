@@ -181,6 +181,8 @@ nav { display: grid; gap: 8px; }
 .list-row strong { display: block; }
 .list-row small { color: var(--muted); }
 .amount { font-weight: 900; white-space: nowrap; }
+.amount.positive { color: var(--green); }
+.amount.negative { color: var(--red); }
 .status {
   display: inline-flex;
   align-items: center;
@@ -204,6 +206,41 @@ td { vertical-align: middle; }
 .icon-btn { width: 34px; height: 34px; border-radius: 8px; background: var(--surface-2); color: var(--text); }
 .chip-list { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip { padding: 8px 10px; border-radius: 999px; color: #fff; font-weight: 800; font-size: 12px; }
+.bank-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+.bank-hero h2 { font-size: clamp(24px, 4vw, 38px); margin: 0 0 10px; }
+.bank-hero p { color: var(--muted); line-height: 1.55; margin: 0; max-width: 760px; }
+.upload-zone {
+  min-height: 170px;
+  border: 1.5px dashed #93b4e8;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f8fbff, #edf5ff);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 20px;
+  color: var(--blue);
+}
+.upload-zone input { display: none; }
+.upload-zone strong { color: var(--ink); font-size: 18px; }
+.upload-zone span { color: var(--muted); font-weight: 700; max-width: 260px; }
+.bank-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: #e0ecff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 900;
+}
+.banking-kpis .metric-card strong { font-size: clamp(22px, 2.4vw, 30px); }
 .progress { height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-top: 8px; }
 .progress span { display: block; height: 100%; background: var(--blue); }
 
@@ -230,12 +267,14 @@ td { vertical-align: middle; }
 @media (max-width: 980px) {
   .login-shell, .app-shell { grid-template-columns: 1fr; }
   .login-panel { min-height: auto; border-left: 0; border-top: 1px solid var(--line); }
-  .sidebar { position: static; height: auto; flex-direction: row; align-items: center; overflow-x: auto; }
-  .sidebar nav { display: flex; }
+  .sidebar { position: sticky; top: 0; z-index: 20; height: auto; flex-direction: row; align-items: center; overflow-x: auto; padding: 12px; }
+  .sidebar nav { display: flex; gap: 6px; }
+  .nav-item, .logout { white-space: nowrap; padding: 10px 11px; }
   .logout { margin-top: 0; margin-left: auto; }
   .topbar { align-items: stretch; flex-direction: column; }
   .top-actions, .filters { flex-wrap: wrap; }
   .kpi-grid, .dashboard-grid, .split-grid { grid-template-columns: 1fr; }
+  .bank-hero { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {
@@ -244,4 +283,13 @@ td { vertical-align: middle; }
   .form-grid { grid-template-columns: 1fr; }
   .top-actions > * { width: 100%; }
   .top-actions input { width: 100%; }
+  .sidebar { align-items: flex-start; }
+  .logo strong { display: none; }
+  .filters, .top-actions { width: 100%; }
+  .filters > * { flex: 1 1 100%; }
+  .metric-card { min-height: 92px; }
+  .panel { padding: 13px; }
+  th, td { padding: 10px 8px; }
+  .bank-hero { padding: 14px; }
+  .upload-zone { min-height: 130px; }
 }

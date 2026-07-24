@@ -14,6 +14,7 @@ $csrf = csrf_token();
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="stylesheet" href="assets/app.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
         window.PLAN_BOOT = {
             authenticated: <?= $user ? 'true' : 'false' ?>,
@@ -61,6 +62,7 @@ $csrf = csrf_token();
             <nav>
                 <button class="nav-item active" data-section="dashboard">Painel</button>
                 <button class="nav-item" data-section="transactions">Lancamentos</button>
+                <button class="nav-item" data-section="banking">Extratos</button>
                 <button class="nav-item" data-section="planning">Planejamento</button>
                 <button class="nav-item" data-section="automation">Recorrencias</button>
             </nav>
@@ -157,6 +159,83 @@ $csrf = csrf_token();
                         </table>
                     </div>
                 </div>
+            </section>
+
+            <section class="section" id="banking">
+                <div class="bank-hero panel">
+                    <div>
+                        <p class="eyebrow">Importacao bancaria</p>
+                        <h2>Extratos PagBank e Santander no mesmo lugar</h2>
+                        <p>Suba arquivos `.xlsx` ou `.xls`, revise a pre-visualizacao e salve. O sistema identifica o banco, evita duplicados e tenta marcar lancamentos pendentes como pagos.</p>
+                    </div>
+                    <label class="upload-zone" id="bankUploadZone">
+                        <input id="bankFileInput" type="file" accept=".xlsx,.xls,.csv" multiple>
+                        <strong>Selecionar extratos</strong>
+                        <span>PagBank `.xlsx`, Santander `.xls` ou arquivos parecidos</span>
+                    </label>
+                </div>
+
+                <div class="kpi-grid banking-kpis">
+                    <article class="metric-card"><span>Entradas importadas</span><strong id="bankCredits">R$ 0,00</strong></article>
+                    <article class="metric-card danger"><span>Saidas importadas</span><strong id="bankDebits">R$ 0,00</strong></article>
+                    <article class="metric-card success"><span>Conciliados</span><strong id="bankMatched">0</strong></article>
+                    <article class="metric-card warning"><span>Ultimo saldo</span><strong id="bankLatestBalance">R$ 0,00</strong></article>
+                </div>
+
+                <section class="panel" id="bankPreviewPanel" hidden>
+                    <div class="panel-head wrap">
+                        <div>
+                            <h2>Previa da importacao</h2>
+                            <span id="bankPreviewSummary">0 movimentacoes</span>
+                        </div>
+                        <div class="filters">
+                            <select id="bankPreviewAccount"></select>
+                            <button class="ghost-btn" id="clearBankPreview">Limpar</button>
+                            <button class="primary-btn" id="saveBankImport">Salvar importacao</button>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Banco</th>
+                                    <th>Data</th>
+                                    <th>Descricao</th>
+                                    <th>Tipo</th>
+                                    <th>Direcao</th>
+                                    <th>Valor</th>
+                                    <th>Saldo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bankPreviewBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-head wrap">
+                        <h2>Movimentacoes bancarias</h2>
+                        <div class="filters">
+                            <input id="bankSearchInput" placeholder="Buscar no extrato">
+                            <select id="bankFilter"><option value="">Todos bancos</option></select>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Banco</th>
+                                    <th>Data</th>
+                                    <th>Descricao</th>
+                                    <th>Categoria</th>
+                                    <th>Status</th>
+                                    <th>Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bankTransactionsBody"></tbody>
+                        </table>
+                    </div>
+                </section>
             </section>
 
             <section class="section" id="planning">
