@@ -20,5 +20,6 @@
   {"id":"bp-2026-07-21-0750","date":"2026-07-21","time":"07:50","systolic":123,"diastolic":74,"pulse":73,"observacoes":""},
   {"id":"bp-2026-07-22","date":"2026-07-22","time":null,"systolic":118,"diastolic":80,"pulse":81,"observacoes":""},
   {"id":"bp-2026-07-23-1202","date":"2026-07-23","time":"12:02","systolic":125,"diastolic":77,"pulse":75,"observacoes":""},
-  {"id":"bp-2026-07-24-2244","date":"2026-07-24","time":"22:44","systolic":130,"diastolic":84,"pulse":72,"observacoes":"Medição feita quase no fim do dia."}
+  {"id":"bp-2026-07-24-2244","date":"2026-07-24","time":"22:44","systolic":130,"diastolic":84,"pulse":72,"observacoes":"Medição feita quase no fim do dia."},
+  {"id":"bp-2026-07-25-2050","date":"2026-07-25","time":"20:50","systolic":135,"diastolic":83,"pulse":73,"observacoes":"Medição relatada como alta novamente; contexto de pouco sono recente."}
 ]
