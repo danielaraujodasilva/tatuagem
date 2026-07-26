@@ -21,7 +21,17 @@ function db(): PDO
         }
     }
 
-    $dsn = "mysql:host={$config['host']};dbname={$config['database']};charset=utf8mb4";
+    $dsnParts = [
+        !empty($config['unix_socket']) ? "unix_socket={$config['unix_socket']}" : "host={$config['host']}",
+        "dbname={$config['database']}",
+        'charset=utf8mb4',
+    ];
+
+    if (empty($config['unix_socket']) && !empty($config['port'])) {
+        $dsnParts[] = "port={$config['port']}";
+    }
+
+    $dsn = 'mysql:' . implode(';', $dsnParts);
     $pdo = new PDO($dsn, $config['username'], $config['password'], [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,

@@ -56,7 +56,12 @@ try {
         default => json_response(['ok' => false, 'message' => 'Acao desconhecida.'], 404),
     };
 } catch (Throwable $e) {
-    json_response(['ok' => false, 'message' => 'Erro interno.', 'detail' => $e->getMessage()], 500);
+    global $config;
+    $payload = ['ok' => false, 'message' => 'Erro interno.'];
+    if (!empty($config['debug'])) {
+        $payload['detail'] = $e->getMessage();
+    }
+    json_response($payload, 500);
 }
 
 function bootstrap(array $user): never
