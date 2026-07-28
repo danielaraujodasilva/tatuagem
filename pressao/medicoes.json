@@ -22,5 +22,6 @@
   {"id":"bp-2026-07-23-1202","date":"2026-07-23","time":"12:02","systolic":125,"diastolic":77,"pulse":75,"observacoes":""},
   {"id":"bp-2026-07-24-2244","date":"2026-07-24","time":"22:44","systolic":130,"diastolic":84,"pulse":72,"observacoes":"Medição feita quase no fim do dia."},
   {"id":"bp-2026-07-25-2050","date":"2026-07-25","time":"20:50","systolic":135,"diastolic":83,"pulse":73,"observacoes":"Medição relatada como alta novamente; contexto de pouco sono recente."},
-  {"id":"bp-2026-07-26-2201","date":"2026-07-26","time":"22:01","systolic":153,"diastolic":91,"pulse":70,"observacoes":"Após duas noites mal dormidas sequenciais. Relatou uso de losartana pela manhã e à tarde, além de dois captopril no dia."}
+  {"id":"bp-2026-07-26-2201","date":"2026-07-26","time":"22:01","systolic":153,"diastolic":91,"pulse":70,"observacoes":"Após duas noites mal dormidas sequenciais. Relatou uso de losartana pela manhã e à tarde, além de dois captopril no dia."},
+  {"id":"bp-2026-07-27-2219","date":"2026-07-27","time":"22:19","systolic":124,"diastolic":86,"pulse":84,"observacoes":"Medição feita no fim do dia."}
 ]
