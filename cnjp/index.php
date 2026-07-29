@@ -1,187 +1,119 @@
-<!DOCTYPE html>
+<?php
+require __DIR__ . '/../plan/includes/bootstrap.php';
+$user = current_user();
+$csrf = csrf_token();
+?>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#0a0b0d">
-<title>CNJP | Roadmap de Reestruturação</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b0d10">
+<title>CNJP | Roadmap Vivo</title>
 <style>
-:root{--bg:#0a0b0d;--panel:#121419;--panel2:#171a20;--line:#292e38;--txt:#f4f6f8;--muted:#9aa3af;--accent:#d8b56b;--good:#76c893;--warn:#e9b949;--bad:#e07a7a;--max:1080px}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:linear-gradient(180deg,#08090b,#0d0f13 45%,#090a0c);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.6}a{color:inherit}.wrap{width:min(var(--max),calc(100% - 28px));margin:auto}.top{position:sticky;top:0;z-index:10;background:rgba(10,11,13,.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}.topin{min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{font-weight:900;letter-spacing:.12em}.brand span{color:var(--accent)}.mini{font-size:12px;color:var(--muted)}.hero{padding:64px 0 34px}.eyebrow{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}h1{font-size:clamp(38px,7vw,72px);line-height:.95;margin:10px 0 18px;letter-spacing:-.04em}.lead{font-size:clamp(17px,2.2vw,22px);max-width:800px;color:#c6ccd5}.rule{margin-top:24px;padding:16px 18px;border-left:3px solid var(--accent);background:#111318;color:#d9dee5}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:28px 0}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}.card b{display:block;font-size:14px;color:var(--accent);margin-bottom:5px}.card strong{font-size:28px}.card p{margin:6px 0 0;color:var(--muted);font-size:13px}.section{padding:22px 0}.section h2{font-size:27px;margin:0 0 8px}.section>p{color:var(--muted);margin-top:0}.now{border:1px solid rgba(216,181,107,.45);background:linear-gradient(135deg,rgba(216,181,107,.12),rgba(18,20,25,.6));border-radius:18px;padding:22px;margin:12px 0 28px}.now h2{margin:0 0 6px}.now p{margin:0;color:#ccd2da}.steps{display:grid;gap:10px}.step{display:flex;gap:12px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);padding:14px 16px;border-radius:12px}.step input{margin-top:5px;accent-color:var(--accent);transform:scale(1.2)}.step label{cursor:pointer}.step small{display:block;color:var(--muted);margin-top:3px}.step.done{opacity:.55}.step.done label{text-decoration:line-through}.progress{height:10px;border-radius:999px;background:#191d23;overflow:hidden;border:1px solid var(--line);margin:15px 0 8px}.progress>div{height:100%;width:0;background:linear-gradient(90deg,#b88b3f,var(--accent));transition:.25s}.progressText{font-size:12px;color:var(--muted)}details{background:var(--panel);border:1px solid var(--line);border-radius:14px;margin:10px 0;overflow:hidden}summary{list-style:none;cursor:pointer;padding:17px 52px 17px 18px;font-weight:850;position:relative}summary::-webkit-details-marker{display:none}summary:after{content:'+';position:absolute;right:18px;top:13px;font-size:26px;color:var(--accent)}details[open] summary:after{content:'–'}details[open] summary{border-bottom:1px solid var(--line);background:#15181e}.inside{padding:18px}.inside h3{margin:18px 0 6px;font-size:18px}.inside h3:first-child{margin-top:0}.inside p{color:#c2c8d0}.inside ul{margin:8px 0 14px;padding-left:22px}.inside li{margin:6px 0}.tag{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px 9px;font-size:11px;color:var(--muted);margin:2px}.tag.good{color:var(--good);border-color:rgba(118,200,147,.35)}.tag.warn{color:var(--warn);border-color:rgba(233,185,73,.35)}.tag.bad{color:var(--bad);border-color:rgba(224,122,122,.35)}.tree{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;background:#090a0d;border:1px solid var(--line);padding:16px;border-radius:10px;color:#d9dee5;overflow:auto}.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}.box{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:14px}.box h4{margin:0 0 6px;color:var(--accent)}.box p{margin:0;color:var(--muted);font-size:13px}.matrix{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.idea{background:#101216;border:1px solid var(--line);border-radius:10px;padding:12px}.idea b{display:block}.idea span{font-size:12px;color:var(--muted)}.callout{padding:14px;border-radius:10px;background:#19150d;border:1px solid rgba(216,181,107,.28);color:#e3dac8}.danger{background:#1b1012;border-color:rgba(224,122,122,.25);color:#e7c9c9}.notes textarea{width:100%;min-height:180px;resize:vertical;background:#0b0d10;color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:14px;font:inherit}.notes small{color:var(--muted)}.footer{margin-top:38px;border-top:1px solid var(--line);padding:30px 0 50px;color:var(--muted);font-size:13px}.pill{display:inline-block;background:rgba(216,181,107,.12);color:var(--accent);padding:5px 9px;border-radius:999px;font-size:11px;font-weight:800;margin-bottom:8px}.phaseTitle{display:flex;align-items:center;gap:10px}.n{width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:var(--accent);color:#111;font-weight:900;flex:0 0 auto}@media(max-width:760px){.grid,.cols,.matrix{grid-template-columns:1fr}.hero{padding-top:42px}.topin{min-height:56px}h1{font-size:44px}.card strong{font-size:23px}}
+:root{--bg:#090b0e;--panel:#11141a;--panel2:#171b22;--line:#292f3a;--text:#f2f5f7;--muted:#99a3b0;--gold:#d8b56b;--green:#79c995;--yellow:#e6b84c;--red:#df7c7c;--blue:#73a9e6;--max:1180px}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 80% 0,rgba(216,181,107,.09),transparent 25%),linear-gradient(180deg,#08090c,#0c0f13 45%,#080a0d);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.55}button,input,select,textarea{font:inherit}.wrap{width:min(var(--max),calc(100% - 28px));margin:auto}.top{position:sticky;top:0;z-index:30;background:rgba(9,11,14,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}.topin{min-height:66px;display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{font-weight:950;letter-spacing:.12em}.brand span{color:var(--gold)}.user{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px}.user a{color:var(--gold);text-decoration:none}.hero{padding:58px 0 24px}.eyebrow{color:var(--gold);font-size:12px;text-transform:uppercase;letter-spacing:.16em;font-weight:850}.hero h1{font-size:clamp(38px,7vw,72px);line-height:.95;letter-spacing:-.045em;margin:10px 0 16px}.lead{max-width:820px;color:#c6ccd4;font-size:clamp(17px,2vw,21px)}.principle{margin-top:22px;padding:15px 18px;border-left:3px solid var(--gold);background:#11141a;color:#d8dde4}.overview{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:28px 0}.stat{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:17px}.stat b{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.stat strong{display:block;font-size:29px;margin-top:4px}.progress{height:10px;border-radius:999px;background:#1a1e25;overflow:hidden;margin-top:9px}.progress i{display:block;height:100%;background:linear-gradient(90deg,#b58d46,var(--gold));width:0;transition:.25s}.toolbar{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 26px}.btn{border:1px solid var(--line);background:#151922;color:var(--text);border-radius:10px;padding:11px 14px;font-weight:800;cursor:pointer}.btn:hover{border-color:#4a5362}.btn.primary{background:var(--gold);border-color:var(--gold);color:#15120b}.btn.small{padding:7px 10px;font-size:12px}.section-title{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:34px 0 12px}.section-title h2{margin:0;font-size:26px}.section-title p{margin:4px 0 0;color:var(--muted);font-size:14px}.phase{margin:12px 0;border:1px solid var(--line);background:var(--panel);border-radius:16px;overflow:hidden}.phase>summary{cursor:pointer;list-style:none;padding:18px 56px 18px 18px;position:relative}.phase>summary::-webkit-details-marker{display:none}.phase>summary:after{content:'+';position:absolute;right:18px;top:9px;color:var(--gold);font-size:32px}.phase[open]>summary:after{content:'–'}.phase[open]>summary{border-bottom:1px solid var(--line)}.phase-head{display:flex;align-items:center;gap:12px}.phase-n{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:var(--gold);color:#111;font-weight:950}.phase-head strong{font-size:18px}.phase-head small{display:block;color:var(--muted);margin-top:2px}.tasks{padding:12px}.task{border:1px solid var(--line);background:#0e1116;border-radius:13px;margin:10px 0;overflow:hidden}.task>summary{cursor:pointer;list-style:none;padding:15px 48px 15px 15px;position:relative}.task>summary::-webkit-details-marker{display:none}.task>summary:after{content:'›';position:absolute;right:18px;top:10px;font-size:25px;color:var(--muted);transform:rotate(90deg)}.task[open]>summary:after{transform:rotate(-90deg)}.task-title{display:flex;align-items:center;gap:10px}.status-dot{width:10px;height:10px;border-radius:50%;background:#57606c;flex:0 0 auto}.task[data-status=doing] .status-dot{background:var(--blue)}.task[data-status=done] .status-dot{background:var(--green)}.task[data-status=blocked] .status-dot{background:var(--red)}.task-title b{font-size:15px}.task-title span{margin-left:auto;color:var(--muted);font-size:11px}.task-body{padding:16px;border-top:1px solid var(--line)}.explain{color:#c8ced6;margin-top:0}.question{background:#171b22;border-left:3px solid var(--gold);padding:12px 14px;margin:14px 0}.field{margin:13px 0}.field label{display:block;font-weight:800;font-size:13px;margin-bottom:6px}.field textarea,.field input,.field select{width:100%;background:#0a0c10;border:1px solid var(--line);border-radius:9px;color:var(--text);padding:11px}.field textarea{min-height:130px;resize:vertical}.row{display:grid;grid-template-columns:200px 1fr;gap:12px}.savebar{display:flex;align-items:center;gap:10px;justify-content:flex-end}.saved{font-size:12px;color:var(--muted)}.status-todo{color:var(--muted)}.status-doing{color:var(--blue)}.status-done{color:var(--green)}.status-blocked{color:var(--red)}.panel{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:17px;margin:12px 0}.panel h3{margin:0 0 6px}.panel p{margin-top:0;color:var(--muted)}.panel textarea{width:100%;min-height:170px;background:#0a0c10;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px;resize:vertical}.decision-form{display:grid;grid-template-columns:1fr 180px auto;gap:10px;margin-top:12px}.decision-form input,.decision-form select{background:#0a0c10;border:1px solid var(--line);border-radius:9px;color:var(--text);padding:10px}.decision-list{display:grid;gap:8px;margin-top:12px}.decision{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start;background:#0e1116;border:1px solid var(--line);border-radius:10px;padding:12px}.decision small{color:var(--muted)}.tag{display:inline-flex;padding:3px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line);margin-left:6px}.tag.decided{color:var(--green)}.tag.open{color:var(--yellow)}.tag.discarded{color:var(--red)}.roadmap{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;background:#080a0d;border:1px solid var(--line);padding:16px;border-radius:11px;color:#dce1e6}.toast{position:fixed;right:18px;bottom:18px;background:#171b22;border:1px solid var(--line);padding:12px 15px;border-radius:10px;box-shadow:0 16px 40px #0008;display:none;z-index:50}.login-shell{min-height:100vh;display:grid;place-items:center;padding:22px}.login{width:min(450px,100%);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px}.login h1{margin:0 0 8px}.login p{color:var(--muted)}.login label{display:block;margin:12px 0 5px;font-weight:800}.login input{width:100%;background:#0a0c10;border:1px solid var(--line);border-radius:9px;padding:12px;color:var(--text)}.login button{width:100%;margin-top:16px}.message{min-height:20px;color:var(--red);font-size:13px}.footer{padding:40px 0 60px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);margin-top:38px}@media(max-width:800px){.overview{grid-template-columns:1fr 1fr}.row,.decision-form{grid-template-columns:1fr}.user span{display:none}.hero{padding-top:40px}.task-title span{display:none}}@media(max-width:480px){.overview{grid-template-columns:1fr}.wrap{width:min(var(--max),calc(100% - 18px))}.hero h1{font-size:42px}}
 </style>
 </head>
 <body>
-<header class="top"><div class="wrap topin"><div class="brand">CNJP <span>ROADMAP</span></div><div class="mini">Documento vivo • versão inicial</div></div></header>
+<?php if(!$user): ?>
+<main class="login-shell">
+  <section class="login">
+    <div class="eyebrow">CNJP • area privada</div>
+    <h1>Entrar</h1>
+    <p>Use o mesmo login do Plan Financeiro. Uma senha a menos para a humanidade esquecer.</p>
+    <form id="loginForm">
+      <label>E-mail</label><input type="email" name="email" autocomplete="email" required>
+      <label>Senha</label><input type="password" name="password" autocomplete="current-password" required>
+      <button class="btn primary" type="submit">Acessar roadmap</button>
+      <div class="message" id="loginMessage"></div>
+    </form>
+  </section>
+</main>
+<script>
+const CSRF=<?=json_encode($csrf)?>;
+document.getElementById('loginForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget);const r=await fetch('api.php?action=login',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF},body:JSON.stringify(Object.fromEntries(f))});const j=await r.json();if(j.ok)location.reload();else document.getElementById('loginMessage').textContent=j.message||'Falha ao entrar.'});
+</script>
+<?php else: ?>
+<header class="top"><div class="wrap topin"><div class="brand">CNJP <span>ROADMAP</span></div><div class="user"><span><?=htmlspecialchars($user['name'] ?? $user['email'])?></span><a href="../plan/logout.php">Sair</a></div></div></header>
 <main class="wrap">
 <section class="hero">
-<div class="eyebrow">Reestruturação da empresa</div>
-<h1>Primeiro entender.<br>Depois organizar.<br>Só então vender.</h1>
-<p class="lead">Esta página é o mapa da CNJP. A ideia é tirar tudo da cabeça, organizar por níveis e construir a empresa sem tentar resolver cinquenta coisas ao mesmo tempo.</p>
-<div class="rule"><strong>Regra principal:</strong> não começar por anúncio, site novo ou campanha. Primeiro definimos exatamente o que a empresa é, o que pode vender, como entrega e quem faz cada parte.</div>
-<div class="grid">
-<div class="card"><b>OBJETIVO AGORA</b><strong>Mapear</strong><p>Descobrir capacidades, serviços, limites e oportunidades.</p></div>
-<div class="card"><b>DEPOIS</b><strong>Empacotar</strong><p>Transformar dezenas de possibilidades em poucos produtos fáceis de entender.</p></div>
-<div class="card"><b>SÓ ENTÃO</b><strong>Vender</strong><p>Site, campanhas, prospecção, parceiros e automações.</p></div>
-</div>
+  <div class="eyebrow">Documento vivo da empresa</div>
+  <h1>Entender → organizar → executar.</h1>
+  <p class="lead">Este é o nosso roteiro de trabalho. Cada bloco explica o que precisa ser decidido, guarda a resposta de vocês e registra o estágio atual para a conversa nunca voltar à estaca zero.</p>
+  <div class="principle"><strong>Regra:</strong> abrir apenas o nível que estamos trabalhando. Ideias futuras entram no estacionamento, não viram urgência só porque parecem brilhantes às 23h47.</div>
+  <div class="overview">
+    <div class="stat"><b>Progresso total</b><strong id="progressNumber">0%</strong><div class="progress"><i id="progressBar"></i></div></div>
+    <div class="stat"><b>Concluídas</b><strong id="doneCount">0</strong></div>
+    <div class="stat"><b>Em andamento</b><strong id="doingCount">0</strong></div>
+    <div class="stat"><b>Bloqueadas</b><strong id="blockedCount">0</strong></div>
+  </div>
+  <div class="toolbar"><button class="btn primary" id="copySummary">Copiar resumo para o ChatGPT</button><button class="btn" id="openCurrent">Abrir fase atual</button><button class="btn" id="openAll">Abrir tudo</button><button class="btn" id="closeAll">Fechar tudo</button></div>
 </section>
 
-<section class="now">
-<h2>📍 Onde estamos agora</h2>
-<p><strong>Fase 1: inventário da CNJP.</strong> Ainda não estamos decidindo nomes bonitos nem preços. Estamos descobrindo tudo que existe dentro dessa empresa e o que vale a pena transformar em negócio.</p>
-<div class="progress"><div id="bar"></div></div><div class="progressText" id="progressText">0% concluído</div>
+<section>
+  <div class="section-title"><div><h2>Roadmap</h2><p>As tarefas abaixo sao gravadas no banco. Status, respostas e observacoes ficam registradas entre acessos.</p></div></div>
+  <div id="phases"></div>
 </section>
 
-<section class="section">
-<h2>Checklist imediato</h2><p>Faça isso primeiro. O resto pode esperar educadamente.</p>
-<div class="steps" id="checklist">
-<div class="step"><input type="checkbox" id="c1"><label for="c1"><strong>Levantar o cartão CNPJ e todos os CNAEs atuais</strong><small>Separar o que pertence à Fran, o que pertence à tecnologia e o que existe apenas por conveniência cadastral.</small></label></div>
-<div class="step"><input type="checkbox" id="c2"><label for="c2"><strong>Listar formação, certificados e habilitações da Fran</strong><small>Mediação, conciliação, arbitragem, cursos, registros, experiência e qualquer habilitação formal.</small></label></div>
-<div class="step"><input type="checkbox" id="c3"><label for="c3"><strong>Listar tudo que a CNJP já fez de verdade</strong><small>Casos atendidos, documentos produzidos, acordos, clientes, parceiros e serviços vendidos anteriormente.</small></label></div>
-<div class="step"><input type="checkbox" id="c4"><label for="c4"><strong>Listar os serviços de tecnologia que Daniel consegue entregar hoje</strong><small>Automação, CRM, WhatsApp, IA, sites, sistemas, integrações, infraestrutura e suporte.</small></label></div>
-<div class="step"><input type="checkbox" id="c5"><label for="c5"><strong>Mapear parceiros já disponíveis</strong><small>Advogados, contadores, corretores, engenheiros, peritos, despachantes e outros profissionais.</small></label></div>
-<div class="step"><input type="checkbox" id="c6"><label for="c6"><strong>Revisar juridicamente o que pode e o que não pode ser ofertado</strong><small>Antes de publicar qualquer novo serviço regulado, validar enquadramento, publicidade, habilitações e necessidade de profissional parceiro.</small></label></div>
-</div>
+<section>
+  <div class="section-title"><div><h2>Decisoes e pendencias</h2><p>Use para registrar coisas que precisam ser decididas sem poluir as tarefas.</p></div></div>
+  <div class="panel">
+    <form id="decisionForm" class="decision-form"><input id="decisionTitle" placeholder="Ex.: CNJP Tech tera marca separada"><select id="decisionStatus"><option value="open">Em aberto</option><option value="decided">Decidido</option><option value="discarded">Descartado</option></select><button class="btn primary" type="submit">Registrar</button></form>
+    <div class="decision-list" id="decisionList"></div>
+  </div>
 </section>
 
-<section class="section">
-<h2>Visão da empresa</h2><p>Abra só quando quiser enxergar o mapa maior.</p>
-<details open><summary>Estrutura geral imaginada</summary><div class="inside"><div class="tree">CNJP
-│
-├── JUSTIÇA PRIVADA / SOLUÇÕES EXTRAJUDICIAIS
-│   ├── CNJP Resolve .......... pessoa física
-│   ├── CNJP Empresas ......... conflitos e soluções B2B
-│   ├── CNJP Arbitragem ....... controvérsias patrimoniais/contratuais
-│   └── CNJP Extrajudicial .... documentação, regularização e parceiros
-│
-└── CNJP TECH
-    ├── Automação empresarial
-    ├── Sistemas sob medida
-    ├── CRM e atendimento
-    ├── WhatsApp + IA
-    ├── Sites e integrações
-    └── Infraestrutura digital</div><p><strong>Tatuagem fica fora da marca comercial.</strong> O CNAE pode até existir no CNPJ, mas misturar estúdio, arbitragem e tatuagem na comunicação seria uma bela salada radioativa.</p></div></details>
-<details><summary>Princípio de posicionamento</summary><div class="inside"><h3>CNJP</h3><p>Não deve parecer uma lista aleatória de serviços. Deve parecer uma empresa que <strong>resolve problemas e organiza processos</strong>.</p><h3>CNJP Tech</h3><p>Não vender “programação”. Vender resultado: reduzir trabalho manual, organizar atendimento, recuperar oportunidades, automatizar processos e criar sistemas úteis para empresas.</p></div></details>
+<section>
+  <div class="section-title"><div><h2>Estacionamento de ideias</h2><p>Coisas boas que nao devemos executar agora. O cemiterio de prioridades agradece.</p></div></div>
+  <div class="panel"><textarea id="parking" placeholder="Ex.: planos B2B recorrentes, CNJP Tech, arbitragem contratual, rede de parceiros..."></textarea><div class="savebar"><span class="saved" id="parkingSaved"></span><button class="btn small" data-save-note="parking">Salvar ideias</button></div></div>
 </section>
 
-<section class="section">
-<h2>Roadmap completo</h2><p>Cada fase só precisa ser aprofundada quando chegar a hora.</p>
+<section>
+  <div class="section-title"><div><h2>Mapa geral</h2><p>Visao curta para lembrar por que cada fase existe.</p></div></div>
+  <div class="roadmap">FASE 1 — INVENTÁRIO
+Descobrir o que já existe, quem sabe fazer o quê e quais ativos temos.
 
-<details open><summary><span class="phaseTitle"><span class="n">1</span> Inventário: descobrir o que temos</span></summary><div class="inside">
-<h3>Objetivo</h3><p>Construir uma fotografia real da CNJP hoje.</p>
-<div class="cols"><div class="box"><h4>Fran</h4><p>Formação, habilitações, experiência, serviços já executados, rede profissional e atividades que deseja exercer.</p></div><div class="box"><h4>Daniel / Tech</h4><p>Competências técnicas, sistemas já criados, infraestrutura, automações, produtos reutilizáveis e capacidade mensal.</p></div></div>
-<h3>Saída desta fase</h3><ul><li>Lista de CNAEs.</li><li>Lista de competências reais.</li><li>Lista de serviços já executados.</li><li>Lista de parceiros.</li><li>Lista de limitações legais e operacionais.</li></ul>
-<span class="tag good">FAZER AGORA</span>
-</div></details>
+FASE 2 — POSSIBILIDADES
+Levantar serviços, limites e problemas reais de clientes.
 
-<details><summary><span class="phaseTitle"><span class="n">2</span> Catálogo bruto: listar todas as oportunidades</span></summary><div class="inside">
-<p>Nesta fase não filtramos demais. Criamos um catálogo enorme e depois cortamos.</p>
-<h3>Possíveis famílias de soluções</h3>
-<div class="matrix">
-<div class="idea"><b>Mediação e conciliação</b><span>Acordos, conflitos familiares, patrimoniais, empresariais e negociações.</span></div>
-<div class="idea"><b>Arbitragem</b><span>Controvérsias enquadráveis, especialmente empresariais e patrimoniais.</span></div>
-<div class="idea"><b>Empresas</b><span>Inadimplência, fornecedores, clientes, contratos e conflitos recorrentes.</span></div>
-<div class="idea"><b>Imobiliário</b><span>Locação, compra e venda, documentação, conflitos e regularizações com parceiros.</span></div>
-<div class="idea"><b>Família</b><span>Mediação familiar e preparação de consensos, respeitando os limites legais de cada caso.</span></div>
-<div class="idea"><b>Extrajudicial</b><span>Notificações, organização documental, encaminhamentos e acompanhamento de procedimentos.</span></div>
-<div class="idea"><b>Tech</b><span>Automação, CRM, WhatsApp, IA, sistemas, sites, infraestrutura e integrações.</span></div>
-<div class="idea"><b>Parcerias B2B</b><span>Serviços para escritórios, clínicas, imobiliárias, escolas, condomínios e empresas.</span></div>
-</div>
-<h3>Saída desta fase</h3><p>Um inventário de talvez 30, 50 ou mais possibilidades. Ainda não é o menu do site.</p><span class="tag warn">DEPOIS DO INVENTÁRIO</span>
-</div></details>
+FASE 3 — PRODUTOS
+Reduzir dezenas de possibilidades para poucos produtos claros e vendáveis.
 
-<details><summary><span class="phaseTitle"><span class="n">3</span> Produtos: transformar serviços em coisas fáceis de comprar</span></summary><div class="inside">
-<p>O cliente não compra “procedimento autocompositivo”. Compra uma solução para um problema que está enchendo o saco dele.</p>
-<h3>Formato de cada produto</h3><ul><li><strong>Problema:</strong> o que aconteceu com o cliente?</li><li><strong>Promessa:</strong> o que tentaremos resolver?</li><li><strong>Entrada:</strong> quais dados/documentos precisamos?</li><li><strong>Processo:</strong> quais etapas acontecem?</li><li><strong>Saída:</strong> o que o cliente recebe?</li><li><strong>Responsável:</strong> Fran, Daniel, parceiro ou equipe?</li><li><strong>Preço:</strong> avulso, pacote, mensalidade ou êxito quando juridicamente cabível?</li></ul>
-<h3>Meta</h3><p>Reduzir dezenas de possibilidades para aproximadamente <strong>8 a 15 produtos comerciais claros</strong>.</p><span class="tag">NÃO PRECIFICAR AINDA</span>
-</div></details>
+FASE 4 — OPERAÇÃO
+Definir fluxo, responsabilidades, documentos e parceiros.
 
-<details><summary><span class="phaseTitle"><span class="n">4</span> Operação: desenhar como a empresa entrega</span></summary><div class="inside">
-<div class="tree">Lead
-  ↓
-Triagem
-  ↓
-Classificação do caso / necessidade
-  ↓
-Proposta + pagamento
-  ↓
-Execução
-  ↓
-Documento / sistema / acordo / entrega
-  ↓
-Parceiro ou órgão externo, quando necessário
-  ↓
-Pós-atendimento
-  ↓
-Indicação / recorrência / próxima oportunidade</div>
-<h3>Precisaremos definir</h3><ul><li>Quem atende.</li><li>Quem aprova.</li><li>Quem executa.</li><li>Prazos.</li><li>Modelos de documentos.</li><li>Checklist por serviço.</li><li>CRM e status.</li><li>Financeiro.</li><li>Indicadores.</li></ul>
-</div></details>
+FASE 5 — SISTEMAS
+CRM, WhatsApp, automações, IA e indicadores.
 
-<details><summary><span class="phaseTitle"><span class="n">5</span> Estrutura comercial: preços, planos e recorrência</span></summary><div class="inside">
-<h3>Possíveis modelos</h3><ul><li><strong>Serviço avulso:</strong> cliente paga por uma demanda específica.</li><li><strong>Pacote:</strong> conjunto de etapas por preço fechado.</li><li><strong>Mensalidade B2B:</strong> empresa paga para ter atendimento contínuo.</li><li><strong>Implantação + mensalidade:</strong> especialmente CNJP Tech.</li><li><strong>Projeto sob medida:</strong> escopo fechado para empresas.</li></ul>
-<div class="callout">Prioridade estratégica: procurar serviços que gerem <strong>receita recorrente</strong>, não apenas trabalhos isolados.</div>
-</div></details>
+FASE 6 — MARCA E SITE
+Explicar cada braço da CNJP sem parecer um supermercado de CNAEs.
 
-<details><summary><span class="phaseTitle"><span class="n">6</span> Marca, site e marketing</span></summary><div class="inside">
-<p>Só agora mexemos seriamente em comunicação.</p>
-<h3>Entregas</h3><ul><li>Arquitetura de marca CNJP / CNJP Tech.</li><li>Site institucional principal.</li><li>Páginas específicas por problema.</li><li>WhatsApp e triagem automatizada.</li><li>Google Ads para intenção direta.</li><li>Meta Ads para descoberta e remarketing.</li><li>Prospecção B2B.</li><li>Programa de parceiros e indicações.</li><li>Cases e prova social.</li></ul>
-<div class="callout">Marketing amplifica o que já existe. Se a oferta estiver confusa, ele só amplifica a confusão com orçamento diário.</div>
-</div></details>
-
-<details><summary><span class="phaseTitle"><span class="n">7</span> Escala: transformar operação em ativo</span></summary><div class="inside">
-<h3>Justiça privada</h3><ul><li>Contratos recorrentes com empresas.</li><li>Rede de parceiros.</li><li>Procedimentos padronizados.</li><li>Automação administrativa.</li><li>Possíveis credenciamentos e expansão institucional, após validação específica.</li></ul>
-<h3>Tech</h3><ul><li>Reaproveitar módulos entre clientes.</li><li>Transformar soluções repetidas em produto.</li><li>Criar SaaS quando houver demanda comprovada.</li><li>Receita de implantação + mensalidade + evolução.</li></ul>
-</div></details>
-</section>
-
-<section class="section">
-<h2>CNJP Tech</h2><p>Um braço real da empresa, mas separado da comunicação jurídica.</p>
-<details open><summary>O que vender</summary><div class="inside"><div class="matrix">
-<div class="idea"><b>Atendimento inteligente</b><span>WhatsApp, IA, triagem, CRM, agenda e transferência para humano.</span></div>
-<div class="idea"><b>CRM sob medida</b><span>Leads, clientes, propostas, contratos, agenda, financeiro e relatórios.</span></div>
-<div class="idea"><b>Automação empresarial</b><span>Eliminar tarefas repetitivas entre formulários, planilhas, e-mail, WhatsApp e sistemas.</span></div>
-<div class="idea"><b>IA aplicada</b><span>Atendimento, qualificação, suporte, análise documental e follow-up.</span></div>
-<div class="idea"><b>Sites e landing pages</b><span>Como parte de uma solução maior, não como commodity isolada.</span></div>
-<div class="idea"><b>Infraestrutura</b><span>Hospedagem, domínio, e-mail, servidor, backups, integrações e manutenção.</span></div>
-</div></div></details>
-<details><summary>Como pensar a venda</summary><div class="inside"><p><strong>Não:</strong> “fazemos PHP, JavaScript, IA e APIs”.</p><p><strong>Sim:</strong> “sua equipe perde horas copiando informação e respondendo as mesmas coisas? Nós automatizamos esse processo.”</p><p>O valor está no problema resolvido, não na ferramenta usada.</p></div></details>
-<details><summary>Cases que já podem nascer dentro de casa</summary><div class="inside"><ul><li>Estúdio Daniel Araujo: CRM, atendimento, campanhas, WhatsApp, agenda e automações.</li><li>CNJP: triagem, gestão de casos, documentos, agenda, cobrança e relacionamento.</li><li>Projetos internos que podem virar módulos reutilizáveis para outros clientes.</li></ul><p>A própria operação vira laboratório e prova de conceito.</p></div></details>
-</section>
-
-<section class="section">
-<h2>Guardrails importantes</h2><p>Parte chata, portanto parte que evita merda cara.</p>
-<details><summary>Atividades jurídicas e reguladas</summary><div class="inside"><div class="callout danger"><strong>Antes de vender:</strong> cada serviço jurídico, extrajudicial, arbitral ou documental precisa ser validado conforme formação da Fran, habilitações, regras profissionais, necessidade de advogado/parceiro, tribunal, cartório ou outro órgão competente.</div><p>Não presumir que um CNAE autoriza automaticamente a execução irrestrita de uma atividade profissional regulada. CNAE é enquadramento cadastral; habilitação profissional e regras específicas são outra história.</p></div></details>
-<details><summary>Separação entre mediação e representação</summary><div class="inside"><p>Em atividades de mediação e conciliação, imparcialidade e conflito de interesses precisam ser tratados desde o desenho do serviço. A empresa deve definir quando atua como terceiro neutro e quando encaminha a demanda a advogado ou outro parceiro.</p></div></details>
-<details><summary>Promessas comerciais</summary><div class="inside"><p>Evitar prometer resultado garantido em conflitos, processos, benefícios, regularizações ou procedimentos dependentes de terceiros. A promessa deve descrever o trabalho e o objetivo, não fabricar certeza onde ela não existe.</p></div></details>
-<details><summary>Proteção de dados</summary><div class="inside"><p>A CNJP lida potencialmente com documentos, conflitos, informações financeiras e dados pessoais sensíveis. O desenho operacional deverá incluir acesso mínimo, armazenamento seguro, backups, registro de consentimentos quando aplicável e política de retenção.</p></div></details>
-</section>
-
-<section class="section">
-<h2>Ideias em estacionamento</h2><p>Boas ideias que não precisam sequestrar nossa atenção agora.</p>
-<details><summary>CNJP Empresas</summary><div class="inside"><ul><li>Mesa permanente de conciliação.</li><li>Recuperação amigável de recebíveis.</li><li>Mediação com clientes e fornecedores.</li><li>Planos mensais por volume de casos.</li><li>Serviço terceirizado para imobiliárias, clínicas, escolas, academias e condomínios.</li></ul></div></details>
-<details><summary>CNJP para escritórios e profissionais</summary><div class="inside"><ul><li>Mediação terceirizada.</li><li>Triagem e organização documental.</li><li>Ferramentas tecnológicas para escritórios.</li><li>Automação de atendimento.</li><li>Parcerias de encaminhamento.</li></ul></div></details>
-<details><summary>CNJP Imobiliário</summary><div class="inside"><ul><li>Conflitos entre locador e inquilino.</li><li>Negociações entre comprador e vendedor.</li><li>Organização documental.</li><li>Regularização com rede de profissionais habilitados.</li><li>Parcerias com imobiliárias e corretores.</li></ul></div></details>
-<details><summary>Produtos futuros de tecnologia</summary><div class="inside"><ul><li>CRM vertical por segmento.</li><li>Atendimento com IA.</li><li>Sistema de recuperação de leads esquecidos.</li><li>Automação documental.</li><li>Dashboards gerenciais.</li><li>SaaS derivado de soluções repetidas.</li></ul></div></details>
-</section>
-
-<section class="section notes">
-<h2>Bloco de notas</h2><p>Jogue aqui ideias, dúvidas e coisas que a Fran inventar às 23h47. Fica salvo neste navegador.</p>
-<textarea id="notes" placeholder="Ex.: Fran tem certificado X...\nCliente antigo pediu serviço Y...\nPrecisamos verificar possibilidade Z..."></textarea>
-<small>Salvamento local automático. Não envia nada para servidor.</small>
-</section>
-
-<section class="section">
-<h2>Próxima decisão</h2>
-<div class="now"><span class="pill">NÃO PULAR ETAPA</span><h2>Terminar o inventário.</h2><p>Quando os seis itens do checklist inicial estiverem levantados, a próxima versão desta página deve receber o <strong>Catálogo Bruto de Serviços</strong>. Só depois começamos a selecionar produtos, preços e campanhas.</p></div>
+FASE 7 — AQUISIÇÃO
+Campanhas, prospecção, parceiros e lançamento controlado.</div>
 </section>
 </main>
-<footer class="footer"><div class="wrap"><strong>CNJP Roadmap</strong><br>Documento interno de planejamento. Conteúdo estratégico não substitui validação jurídica, contábil ou regulatória específica.</div></footer>
+<div class="toast" id="toast"></div>
+<footer class="footer"><div class="wrap">CNJP Roadmap • dados persistidos no mesmo MySQL do Plan • autenticação compartilhada</div></footer>
 <script>
-const checks=[...document.querySelectorAll('#checklist input[type=checkbox]')];
-const bar=document.getElementById('bar'), progressText=document.getElementById('progressText');
-function updateProgress(){let done=0;checks.forEach(c=>{const row=c.closest('.step');if(c.checked){done++;row.classList.add('done')}else row.classList.remove('done')});const pct=Math.round(done/checks.length*100);bar.style.width=pct+'%';progressText.textContent=pct+'% concluído • '+done+' de '+checks.length+' itens';}
-checks.forEach(c=>{c.checked=localStorage.getItem('cnjp_'+c.id)==='1';c.addEventListener('change',()=>{localStorage.setItem('cnjp_'+c.id,c.checked?'1':'0');updateProgress()})});
-updateProgress();
-const notes=document.getElementById('notes');notes.value=localStorage.getItem('cnjp_notes')||'';let t;notes.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(()=>localStorage.setItem('cnjp_notes',notes.value),250)});
+let BOOT={tasks:[],notes:{},decisions:[],csrf:<?=json_encode($csrf)?>};
+const phaseNames={1:['Inventário','Descobrir o que já existe.'],2:['Possibilidades','Mapear oportunidades e limites.'],3:['Produtos','Escolher o que realmente será vendido.'],4:['Operação','Definir como cada entrega funciona.'],5:['Sistemas','Automatizar apenas o que já faz sentido.'],6:['Marca e site','Explicar a empresa com clareza.'],7:['Aquisição','Colocar clientes para dentro.']};
+function esc(v=''){return String(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';clearTimeout(window.__toast);window.__toast=setTimeout(()=>e.style.display='none',2200)}
+async function api(action,method='GET',body=null){const opt={method,headers:{'X-CSRF-Token':BOOT.csrf}};if(body){opt.headers['Content-Type']='application/json';opt.body=JSON.stringify(body)}const r=await fetch(`api.php?action=${action}`,opt);const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||'Erro');if(j.csrf)BOOT.csrf=j.csrf;return j}
+async function load(){const j=await api('bootstrap');BOOT=j;render();}
+function render(){renderPhases();renderStats();renderDecisions();document.getElementById('parking').value=BOOT.notes?.parking||''}
+function renderPhases(){const holder=document.getElementById('phases');holder.innerHTML='';for(let p=1;p<=7;p++){const tasks=BOOT.tasks.filter(t=>Number(t.phase)===p),done=tasks.filter(t=>t.status==='done').length;const d=document.createElement('details');d.className='phase';d.dataset.phase=p;if(p===currentPhase())d.open=true;d.innerHTML=`<summary><div class="phase-head"><span class="phase-n">${p}</span><div><strong>${phaseNames[p][0]}</strong><small>${phaseNames[p][1]} • ${done}/${tasks.length} concluídas</small></div></div></summary><div class="tasks">${tasks.map(taskHtml).join('')}</div>`;holder.appendChild(d)}bindTasks()}
+function taskHtml(t){const statusLabel={todo:'A fazer',doing:'Em andamento',done:'Concluída',blocked:'Bloqueada'}[t.status]||'A fazer';return `<details class="task" data-key="${esc(t.task_key)}" data-status="${esc(t.status)}"><summary><div class="task-title"><i class="status-dot"></i><b>${esc(t.title)}</b><span class="status-${esc(t.status)}">${statusLabel}</span></div></summary><div class="task-body"><p class="explain">${esc(t.explanation)}</p><div class="question"><strong>O que precisamos registrar:</strong><br>${esc(t.question)}</div><div class="row"><div class="field"><label>Status</label><select class="task-status"><option value="todo" ${t.status==='todo'?'selected':''}>A fazer</option><option value="doing" ${t.status==='doing'?'selected':''}>Em andamento</option><option value="done" ${t.status==='done'?'selected':''}>Concluída</option><option value="blocked" ${t.status==='blocked'?'selected':''}>Bloqueada</option></select></div><div class="field"><label>Resposta / estado atual</label><textarea class="task-answer" placeholder="Preencha aqui...">${esc(t.answer||'')}</textarea></div></div><div class="field"><label>Observações, dúvidas e próximos passos</label><textarea class="task-notes" placeholder="O que ficou pendente? O que precisamos pesquisar?">${esc(t.notes||'')}</textarea></div><div class="savebar"><span class="saved">${t.updated_at?`Última alteração: ${esc(t.updated_at)}`:''}</span><button class="btn small task-save">Salvar tarefa</button></div></div></details>`}
+function bindTasks(){document.querySelectorAll('.task-save').forEach(btn=>btn.onclick=async()=>{const el=btn.closest('.task'),key=el.dataset.key;btn.disabled=true;try{await api('save_task','POST',{task_key:key,status:el.querySelector('.task-status').value,answer:el.querySelector('.task-answer').value,notes:el.querySelector('.task-notes').value});toast('Tarefa salva');await load()}catch(e){toast(e.message)}finally{btn.disabled=false}})}
+function renderStats(){const total=BOOT.tasks.length,done=BOOT.tasks.filter(t=>t.status==='done').length,doing=BOOT.tasks.filter(t=>t.status==='doing').length,blocked=BOOT.tasks.filter(t=>t.status==='blocked').length,pct=total?Math.round(done/total*100):0;document.getElementById('progressNumber').textContent=pct+'%';document.getElementById('progressBar').style.width=pct+'%';document.getElementById('doneCount').textContent=done;document.getElementById('doingCount').textContent=doing;document.getElementById('blockedCount').textContent=blocked}
+function currentPhase(){for(let p=1;p<=7;p++){const ts=BOOT.tasks.filter(t=>Number(t.phase)===p);if(ts.some(t=>t.status!=='done'))return p}return 7}
+function renderDecisions(){const h=document.getElementById('decisionList');h.innerHTML=BOOT.decisions.length?BOOT.decisions.map(d=>`<div class="decision"><div><strong>${esc(d.title)}</strong><span class="tag ${esc(d.decision_status)}">${d.decision_status==='open'?'Em aberto':d.decision_status==='decided'?'Decidido':'Descartado'}</span><small>${d.description?'<br>'+esc(d.description):''}${d.created_by_name?'<br>por '+esc(d.created_by_name):''}</small></div><button class="btn small" data-del-decision="${d.id}">Excluir</button></div>`).join(''):'<small>Nenhuma decisão registrada ainda.</small>';document.querySelectorAll('[data-del-decision]').forEach(b=>b.onclick=async()=>{await api('delete_decision','POST',{id:Number(b.dataset.delDecision)});await load();toast('Registro removido')})}
+document.getElementById('decisionForm').addEventListener('submit',async e=>{e.preventDefault();const title=document.getElementById('decisionTitle').value.trim();if(!title)return;await api('save_decision','POST',{title,decision_status:document.getElementById('decisionStatus').value});document.getElementById('decisionTitle').value='';await load();toast('Decisão registrada')});
+document.querySelector('[data-save-note="parking"]').onclick=async()=>{await api('save_project_note','POST',{note_key:'parking',content:document.getElementById('parking').value});document.getElementById('parkingSaved').textContent='Salvo agora';toast('Ideias salvas')};
+document.getElementById('openAll').onclick=()=>document.querySelectorAll('details').forEach(d=>d.open=true);document.getElementById('closeAll').onclick=()=>document.querySelectorAll('details').forEach(d=>d.open=false);document.getElementById('openCurrent').onclick=()=>{document.querySelectorAll('.phase').forEach(d=>d.open=Number(d.dataset.phase)===currentPhase());document.querySelector(`.phase[data-phase="${currentPhase()}"]`)?.scrollIntoView({behavior:'smooth',block:'start'})};
+document.getElementById('copySummary').onclick=async()=>{const lines=['CNJP — ESTADO ATUAL DO ROADMAP',`Progresso: ${BOOT.tasks.filter(t=>t.status==='done').length}/${BOOT.tasks.length} tarefas concluídas`,`Fase atual: ${currentPhase()} — ${phaseNames[currentPhase()][0]}`,''];for(let p=1;p<=7;p++){lines.push(`## FASE ${p} — ${phaseNames[p][0]}`);BOOT.tasks.filter(t=>Number(t.phase)===p).forEach(t=>{lines.push(`- [${t.status}] ${t.title}`);if((t.answer||'').trim())lines.push(`  Resposta: ${(t.answer||'').trim()}`);if((t.notes||'').trim())lines.push(`  Observações: ${(t.notes||'').trim()}`)});lines.push('')}if(BOOT.decisions.length){lines.push('## DECISÕES / PENDÊNCIAS');BOOT.decisions.forEach(d=>lines.push(`- [${d.decision_status}] ${d.title}${d.description?': '+d.description:''}`));lines.push('')}if((BOOT.notes?.parking||'').trim()){lines.push('## ESTACIONAMENTO DE IDEIAS',BOOT.notes.parking)}lines.push('','Use este estado como contexto e me ajude a avançar somente para o próximo passo lógico, sem pular etapas.');await navigator.clipboard.writeText(lines.join('\n'));toast('Resumo copiado para colar no ChatGPT')};
+load().catch(e=>toast(e.message));
 </script>
+<?php endif; ?>
 </body>
 </html>
