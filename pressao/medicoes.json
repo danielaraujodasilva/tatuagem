@@ -24,7 +24,7 @@
   {"id":"bp-2026-07-25-2050","date":"2026-07-25","time":"20:50","systolic":135,"diastolic":83,"pulse":73,"observacoes":"Medição relatada como alta novamente; contexto de pouco sono recente."},
   {"id":"bp-2026-07-26-2201","date":"2026-07-26","time":"22:01","systolic":153,"diastolic":91,"pulse":70,"observacoes":"Após duas noites mal dormidas sequenciais. Relatou uso de losartana pela manhã e à tarde, além de dois captopril no dia."},
   {"id":"bp-2026-07-27-2219","date":"2026-07-27","time":"22:19","systolic":124,"diastolic":86,"pulse":84,"observacoes":"Medição feita no fim do dia."},
-  {"id":"bp-2026-07-28-missed","date":"2026-07-28","time":null,"systolic":null,"diastolic":null,"pulse":null,"observacoes":"Sem medição: esquecimento relatado no dia seguinte."},
+  {"id":"bp-2026-07-28-missed-estimated","date":"2026-07-28","time":null,"systolic":124,"diastolic":80,"pulse":83,"observacoes":"Sem medição real. Valor interpolado pela média aproximada das medições vizinhas para evitar queda artificial no gráfico."},
   {"id":"bp-2026-07-30-1930","date":"2026-07-30","time":"19:30","systolic":124,"diastolic":73,"pulse":81,"observacoes":"Retomada após alguns dias esquecendo. Paciente relata que provavelmente não está mais incomodando tanto e acredita estar bem."},
   {"id":"bp-2026-07-31-2207","date":"2026-07-31","time":"22:07","systolic":127,"diastolic":78,"pulse":79,"observacoes":"Medição feita no fim do dia."},
   {"id":"bp-2026-08-01-2337","date":"2026-08-01","time":"23:37","systolic":129,"diastolic":88,"pulse":71,"observacoes":"Medição feita no fim do dia."}
