@@ -29,5 +29,6 @@
   {"id":"bp-2026-07-31-2207","date":"2026-07-31","time":"22:07","systolic":127,"diastolic":78,"pulse":79,"observacoes":"Medição feita no fim do dia."},
   {"id":"bp-2026-08-01-2337","date":"2026-08-01","time":"23:37","systolic":129,"diastolic":88,"pulse":71,"observacoes":"Medição feita no fim do dia."},
   {"id":"bp-2026-08-02-2203","date":"2026-08-02","time":"22:03","systolic":122,"diastolic":77,"pulse":85,"observacoes":"Medição feita no fim do dia."},
-  {"id":"bp-2026-08-03-2255","date":"2026-08-03","time":"22:55","systolic":124,"diastolic":81,"pulse":82,"observacoes":"Medição feita no fim do dia."}
+  {"id":"bp-2026-08-03-2255","date":"2026-08-03","time":"22:55","systolic":124,"diastolic":81,"pulse":82,"observacoes":"Medição feita no fim do dia."},
+  {"id":"bp-2026-08-04-2206","date":"2026-08-04","time":"22:06","systolic":115,"diastolic":69,"pulse":87,"observacoes":"Medição feita no fim do dia."}
 ]
