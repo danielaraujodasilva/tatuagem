@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Checklist interativo para automatizar a dublagem PT-BR de The Witcher Enhanced Edition com Codex e ferramentas open source.">
+  <title>Witcher 1 PT-BR - Plano de Dublagem</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090b0f;
+      --panel: #11151c;
+      --panel-2: #171d26;
+      --text: #e9edf3;
+      --muted: #9aa6b5;
+      --accent: #c91f37;
+      --accent-2: #f0b34a;
+      --ok: #43c17b;
+      --border: #283140;
+      --shadow: 0 18px 40px rgba(0,0,0,.28);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(201,31,55,.16), transparent 30%),
+        linear-gradient(180deg, #0b0e13 0%, var(--bg) 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    button, textarea { font: inherit; }
+    a { color: inherit; }
+
+    .shell {
+      width: min(1180px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 28px 0 64px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.5fr .8fr;
+      gap: 20px;
+      align-items: stretch;
+      margin-bottom: 22px;
+    }
+
+    .hero-card,
+    .progress-card,
+    .phase,
+    .notice {
+      background: rgba(17,21,28,.92);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero-card { padding: 30px; }
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: clamp(2rem, 5vw, 4.2rem);
+      line-height: .98;
+      letter-spacing: -.045em;
+    }
+    .hero h1 span { color: var(--accent); }
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.04rem;
+      line-height: 1.65;
+      max-width: 760px;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 22px;
+    }
+    .badge {
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: #1a202a;
+      border: 1px solid var(--border);
+      color: #ccd4df;
+      font-size: .82rem;
+    }
+
+    .progress-card {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .progress-number {
+      font-size: 3.3rem;
+      font-weight: 800;
+      letter-spacing: -.05em;
+    }
+    .progress-bar {
+      height: 14px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #080a0d;
+      border: 1px solid var(--border);
+      margin: 14px 0 10px;
+    }
+    .progress-fill {
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width .25s ease;
+    }
+    .progress-label { color: var(--muted); font-size: .92rem; }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 18px 0;
+    }
+    .btn {
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease;
+    }
+    .btn:hover { transform: translateY(-1px); border-color: #45536a; }
+    .btn.danger { color: #ffb9c3; }
+    .btn.primary { background: var(--accent); border-color: var(--accent); }
+
+    .notice {
+      padding: 18px 20px;
+      margin-bottom: 18px;
+      border-left: 4px solid var(--accent-2);
+      color: #dbe2eb;
+      line-height: 1.55;
+    }
+    .notice strong { color: #fff; }
+
+    .phase {
+      overflow: hidden;
+      margin: 14px 0;
+    }
+    .phase summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 20px 22px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 14px;
+      align-items: center;
+      background: linear-gradient(180deg, rgba(255,255,255,.018), transparent);
+    }
+    .phase summary::-webkit-details-marker { display: none; }
+    .phase-index {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      background: #202734;
+      color: var(--accent-2);
+      border: 1px solid var(--border);
+    }
+    .phase-title strong { display: block; font-size: 1.07rem; }
+    .phase-title span { display: block; color: var(--muted); font-size: .88rem; margin-top: 3px; }
+    .phase-status { color: var(--muted); font-size: .85rem; }
+    .phase-body { padding: 0 22px 22px; }
+
+    .step-check {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      padding: 13px;
+      margin: 10px 0 14px;
+      border-radius: 14px;
+      background: #0d1117;
+      border: 1px solid var(--border);
+    }
+    .step-check input {
+      width: 20px;
+      height: 20px;
+      margin-top: 2px;
+      accent-color: var(--ok);
+      flex: 0 0 auto;
+    }
+    .step-check.done { opacity: .64; }
+    .step-check.done label { text-decoration: line-through; }
+    .step-check label { cursor: pointer; line-height: 1.45; }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .meta span {
+      color: var(--muted);
+      border: 1px solid var(--border);
+      background: #0d1117;
+      padding: 6px 9px;
+      border-radius: 10px;
+      font-size: .79rem;
+    }
+
+    .prompt-wrap {
+      position: relative;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: #07090c;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 2;
+      border: 1px solid #38445a;
+      background: rgba(22,27,35,.95);
+      color: #fff;
+      border-radius: 9px;
+      padding: 7px 10px;
+      cursor: pointer;
+      font-size: .78rem;
+    }
+    .prompt {
+      width: 100%;
+      min-height: 290px;
+      resize: vertical;
+      padding: 54px 16px 16px;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: #dce5f0;
+      line-height: 1.55;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: .86rem;
+    }
+
+    .tips {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: #151a22;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: .9rem;
+    }
+    .tips strong { color: var(--accent-2); }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      padding-top: 26px;
+      font-size: .85rem;
+    }
+
+    @media (max-width: 820px) {
+      .hero { grid-template-columns: 1fr; }
+      .hero-card { padding: 24px; }
+      .phase summary { grid-template-columns: auto 1fr; }
+      .phase-status { grid-column: 2; }
+      .prompt { min-height: 360px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="hero-card">
+        <h1>Witcher 1 <span>PT-BR</span></h1>
+        <p>Plano operacional para colocar o Codex para extrair, traduzir, gerar vozes diferentes e instalar a dublagem sem transformar sua instalação principal numa oferenda ao caos.</p>
+        <div class="badge-row">
+          <span class="badge">GPT-5.5 como padrão</span>
+          <span class="badge">Ferramentas open source</span>
+          <span class="badge">Instalação reversível</span>
+          <span class="badge">Progresso salvo no navegador</span>
+        </div>
+      </div>
+      <aside class="progress-card">
+        <div>
+          <div class="progress-number" id="progressNumber">0%</div>
+          <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+          <div class="progress-label" id="progressLabel">0 de 14 etapas concluídas</div>
+        </div>
+        <div class="tips"><strong>Regra de ouro:</strong> mande um prompt por vez. O Codex documenta, para e espera. Nada de soltar o bicho para redesenhar o planeta numa única sessão.</div>
+      </aside>
+    </section>
+
+    <div class="toolbar">
+      <button class="btn primary" id="openNext">Abrir próxima etapa</button>
+      <button class="btn" id="expandAll">Abrir todas</button>
+      <button class="btn" id="collapseAll">Fechar todas</button>
+      <button class="btn danger" id="resetProgress">Zerar marcações</button>
+    </div>
+
+    <div class="notice"><strong>Você pode continuar jogando durante quase todo o processo.</strong> Só feche o jogo quando for instalar, remover ou testar um pacote. Extração, tradução, TTS e conversão devem acontecer na cópia de trabalho.</div>
+
+    <section id="phases"></section>
+
+    <footer>Checklist local. As marcações ficam salvas neste navegador via localStorage. Tecnologia de ponta finalmente aplicada à necessidade humana de não perder o fio da meada.</footer>
+  </main>
+
+  <script>
+    const phases = [
+      {
+        title: 'Preparar o projeto com regras de segurança',
+        subtitle: 'Cria a estrutura e impede o Codex de brincar de roleta-russa com o jogo.',
+        model: 'GPT-5.5', reasoning: 'Low',
+        tip: 'Abra uma pasta vazia como C:\\witcher-dub-br no Codex antes de colar este prompt.',
+        prompt: `Crie a estrutura inicial de um projeto chamado witcher-dub-br.\n\nObjetivo final:\nautomatizar uma dublagem local de The Witcher Enhanced Edition do inglês para português brasileiro, usando ferramentas open source e uma voz diferente para cada personagem.\n\nPRIORIDADE ABSOLUTA\n\nA instalação principal do jogo deve continuar jogável durante todo o desenvolvimento.\n\nNunca modifique diretamente a instalação principal durante investigação, extração, conversão ou geração de vozes.\n\nREGRAS DE SEGURANÇA\n\n1. Nunca alterar saves do usuário.\n2. Nunca alterar arquivos originais sem backup verificável.\n3. Nunca trabalhar diretamente sobre a instalação usada para jogar.\n4. Criar uma cópia de trabalho isolada quando necessário.\n5. Preferir Data/Override ou outro sistema de mod não destrutivo.\n6. Toda instalação do mod deve possuir desinstalação.\n7. Antes de copiar arquivos para o jogo, verificar se o processo do jogo está aberto.\n8. Se o jogo estiver aberto, não modificar sua pasta.\n9. Registrar hashes dos arquivos antes e depois de qualquer alteração.\n10. Nunca apagar arquivos que não tenham sido criados pelo projeto.\n11. Não processar o jogo inteiro antes de uma fala funcionar.\n12. Trabalhar em fases pequenas e retomáveis.\n13. Economizar tokens, apresentando apenas resumos curtos.\n14. Guardar descobertas em arquivos Markdown.\n15. Usar scripts locais para buscas e tarefas repetitivas.\n\nCrie:\n\nAGENTS.md\ndocs/STATUS.md\ndocs/SAFETY.md\nscripts/\ntools/\nlogs/\nconfig/\ndatabase/\nbackups/\nworking-copy/\nextracted/\nreferences/\ntranslated/\ngenerated/\nconverted/\npackages/\ntests/\n\nEm SAFETY.md, registre as regras acima.\n\nEm STATUS.md, registre que nenhuma instalação foi localizada ou alterada ainda.\n\nNão procure o jogo.\nNão instale ferramentas.\nNão escreva a pipeline ainda.\n\nAo terminar, apresente somente os arquivos e pastas criados.`
+      },
+      {
+        title: 'Localizar o jogo sem mexer nele',
+        subtitle: 'Somente leitura. Nada de cirurgia ainda.',
+        model: 'GPT-5.5', reasoning: 'Low',
+        tip: 'Se ele não encontrar, informe o caminho manualmente em vez de gastar tokens procurando até o fim dos tempos.',
+        prompt: `Leia AGENTS.md, docs/SAFETY.md e docs/STATUS.md.\n\nLocalize a instalação de The Witcher Enhanced Edition neste computador.\n\nFaça somente inspeção de leitura.\n\nNão altere, mova ou copie arquivos ainda.\n\nIdentifique:\n\n- caminho da instalação;\n- plataforma provável, como Steam ou GOG;\n- versão ou edição detectada;\n- executável principal;\n- pasta Data;\n- possível pasta Override;\n- arquivos grandes potencialmente ligados a áudio, diálogos e legendas;\n- caminho dos saves, apenas para documentar e evitar alterações;\n- processo executável usado quando o jogo está aberto.\n\nCrie docs/GAME_INSTALLATION.md contendo essas informações.\n\nNão despeje listagens enormes no chat.\nGrave detalhes completos no arquivo e mostre apenas um resumo.\n\nAtualize docs/STATUS.md.\n\nPare após documentar a instalação.`
+      },
+      {
+        title: 'Criar uma cópia de trabalho segura',
+        subtitle: 'O Codex fuça no clone. Seu jogo principal continua respirando.',
+        model: 'GPT-5.5', reasoning: 'Low',
+        tip: 'Essa etapa é o seguro contra o clássico “funcionava antes de eu mexer”.',
+        prompt: `Leia toda a documentação existente.\n\nCrie uma cópia de trabalho isolada dos arquivos necessários para investigar áudio e diálogos.\n\nIMPORTANTE:\n\n- não copie saves;\n- não altere a instalação principal;\n- não copie arquivos desnecessários quando links, manifests ou extração seletiva forem suficientes;\n- não tente executar o jogo pela cópia sem necessidade;\n- preserve caminhos relativos;\n- registre hashes dos arquivos copiados;\n- registre espaço utilizado;\n- não copie novamente arquivos já validados.\n\nUse a pasta working-copy/.\n\nCrie scripts/create_working_copy.ps1.\n\nO script deve:\n\n1. verificar se The Witcher está aberto;\n2. se estiver aberto, não copiar arquivos que possam estar bloqueados;\n3. copiar somente o necessário;\n4. validar os arquivos copiados;\n5. gerar logs;\n6. poder ser executado novamente sem duplicar tudo.\n\nCrie docs/WORKING_COPY.md.\n\nAtualize docs/STATUS.md e pare.`
+      },
+      {
+        title: 'Investigar como o jogo guarda as falas',
+        subtitle: 'A etapa arqueológica. O artefato é um RPG de 2007.',
+        model: 'GPT-5.5', reasoning: 'Medium',
+        tip: 'Se esta fase travar após três abordagens documentadas, aí sim vale usar um modelo mais forte apenas no bloqueio.',
+        prompt: `Leia AGENTS.md e toda a documentação em docs/.\n\nInvestigue somente a cópia de trabalho.\n\nObjetivo:\ndescobrir como The Witcher Enhanced Edition armazena e relaciona:\n\n- áudio falado;\n- legendas;\n- personagem que fala;\n- IDs de diálogo;\n- nomes e caminhos dos recursos;\n- capítulos, cenas ou quests.\n\nNão instale TTS.\nNão altere a instalação principal.\nNão extraia o jogo inteiro.\nNão modifique saves.\n\nUse primeiro ferramentas já disponíveis.\n\nCaso precise de ferramentas externas, apenas identifique quais seriam necessárias. Não instale ainda.\n\nCrie docs/AUDIO_RESEARCH.md contendo:\n\n- formatos encontrados;\n- arquivos relevantes;\n- evidências confirmadas;\n- hipóteses ainda não confirmadas;\n- possíveis ferramentas de extração;\n- possíveis formas de substituir uma fala;\n- se Data/Override parece suportar áudio;\n- método mais seguro;\n- método reserva.\n\nProponha no máximo três estratégias, da menos invasiva para a mais invasiva.\n\nAtualize docs/STATUS.md e pare sem implementar.`
+      },
+      {
+        title: 'Instalar só as ferramentas de extração',
+        subtitle: 'Nada de baixar uma pequena internet por ansiedade.',
+        model: 'GPT-5.5', reasoning: 'Medium',
+        tip: 'O objetivo aqui é ouvir uma fala fora do jogo, não extrair a discografia completa de Vizima.',
+        prompt: `Leia a documentação do projeto.\n\nEscolha o método mais simples e seguro descrito em docs/AUDIO_RESEARCH.md.\n\nInstale somente as ferramentas mínimas necessárias para identificar ou extrair algumas falas.\n\nRequisitos:\n\n- ferramentas open source;\n- instalação isolada dentro de tools/ ou ambiente próprio;\n- não alterar instalações globais de Python desnecessariamente;\n- não mexer em ambientes de ComfyUI, Ollama ou outros projetos;\n- não instalar TTS;\n- não instalar Whisper;\n- não extrair todos os arquivos do jogo;\n- não alterar a instalação principal.\n\nExtraia ou identifique entre uma e cinco falas do começo de Kaer Morhen.\n\nSalve em:\n\nextracted/single-line/\n\nPreserve:\n\n- nome original;\n- ID;\n- caminho;\n- formato;\n- taxa de amostragem;\n- canais;\n- duração;\n- metadados úteis.\n\nCrie:\n\nscripts/extract_single_line.ps1 ou .py\ndocs/EXTRACTION_TEST.md\n\nValide que pelo menos um áudio pode ser reproduzido fora do jogo.\n\nAtualize docs/STATUS.md e pare.`
+      },
+      {
+        title: 'Testar substituição sem IA',
+        subtitle: 'Primeiro provar que a porta abre. Depois colocamos o robô para falar.',
+        model: 'GPT-5.5', reasoning: 'Medium',
+        tip: 'Você só precisa fechar o jogo no momento da instalação ou remoção deste pacote de teste.',
+        prompt: `Leia toda a documentação e use somente uma fala já identificada.\n\nObjetivo:\nprovar que uma fala pode ser substituída sem danificar a instalação principal.\n\nCrie localmente um áudio dizendo:\n\n"Teste de dublagem em português."\n\nNão use TTS de IA ainda. Pode usar uma voz sintética simples já disponível no Windows ou um áudio gerado localmente por método básico.\n\nProcedimento:\n\n1. Converter o áudio para o formato técnico exato da fala original.\n2. Criar um pacote de teste separado.\n3. Preferir Data/Override ou outro sistema não destrutivo.\n4. Nunca sobrescrever diretamente o arquivo original, salvo se nenhum método de mod funcionar.\n5. Caso seja absolutamente necessário substituir um arquivo, criar backup, verificar hash e preparar restauração antes de instalar.\n6. Criar um script de instalação.\n7. Criar um script de desinstalação.\n8. O instalador deve verificar se o jogo está aberto.\n9. Se estiver aberto, deve recusar a instalação.\n10. O desinstalador deve remover somente os arquivos criados pelo projeto.\n11. Não alterar saves.\n12. Não instalar automaticamente antes de preparar o relatório.\n\nCrie:\n\npackages/single-line-test/\nscripts/install_single_line_test.ps1\nscripts/uninstall_single_line_test.ps1\ndocs/REPLACEMENT_TEST.md\n\nInforme exatamente:\n\n- qual cena devo abrir;\n- qual personagem deve falar;\n- qual frase original será substituída;\n- como instalar;\n- como remover.\n\nAtualize docs/STATUS.md e pare.`
+      },
+      {
+        title: 'Analisar o hardware para TTS local',
+        subtitle: 'Descobrir qual IA de voz aceita conviver com sua AMD.',
+        model: 'GPT-5.5', reasoning: 'Low',
+        tip: 'Compare Fish Speech e OpenVoice V2. Não deixe o Codex instalar ambos por esporte.',
+        prompt: `Leia AGENTS.md e docs/STATUS.md.\n\nFaça um diagnóstico do computador para executar TTS local com múltiplas vozes.\n\nNão instale nada.\n\nIdentifique:\n\n- Windows e versão;\n- CPU;\n- RAM;\n- GPU;\n- VRAM;\n- drivers;\n- suporte disponível a CUDA, ROCm, DirectML, Vulkan ou CPU;\n- Python;\n- Git;\n- FFmpeg;\n- Docker;\n- Conda;\n- espaço livre.\n\nCompare ferramentas open source adequadas para:\n\n- português brasileiro;\n- voz diferente para cada personagem;\n- clonagem zero-shot ou few-shot;\n- automação via script;\n- execução local;\n- possibilidade de rodar em CPU caso a GPU AMD não funcione.\n\nAvalie prioritariamente:\n\n1. Fish Speech;\n2. OpenVoice V2;\n3. outra opção somente se necessário.\n\nEscolha:\n\n- solução principal;\n- solução reserva;\n- backend recomendado;\n- limitações esperadas.\n\nCrie docs/TTS_EVALUATION.md.\n\nNão baixe modelos.\nNão instale ferramentas.\n\nAtualize docs/STATUS.md e pare.`
+      },
+      {
+        title: 'Instalar o TTS local isoladamente',
+        subtitle: 'Agora sim, fabricar a garganta eletrônica.',
+        model: 'GPT-5.5', reasoning: 'Medium',
+        tip: 'Se a GPU AMD falhar, mande testar CPU antes de trocar toda a ferramenta e começar outra novela.',
+        prompt: `Leia docs/TTS_EVALUATION.md e todas as regras de segurança.\n\nInstale somente a solução TTS principal escolhida.\n\nRequisitos:\n\n- ambiente isolado;\n- preferencialmente dentro de tools/;\n- não modificar ambientes globais desnecessariamente;\n- não remover nem atualizar dependências de outros projetos;\n- não mexer na instalação do jogo;\n- não alterar saves;\n- não baixar modelos além do necessário para um teste;\n- registrar versões;\n- registrar comandos de reinstalação;\n- usar GPU somente se funcionar de forma estável;\n- se GPU falhar, testar CPU;\n- não trocar imediatamente de ferramenta por causa de lentidão.\n\nCrie:\n\nconfig/tts.json\nscripts/tts_test.py\ndocs/TTS_INSTALLATION.md\n\nGere somente esta frase:\n\n"Esta é uma fala de teste em português brasileiro."\n\nSalve em:\n\ngenerated/tts-test/\n\nValide:\n\n- arquivo não vazio;\n- duração plausível;\n- formato reproduzível;\n- ausência de erro crítico.\n\nAtualize docs/STATUS.md e pare.`
+      },
+      {
+        title: 'Testar uma voz de personagem',
+        subtitle: 'Uma voz real por vez. Nada de Geralt possuindo todo o elenco.',
+        model: 'GPT-5.5', reasoning: 'Medium',
+        tip: 'Aceitável primeiro, bonito depois. O objetivo ainda é jogar, não concorrer a melhor dublagem do século.',
+        prompt: `Leia toda a documentação existente.\n\nEscolha um personagem do início do jogo que possua uma fala original limpa já extraída.\n\nObjetivo:\ntestar clonagem ou transferência de identidade vocal para português brasileiro.\n\nFaça somente uma voz.\n\nProcedimento:\n\n1. Escolher uma amostra limpa do personagem.\n2. Evitar música, ruído, gritos e outras vozes.\n3. Usar entre 5 e 20 segundos, conforme a ferramenta exigir.\n4. Não misturar personagens.\n5. Salvar a amostra em references/test/.\n6. Gerar em PT-BR:\n\n"Precisamos descobrir o que está acontecendo aqui."\n\n7. Salvar parâmetros e logs.\n8. Não inserir o áudio no jogo ainda.\n9. Não criar vozes para os demais personagens.\n10. Não treinar modelo completo se zero-shot funcionar.\n\nCrie docs/VOICE_TEST.md.\n\nAtualize docs/STATUS.md e pare.`
+      },
+      {
+        title: 'Colocar a primeira fala de IA no jogo',
+        subtitle: 'A prova de vida do projeto.',
+        model: 'GPT-5.5', reasoning: 'Medium',
+        tip: 'Se isso funcionar, o risco técnico principal foi vencido. O resto vira escala e paciência de máquina.',
+        prompt: `Leia a documentação do projeto.\n\nUse o método de substituição já comprovado.\n\nObjetivo:\ncolocar uma única fala traduzida em PT-BR dentro do jogo, usando a voz do personagem correto.\n\nProcedimento:\n\n1. Usar uma fala real já extraída.\n2. Obter o texto original pelos dados ou legendas do jogo.\n3. Traduzir para PT-BR natural.\n4. Gerar a fala com a referência do personagem correto.\n5. Converter para o formato técnico esperado.\n6. Preservar nome, ID e caminho.\n7. Criar pacote separado.\n8. Criar instalador e desinstalador.\n9. Não modificar o jogo se ele estiver aberto.\n10. Não alterar saves.\n11. Não sobrescrever arquivos que não pertençam ao projeto.\n12. Se Data/Override funcionar, usar exclusivamente esse método.\n13. Registrar hashes e arquivos instalados.\n14. Não gerar nenhuma outra fala.\n\nCrie:\n\npackages/first-ai-line/\ndocs/FIRST_AI_LINE.md\n\nInforme:\n\n- como instalar;\n- qual cena abrir;\n- qual personagem ouvir;\n- qual frase esperar;\n- como remover.\n\nAtualize docs/STATUS.md e pare.`
+      },
+      {
+        title: 'Criar banco e pipeline retomável',
+        subtitle: 'Transformar gambiarra comprovada em fábrica civilizada.',
+        model: 'GPT-5.5', reasoning: 'Medium',
+        tip: 'Nesta fase ainda não processe capítulos. Primeiro organize a linha de montagem.',
+        prompt: `Leia toda a documentação.\n\nAgora que extração, geração e substituição foram comprovadas, crie a base da pipeline automática.\n\nNão processe capítulos ainda.\n\nUse SQLite.\n\nRegistre para cada fala:\n\n- ID;\n- arquivo original;\n- caminho;\n- personagem;\n- texto original;\n- tradução PT-BR;\n- duração original;\n- referência vocal;\n- status da extração;\n- status do texto;\n- status da tradução;\n- status da geração;\n- status da conversão;\n- status do pacote;\n- erro;\n- número de tentativas;\n- timestamps;\n- hash original;\n- hash gerado.\n\nCrie scripts separados para:\n\n- descobrir falas;\n- extrair;\n- traduzir;\n- criar referências;\n- gerar voz;\n- converter;\n- empacotar;\n- instalar;\n- desinstalar;\n- mostrar status;\n- retomar após interrupção.\n\nRequisitos:\n\n1. Cada etapa deve poder ser executada separadamente.\n2. Arquivos concluídos não devem ser refeitos.\n3. Erros individuais não devem parar o lote inteiro.\n4. Logs devem ser salvos em arquivo.\n5. Não imprimir milhares de linhas no chat.\n6. Não modificar a instalação principal.\n7. Não instalar pacotes no jogo automaticamente.\n8. Não usar saves.\n9. Criar trava para impedir instalação enquanto o jogo estiver aberto.\n10. Todo pacote deve possuir manifest com arquivos criados.\n11. O desinstalador deve usar o manifest.\n12. A pipeline deve aceitar um limite de falas para testes.\n\nCrie docs/PIPELINE.md e atualize STATUS.md.\n\nNão processe diálogos ainda.`
+      },
+      {
+        title: 'Processar uma conversa piloto',
+        subtitle: 'Até 20 falas. Pequeno o bastante para depurar sem envelhecer junto.',
+        model: 'GPT-5.5', reasoning: 'Low',
+        tip: 'Instale e teste somente quando o pacote estiver pronto. Durante o processamento, pode continuar jogando.',
+        prompt: `Leia AGENTS.md e use somente a pipeline já criada.\n\nSelecione uma conversa curta do começo de Kaer Morhen.\n\nLimites:\n\n- no máximo 3 personagens;\n- no máximo 20 falas;\n- no máximo 5 minutos.\n\nFaça:\n\n1. Descobrir as falas.\n2. Extrair somente essas falas.\n3. Obter textos pelas legendas ou dados internos.\n4. Identificar o personagem correto.\n5. Criar referência própria para cada personagem.\n6. Traduzir para PT-BR natural.\n7. Gerar cada fala com a voz correspondente.\n8. Converter para o formato do jogo.\n9. Criar um pacote separado.\n10. Criar manifest.\n11. Criar instalador e desinstalador.\n12. Não instalar automaticamente.\n13. Não alterar a instalação principal.\n14. Não modificar saves.\n15. Não usar a voz de outro personagem como substituta sem registrar claramente.\n16. Caso uma fala falhe, concluir as demais e registrar o erro.\n17. Não processar nada fora da conversa piloto.\n\nCrie docs/PILOT.md.\n\nAo terminar, informe somente:\n\n- quantidade total de falas;\n- quantas foram concluídas;\n- quantas falharam;\n- personagens;\n- como instalar;\n- como remover;\n- cena para testar.`
+      },
+      {
+        title: 'Processar o prólogo completo',
+        subtitle: 'Primeiro pedaço realmente jogável em português.',
+        model: 'GPT-5.5', reasoning: 'Low',
+        tip: 'Trabalhe em lotes. Se a máquina parar, a pipeline deve retomar sem repetir o que já fez.',
+        prompt: `Leia toda a documentação e use exclusivamente os métodos já comprovados.\n\nProcesse somente o prólogo de Kaer Morhen.\n\nNão processe capítulos posteriores.\n\nRequisitos:\n\n1. Trabalhar em lotes de no máximo 100 falas.\n2. Salvar o progresso após cada fala.\n3. Permitir interrupção e retomada.\n4. Obter textos internos antes de usar transcrição.\n5. Não instalar Whisper se não for necessário.\n6. Criar uma referência diferente para cada personagem.\n7. Nunca usar uma única voz para todos.\n8. Reutilizar referências já validadas.\n9. Traduzir para PT-BR natural.\n10. Gerar vozes localmente.\n11. Converter automaticamente.\n12. Não interromper o lote por erro em uma fala.\n13. Não alterar a instalação principal.\n14. Não modificar saves.\n15. Não instalar automaticamente.\n16. Criar pacotes parciais por lote.\n17. Criar um pacote final do prólogo.\n18. Criar instalador e desinstalador.\n19. Verificar se o jogo está fechado antes de qualquer instalação futura.\n20. Não refazer arquivos válidos.\n\nO comando de status deve mostrar:\n\n- total encontrado;\n- extraído;\n- traduzido;\n- referências criadas;\n- vozes geradas;\n- convertidas;\n- falhas;\n- tempo gasto;\n- estimativa restante.\n\nTrabalhe autonomamente até concluir ou encontrar um bloqueio técnico real.\n\nEm caso de bloqueio:\n\n- tente até três abordagens seguras;\n- documente cada tentativa;\n- não repita tentativas idênticas;\n- continue nas tarefas independentes;\n- gere docs/BLOCKER.md se não conseguir avançar.\n\nAo terminar, não instale o pacote.\n\nInforme apenas o status e os comandos de instalação e remoção.`
+      },
+      {
+        title: 'Instalar o prólogo com segurança',
+        subtitle: 'Fechar o jogo, instalar, testar e manter uma saída de emergência.',
+        model: 'GPT-5.5', reasoning: 'Low',
+        tip: 'O Codex não deve executar o jogo. Você faz o teste manual, porque aparentemente ainda precisamos de humanos para apertar Play.',
+        prompt: `Leia a documentação e valide o pacote final do prólogo.\n\nAntes de instalar:\n\n1. verificar se The Witcher está aberto;\n2. verificar hashes;\n3. verificar manifest;\n4. verificar se os caminhos de destino pertencem ao mod;\n5. confirmar que nenhum save será alterado;\n6. confirmar que arquivos originais não serão apagados;\n7. criar backup quando necessário;\n8. preparar desinstalação antes da instalação;\n9. registrar todos os arquivos copiados.\n\nCaso o jogo esteja aberto, pare sem instalar.\n\nCaso esteja fechado e todas as validações passem, instale somente o pacote do prólogo.\n\nDepois:\n\n- valide arquivos instalados;\n- gere logs;\n- não execute o jogo;\n- não instale capítulos posteriores.\n\nInforme:\n\n- resultado da instalação;\n- cena inicial para testar;\n- comando exato de desinstalação;\n- localização dos backups.`
+      }
+    ];
+
+    const container = document.getElementById('phases');
+    const storageKey = 'witcherDubChecklistV1';
+    const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+
+    function render() {
+      container.innerHTML = phases.map((phase, index) => {
+        const checked = Boolean(saved[index]);
+        return `
+          <details class="phase" data-index="${index}">
+            <summary>
+              <span class="phase-index">${index + 1}</span>
+              <span class="phase-title"><strong>${phase.title}</strong><span>${phase.subtitle}</span></span>
+              <span class="phase-status">${checked ? 'Concluída' : 'Pendente'}</span>
+            </summary>
+            <div class="phase-body">
+              <div class="step-check ${checked ? 'done' : ''}">
+                <input type="checkbox" id="check-${index}" data-check="${index}" ${checked ? 'checked' : ''}>
+                <label for="check-${index}">Marcar esta etapa como concluída</label>
+              </div>
+              <div class="meta"><span>Modelo: ${phase.model}</span><span>Raciocínio: ${phase.reasoning}</span><span>Prompt ${index + 1} de ${phases.length}</span></div>
+              <div class="prompt-wrap">
+                <button class="copy-btn" data-copy="${index}">Copiar prompt</button>
+                <textarea class="prompt" readonly id="prompt-${index}"></textarea>
+              </div>
+              <div class="tips"><strong>Dica:</strong> ${phase.tip}</div>
+            </div>
+          </details>`;
+      }).join('');
+
+      phases.forEach((phase, index) => {
+        document.getElementById(`prompt-${index}`).value = phase.prompt;
+      });
+      bindEvents();
+      updateProgress();
+    }
+
+    function bindEvents() {
+      document.querySelectorAll('[data-check]').forEach(input => {
+        input.addEventListener('change', event => {
+          const index = event.target.dataset.check;
+          saved[index] = event.target.checked;
+          localStorage.setItem(storageKey, JSON.stringify(saved));
+          const wrapper = event.target.closest('.step-check');
+          wrapper.classList.toggle('done', event.target.checked);
+          const details = event.target.closest('.phase');
+          details.querySelector('.phase-status').textContent = event.target.checked ? 'Concluída' : 'Pendente';
+          updateProgress();
+        });
+      });
+
+      document.querySelectorAll('[data-copy]').forEach(button => {
+        button.addEventListener('click', async () => {
+          const index = button.dataset.copy;
+          const text = phases[index].prompt;
+          try {
+            await navigator.clipboard.writeText(text);
+          } catch {
+            const area = document.getElementById(`prompt-${index}`);
+            area.select();
+            document.execCommand('copy');
+          }
+          const original = button.textContent;
+          button.textContent = 'Copiado';
+          setTimeout(() => button.textContent = original, 1200);
+        });
+      });
+    }
+
+    function updateProgress() {
+      const done = phases.filter((_, index) => saved[index]).length;
+      const percent = Math.round((done / phases.length) * 100);
+      document.getElementById('progressNumber').textContent = `${percent}%`;
+      document.getElementById('progressFill').style.width = `${percent}%`;
+      document.getElementById('progressLabel').textContent = `${done} de ${phases.length} etapas concluídas`;
+    }
+
+    document.getElementById('expandAll').addEventListener('click', () => {
+      document.querySelectorAll('.phase').forEach(item => item.open = true);
+    });
+
+    document.getElementById('collapseAll').addEventListener('click', () => {
+      document.querySelectorAll('.phase').forEach(item => item.open = false);
+    });
+
+    document.getElementById('openNext').addEventListener('click', () => {
+      const next = phases.findIndex((_, index) => !saved[index]);
+      if (next === -1) return;
+      const item = document.querySelector(`.phase[data-index="${next}"]`);
+      document.querySelectorAll('.phase').forEach(el => el.open = false);
+      item.open = true;
+      item.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    document.getElementById('resetProgress').addEventListener('click', () => {
+      if (!confirm('Zerar todas as marcações deste checklist?')) return;
+      localStorage.removeItem(storageKey);
+      Object.keys(saved).forEach(key => delete saved[key]);
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
