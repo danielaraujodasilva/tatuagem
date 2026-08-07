@@ -28,7 +28,7 @@ jobs:
             exit 1
           fi
 
-          payload=$(printf '{"event":"push","repository":"%s","ref":"%s","sha":"%s","run_id":"%s"}' \
+          payload=$(printf '{"event":"push","repository":{"full_name":"%s"},"ref":"%s","sha":"%s","run_id":"%s"}' \
             "$GITHUB_REPOSITORY" \
             "$GITHUB_REF" \
             "$GITHUB_SHA" \
@@ -39,6 +39,8 @@ jobs:
           curl --fail --show-error --silent \
             -X POST \
             -H "Content-Type: application/json" \
+            -H "X-GitHub-Event: push" \
+            -H "X-GitHub-Delivery: $GITHUB_RUN_ID" \
             -H "X-Hub-Signature-256: $signature" \
             --data-binary "$payload" \
             "$DEPLOY_URL"
