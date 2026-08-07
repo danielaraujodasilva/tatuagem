@@ -229,6 +229,14 @@
     }
     .side { display: grid; gap: 12px; }
     .side .card { padding: 16px; }
+    .runner-meta {
+      display: grid;
+      gap: 6px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: .82rem;
+      line-height: 1.4;
+    }
     .events { display: grid; gap: 8px; max-height: 360px; overflow: auto; }
     .event {
       border: 1px solid var(--line);
@@ -295,6 +303,11 @@
         <div class="card">
           <h2>Servidor local</h2>
           <p id="runnerSummary">Checando ponte PHP/PowerShell...</p>
+          <div class="runner-meta">
+            <span id="runnerDetach">Job em background: checando...</span>
+            <span id="runnerStarted">Inicio: -</span>
+            <span id="runnerUpdated">Ultima atualizacao: -</span>
+          </div>
         </div>
         <div class="card">
           <h2>Log do job</h2>
@@ -670,17 +683,25 @@
       const notice = document.getElementById('serverNotice');
       const summary = document.getElementById('runnerSummary');
       const log = document.getElementById('runnerLog');
+      const detach = document.getElementById('runnerDetach');
+      const started = document.getElementById('runnerStarted');
+      const updated = document.getElementById('runnerUpdated');
       const active = runnerState.active ? 'running' : '';
       mode.className = `pill ${active}`;
       mode.textContent = runnerState.enabled ? (runnerState.active ? 'servidor: rodando' : 'servidor: pronto') : 'servidor: indisponivel';
       notice.className = `card notice ${runnerState.enabled ? '' : 'bad'}`;
       notice.innerHTML = runnerState.enabled
-        ? 'Ponte ativa: o servidor pode chamar PowerShell/Python em <code>C:\\witcher-dub-br</code>. Instalacao do mod continua manual.'
+        ? 'Ponte ativa: o servidor pode chamar PowerShell/Python em <code>C:\\witcher-dub-br</code>. O job continua em background mesmo se voce fechar esta pagina. Instalacao do mod continua manual.'
         : `Ponte inativa: ${escapeHtml(runnerState.error || runnerState.message || 'runner.php nao conseguiu validar o servidor local.')}`;
       const job = runnerState.job;
       summary.textContent = job
         ? `${job.status || 'status'} | ${job.block || '-'} | ${job.stage || '-'} | PID ${job.pid || '-'}`
         : (runnerState.message || 'Nenhum job registrado.');
+      detach.textContent = runnerState.detached
+        ? 'Job em background: pode sair da pagina e voltar depois.'
+        : 'Job em background: nao confirmado neste servidor.';
+      started.textContent = `Inicio: ${job?.started_at ? new Date(job.started_at).toLocaleString() : '-'}`;
+      updated.textContent = `Ultima atualizacao: ${job?.updated_at ? new Date(job.updated_at).toLocaleString() : '-'}`;
       log.textContent = runnerState.log_tail || 'Sem log recente.';
     }
     function renderEvents() {

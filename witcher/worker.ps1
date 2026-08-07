@@ -208,8 +208,8 @@ $script:StartedAt = (Get-Date).ToUniversalTime().ToString("o")
 
 try {
     Assert-ProjectReady
-    Update-Job -Status "running" -Stage "starting" -Message "Worker iniciado."
-    Update-Progress -Status "running" -Message "Worker iniciado no servidor."
+    Update-Job -Status "running" -Stage "starting" -Message "Worker iniciado em background no servidor."
+    Update-Progress -Status "running" -Message "Worker iniciado em background no servidor."
 
     $scriptsDir = Join-Path $ProjectRoot "scripts"
     $stages = @()

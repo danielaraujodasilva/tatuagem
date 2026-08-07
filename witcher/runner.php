@@ -122,9 +122,11 @@ function currentStatus(
         'ok' => true,
         'enabled' => $enabled,
         'active' => $active,
+        'detached' => true,
+        'refresh_seconds' => 10,
         'job' => $job,
         'log_tail' => $logTail,
-        'message' => $enabled ? 'Ponte local pronta.' : 'Este servidor nao consegue acessar C:\\witcher-dub-br ou worker.ps1.',
+        'message' => $enabled ? 'Ponte local pronta. Jobs rodam em background no servidor.' : 'Este servidor nao consegue acessar C:\\witcher-dub-br ou worker.ps1.',
     ];
 }
 
@@ -220,5 +222,5 @@ file_put_contents($jobFile, json_encode([
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
 
 $status = currentStatus($runtimeDir, $jobFile, $worker, $projectRoot);
-$status['message'] = 'Worker iniciado no servidor.';
+$status['message'] = 'Worker iniciado em background no servidor. Voce pode fechar a pagina sem parar o job.';
 respond($status);
