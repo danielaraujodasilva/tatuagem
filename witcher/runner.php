@@ -70,6 +70,22 @@ function tailFile(string $path, int $bytes = 6000): string
     return $text;
 }
 
+function safeOutput(string $text, int $limit = 4000): string
+{
+    if (function_exists('mb_check_encoding') && !mb_check_encoding($text, 'UTF-8')) {
+        $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8, UTF-16LE, Windows-1252, ISO-8859-1');
+    }
+    return substr($text, 0, $limit);
+}
+
+function parsePid(string $output): int
+{
+    if (preg_match('/^\s*(\d{2,})/m', $output, $match) === 1) {
+        return (int) $match[1];
+    }
+    return 0;
+}
+
 function psQuote(string $value): string
 {
     return "'" . str_replace("'", "''", $value) . "'";
@@ -207,9 +223,13 @@ $args = [
 $argList = '@(' . implode(', ', array_map('psQuote', $args)) . ')';
 $script = '$p = Start-Process -FilePath "powershell.exe" -ArgumentList ' . $argList . ' -PassThru -WindowStyle Hidden; $p.Id';
 $output = runPowerShell($script);
-$pid = (int) trim($output);
+$pid = parsePid($output);
 if ($pid <= 0) {
-    respond(['ok' => false, 'error' => 'Nao foi possivel iniciar o worker PowerShell.', 'output' => $output], 500);
+    respond([
+        'ok' => false,
+        'error' => 'Nao foi possivel iniciar o worker PowerShell.',
+        'output' => safeOutput($output),
+    ], 500);
 }
 
 file_put_contents($jobFile, json_encode([
