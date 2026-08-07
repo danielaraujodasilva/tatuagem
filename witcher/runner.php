@@ -67,11 +67,12 @@ function tailFile(string $path, int $bytes = 6000): string
     fseek($handle, max(0, $size - $bytes));
     $text = (string) stream_get_contents($handle);
     fclose($handle);
-    return $text;
+    return safeOutput($text, $bytes);
 }
 
 function safeOutput(string $text, int $limit = 4000): string
 {
+    $text = str_replace("\0", '', $text);
     if (function_exists('mb_check_encoding') && !mb_check_encoding($text, 'UTF-8')) {
         $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8, UTF-16LE, Windows-1252, ISO-8859-1');
     }

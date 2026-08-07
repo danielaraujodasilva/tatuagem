@@ -181,8 +181,13 @@ function Invoke-Stage {
     Update-Job -Status "running" -Stage $Name -Message $message
     Update-Progress -Status "running" -Message $message
     Add-Content -LiteralPath $LogFile -Encoding UTF8 -Value ("`n[" + (Get-Date -Format "o") + "] " + ($Command -join " "))
-    & $Command[0] @($Command[1..($Command.Count - 1)]) 2>&1 | Tee-Object -FilePath $LogFile -Append
+    $stageOutput = & $Command[0] @($Command[1..($Command.Count - 1)]) 2>&1
     $exitCode = if ($null -ne $LASTEXITCODE) { $LASTEXITCODE } else { 0 }
+    foreach ($line in @($stageOutput)) {
+        $text = [string]$line
+        Add-Content -LiteralPath $LogFile -Encoding UTF8 -Value $text
+        Write-Output $text
+    }
     if ($exitCode -ne 0) {
         throw "Etapa $Name falhou com codigo $exitCode"
     }
