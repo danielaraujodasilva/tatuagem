@@ -104,6 +104,47 @@
       background: linear-gradient(90deg, var(--accent), var(--gold));
       transition: width .2s ease;
     }
+    .live-strip {
+      display: grid;
+      grid-template-columns: 1.4fr repeat(3, minmax(110px, .28fr));
+      gap: 8px;
+      align-items: stretch;
+      margin: 10px 0 12px;
+      padding: 12px;
+    }
+    .live-item {
+      background: #0d1117;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      min-width: 0;
+    }
+    .live-item strong {
+      display: block;
+      color: var(--text);
+      font-size: .94rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .live-item span {
+      color: var(--muted);
+      font-size: .78rem;
+    }
+    .live-progress {
+      height: 8px;
+      border: 1px solid var(--line);
+      background: #080a0d;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .live-progress div {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--blue), var(--ok));
+      transition: width .2s ease;
+    }
     .stats, .mini-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -288,6 +329,7 @@
       .detail-actions { display: grid; grid-template-columns: repeat(3, 1fr); }
       .detail-actions .btn { width: 100%; }
       .stats, .mini-grid { grid-template-columns: repeat(2, 1fr); }
+      .live-strip { grid-template-columns: repeat(2, 1fr); }
       .block-header { grid-template-columns: auto 1fr; }
       .block-header .pill, .block-header .collapse-btn { grid-column: 2; justify-self: start; }
     }
@@ -312,6 +354,11 @@
       }
       .detail-actions { grid-template-columns: repeat(2, 1fr); }
       .stats, .mini-grid { grid-template-columns: 1fr; }
+      .live-strip {
+        grid-template-columns: 1fr 1fr;
+        padding: 10px;
+      }
+      .live-item:first-child { grid-column: span 2; }
       .block-header {
         gap: 8px;
         padding: 12px;
@@ -369,6 +416,13 @@
       <button class="btn" data-panel-toggle="secondaryActionsPanel" aria-expanded="false">Acoes</button>
     </div>
 
+    <div class="card live-strip">
+      <div class="live-item"><span>fazendo agora</span><strong id="liveAction">Nenhum bloco rodando.</strong><div class="live-progress"><div id="liveFill"></div></div></div>
+      <div class="live-item"><span>etapa</span><strong id="liveStage">-</strong></div>
+      <div class="live-item"><span>time-right</span><strong id="liveElapsed">0m</strong></div>
+      <div class="live-item"><span>time-left</span><strong id="liveEta">0m</strong></div>
+    </div>
+
     <div class="card button-panel detail-panel" id="detailButtonsPanel" hidden>
       <div class="detail-actions">
         <button class="btn" data-panel-toggle="overviewPanel" aria-expanded="false">Resumo</button>
@@ -385,7 +439,7 @@
       <button class="btn" id="collapseAll">Fechar todos</button>
       <button class="btn" data-panel-toggle="notePanel" aria-expanded="false">Nota</button>
       <button class="btn" id="copyReport">Copiar relatorio para Codex</button>
-      <button class="btn bad" id="resetAll">Zerar painel</button>
+      <button class="btn bad" id="resetAll">Limpar painel</button>
     </div>
 
     <div class="card notice detail-panel" id="serverNotice" hidden>
@@ -525,6 +579,7 @@
     let runnerState = { ok: false, enabled: false, active: false, job: null, log_tail: '' };
     const compactBlocks = new Set(window.matchMedia('(max-width: 640px)').matches ? blocks.map(item => item.id) : []);
     let saveTimer = null;
+    let runnerPollTimer = null;
 
     function nowIso() { return new Date().toISOString(); }
     function normalizeStateShape() {
@@ -538,6 +593,10 @@
           status: 'pending',
           completed_lines: 0,
           failed_lines: 0,
+          progress_percent: 0,
+          stage_index: 0,
+          stage_count: 0,
+          stage_label: '',
           current_action: '',
           error: '',
           note: '',
@@ -559,6 +618,10 @@
       return h > 0 ? `${h}h ${m}m` : `${m}m`;
     }
     function blockPercent(blockDef, blockState) {
+      if (blockState.status === 'done') return 100;
+      if (blockState.status === 'running' && Number(blockState.progress_percent || 0) > 0) {
+        return Math.min(99, Math.round(Number(blockState.progress_percent || 0)));
+      }
       const done = Math.min(blockDef.lines, Number(blockState.completed_lines || 0));
       return blockDef.lines ? Math.round((done / blockDef.lines) * 100) : 0;
     }
@@ -568,16 +631,19 @@
     }
     async function loadState() {
       try {
-        const response = await fetch(`progress.php?t=${Date.now()}`, { cache: 'no-store' });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        Object.assign(state, await response.json());
-        normalizeStateShape();
+        await fetchProgressState();
         document.getElementById('saveState').textContent = 'Progresso carregado.';
       } catch (error) {
         document.getElementById('saveState').textContent = `Falha ao carregar: ${error.message}`;
       }
       await refreshRunner();
       render();
+    }
+    async function fetchProgressState() {
+      const response = await fetch(`progress.php?t=${Date.now()}`, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      Object.assign(state, await response.json());
+      normalizeStateShape();
     }
     async function saveState() {
       state.operator_note = document.getElementById('operatorNote').value;
@@ -610,6 +676,7 @@
           block.started_at ||= nowIso();
           state.mode = 'running';
           state.active_block = blockId;
+          render();
         }
         const response = await fetch('runner.php', {
           method: 'POST',
@@ -649,8 +716,14 @@
       } catch (error) {
         runnerState = { ok: false, enabled: false, active: false, error: error.message, log_tail: '' };
       }
+      try {
+        await fetchProgressState();
+      } catch (error) {
+        addEvent('', 'progress-error', error.message);
+      }
       syncRunnerToState();
-      renderRunner();
+      render();
+      scheduleRunnerPoll();
     }
     function syncRunnerToState() {
       const job = runnerState.job;
@@ -660,6 +733,7 @@
       if (job.status === 'running') {
         block.status = 'running';
         block.current_action = job.message || job.stage || 'Executando no servidor.';
+        block.stage_label ||= job.stage || '';
         state.mode = 'running';
         state.active_block = job.block;
         state.started_at ||= job.started_at || nowIso();
@@ -767,8 +841,8 @@
       document.querySelectorAll('[data-field]').forEach(input => {
         input.addEventListener('input', () => {
           const [id, field] = input.dataset.field.split(':');
-          const block = ensureBlock(id);
-          block[field] = input.type === 'number' ? Number(input.value || 0) : input.value;
+      const block = ensureBlock(id);
+      block[field] = input.type === 'number' ? Number(input.value || 0) : input.value;
           block.updated_at = nowIso();
           if (field === 'status') {
             addEvent(id, input.value, `Bloco marcado como ${statusLabel[input.value]}.`);
@@ -788,15 +862,20 @@
     }
     function renderSummary() {
       const totalLines = blocks.reduce((sum, item) => sum + item.lines, 0);
-      const completed = blocks.reduce((sum, item) => sum + Math.min(item.lines, Number(ensureBlock(item.id).completed_lines || 0)), 0);
+      const completed = blocks.reduce((sum, item) => {
+        const data = ensureBlock(item.id);
+        return sum + Math.min(item.lines, Number(data.completed_lines || 0));
+      }, 0);
+      const progressWeighted = blocks.reduce((sum, item) => sum + item.lines * (blockPercent(item, ensureBlock(item.id)) / 100), 0);
       const failed = blocks.reduce((sum, item) => sum + Number(ensureBlock(item.id).failed_lines || 0), 0);
       const remainingSeconds = blocks.reduce((sum, item) => {
         const data = ensureBlock(item.id);
         if (data.status === 'done') return sum;
-        return sum + Math.max(0, item.lines - Number(data.completed_lines || 0)) * item.avgSeconds;
+        const remainingRatio = Math.max(0, 1 - (blockPercent(item, data) / 100));
+        return sum + item.lines * item.avgSeconds * remainingRatio;
       }, 0);
-      const percent = totalLines ? (completed / totalLines) * 100 : 0;
-      const percentText = completed > 0 && completed < totalLines ? percent.toFixed(1) : Math.round(percent).toString();
+      const percent = totalLines ? (progressWeighted / totalLines) * 100 : 0;
+      const percentText = percent > 0 && percent < 100 ? percent.toFixed(1) : Math.round(percent).toString();
       const started = state.started_at ? new Date(state.started_at).getTime() : null;
       const elapsed = started ? (Date.now() - started) / 1000 : 0;
       document.getElementById('totalPercent').textContent = `${percentText}%`;
@@ -805,6 +884,26 @@
       document.getElementById('failedLines').textContent = failed;
       document.getElementById('elapsedTime').textContent = fmtDuration(elapsed);
       document.getElementById('etaTime').textContent = fmtDuration(remainingSeconds);
+      renderLiveStatus(remainingSeconds);
+    }
+    function activeBlockInfo() {
+      const activeId = state.active_block || runnerState.job?.block;
+      const item = blocks.find(block => block.id === activeId) || blocks.find(block => ensureBlock(block.id).status === 'running');
+      return item ? { item, data: ensureBlock(item.id) } : null;
+    }
+    function renderLiveStatus(remainingSeconds) {
+      const active = activeBlockInfo();
+      const data = active?.data;
+      const started = data?.started_at || state.started_at;
+      const elapsed = started ? (Date.now() - new Date(started).getTime()) / 1000 : 0;
+      const activePercent = active ? blockPercent(active.item, data) : 0;
+      const activeRemaining = active ? active.item.lines * active.item.avgSeconds * Math.max(0, 1 - (activePercent / 100)) : remainingSeconds;
+      const stageText = data?.stage_count ? `${data.stage_index || 0}/${data.stage_count} ${data.stage_label || ''}`.trim() : (data?.stage_label || '-');
+      document.getElementById('liveAction').textContent = data?.current_action || 'Nenhum bloco rodando.';
+      document.getElementById('liveStage').textContent = stageText || '-';
+      document.getElementById('liveElapsed').textContent = fmtDuration(elapsed);
+      document.getElementById('liveEta').textContent = fmtDuration(activeRemaining);
+      document.getElementById('liveFill').style.width = `${activePercent}%`;
     }
     function renderRunner() {
       const mode = document.getElementById('serverMode');
@@ -910,13 +1009,13 @@
       document.getElementById('saveState').textContent = 'Relatorio copiado para colar no Codex.';
     });
     document.getElementById('resetAll').addEventListener('click', async () => {
-      if (!confirm('Zerar todo o painel Witcher?')) return;
+      if (!confirm('Limpar somente o painel? Arquivos gerados, pacotes e jogo nao serao apagados.')) return;
       state.mode = 'idle';
       state.active_block = null;
       state.started_at = null;
       state.operator_note = '';
       state.blocks = {};
-      state.events = [{ at: nowIso(), block: '', type: 'reset', message: 'Painel zerado manualmente.' }];
+      state.events = [{ at: nowIso(), block: '', type: 'reset', message: 'Painel limpo manualmente.' }];
       render();
       try {
         await runnerAction('clear');
@@ -927,7 +1026,12 @@
     });
 
     loadState();
-    setInterval(refreshRunner, 10000);
+    function scheduleRunnerPoll() {
+      clearTimeout(runnerPollTimer);
+      const fast = runnerState.active || state.mode === 'running' || blocks.some(item => ensureBlock(item.id).status === 'running');
+      runnerPollTimer = setTimeout(refreshRunner, fast ? 500 : 10000);
+    }
+    scheduleRunnerPoll();
     setInterval(renderSummary, 30000);
   </script>
 </body>

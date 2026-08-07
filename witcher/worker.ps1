@@ -90,6 +90,10 @@ function Ensure-ProgressBlock {
             status = "pending"
             completed_lines = 0
             failed_lines = 0
+            progress_percent = 0
+            stage_index = 0
+            stage_count = 0
+            stage_label = ""
             current_action = ""
             error = ""
             note = ""
@@ -124,6 +128,10 @@ function Update-Progress {
         [string]$Message,
         [int]$Completed = -1,
         [int]$Failed = -1,
+        [int]$ProgressPercent = -1,
+        [int]$StageIndex = -1,
+        [int]$StageCount = -1,
+        [string]$StageLabel = "",
         [string]$ErrorText = ""
     )
     $progress = Read-JsonHashtable -Path $ProgressFile -Default (New-DefaultProgress)
@@ -139,6 +147,18 @@ function Update-Progress {
     }
     if ($Failed -ge 0) {
         $block.failed_lines = $Failed
+    }
+    if ($ProgressPercent -ge 0) {
+        $block.progress_percent = [Math]::Min(100, [Math]::Max(0, $ProgressPercent))
+    }
+    if ($StageIndex -ge 0) {
+        $block.stage_index = $StageIndex
+    }
+    if ($StageCount -ge 0) {
+        $block.stage_count = $StageCount
+    }
+    if ($StageLabel -ne "") {
+        $block.stage_label = $StageLabel
     }
     if ($ErrorText -ne "") {
         $block.error = $ErrorText
@@ -176,10 +196,11 @@ function Test-PauseRequested {
 }
 
 function Invoke-Stage {
-    param([string]$Name, [string[]]$Command)
+    param([string]$Name, [string[]]$Command, [int]$StageIndex, [int]$StageCount)
     $message = "Executando etapa: $Name"
     Update-Job -Status "running" -Stage $Name -Message $message
-    Update-Progress -Status "running" -Message $message
+    $progressPercent = if ($StageCount -gt 0) { [Math]::Floor(($StageIndex / $StageCount) * 100) } else { 0 }
+    Update-Progress -Status "running" -Message $message -ProgressPercent $progressPercent -StageIndex $StageIndex -StageCount $StageCount -StageLabel $Name
     Add-Content -LiteralPath $LogFile -Encoding UTF8 -Value ("`n[" + (Get-Date -Format "o") + "] " + ($Command -join " "))
     $stageOutput = & $Command[0] @($Command[1..($Command.Count - 1)]) 2>&1
     $exitCode = if ($null -ne $LASTEXITCODE) { $LASTEXITCODE } else { 0 }
@@ -193,7 +214,7 @@ function Invoke-Stage {
     }
     if (Test-PauseRequested) {
         Update-Job -Status "paused" -Stage $Name -Message "Pausado apos concluir $Name."
-        Update-Progress -Status "paused" -Message "Pausado apos concluir $Name."
+        Update-Progress -Status "paused" -Message "Pausado apos concluir $Name." -ProgressPercent ([Math]::Floor(($StageIndex / $StageCount) * 100)) -StageIndex $StageIndex -StageCount $StageCount -StageLabel $Name
         exit 0
     }
 }
@@ -330,23 +351,32 @@ try {
         }
     }
 
+    $stageCount = $stages.Count + 1
+    if ($BlockId -eq "prologue") {
+        $stageCount += 1
+    }
+    $stageIndex = 0
+
     foreach ($stage in $stages) {
-        Invoke-Stage -Name $stage.name -Command $stage.command
+        $stageIndex += 1
+        Invoke-Stage -Name $stage.name -Command $stage.command -StageIndex $stageIndex -StageCount $stageCount
     }
 
     if ($BlockId -eq "prologue") {
+        $stageIndex += 1
         Update-Job -Status "running" -Stage "package" -Message "Criando pacote de override validavel para o prologo."
-        Update-Progress -Status "running" -Message "Criando pacote de override validavel para o prologo."
+        Update-Progress -Status "running" -Message "Criando pacote de override validavel para o prologo." -ProgressPercent ([Math]::Floor(($stageIndex / $stageCount) * 100)) -StageIndex $stageIndex -StageCount $stageCount -StageLabel "package"
         New-KnownOverridePackage -PackageName $packageName -LineIds $prologueLineIds
     }
 
+    $stageIndex += 1
     Update-Job -Status "running" -Stage "validate-package" -Message "Validando manifest, arquivos e hashes do pacote."
-    Update-Progress -Status "running" -Message "Validando manifest, arquivos e hashes do pacote."
+    Update-Progress -Status "running" -Message "Validando manifest, arquivos e hashes do pacote." -ProgressPercent ([Math]::Floor(($stageIndex / $stageCount) * 100)) -StageIndex $stageIndex -StageCount $stageCount -StageLabel "validate-package"
     Assert-PackageComplete -PackageName $packageName -ExpectedCount $expectedCompleted
 
     $doneMessage = "Bloco finalizado com pacote validado ($expectedCompleted arquivos). Nada foi instalado no jogo."
     Update-Job -Status "done" -Stage "complete" -Message $doneMessage
-    Update-Progress -Status "done" -Message $doneMessage -Completed $expectedCompleted -Failed 0
+    Update-Progress -Status "done" -Message $doneMessage -Completed $expectedCompleted -Failed 0 -ProgressPercent 100 -StageIndex $stageCount -StageCount $stageCount -StageLabel "complete"
     exit 0
 }
 catch {
