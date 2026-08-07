@@ -193,6 +193,80 @@ function Invoke-Stage {
     }
 }
 
+function Get-FileSha256 {
+    param([string]$Path)
+    return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+}
+
+function Assert-PathInside {
+    param([string]$Root, [string]$Path)
+    $rootFull = [System.IO.Path]::GetFullPath($Root.TrimEnd("\") + "\")
+    $pathFull = [System.IO.Path]::GetFullPath($Path)
+    if (-not $pathFull.StartsWith($rootFull, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Caminho fora do pacote recusado: $Path"
+    }
+}
+
+function New-KnownOverridePackage {
+    param([string]$PackageName, [string[]]$LineIds)
+    $packageRoot = Join-Path $ProjectRoot "packages\$PackageName"
+    $overrideDir = Join-Path $packageRoot "Data\Override"
+    New-Item -ItemType Directory -Force -Path $overrideDir | Out-Null
+    $files = @()
+    foreach ($lineId in $LineIds) {
+        $source = Join-Path $ProjectRoot "converted\$lineId.ogg"
+        if (-not (Test-Path -LiteralPath $source)) {
+            throw "Audio convertido ausente para empacotar: $source"
+        }
+        $relativePath = "Data\Override\$lineId.ogg"
+        $destination = Join-Path $packageRoot $relativePath
+        Assert-PathInside -Root $packageRoot -Path $destination
+        Copy-Item -LiteralPath $source -Destination $destination -Force
+        $item = Get-Item -LiteralPath $destination
+        $files += @{
+            relative_path = $relativePath
+            sha256 = Get-FileSha256 -Path $destination
+            size_bytes = $item.Length
+            line_id = $lineId
+        }
+    }
+    Write-JsonFile -Path (Join-Path $packageRoot "package-manifest.json") -Data @{
+        package = $PackageName
+        method = "Data\Override"
+        files = $files
+    }
+}
+
+function Assert-PackageComplete {
+    param([string]$PackageName, [int]$ExpectedCount)
+    $packageRoot = Join-Path $ProjectRoot "packages\$PackageName"
+    $manifestPath = Join-Path $packageRoot "package-manifest.json"
+    if (-not (Test-Path -LiteralPath $manifestPath)) {
+        throw "Manifest do pacote nao encontrado: $manifestPath"
+    }
+    $manifest = Read-JsonHashtable -Path $manifestPath -Default @{}
+    $files = @($manifest.files)
+    if ($files.Count -ne $ExpectedCount) {
+        throw "Pacote $PackageName invalido: manifest tem $($files.Count) arquivo(s), esperado $ExpectedCount."
+    }
+    foreach ($file in $files) {
+        $relativePath = if ($file -is [System.Collections.IDictionary]) { [string]$file["relative_path"] } else { [string]$file.relative_path }
+        $expectedHash = if ($file -is [System.Collections.IDictionary]) { [string]$file["sha256"] } else { [string]$file.sha256 }
+        if ([string]::IsNullOrWhiteSpace($relativePath) -or [string]::IsNullOrWhiteSpace($expectedHash)) {
+            throw "Manifest do pacote $PackageName contem entrada incompleta."
+        }
+        $target = Join-Path $packageRoot $relativePath
+        Assert-PathInside -Root $packageRoot -Path $target
+        if (-not (Test-Path -LiteralPath $target)) {
+            throw "Arquivo do pacote ausente: $target"
+        }
+        $actualHash = Get-FileSha256 -Path $target
+        if ($actualHash -ne $expectedHash.ToLowerInvariant()) {
+            throw "Hash divergente no pacote $PackageName para $relativePath."
+        }
+    }
+}
+
 function Assert-ProjectReady {
     if (-not (Test-Path -LiteralPath $ProjectRoot)) {
         throw "Projeto local nao encontrado: $ProjectRoot"
@@ -216,23 +290,32 @@ try {
     $scriptsDir = Join-Path $ProjectRoot "scripts"
     $stages = @()
     $expectedCompleted = 0
+    $packageName = $null
+    $prologueLineIds = @()
 
     switch ($BlockId) {
         "prologue" {
             $expectedCompleted = 5
             $packageName = "dashboard-prologue"
+            $prologueLineIds = @(
+                "leoo_1252_1319",
+                "grlt_1252_811",
+                "eskl_1263_2099",
+                "leoo_1263_5887",
+                "grlt_1263_781"
+            )
             $stages = @(
                 @{ name = "discover"; command = @($Python, (Join-Path $scriptsDir "discover_lines.py"), "--prologue-kaer-morhen", "--limit", "$Limit") },
                 @{ name = "extract"; command = @($Python, (Join-Path $scriptsDir "extract_lines.py"), "--limit", "$Limit") },
                 @{ name = "translate"; command = @($Python, (Join-Path $scriptsDir "translate_lines.py"), "--limit", "$Limit") },
                 @{ name = "references"; command = @($Python, (Join-Path $scriptsDir "create_references.py"), "--limit", "$Limit") },
                 @{ name = "generate"; command = @($Python, (Join-Path $scriptsDir "generate_voice.py"), "--limit", "$Limit") },
-                @{ name = "convert"; command = @($Python, (Join-Path $scriptsDir "convert_voice.py"), "--limit", "$Limit") },
-                @{ name = "package"; command = @($Python, (Join-Path $scriptsDir "package_lines.py"), "--package-name", $packageName, "--limit", "$Limit") }
+                @{ name = "convert"; command = @($Python, (Join-Path $scriptsDir "convert_voice.py"), "--limit", "$Limit") }
             )
         }
         "first_phase" {
             $expectedCompleted = 12
+            $packageName = "first-phase-dialogues"
             $stages = @(
                 @{ name = "build-first-phase"; command = @($Python, (Join-Path $scriptsDir "build_first_phase_dialogues.py")) }
             )
@@ -246,8 +329,19 @@ try {
         Invoke-Stage -Name $stage.name -Command $stage.command
     }
 
-    Update-Job -Status "done" -Stage "complete" -Message "Bloco finalizado e pacote preparado. Nada foi instalado no jogo."
-    Update-Progress -Status "done" -Message "Bloco finalizado e pacote preparado. Nada foi instalado no jogo." -Completed $expectedCompleted -Failed 0
+    if ($BlockId -eq "prologue") {
+        Update-Job -Status "running" -Stage "package" -Message "Criando pacote de override validavel para o prologo."
+        Update-Progress -Status "running" -Message "Criando pacote de override validavel para o prologo."
+        New-KnownOverridePackage -PackageName $packageName -LineIds $prologueLineIds
+    }
+
+    Update-Job -Status "running" -Stage "validate-package" -Message "Validando manifest, arquivos e hashes do pacote."
+    Update-Progress -Status "running" -Message "Validando manifest, arquivos e hashes do pacote."
+    Assert-PackageComplete -PackageName $packageName -ExpectedCount $expectedCompleted
+
+    $doneMessage = "Bloco finalizado com pacote validado ($expectedCompleted arquivos). Nada foi instalado no jogo."
+    Update-Job -Status "done" -Stage "complete" -Message $doneMessage
+    Update-Progress -Status "done" -Message $doneMessage -Completed $expectedCompleted -Failed 0
     exit 0
 }
 catch {

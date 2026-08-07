@@ -527,7 +527,12 @@
     let saveTimer = null;
 
     function nowIso() { return new Date().toISOString(); }
+    function normalizeStateShape() {
+      if (!state.blocks || Array.isArray(state.blocks) || typeof state.blocks !== 'object') state.blocks = {};
+      if (!Array.isArray(state.events)) state.events = [];
+    }
     function ensureBlock(id) {
+      normalizeStateShape();
       if (!state.blocks[id]) {
         state.blocks[id] = {
           status: 'pending',
@@ -566,8 +571,7 @@
         const response = await fetch(`progress.php?t=${Date.now()}`, { cache: 'no-store' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         Object.assign(state, await response.json());
-        state.blocks ||= {};
-        state.events ||= [];
+        normalizeStateShape();
         document.getElementById('saveState').textContent = 'Progresso carregado.';
       } catch (error) {
         document.getElementById('saveState').textContent = `Falha ao carregar: ${error.message}`;
@@ -587,6 +591,7 @@
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
         Object.assign(state, data);
+        normalizeStateShape();
         document.getElementById('saveState').textContent = `Salvo: ${new Date().toLocaleTimeString()}`;
       } catch (error) {
         document.getElementById('saveState').textContent = `Erro ao salvar: ${error.message}`;
@@ -603,7 +608,18 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action, block: blockId })
         });
-        const data = await response.json();
+        const text = await response.text();
+        if (!text.trim()) {
+          addEvent(blockId || '', 'runner-warning', 'Servidor respondeu sem corpo; consultando status do job.');
+          await refreshRunner();
+          return;
+        }
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (parseError) {
+          throw new Error(`Resposta invalida do servidor: ${parseError.message}`);
+        }
         if (!response.ok || !data.ok) throw new Error(data.error || data.message || `HTTP ${response.status}`);
         runnerState = data;
         addEvent(blockId || '', action, data.message || 'Acao enviada ao servidor.');
@@ -618,7 +634,10 @@
     async function refreshRunner() {
       try {
         const response = await fetch(`runner.php?action=status&t=${Date.now()}`, { cache: 'no-store' });
-        runnerState = await response.json();
+        const text = await response.text();
+        runnerState = text.trim()
+          ? JSON.parse(text)
+          : { ok: false, enabled: false, active: false, error: 'runner.php respondeu vazio', log_tail: '' };
       } catch (error) {
         runnerState = { ok: false, enabled: false, active: false, error: error.message, log_tail: '' };
       }

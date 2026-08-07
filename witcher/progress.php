@@ -28,6 +28,14 @@ function defaultProgress(): array
     ];
 }
 
+function isAssocArray(array $value): bool
+{
+    if ($value === []) {
+        return false;
+    }
+    return array_keys($value) !== range(0, count($value) - 1);
+}
+
 function readProgress(string $file): array
 {
     if (!is_file($file)) {
@@ -48,7 +56,15 @@ function readProgress(string $file): array
         $data = defaultProgress();
     }
 
-    return array_replace(defaultProgress(), $data);
+    $progress = array_replace(defaultProgress(), $data);
+    if (!isset($progress['blocks']) || !is_array($progress['blocks']) || !isAssocArray($progress['blocks'])) {
+        $progress['blocks'] = new stdClass();
+    }
+    if (!isset($progress['events']) || !is_array($progress['events'])) {
+        $progress['events'] = [];
+    }
+
+    return $progress;
 }
 
 function cleanText(mixed $value, int $limit = 4000): string
@@ -99,7 +115,11 @@ if (!is_array($data)) {
 }
 
 $blocks = [];
-foreach (($data['blocks'] ?? []) as $id => $block) {
+$rawBlocks = $data['blocks'] ?? [];
+if (!is_array($rawBlocks) || !isAssocArray($rawBlocks)) {
+    $rawBlocks = [];
+}
+foreach ($rawBlocks as $id => $block) {
     $safeId = preg_replace('/[^a-z0-9_-]/i', '', (string) $id);
     if ($safeId === '') {
         continue;
@@ -108,7 +128,11 @@ foreach (($data['blocks'] ?? []) as $id => $block) {
 }
 
 $events = [];
-foreach (array_slice(($data['events'] ?? []), -80) as $event) {
+$rawEvents = $data['events'] ?? [];
+if (!is_array($rawEvents)) {
+    $rawEvents = [];
+}
+foreach (array_slice($rawEvents, -80) as $event) {
     if (!is_array($event)) {
         continue;
     }
@@ -127,7 +151,7 @@ $payload = [
     'started_at' => cleanText($data['started_at'] ?? '', 40) ?: null,
     'updated_at' => gmdate('c'),
     'operator_note' => cleanText($data['operator_note'] ?? '', 2000),
-    'blocks' => $blocks,
+    'blocks' => (object) $blocks,
     'events' => $events,
 ];
 
