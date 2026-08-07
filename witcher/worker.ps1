@@ -346,6 +346,15 @@ try {
                 @{ name = "build-first-phase"; command = @($Python, (Join-Path $scriptsDir "build_first_phase_dialogues.py")) }
             )
         }
+        "chapter1" {
+            $expectedCompleted = 8
+            $packageName = "chapter1-scope"
+            $stages = @(
+                @{ name = "scope"; command = @($Python, (Join-Path $scriptsDir "prepare_chapter1_scope.py"), "--limit", "$Limit") },
+                @{ name = "extract"; command = @($Python, (Join-Path $scriptsDir "extract_lines.py"), "--limit", "$Limit") },
+                @{ name = "references"; command = @($Python, (Join-Path $scriptsDir "create_references.py"), "--limit", "$Limit") }
+            )
+        }
         default {
             throw "Bloco ainda sem comando seguro: $BlockId"
         }
@@ -370,11 +379,16 @@ try {
     }
 
     $stageIndex += 1
-    Update-Job -Status "running" -Stage "validate-package" -Message "Validando manifest, arquivos e hashes do pacote."
-    Update-Progress -Status "running" -Message "Validando manifest, arquivos e hashes do pacote." -ProgressPercent ([Math]::Floor(($stageIndex / $stageCount) * 100)) -StageIndex $stageIndex -StageCount $stageCount -StageLabel "validate-package"
-    Assert-PackageComplete -PackageName $packageName -ExpectedCount $expectedCompleted
+    if ($BlockId -eq "chapter1") {
+        Update-Job -Status "running" -Stage "scope-ready" -Message "Escopo inicial do Capitulo 1 preparado. Textos/traducao seguem pendentes."
+        Update-Progress -Status "running" -Message "Escopo inicial do Capitulo 1 preparado. Textos/traducao seguem pendentes." -ProgressPercent 100 -StageIndex $stageCount -StageCount $stageCount -StageLabel "scope-ready"
+    } else {
+        Update-Job -Status "running" -Stage "validate-package" -Message "Validando manifest, arquivos e hashes do pacote."
+        Update-Progress -Status "running" -Message "Validando manifest, arquivos e hashes do pacote." -ProgressPercent ([Math]::Floor(($stageIndex / $stageCount) * 100)) -StageIndex $stageIndex -StageCount $stageCount -StageLabel "validate-package"
+        Assert-PackageComplete -PackageName $packageName -ExpectedCount $expectedCompleted
+    }
 
-    $doneMessage = "Bloco finalizado com pacote validado ($expectedCompleted arquivos). Nada foi instalado no jogo."
+    $doneMessage = if ($BlockId -eq "chapter1") { "Bloco 3 preparado: escopo e audios iniciais do Capitulo 1 registrados. Nada foi instalado no jogo." } else { "Bloco finalizado com pacote validado ($expectedCompleted arquivos). Nada foi instalado no jogo." }
     Update-Job -Status "done" -Stage "complete" -Message $doneMessage
     Update-Progress -Status "done" -Message $doneMessage -Completed $expectedCompleted -Failed 0 -ProgressPercent 100 -StageIndex $stageCount -StageCount $stageCount -StageLabel "complete"
     exit 0

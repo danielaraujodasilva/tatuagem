@@ -16,7 +16,7 @@ $projectRoot = getenv('WITCHER_DUB_ROOT') ?: 'C:\\witcher-dub-br';
 $blocks = [
     'prologue' => ['ready' => true, 'limit' => 100],
     'first_phase' => ['ready' => true, 'limit' => 100],
-    'chapter1' => ['ready' => false],
+    'chapter1' => ['ready' => true, 'limit' => 20],
     'chapter2' => ['ready' => false],
     'chapter3' => ['ready' => false],
     'chapter4' => ['ready' => false],

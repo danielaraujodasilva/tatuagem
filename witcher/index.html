@@ -498,13 +498,13 @@
       },
       {
         id: 'chapter1',
-        title: 'Capitulo 1',
-        scope: 'Aguardando descoberta segmentada por capitulo',
-        lines: 350,
+        title: 'Capitulo 1 - escopo inicial',
+        scope: 'Descoberta e extracao segura de 8 falas candidatas',
+        lines: 8,
         avgSeconds: 55,
-        executable: false,
-        command: 'Bloqueado ate a pipeline aceitar escopo chapter-1 com IDs comprovados.',
-        explain: 'O painel recusa executar este bloco enquanto o script local nao souber limitar com seguranca as falas do capitulo 1.'
+        executable: true,
+        command: 'worker.ps1 -> prepare_chapter1_scope.py, extract, references',
+        explain: 'Prepara o primeiro lote do capitulo 1 com dialogos extraidos seletivamente e audios confirmados. Ainda nao instala nada no jogo.'
       },
       {
         id: 'chapter2',
