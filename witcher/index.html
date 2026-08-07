@@ -168,7 +168,7 @@
     .block.compact .block-body { display: none; }
     .block-header {
       display: grid;
-      grid-template-columns: auto 1fr auto;
+      grid-template-columns: auto 1fr auto auto;
       gap: 12px;
       align-items: center;
       padding: 16px;
@@ -191,6 +191,15 @@
       color: var(--muted);
       font-size: .84rem;
       margin-top: 3px;
+    }
+    .collapse-btn {
+      min-width: 92px;
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #0d1117;
+      color: var(--text);
+      font-size: .8rem;
     }
     .block-body { padding: 16px; }
     .mini-grid { grid-template-columns: repeat(5, 1fr); margin-bottom: 12px; }
@@ -237,7 +246,7 @@
       .top, .layout { grid-template-columns: 1fr; }
       .stats, .mini-grid { grid-template-columns: repeat(2, 1fr); }
       .block-header { grid-template-columns: auto 1fr; }
-      .block-header .pill { grid-column: 2; justify-self: start; }
+      .block-header .pill, .block-header .collapse-btn { grid-column: 2; justify-self: start; }
     }
   </style>
 </head>
@@ -406,6 +415,7 @@
       events: []
     };
     let runnerState = { ok: false, enabled: false, active: false, job: null, log_tail: '' };
+    const compactBlocks = new Set();
     let saveTimer = null;
 
     function nowIso() { return new Date().toISOString(); }
@@ -542,8 +552,9 @@
         const percent = blockPercent(item, data);
         const busyOtherBlock = runnerState.active && runnerState.job?.block !== item.id;
         const canRun = item.executable && runnerState.enabled && !busyOtherBlock;
+        const isCompact = compactBlocks.has(item.id);
         return `
-          <article class="card block" id="block-${item.id}">
+          <article class="card block ${isCompact ? 'compact' : ''}" id="block-${item.id}">
             <div class="block-header">
               <div class="idx">${index + 1}</div>
               <div class="block-title">
@@ -551,6 +562,7 @@
                 <span>${item.scope}</span>
               </div>
               <span class="pill ${data.status}">${statusLabel[data.status] || data.status}</span>
+              <button class="collapse-btn" data-toggle-block="${item.id}" aria-expanded="${isCompact ? 'false' : 'true'}">${isCompact ? 'Abrir' : 'Fechar'}</button>
             </div>
             <div class="block-body">
               <p>${item.explain}</p>
@@ -584,6 +596,25 @@
       renderRunner();
     }
     function bindDynamicEvents() {
+      document.querySelectorAll('[data-toggle-block]').forEach(button => {
+        button.addEventListener('click', () => {
+          const id = button.dataset.toggleBlock;
+          const element = document.getElementById(`block-${id}`);
+          if (!element) return;
+          const willClose = !compactBlocks.has(id);
+          if (willClose) {
+            compactBlocks.add(id);
+            element.classList.add('compact');
+            button.textContent = 'Abrir';
+            button.setAttribute('aria-expanded', 'false');
+          } else {
+            compactBlocks.delete(id);
+            element.classList.remove('compact');
+            button.textContent = 'Fechar';
+            button.setAttribute('aria-expanded', 'true');
+          }
+        });
+      });
       document.querySelectorAll('[data-run]').forEach(button => {
         button.addEventListener('click', () => runnerAction('start', button.dataset.run));
       });
@@ -682,12 +713,30 @@
     document.getElementById('operatorNote').addEventListener('input', scheduleSave);
     document.getElementById('saveNow').addEventListener('click', saveState);
     document.getElementById('refreshRunner').addEventListener('click', refreshRunner);
-    document.getElementById('expandAll').addEventListener('click', () => document.querySelectorAll('.block').forEach(el => el.classList.remove('compact')));
-    document.getElementById('collapseAll').addEventListener('click', () => document.querySelectorAll('.block').forEach(el => el.classList.add('compact')));
+    document.getElementById('expandAll').addEventListener('click', () => {
+      compactBlocks.clear();
+      document.querySelectorAll('.block').forEach(el => el.classList.remove('compact'));
+      document.querySelectorAll('[data-toggle-block]').forEach(button => {
+        button.textContent = 'Fechar';
+        button.setAttribute('aria-expanded', 'true');
+      });
+    });
+    document.getElementById('collapseAll').addEventListener('click', () => {
+      blocks.forEach(item => compactBlocks.add(item.id));
+      document.querySelectorAll('.block').forEach(el => el.classList.add('compact'));
+      document.querySelectorAll('[data-toggle-block]').forEach(button => {
+        button.textContent = 'Abrir';
+        button.setAttribute('aria-expanded', 'false');
+      });
+    });
     document.getElementById('openRunning').addEventListener('click', () => {
       const target = blocks.find(item => ['running', 'error'].includes(ensureBlock(item.id).status)) || blocks[0];
       const element = document.getElementById(`block-${target.id}`);
+      compactBlocks.delete(target.id);
       element.classList.remove('compact');
+      element.querySelector('[data-toggle-block]')?.setAttribute('aria-expanded', 'true');
+      const button = element.querySelector('[data-toggle-block]');
+      if (button) button.textContent = 'Fechar';
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
     document.getElementById('copyReport').addEventListener('click', async () => {
