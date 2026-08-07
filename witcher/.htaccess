@@ -1,5 +1,7 @@
 DirectoryIndex index.php index.html
 
-<Files "progress.json">
+Options -Indexes
+
+<FilesMatch "^(progress\.json|worker\.ps1)$">
   Require all denied
-</Files>
+</FilesMatch>
