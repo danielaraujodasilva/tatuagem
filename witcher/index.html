@@ -782,10 +782,11 @@
         if (data.status === 'done') return sum;
         return sum + Math.max(0, item.lines - Number(data.completed_lines || 0)) * item.avgSeconds;
       }, 0);
-      const percent = totalLines ? Math.round((completed / totalLines) * 100) : 0;
+      const percent = totalLines ? (completed / totalLines) * 100 : 0;
+      const percentText = completed > 0 && completed < totalLines ? percent.toFixed(1) : Math.round(percent).toString();
       const started = state.started_at ? new Date(state.started_at).getTime() : null;
       const elapsed = started ? (Date.now() - started) / 1000 : 0;
-      document.getElementById('totalPercent').textContent = `${percent}%`;
+      document.getElementById('totalPercent').textContent = `${percentText}%`;
       document.getElementById('totalFill').style.width = `${percent}%`;
       document.getElementById('doneLines').textContent = completed;
       document.getElementById('failedLines').textContent = failed;
