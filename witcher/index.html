@@ -137,7 +137,7 @@
     }
     .action-bar {
       display: grid;
-      grid-template-columns: auto auto auto 1fr;
+      grid-template-columns: auto auto auto auto auto 1fr;
       gap: 8px;
       align-items: center;
       margin: 10px 0;
@@ -146,7 +146,8 @@
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      justify-content: flex-end;
+      justify-content: flex-start;
+      margin-bottom: 12px;
     }
     .btn {
       border: 1px solid var(--line);
@@ -247,6 +248,9 @@
     .detail-panel {
       margin-bottom: 12px;
     }
+    .button-panel {
+      padding: 12px;
+    }
     .hero .detail-panel {
       margin-top: 10px;
       margin-bottom: 0;
@@ -281,11 +285,8 @@
       .top, .layout { grid-template-columns: 1fr; }
       .action-bar { grid-template-columns: repeat(2, 1fr); }
       .action-bar .btn { width: 100%; }
-      .detail-actions {
-        grid-column: 1 / -1;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-      }
+      .detail-actions { display: grid; grid-template-columns: repeat(3, 1fr); }
+      .detail-actions .btn { width: 100%; }
       .stats, .mini-grid { grid-template-columns: repeat(2, 1fr); }
       .block-header { grid-template-columns: auto 1fr; }
       .block-header .pill, .block-header .collapse-btn { grid-column: 2; justify-self: start; }
@@ -364,6 +365,11 @@
       <button class="btn primary" id="saveNow">Salvar agora</button>
       <button class="btn" id="refreshRunner">Atualizar servidor</button>
       <button class="btn" id="openRunning">Abrir ativo/erro</button>
+      <button class="btn" data-panel-toggle="detailButtonsPanel" aria-expanded="false">Detalhes</button>
+      <button class="btn" data-panel-toggle="secondaryActionsPanel" aria-expanded="false">Acoes</button>
+    </div>
+
+    <div class="card button-panel detail-panel" id="detailButtonsPanel" hidden>
       <div class="detail-actions">
         <button class="btn" data-panel-toggle="overviewPanel" aria-expanded="false">Resumo</button>
         <button class="btn" data-panel-toggle="introPanel" aria-expanded="false">Contexto</button>
@@ -374,7 +380,7 @@
       </div>
     </div>
 
-    <div class="toolbar">
+    <div class="toolbar detail-panel" id="secondaryActionsPanel" hidden>
       <button class="btn" id="expandAll">Abrir todos</button>
       <button class="btn" id="collapseAll">Fechar todos</button>
       <button class="btn" data-panel-toggle="notePanel" aria-expanded="false">Nota</button>
@@ -517,7 +523,7 @@
       events: []
     };
     let runnerState = { ok: false, enabled: false, active: false, job: null, log_tail: '' };
-    const compactBlocks = new Set();
+    const compactBlocks = new Set(window.matchMedia('(max-width: 640px)').matches ? blocks.map(item => item.id) : []);
     let saveTimer = null;
 
     function nowIso() { return new Date().toISOString(); }
