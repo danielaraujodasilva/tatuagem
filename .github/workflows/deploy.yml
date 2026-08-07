@@ -36,11 +36,25 @@ jobs:
 
           signature="sha256=$(printf '%s' "$payload" | openssl dgst -sha256 -hmac "$DEPLOY_WEBHOOK_SECRET" | awk '{print $2}')"
 
-          curl --fail --show-error --silent \
+          response_file="$(mktemp)"
+          http_code=$(curl --show-error --silent --output "$response_file" --write-out "%{http_code}" \
             -X POST \
             -H "Content-Type: application/json" \
             -H "X-GitHub-Event: push" \
             -H "X-GitHub-Delivery: $GITHUB_RUN_ID" \
             -H "X-Hub-Signature-256: $signature" \
             --data-binary "$payload" \
-            "$DEPLOY_URL"
+            "$DEPLOY_URL")
+
+          cat "$response_file"
+          rm -f "$response_file"
+
+          if [ "$http_code" = "409" ]; then
+            echo "Deploy already running on the server."
+            exit 0
+          fi
+
+          if [ "$http_code" != "200" ] && [ "$http_code" != "202" ]; then
+            echo "Deploy webhook returned HTTP $http_code." >&2
+            exit 1
+          fi
