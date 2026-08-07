@@ -31,19 +31,19 @@ function ConvertTo-PlainHashtable {
         }
         return $hash
     }
+    if ($Value.GetType().Name -eq "PSCustomObject") {
+        $hash = @{}
+        foreach ($property in $Value.PSObject.Properties) {
+            $hash[$property.Name] = ConvertTo-PlainHashtable $property.Value
+        }
+        return $hash
+    }
     if ($Value -is [System.Collections.IEnumerable] -and $Value -isnot [string]) {
         $items = @()
         foreach ($item in $Value) {
             $items += ,(ConvertTo-PlainHashtable $item)
         }
         return $items
-    }
-    if ($Value.PSObject.Properties.Count -gt 0 -and $Value.GetType().Name -eq "PSCustomObject") {
-        $hash = @{}
-        foreach ($property in $Value.PSObject.Properties) {
-            $hash[$property.Name] = ConvertTo-PlainHashtable $property.Value
-        }
-        return $hash
     }
     return $Value
 }
@@ -82,7 +82,7 @@ function New-DefaultProgress {
 
 function Ensure-ProgressBlock {
     param([hashtable]$Progress, [string]$Id)
-    if (-not $Progress.ContainsKey("blocks") -or $null -eq $Progress.blocks) {
+    if (-not $Progress.ContainsKey("blocks") -or $null -eq $Progress.blocks -or $Progress.blocks -isnot [System.Collections.IDictionary]) {
         $Progress.blocks = @{}
     }
     if (-not $Progress.blocks.ContainsKey($Id)) {
@@ -102,8 +102,10 @@ function Ensure-ProgressBlock {
 
 function Add-ProgressEvent {
     param([hashtable]$Progress, [string]$Type, [string]$Message)
-    if (-not $Progress.ContainsKey("events") -or $null -eq $Progress.events) {
+    if (-not $Progress.ContainsKey("events") -or $null -eq $Progress.events -or $Progress.events -is [string]) {
         $Progress.events = @()
+    } elseif ($Progress.events -is [System.Collections.IDictionary]) {
+        $Progress.events = @($Progress.events)
     }
     $Progress.events += @{
         at = (Get-Date).ToUniversalTime().ToString("o")
