@@ -1,4 +1,10 @@
 {
-  "steps": {},
-  "updated_at": null
+  "version": 2,
+  "mode": "idle",
+  "active_block": null,
+  "started_at": null,
+  "updated_at": null,
+  "operator_note": "",
+  "blocks": {},
+  "events": []
 }
