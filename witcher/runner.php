@@ -181,6 +181,17 @@ if ($action === 'pause') {
     respond($status);
 }
 
+if ($action === 'clear') {
+    if ($status['active']) {
+        respond(['ok' => false, 'error' => 'Existe um job rodando. Pause ou aguarde terminar antes de limpar o historico.'], 409);
+    }
+    @unlink($jobFile);
+    @unlink($controlFile);
+    $status = currentStatus($runtimeDir, $jobFile, $worker, $projectRoot);
+    $status['message'] = 'Historico do runner limpo. Nenhum pacote do jogo foi alterado.';
+    respond($status);
+}
+
 if ($action !== 'start') {
     respond(['ok' => false, 'error' => 'Acao desconhecida.'], 400);
 }

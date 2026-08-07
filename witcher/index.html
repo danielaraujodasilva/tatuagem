@@ -603,6 +603,14 @@
     }
     async function runnerAction(action, blockId = null) {
       try {
+        if (action === 'start' && blockId) {
+          const block = ensureBlock(blockId);
+          block.status = 'running';
+          block.current_action = 'Pedido enviado ao servidor.';
+          block.started_at ||= nowIso();
+          state.mode = 'running';
+          state.active_block = blockId;
+        }
         const response = await fetch('runner.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -648,6 +656,7 @@
       const job = runnerState.job;
       if (!job || !job.block) return;
       const block = ensureBlock(job.block);
+      const isCurrentJob = state.active_block === job.block || ['running', 'paused'].includes(block.status);
       if (job.status === 'running') {
         block.status = 'running';
         block.current_action = job.message || job.stage || 'Executando no servidor.';
@@ -656,17 +665,20 @@
         state.started_at ||= job.started_at || nowIso();
       }
       if (job.status === 'paused') {
+        if (!isCurrentJob) return;
         block.status = 'paused';
         block.current_action = job.message || 'Pausado pelo painel.';
         state.mode = 'paused';
       }
       if (job.status === 'done') {
+        if (!isCurrentJob) return;
         block.status = 'done';
         block.completed_lines = blocks.find(item => item.id === job.block)?.lines || block.completed_lines;
         block.current_action = job.message || 'Bloco finalizado.';
         state.mode = 'idle';
       }
       if (job.status === 'error') {
+        if (!isCurrentJob) return;
         block.status = 'error';
         block.error = job.message || 'Erro no worker.';
         state.mode = 'needs_attention';
@@ -680,6 +692,7 @@
         const busyOtherBlock = runnerState.active && runnerState.job?.block !== item.id;
         const canRun = item.executable && runnerState.enabled && !busyOtherBlock;
         const isCompact = compactBlocks.has(item.id);
+        const runLabel = runnerState.active && runnerState.job?.block === item.id ? 'Rodando' : (data.status === 'done' ? 'Rodar novamente' : 'Mandar ver no servidor');
         return `
           <article class="card block ${isCompact ? 'compact' : ''}" id="block-${item.id}">
             <div class="block-header">
@@ -708,7 +721,7 @@
               </div>
               <div class="field"><label>Observacoes do bloco</label><textarea data-field="${item.id}:note">${escapeHtml(data.note || '')}</textarea></div>
               <div class="toolbar">
-                <button class="btn ok small" data-run="${item.id}" ${canRun ? '' : 'disabled'}>${runnerState.active && runnerState.job?.block === item.id ? 'Rodando' : 'Mandar ver no servidor'}</button>
+                <button class="btn ok small" data-run="${item.id}" ${canRun ? '' : 'disabled'}>${runLabel}</button>
                 <button class="btn warn small" data-pause="${item.id}" ${runnerState.active && runnerState.job?.block === item.id ? '' : 'disabled'}>Pausar apos etapa</button>
                 <button class="btn small" data-status="${item.id}">Atualizar status</button>
                 <button class="btn small" data-copy="${item.id}">Copiar comando</button>
@@ -896,7 +909,7 @@
       await navigator.clipboard.writeText(buildReport());
       document.getElementById('saveState').textContent = 'Relatorio copiado para colar no Codex.';
     });
-    document.getElementById('resetAll').addEventListener('click', () => {
+    document.getElementById('resetAll').addEventListener('click', async () => {
       if (!confirm('Zerar todo o painel Witcher?')) return;
       state.mode = 'idle';
       state.active_block = null;
@@ -905,6 +918,11 @@
       state.blocks = {};
       state.events = [{ at: nowIso(), block: '', type: 'reset', message: 'Painel zerado manualmente.' }];
       render();
+      try {
+        await runnerAction('clear');
+      } catch (error) {
+        addEvent('', 'runner-error', error.message);
+      }
       saveState();
     });
 
