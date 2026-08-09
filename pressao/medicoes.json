@@ -32,5 +32,7 @@
   {"id":"bp-2026-08-03-2255","date":"2026-08-03","time":"22:55","systolic":124,"diastolic":81,"pulse":82,"observacoes":"Medição feita no fim do dia."},
   {"id":"bp-2026-08-04-2206","date":"2026-08-04","time":"22:06","systolic":115,"diastolic":69,"pulse":87,"observacoes":"Medição feita no fim do dia."},
   {"id":"bp-2026-08-05-2312","date":"2026-08-05","time":"23:12","systolic":122,"diastolic":68,"pulse":70,"observacoes":"Medição feita no fim do dia."},
-  {"id":"bp-2026-08-06-2340","date":"2026-08-06","time":"23:40","systolic":119,"diastolic":70,"pulse":79,"observacoes":"Medição feita no fim do dia."}
+  {"id":"bp-2026-08-06-2340","date":"2026-08-06","time":"23:40","systolic":119,"diastolic":70,"pulse":79,"observacoes":"Medição feita no fim do dia."},
+  {"id":"bp-2026-08-07-missed","date":"2026-08-07","time":null,"systolic":null,"diastolic":null,"pulse":null,"observacoes":"Sem medição. Chegou do trabalho de madrugada e esqueceu de realizar o registro."},
+  {"id":"bp-2026-08-08-2220","date":"2026-08-08","time":"22:20","systolic":126,"diastolic":84,"pulse":75,"observacoes":"Medição feita no fim do dia. Relata estar no terceiro dia sem uso de losartana porque o medicamento acabou e ainda não conseguiu retirá-lo no posto de saúde. Até esta medição, não foi observada elevação evidente da pressão associada à interrupção, sem concluir que o medicamento seja desnecessário."}
 ]
