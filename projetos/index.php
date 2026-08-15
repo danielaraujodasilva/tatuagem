@@ -163,6 +163,15 @@ $groups = array_filter($groups);
 $totalFiles = array_sum(array_map(static fn(array $p): int => $p['stats']['files'], $projects));
 $totalBytes = array_sum(array_map(static fn(array $p): int => $p['stats']['bytes'], $projects));
 $lastUpdate = max(array_map(static fn(array $p): int => $p['stats']['last'], $projects) ?: [time()]);
+$suggestions = [];
+foreach ($projects as $project) {
+    $suggestions[] = $project['title'];
+    $suggestions[] = '/' . $project['slug'];
+    $suggestions[] = $project['group'];
+    $suggestions[] = $project['status'];
+}
+$suggestions = array_values(array_unique(array_filter($suggestions)));
+sort($suggestions, SORT_NATURAL | SORT_FLAG_CASE);
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -253,7 +262,12 @@ $lastUpdate = max(array_map(static fn(array $p): int => $p['stats']['last'], $pr
     </section>
 
     <section class="toolbar" aria-label="Filtros">
-      <input class="input" id="search" type="search" placeholder="Buscar por nome, pasta, descricao ou status">
+      <input class="input" id="search" type="search" list="projectSuggestions" placeholder="Buscar por nome, pasta, grupo ou status">
+      <datalist id="projectSuggestions">
+        <?php foreach ($suggestions as $suggestion): ?>
+          <option value="<?= h($suggestion) ?>"></option>
+        <?php endforeach; ?>
+      </datalist>
       <select class="select" id="sortBy">
         <option value="name">Nome</option>
         <option value="recent">Mais recentes</option>
