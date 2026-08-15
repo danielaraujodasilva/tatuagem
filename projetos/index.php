@@ -1,5 +1,9 @@
 <?php
 $root = dirname(__DIR__);
+require_once $root . '/plan/includes/bootstrap.php';
+
+$user = current_user();
+$csrf = csrf_token();
 
 $projectNotes = [
     'auth' => ['title' => 'Auth', 'type' => 'Sistema', 'status' => 'Ativo', 'description' => 'Login, cadastro, recuperacao de senha e gestao de usuarios usados por outros modulos.'],
@@ -154,14 +158,70 @@ $lastUpdate = max(array_map(static fn(array $p): int => $p['stats']['last'], $pr
   <header class="top">
     <div class="wrap top-in">
       <div class="brand">Painel de Projetos <small>Raiz do site danieltatuador.com</small></div>
-      <a class="btn" href="../">Voltar ao site</a>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a class="btn" href="../">Voltar ao site</a>
+        <?php if ($user): ?><a class="btn" href="../plan/logout.php">Sair</a><?php endif; ?>
+      </div>
     </div>
   </header>
 
+<?php if (!$user): ?>
+  <main class="wrap">
+    <section class="hero">
+      <h1>Entra primeiro, depois a gente organiza a casa.</h1>
+      <p>Este painel usa o mesmo login do Plan Financeiro, com o mesmo banco de dados e a mesma sessao.</p>
+    </section>
+    <section class="card" style="max-width:460px;margin:0 0 54px">
+      <form id="loginForm" style="display:grid;gap:14px">
+        <div>
+          <h2 style="margin:0 0 6px">Login</h2>
+          <p class="ghost" style="margin:0">Acesse com o usuario do Plan.</p>
+        </div>
+        <label style="display:grid;gap:7px;color:var(--muted);font-weight:800">
+          E-mail
+          <input class="input" name="email" type="email" value="danielaraujodasilva@gmail.com" autocomplete="email" required>
+        </label>
+        <label style="display:grid;gap:7px;color:var(--muted);font-weight:800">
+          Senha
+          <input class="input" name="password" type="password" autocomplete="current-password" required>
+        </label>
+        <button class="btn" type="submit" style="background:var(--accent);color:#15100a;border-color:var(--accent)">Entrar</button>
+        <p id="loginMessage" class="ghost" style="margin:0;min-height:22px"></p>
+      </form>
+    </section>
+  </main>
+  <script>
+    const loginForm = document.getElementById('loginForm');
+    const loginMessage = document.getElementById('loginMessage');
+    loginForm.addEventListener('submit', async event => {
+      event.preventDefault();
+      loginMessage.textContent = 'Entrando...';
+      const form = new FormData(loginForm);
+      const response = await fetch('../plan/api.php?action=login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': <?= json_encode($csrf) ?>
+        },
+        body: JSON.stringify({
+          email: form.get('email'),
+          password: form.get('password')
+        })
+      });
+      const data = await response.json().catch(() => ({ok:false,message:'Nao foi possivel fazer login.'}));
+      if (!response.ok || !data.ok) {
+        loginMessage.textContent = data.message || 'E-mail ou senha invalidos.';
+        return;
+      }
+      location.reload();
+    });
+  </script>
+<?php else: ?>
   <main class="wrap">
     <section class="hero">
       <h1>Mapa vivo da bagunca organizada.</h1>
       <p>Esta pagina lista as pastas da raiz, identifica o que parece ser projeto, campanha, ferramenta, asset ou runtime, e mostra quando cada coisa foi mexida pela ultima vez. As descricoes principais podem ser refinadas conforme formos limpando a casa.</p>
+      <p class="ghost">Logado como <?= h((string)($user['name'] ?? $user['email'] ?? 'usuario')) ?>.</p>
       <div class="stats">
         <div class="stat"><b><?= count($projects) ?></b><span>pastas mapeadas</span></div>
         <div class="stat"><b><?= number_format($totalFiles, 0, ',', '.') ?></b><span>arquivos contabilizados</span></div>
@@ -257,5 +317,6 @@ $lastUpdate = max(array_map(static fn(array $p): int => $p['stats']['last'], $pr
     [search, typeFilter, sortBy].forEach(el => el.addEventListener('input', applyFilters));
     applyFilters();
   </script>
+<?php endif; ?>
 </body>
 </html>
