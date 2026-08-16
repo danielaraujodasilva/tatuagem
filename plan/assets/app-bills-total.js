@@ -9,6 +9,7 @@ const state = {
   bankImports: [],
   bankTransactions: [],
   bankOverview: null,
+  bankSync: null,
   bankPreview: [],
   bankPreviewMeta: null,
   bankPreviewGroups: [],
@@ -101,6 +102,7 @@ async function loadBootstrap() {
     recurring: payload.recurring,
     bankImports: payload.bankImports || [],
     bankOverview: payload.bankOverview || null,
+    bankSync: payload.bankSync || null,
     overview: payload.overview,
   });
   renderSelects();
@@ -503,6 +505,7 @@ function highlightSharedElement(selector, fallbackMessage) {
 }
 
 function bindBanking() {
+  document.querySelector('#syncBanksNow')?.addEventListener('click', syncBanksNow);
   document.querySelector('#bankFileInput')?.addEventListener('change', handleBankFiles);
   document.querySelector('#clearBankPreview')?.addEventListener('click', () => {
     state.bankPreview = [];
@@ -511,6 +514,33 @@ function bindBanking() {
     renderBankPreview();
   });
   document.querySelector('#saveBankImport')?.addEventListener('click', saveBankImport);
+}
+
+async function syncBanksNow() {
+  const button = document.querySelector('#syncBanksNow');
+  const message = document.querySelector('#bankSyncMessage');
+  const previousText = button?.textContent || '';
+  try {
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Sincronizando...';
+    }
+    if (message) message.textContent = 'Buscando as movimentacoes disponiveis.';
+    const payload = await api('sync_banks', { method: 'POST', body: {} });
+    state.bankSync = payload.bankSync || null;
+    const result = payload.result || {};
+    if (message) message.textContent = `${Number(result.inserted || 0)} novas e ${Number(result.updated || 0)} atualizadas.`;
+    await loadBootstrap();
+    await loadBankTransactions();
+  } catch (error) {
+    if (message) message.textContent = error.message || 'Nao foi possivel sincronizar.';
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = previousText;
+    }
+    renderBankSync();
+  }
 }
 
 function bindForms() {
@@ -1701,9 +1731,50 @@ function compactPaymentCode(value) {
 }
 
 function renderBanking() {
+  renderBankSync();
   renderBankingSummary();
   renderBankFilter();
   renderBankTransactions();
+}
+
+function renderBankSync() {
+  const sync = state.bankSync || {};
+  const stateElement = document.querySelector('#bankSyncState');
+  const description = document.querySelector('#bankSyncDescription');
+  const accounts = document.querySelector('#bankSyncAccounts');
+  const button = document.querySelector('#syncBanksNow');
+  if (!stateElement || !description || !accounts || !button) return;
+
+  stateElement.className = 'sync-state';
+  if (sync.ready && sync.lastRun?.status === 'failed') {
+    stateElement.textContent = 'Precisa de atencao';
+    stateElement.classList.add('is-error');
+    description.textContent = sync.lastRun.message || 'A ultima sincronizacao falhou.';
+  } else if (sync.ready) {
+    stateElement.textContent = 'Ativo';
+    stateElement.classList.add('is-ready');
+    const lastRun = sync.lastRun;
+    description.textContent = lastRun
+      ? `Ultima tentativa: ${formatDateTime(lastRun.finished_at || lastRun.started_at)}. Atualizacao da origem: diaria.`
+      : 'Configuracao pronta. A primeira sincronizacao ainda nao foi executada.';
+  } else if (sync.configured) {
+    stateElement.textContent = 'Desligado';
+    stateElement.classList.add('is-paused');
+    description.textContent = 'As credenciais estao salvas, mas a integracao esta desligada no servidor.';
+  } else {
+    stateElement.textContent = 'Aguardando configuracao';
+    stateElement.classList.add('is-paused');
+    description.textContent = 'Conecte os bancos no Meu Pluggy e adicione as tres credenciais no servidor.';
+  }
+
+  button.disabled = !sync.ready;
+  const rows = Array.isArray(sync.accounts) ? sync.accounts : [];
+  accounts.innerHTML = rows.length ? rows.map(account => `
+    <div class="bank-sync-account">
+      <span><strong>${escapeHtml(account.bank_name)}</strong><small>${escapeHtml(account.account_label || 'Conta bancaria')}</small></span>
+      <span><strong>${account.last_balance === null ? 'Saldo indisponivel' : asMoney(account.last_balance)}</strong><small>${account.last_synced_at ? formatDateTime(account.last_synced_at) : 'Ainda nao sincronizada'}</small></span>
+    </div>
+  `).join('') : '<small>Nenhuma conta sincronizada ainda.</small>';
 }
 
 function renderBankingSummary() {
@@ -2574,6 +2645,13 @@ function formatDate(value) {
   if (!value) return 'Sem data';
   const [year, month, day] = value.split('-');
   return `${day}/${month}/${year}`;
+}
+
+function formatDateTime(value) {
+  if (!value) return 'Sem registro';
+  const normalized = String(value).includes('T') ? String(value) : String(value).replace(' ', 'T');
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 }
 
 function statusLabel(status) {

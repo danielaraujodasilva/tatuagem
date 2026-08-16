@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260724-16">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260815-17">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260724-16" defer></script>
+    <script src="assets/app-bills-total.js?v=20260815-17" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -528,11 +528,30 @@ $csrf = csrf_token();
             </section>
 
             <section class="section" id="banking">
+                <section class="panel bank-sync-panel">
+                    <div class="bank-sync-copy">
+                        <div class="bank-sync-title">
+                            <div>
+                                <p class="eyebrow">Sincronizacao automatica</p>
+                                <h2>Meu Pluggy</h2>
+                            </div>
+                            <span class="sync-state" id="bankSyncState">Verificando</span>
+                        </div>
+                        <p id="bankSyncDescription">Consultando a configuracao bancaria do servidor.</p>
+                        <div id="bankSyncAccounts" class="bank-sync-accounts"></div>
+                    </div>
+                    <div class="bank-sync-actions">
+                        <a class="ghost-btn button-link" href="https://meu.pluggy.ai/" target="_blank" rel="noopener noreferrer">Abrir Meu Pluggy</a>
+                        <button class="primary-btn" id="syncBanksNow" type="button">Sincronizar agora</button>
+                        <small id="bankSyncMessage"></small>
+                    </div>
+                </section>
+
                 <div class="bank-hero panel">
                     <div>
-                        <p class="eyebrow">Importacao bancaria</p>
-                        <h2>Extratos PagBank e Santander no mesmo lugar</h2>
-                        <p>Suba arquivos `.xlsx` ou `.xls`, revise a pre-visualizacao e salve. O sistema identifica o banco, evita duplicados e tenta marcar lancamentos pendentes como pagos.</p>
+                        <p class="eyebrow">Importacao manual</p>
+                        <h2>Plano B para qualquer extrato</h2>
+                        <p>O envio de arquivos continua disponivel e independente da sincronizacao automatica.</p>
                     </div>
                     <label class="upload-zone" id="bankUploadZone">
                         <input id="bankFileInput" type="file" accept=".xlsx,.xls,.csv" multiple>

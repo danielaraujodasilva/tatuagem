@@ -8,4 +8,14 @@ return [
     'password' => getenv('PLAN_DB_PASS') ?: '',
     'timezone' => 'America/Sao_Paulo',
     'debug' => false,
+    'bank_sync' => [
+        'enabled' => false,
+        'provider' => 'pluggy',
+        'lookback_days' => 365,
+        'pluggy' => [
+            'client_id' => '',
+            'client_secret' => '',
+            'item_ids' => [],
+        ],
+    ],
 ];
