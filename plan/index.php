@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260815-18">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260815-19">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260815-18" defer></script>
+    <script src="assets/app-bills-total.js?v=20260815-19" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -74,7 +74,6 @@ $csrf = csrf_token();
                 <div class="nav-group">
                     <p class="nav-group-label">Importar dados</p>
                     <button class="nav-item" data-section="transactions">Importar planilha</button>
-                    <button class="nav-item" data-section="banking">Importar extratos</button>
                 </div>
                 <div class="nav-group">
                     <p class="nav-group-label">Planejar</p>
@@ -326,7 +325,6 @@ $csrf = csrf_token();
                         <h2>Transacoes categorizadas</h2>
                         <p>Use esta tela para entender para onde o dinheiro foi: periodo, banco, categoria, entradas, saidas e itens conciliados.</p>
                     </div>
-                    <button class="primary-btn" data-nav-target="banking">Importar extrato</button>
                 </div>
 
                 <div class="panel movement-filters">
@@ -397,11 +395,10 @@ $csrf = csrf_token();
             <section class="section" id="reconciliation">
                 <div class="section-intro">
                     <div>
-                        <p class="eyebrow">Depois da importacao</p>
+                        <p class="eyebrow">Conferencia automatica</p>
                         <h2>Confira o planejado contra o realizado</h2>
                         <p>Conciliacao e a conferencia entre o que estava previsto na planilha e o que realmente apareceu no banco. O sistema tenta encontrar o par; voce revisa apenas o que ficou diferente ou sem resposta.</p>
                     </div>
-                    <button class="primary-btn" data-nav-target="banking">Importar novo extrato</button>
                 </div>
 
                 <div class="kpi-grid compact-kpis">
@@ -472,7 +469,7 @@ $csrf = csrf_token();
                                 <h2>Movimentos do banco que precisam de voce</h2>
                                 <span>Abra cada item, veja se reconhece a movimentacao e decida se ela deve virar uma conta, transferencia ou categoria.</span>
                             </div>
-                            <button class="ghost-btn" data-nav-target="banking">Ver extratos</button>
+                            <button class="ghost-btn" data-nav-target="movements">Ver extratos</button>
                         </div>
                         <div id="unmatchedBankList" class="bank-match-list"></div>
                     </section>
@@ -540,102 +537,6 @@ $csrf = csrf_token();
                         </table>
                     </div>
                 </div>
-            </section>
-
-            <section class="section" id="banking">
-                <section class="panel bank-sync-panel">
-                    <div class="bank-sync-copy">
-                        <div class="bank-sync-title">
-                            <div>
-                                <p class="eyebrow">Sincronizacao automatica</p>
-                                <h2>Meu Pluggy</h2>
-                            </div>
-                            <span class="sync-state" id="bankSyncState">Verificando</span>
-                        </div>
-                        <p id="bankSyncDescription">Consultando a configuracao bancaria do servidor.</p>
-                        <div id="bankSyncAccounts" class="bank-sync-accounts"></div>
-                    </div>
-                    <div class="bank-sync-actions">
-                        <a class="ghost-btn button-link" href="https://meu.pluggy.ai/" target="_blank" rel="noopener noreferrer">Abrir Meu Pluggy</a>
-                        <button class="primary-btn" id="syncBanksNow" type="button">Sincronizar agora</button>
-                        <small id="bankSyncMessage"></small>
-                    </div>
-                </section>
-
-                <div class="bank-hero panel">
-                    <div>
-                        <p class="eyebrow">Importacao manual</p>
-                        <h2>Plano B para qualquer extrato</h2>
-                        <p>O envio de arquivos continua disponivel e independente da sincronizacao automatica.</p>
-                    </div>
-                    <label class="upload-zone" id="bankUploadZone">
-                        <input id="bankFileInput" type="file" accept=".xlsx,.xls,.csv" multiple>
-                        <strong>Selecionar extratos</strong>
-                        <span>PagBank `.xlsx`, Santander `.xls` ou arquivos parecidos</span>
-                    </label>
-                </div>
-
-                <div class="kpi-grid banking-kpis">
-                    <article class="metric-card"><span>Entradas importadas</span><strong id="bankCredits">R$ 0,00</strong></article>
-                    <article class="metric-card danger"><span>Saidas importadas</span><strong id="bankDebits">R$ 0,00</strong></article>
-                    <article class="metric-card success"><span>Conciliados</span><strong id="bankMatched">0</strong></article>
-                    <article class="metric-card warning"><span>Ultimo saldo</span><strong id="bankLatestBalance">R$ 0,00</strong></article>
-                </div>
-
-                <section class="panel" id="bankPreviewPanel" hidden>
-                    <div class="panel-head wrap">
-                        <div>
-                            <h2>Previa da importacao</h2>
-                            <span id="bankPreviewSummary">0 movimentacoes</span>
-                        </div>
-                        <div class="filters">
-                            <select id="bankPreviewAccount"></select>
-                            <button class="ghost-btn" id="clearBankPreview">Limpar</button>
-                            <button class="primary-btn" id="saveBankImport">Salvar importacao</button>
-                        </div>
-                    </div>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Banco</th>
-                                    <th>Data</th>
-                                    <th>Descricao</th>
-                                    <th>Tipo</th>
-                                    <th>Direcao</th>
-                                    <th>Valor</th>
-                                    <th>Saldo</th>
-                                </tr>
-                            </thead>
-                            <tbody id="bankPreviewBody"></tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <section class="panel">
-                    <div class="panel-head wrap">
-                        <h2>Movimentacoes bancarias</h2>
-                        <div class="filters">
-                            <input id="bankSearchInput" placeholder="Buscar no extrato">
-                            <select id="bankFilter"><option value="">Todos bancos</option></select>
-                        </div>
-                    </div>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Banco</th>
-                                    <th>Data</th>
-                                    <th>Descricao</th>
-                                    <th>Categoria</th>
-                                    <th>Status</th>
-                                    <th>Valor</th>
-                                </tr>
-                            </thead>
-                            <tbody id="bankTransactionsBody"></tbody>
-                        </table>
-                    </div>
-                </section>
             </section>
 
             <section class="section" id="accounts">

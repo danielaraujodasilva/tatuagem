@@ -103,8 +103,62 @@ function normalize_match_text(string $value): string
     return preg_replace('/[^a-z0-9]+/', ' ', $value) ?? $value;
 }
 
-function guess_category_id(string $description): ?int
+function recurring_category_key(string $description): string
 {
+    $key = normalize_match_text($description);
+    $key = preg_replace('/\b\d{1,2}\s+\d{1,2}(?:\s+\d{2,4})?\b/', ' ', $key) ?? $key;
+    $key = preg_replace('/\b\d{4,}\b/', ' ', $key) ?? $key;
+    return trim(preg_replace('/\s+/', ' ', $key) ?? $key);
+}
+
+function learned_category_id(string $description, ?string $bankName, ?string $direction, ?int $accountId): ?int
+{
+    static $cache = [];
+    $scope = ($accountId ?? 0) . '|' . ($bankName ?? '') . '|' . ($direction ?? '');
+    if (!array_key_exists($scope, $cache)) {
+        $where = ['category_id IS NOT NULL'];
+        $params = [];
+        if ($bankName !== null && $bankName !== '') {
+            $where[] = 'bank_name = ?';
+            $params[] = $bankName;
+        }
+        if ($direction !== null && $direction !== '') {
+            $where[] = 'direction = ?';
+            $params[] = $direction;
+        }
+        if ($accountId !== null && $accountId > 0) {
+            $where[] = 'account_id = ?';
+            $params[] = $accountId;
+        }
+        $stmt = db()->prepare('SELECT description, category_id FROM bank_transactions WHERE ' . implode(' AND ', $where) . ' ORDER BY transaction_date DESC, id DESC LIMIT 5000');
+        $stmt->execute($params);
+        $learned = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $key = recurring_category_key((string)$row['description']);
+            if ($key === '') {
+                continue;
+            }
+            $categoryId = (int)$row['category_id'];
+            if (!array_key_exists($key, $learned)) {
+                $learned[$key] = $categoryId;
+            } elseif ($learned[$key] !== $categoryId) {
+                $learned[$key] = null;
+            }
+        }
+        $cache[$scope] = $learned;
+    }
+
+    $key = recurring_category_key($description);
+    return $key !== '' && isset($cache[$scope][$key]) ? (int)$cache[$scope][$key] : null;
+}
+
+function guess_category_id(string $description, ?string $bankName = null, ?string $direction = null, ?int $accountId = null): ?int
+{
+    $learnedCategory = learned_category_id($description, $bankName, $direction, $accountId);
+    if ($learnedCategory !== null) {
+        return $learnedCategory;
+    }
+
     $rules = [
         'Transporte' => ['autopass', 'posto', 'uber', '99 ', 'combustivel'],
         'Alimentacao' => ['acougue', 'lanchonet', 'mercado', 'nagumo', 'adega'],

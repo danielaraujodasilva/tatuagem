@@ -304,7 +304,7 @@ function upsert_pluggy_transaction(int $importId, int $accountId, string $source
         $insert = $pdo->prepare('INSERT INTO bank_transactions
             (import_id, account_id, bank_name, source_file, source_hash, transaction_date, description, movement_type, document_number, direction, amount, balance, category_id, matched_transaction_id, raw_json)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-        $insert->execute([$importId, $accountId, $row['bank_name'], $sourceFile, $sourceHash, $row['transaction_date'], $row['description'], $row['movement_type'], $row['document_number'], $row['direction'], $row['amount'], $row['balance'], guess_category_id($row['description']), $matchedId, $rawJson]);
+        $insert->execute([$importId, $accountId, $row['bank_name'], $sourceFile, $sourceHash, $row['transaction_date'], $row['description'], $row['movement_type'], $row['document_number'], $row['direction'], $row['amount'], $row['balance'], guess_category_id($row['description'], $row['bank_name'], $row['direction'], $accountId), $matchedId, $rawJson]);
         $bankTransactionId = (int)$pdo->lastInsertId();
     }
 

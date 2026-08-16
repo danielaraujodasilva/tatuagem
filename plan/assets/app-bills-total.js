@@ -237,7 +237,6 @@ const pageContexts = {
   movements: ['Acompanhar', 'Extratos reais', 'Explore o dinheiro que realmente entrou e saiu das suas contas.'],
   reconciliation: ['Acompanhar', 'Conferir o planejado contra o realizado', 'Compare suas contas da planilha com o que realmente apareceu no banco e resolva apenas os alertas.'],
   transactions: ['Importar dados', 'Planilha de planejamento', 'Traga suas contas e preserve as edicoes feitas no sistema.'],
-  banking: ['Importar dados', 'Extratos bancarios', 'Importe, revise duplicidades e salve as movimentacoes do banco.'],
   budgets: ['Planejar', 'Orcamentos mensais', 'Defina limites por categoria e acompanhe suas escolhas.'],
   goals: ['Planejar', 'Metas', 'Acompanhe o progresso do que voce quer construir.'],
   recurring: ['Planejar', 'Recorrencias', 'Mantenha regras prontas para contas que se repetem.'],
@@ -2007,15 +2006,15 @@ async function updateSimilarGroupCategory(select) {
   if (!group || select.value === '__mixed__') return;
   const category = state.categories.find(item => String(item.id) === String(select.value));
   const label = category ? categoryOptionLabel(category) : 'Sem categoria';
-  if (!confirm(`Aplicar "${label}" nas ${group.rows.length} transacoes semelhantes deste periodo?`)) {
+  if (!confirm(`Aplicar "${label}" em todas as ocorrencias semelhantes desta conta, inclusive fora do periodo selecionado?`)) {
     renderMovements();
     return;
   }
   select.disabled = true;
   try {
-    await api('update_bank_transaction_categories', {
+    await api('update_bank_transaction_category', {
       method: 'POST',
-      body: { ids: group.rows.map(row => Number(row.id)), category_id: select.value },
+      body: { id: Number(group.rows[0].id), category_id: select.value, apply_similar: 1 },
     });
     await loadBankTransactions();
   } catch (error) {
@@ -2139,7 +2138,7 @@ function renderReviewQueue({ pendingRows, unmatchedBank, matchedBank }) {
       meta: `${matchedBank.length} movimentacoes do banco ja foram ligadas a contas`,
       amount: matchedBank.reduce((sum, row) => sum + Number(row.amount || 0), 0),
       action: 'Ver extratos',
-      section: 'banking',
+      section: 'movements',
       tone: 'success',
     },
     {
@@ -2147,7 +2146,7 @@ function renderReviewQueue({ pendingRows, unmatchedBank, matchedBank }) {
       meta: `${unmatchedBank.length} itens precisam ser entendidos ou categorizados`,
       amount: unmatchedBank.reduce((sum, row) => sum + Number(row.amount || 0), 0),
       action: 'Revisar movimentos',
-      section: 'banking',
+      section: 'movements',
       tone: 'danger',
     },
   ];
@@ -2179,7 +2178,7 @@ function renderUnmatchedBankList(rows) {
         <button class="link-btn" title="Compartilhar link" data-share-type="bank_transaction" data-share-id="${row.id}">Link</button>
       </div>
     </div>
-  `).join('') : '<p class="muted">Tudo que veio do extrato neste filtro ja foi conciliado ou ainda nao ha extrato importado.</p>';
+  `).join('') : '<p class="muted">Todas as movimentacoes sincronizadas neste filtro ja foram conciliadas ou ainda nao ha dados bancarios.</p>';
   bindInlineCategoryControls(target);
   bindShareButtons(target);
 }

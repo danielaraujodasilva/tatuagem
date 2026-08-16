@@ -50,7 +50,6 @@ try {
         'save_recurring' => save_recurring(),
         'delete_recurring' => delete_recurring(),
         'bank_transactions' => bank_transactions(),
-        'save_bank_import' => save_bank_import(),
         'bank_sync_status' => json_response(['ok' => true, 'bankSync' => bank_sync_status()]),
         'sync_banks' => sync_banks(),
         'update_bank_transaction_category' => update_bank_transaction_category(),
@@ -272,7 +271,7 @@ function update_bank_transaction_category(): never
     }
     assert_category_exists($categoryId);
 
-    $stmt = db()->prepare('SELECT id, description FROM bank_transactions WHERE id = ? LIMIT 1');
+    $stmt = db()->prepare('SELECT id, account_id, direction, description FROM bank_transactions WHERE id = ? LIMIT 1');
     $stmt->execute([$id]);
     $target = $stmt->fetch();
     if (!$target) {
@@ -282,7 +281,10 @@ function update_bank_transaction_category(): never
     $ids = [$id];
     if ($applySimilar) {
         $key = category_match_key((string)$target['description']);
-        $rows = db()->query('SELECT id, description FROM bank_transactions')->fetchAll();
+        $rowsStmt = db()->prepare('SELECT id, description FROM bank_transactions
+            WHERE direction = ? AND (account_id = ? OR (account_id IS NULL AND ? IS NULL))');
+        $rowsStmt->execute([$target['direction'], $target['account_id'], $target['account_id']]);
+        $rows = $rowsStmt->fetchAll();
         $ids = array_values(array_map(
             fn(array $row) => (int)$row['id'],
             array_filter($rows, fn(array $row) => category_match_key((string)$row['description']) === $key)
@@ -1132,7 +1134,7 @@ function save_bank_import(): never
                 $direction,
                 $amount,
                 isset($row['balance']) && $row['balance'] !== '' ? money_to_float($row['balance']) : null,
-                guess_category_id($description),
+                guess_category_id($description, $bankName, $direction, $accountId),
                 $matchedId,
                 json_encode($row, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             ]);
