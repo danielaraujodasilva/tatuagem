@@ -28,6 +28,10 @@ const state = {
   movementSearchSuggestions: [],
   movementSuggestionScope: '',
   bankRequestId: 0,
+  profitChartGranularity: '',
+  profitChartWindowSize: 0,
+  profitChartWindowStart: 0,
+  profitChartPeriodKey: '',
 };
 
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -86,6 +90,7 @@ async function bootApp() {
   bindModals();
   bindForms();
   bindFilters();
+  bindProfitChart();
   bindBanking();
   bindSheetImport();
   bindSharing();
@@ -478,6 +483,39 @@ function selectedPeriod() {
     dateFrom: document.querySelector('#periodDateFrom')?.value || '',
     dateTo: document.querySelector('#periodDateTo')?.value || '',
   };
+}
+
+function bindProfitChart() {
+  const panel = document.querySelector('#profitChartPanel');
+  panel?.addEventListener('toggle', () => {
+    if (panel.open) window.requestAnimationFrame(() => renderProfitChart());
+  });
+  document.querySelectorAll('[data-profit-granularity]').forEach(button => {
+    button.addEventListener('click', () => {
+      state.profitChartGranularity = button.dataset.profitGranularity;
+      state.profitChartWindowSize = 0;
+      state.profitChartWindowStart = 0;
+      renderProfitChart();
+    });
+  });
+  document.querySelectorAll('[data-profit-zoom]').forEach(button => {
+    button.addEventListener('click', () => changeProfitChartZoom(button.dataset.profitZoom));
+  });
+  document.querySelectorAll('[data-profit-pan]').forEach(button => {
+    button.addEventListener('click', () => panProfitChart(Number(button.dataset.profitPan)));
+  });
+  document.querySelector('[data-profit-reset]')?.addEventListener('click', () => {
+    state.profitChartWindowSize = 0;
+    state.profitChartWindowStart = 0;
+    renderProfitChart();
+  });
+  document.querySelector('#profitWindowRange')?.addEventListener('input', event => {
+    const buckets = buildProfitBuckets(state.profitChartGranularity || suggestedProfitGranularity());
+    const windowSize = state.profitChartWindowSize || buckets.length;
+    const maxStart = Math.max(0, buckets.length - windowSize);
+    state.profitChartWindowStart = Math.round((Number(event.currentTarget.value) / 100) * maxStart);
+    renderProfitChart();
+  });
 }
 
 async function reloadPeriodData() {
@@ -941,6 +979,7 @@ function renderOverview() {
   setText('dashboardExpenses', asMoney(expenses));
   setText('dashboardBalance', asMoney(balance));
   setText('dashboardSpentPercent', income > 0 ? `${Math.round((expenses / income) * 100)}% gasto` : 'Sem entradas');
+  setText('profitChartToggleMeta', `${balance >= 0 ? 'Lucro' : 'Prejuizo'} de ${asMoney(Math.abs(balance))}`);
   document.querySelector('#dashboardBalance')?.classList.toggle('negative', balance < 0);
   renderFixedCoverage();
   renderDashboardBreakdown('dashboardIncomeBreakdown', credits);
@@ -948,7 +987,201 @@ function renderOverview() {
   renderWorkflowStrip();
   renderUpcoming();
   renderCharts();
+  if (document.querySelector('#profitChartPanel')?.open) renderProfitChart();
   renderBankingSummary();
+}
+
+function parseLocalDate(value) {
+  const [year, month, day] = String(value || '').slice(0, 10).split('-').map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+}
+
+function addLocalDays(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function profitBucketStart(date, granularity) {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  if (granularity === 'month') return new Date(start.getFullYear(), start.getMonth(), 1);
+  if (granularity === 'week') start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+  return start;
+}
+
+function suggestedProfitGranularity() {
+  const { dateFrom, dateTo } = selectedPeriod();
+  const from = parseLocalDate(dateFrom);
+  const to = parseLocalDate(dateTo);
+  const days = from && to ? Math.round((to - from) / 86400000) + 1 : 1;
+  if (days > 240) return 'month';
+  if (days > 45) return 'week';
+  return 'day';
+}
+
+function buildProfitBuckets(granularity) {
+  const { dateFrom, dateTo } = selectedPeriod();
+  const from = parseLocalDate(dateFrom);
+  const to = parseLocalDate(dateTo);
+  if (!from || !to || from > to) return [];
+  const buckets = new Map();
+  for (let cursor = new Date(from); cursor <= to; cursor = addLocalDays(cursor, 1)) {
+    const start = profitBucketStart(cursor, granularity);
+    const key = inputDate(start);
+    if (!buckets.has(key)) buckets.set(key, { key, start, displayStart: new Date(cursor), displayEnd: new Date(cursor), income: 0, expenses: 0, net: 0 });
+    buckets.get(key).displayEnd = new Date(cursor);
+  }
+  state.bankTransactions.forEach(row => {
+    const transactionDate = parseLocalDate(row.transaction_date);
+    if (!transactionDate || transactionDate < from || transactionDate > to) return;
+    const key = inputDate(profitBucketStart(transactionDate, granularity));
+    const bucket = buckets.get(key);
+    if (!bucket) return;
+    const amount = Number(row.amount || 0);
+    if (row.direction === 'credit') bucket.income += amount;
+    if (row.direction === 'debit') bucket.expenses += amount;
+    bucket.net = bucket.income - bucket.expenses;
+  });
+  let accumulated = 0;
+  return [...buckets.values()].map(bucket => {
+    accumulated += bucket.net;
+    return { ...bucket, accumulated };
+  });
+}
+
+function profitBucketLabel(bucket, granularity, long = false) {
+  const format = options => new Intl.DateTimeFormat('pt-BR', options).format;
+  if (granularity === 'month') return format({ month: long ? 'long' : 'short', year: '2-digit' })(bucket.start);
+  if (granularity === 'week') {
+    return `${format({ day: '2-digit', month: '2-digit' })(bucket.displayStart)} a ${format({ day: '2-digit', month: '2-digit' })(bucket.displayEnd)}`;
+  }
+  return format(long
+    ? { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }
+    : { day: '2-digit', month: '2-digit' })(bucket.start);
+}
+
+function renderProfitChart() {
+  const canvas = document.querySelector('#profitTimelineChart');
+  if (!canvas || !window.Chart) return;
+  const granularity = state.profitChartGranularity || suggestedProfitGranularity();
+  state.profitChartGranularity = granularity;
+  const buckets = buildProfitBuckets(granularity);
+  const { dateFrom, dateTo } = selectedPeriod();
+  const periodKey = `${dateFrom}|${dateTo}|${granularity}`;
+  if (state.profitChartPeriodKey !== periodKey) {
+    state.profitChartPeriodKey = periodKey;
+    state.profitChartWindowSize = 0;
+    state.profitChartWindowStart = 0;
+  }
+  document.querySelectorAll('[data-profit-granularity]').forEach(button => {
+    button.classList.toggle('is-active', button.dataset.profitGranularity === granularity);
+  });
+  const total = buckets.length;
+  const windowSize = Math.min(total, state.profitChartWindowSize || total);
+  const maxStart = Math.max(0, total - windowSize);
+  state.profitChartWindowStart = Math.min(maxStart, Math.max(0, state.profitChartWindowStart));
+  const visible = buckets.slice(state.profitChartWindowStart, state.profitChartWindowStart + windowSize);
+  const visibleResult = visible.reduce((sum, bucket) => sum + bucket.net, 0);
+  const resultElement = document.querySelector('#profitVisibleResult');
+  if (resultElement) {
+    resultElement.textContent = asMoney(visibleResult);
+    resultElement.classList.toggle('negative', visibleResult < 0);
+  }
+  setText('profitVisiblePeriod', visible.length
+    ? `${formatDate(inputDate(visible[0].displayStart))} a ${formatDate(inputDate(visible[visible.length - 1].displayEnd))}`
+    : 'Sem dados');
+  const slider = document.querySelector('#profitWindowRange');
+  if (slider) {
+    slider.disabled = maxStart === 0;
+    slider.value = maxStart ? String(Math.round((state.profitChartWindowStart / maxStart) * 100)) : '100';
+  }
+  document.querySelectorAll('[data-profit-pan]').forEach(button => { button.disabled = maxStart === 0; });
+  document.querySelector('[data-profit-zoom="in"]')?.toggleAttribute('disabled', total <= 3 || windowSize <= 3);
+  document.querySelector('[data-profit-zoom="out"]')?.toggleAttribute('disabled', windowSize >= total);
+  document.querySelector('[data-profit-reset]')?.toggleAttribute('disabled', windowSize >= total);
+  state.charts.profitTimelineChart?.destroy();
+  state.charts.profitTimelineChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: visible.map(bucket => profitBucketLabel(bucket, granularity)),
+      datasets: [
+        {
+          label: 'Resultado do intervalo',
+          data: visible.map(bucket => bucket.net),
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37, 99, 235, .10)',
+          pointBackgroundColor: visible.map(bucket => bucket.net >= 0 ? '#059669' : '#dc2626'),
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointRadius: visible.length > 60 ? 0 : 4,
+          pointHoverRadius: 6,
+          pointHitRadius: 14,
+          borderWidth: 3,
+          tension: .28,
+          fill: 'origin',
+        },
+        {
+          label: 'Acumulado no periodo',
+          data: visible.map(bucket => bucket.accumulated),
+          borderColor: '#64748b',
+          backgroundColor: 'transparent',
+          pointRadius: 0,
+          pointHitRadius: 10,
+          borderWidth: 2,
+          borderDash: [6, 5],
+          tension: .2,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 700, easing: 'easeOutQuart' },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, padding: 18 } },
+        tooltip: {
+          displayColors: true,
+          callbacks: {
+            title: items => visible[items[0]?.dataIndex] ? profitBucketLabel(visible[items[0].dataIndex], granularity, true) : '',
+            label: context => `${context.dataset.label}: ${asMoney(context.parsed.y)}`,
+          },
+        },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 9 } },
+        y: {
+          grid: { color: context => context.tick.value === 0 ? '#94a3b8' : 'rgba(148, 163, 184, .18)' },
+          ticks: { callback: value => money.format(value).replace(',00', '') },
+        },
+      },
+    },
+  });
+}
+
+function changeProfitChartZoom(direction) {
+  const buckets = buildProfitBuckets(state.profitChartGranularity || suggestedProfitGranularity());
+  if (!buckets.length) return;
+  const currentSize = state.profitChartWindowSize || buckets.length;
+  const nextSize = direction === 'in'
+    ? Math.max(3, Math.floor(currentSize * .6))
+    : Math.min(buckets.length, Math.ceil(currentSize / .6));
+  const center = state.profitChartWindowStart + (currentSize / 2);
+  state.profitChartWindowSize = nextSize;
+  state.profitChartWindowStart = Math.max(0, Math.round(center - (nextSize / 2)));
+  renderProfitChart();
+}
+
+function panProfitChart(direction) {
+  const buckets = buildProfitBuckets(state.profitChartGranularity || suggestedProfitGranularity());
+  const windowSize = state.profitChartWindowSize || buckets.length;
+  const step = Math.max(1, Math.floor(windowSize / 2));
+  state.profitChartWindowStart = Math.min(
+    Math.max(0, buckets.length - windowSize),
+    Math.max(0, state.profitChartWindowStart + (direction * step)),
+  );
+  renderProfitChart();
 }
 
 function startInlineCategoryCreation(picker, parentId = 0) {

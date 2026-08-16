@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260816-39">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260816-40">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260816-39" defer></script>
+    <script src="assets/app-bills-total.js?v=20260816-40" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -157,6 +157,40 @@ $csrf = csrf_token();
                                 <div id="dashboardExpenseBreakdown" class="money-breakdown-list"></div>
                             </div>
                         </details>
+                    </div>
+                </details>
+
+                <details class="panel profit-chart-collapse" id="profitChartPanel">
+                    <summary class="profit-chart-toggle">
+                        <span>Grafico do resultado</span>
+                        <small id="profitChartToggleMeta">Lucro ou prejuizo no periodo</small>
+                    </summary>
+                    <div class="profit-chart-content">
+                        <div class="profit-chart-toolbar">
+                            <div class="profit-granularity" role="group" aria-label="Agrupar resultado por">
+                                <button type="button" data-profit-granularity="day">Dias</button>
+                                <button type="button" data-profit-granularity="week">Semanas</button>
+                                <button type="button" data-profit-granularity="month">Meses</button>
+                            </div>
+                            <div class="profit-chart-actions" aria-label="Controles de visualizacao do grafico">
+                                <button type="button" class="icon-btn" data-profit-pan="-1" title="Voltar na linha do tempo" aria-label="Voltar na linha do tempo">&#8249;</button>
+                                <button type="button" class="icon-btn" data-profit-zoom="out" title="Mostrar mais tempo" aria-label="Mostrar mais tempo">&minus;</button>
+                                <button type="button" class="icon-btn" data-profit-zoom="in" title="Aproximar" aria-label="Aproximar">+</button>
+                                <button type="button" class="icon-btn" data-profit-pan="1" title="Avancar na linha do tempo" aria-label="Avancar na linha do tempo">&#8250;</button>
+                                <button type="button" class="small-btn" data-profit-reset>Ver tudo</button>
+                            </div>
+                        </div>
+                        <div class="profit-chart-summary">
+                            <span><small>Resultado visivel</small><strong id="profitVisibleResult">R$ 0,00</strong></span>
+                            <span><small>Intervalo visivel</small><strong id="profitVisiblePeriod">-</strong></span>
+                        </div>
+                        <div class="profit-chart-canvas">
+                            <canvas id="profitTimelineChart" aria-label="Grafico de lucro ou prejuizo ao longo do periodo"></canvas>
+                        </div>
+                        <label class="profit-window-control" for="profitWindowRange">
+                            <span>Mover janela no periodo</span>
+                            <input id="profitWindowRange" type="range" min="0" max="100" value="100">
+                        </label>
                     </div>
                 </details>
 
