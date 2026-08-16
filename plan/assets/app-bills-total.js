@@ -931,7 +931,14 @@ function renderDashboardBreakdown(targetId, rows) {
       <div class="money-breakdown-items">
         ${rows.filter(row => (row.category_name || 'Sem categoria') === group.label).slice(0, 100).map(row => `
           <div class="money-breakdown-item">
-            <div><strong>${escapeHtml(row.description || '(sem descricao)')}</strong><small>${formatBankTransactionMoment(row)}</small></div>
+            <div class="money-breakdown-item-main">
+              <strong>${escapeHtml(row.description || '(sem descricao)')}</strong>
+              <small>${formatBankTransactionMoment(row)}</small>
+              ${group.label === 'Sem categoria' ? `
+                <button type="button" class="dashboard-category-trigger" data-dashboard-category>+ Categoria</button>
+                <div class="dashboard-category-picker" data-dashboard-category-picker hidden>${inlineCategorySelect(row, 'bank_transaction')}</div>
+              ` : ''}
+            </div>
             <span>${asMoney(row.amount)}</span>
           </div>
         `).join('')}
@@ -939,6 +946,16 @@ function renderDashboardBreakdown(targetId, rows) {
       </div>
     </details>
   `).join('') : '<p class="muted">Nenhuma movimentacao neste periodo.</p>';
+  target.querySelectorAll('[data-dashboard-category]').forEach(button => {
+    button.addEventListener('click', () => {
+      const picker = button.parentElement?.querySelector('[data-dashboard-category-picker]');
+      if (!picker) return;
+      picker.hidden = false;
+      button.hidden = true;
+      picker.querySelector('[data-inline-category]')?.focus();
+    });
+  });
+  bindInlineCategoryControls(target);
 }
 
 function formatBankTransactionMoment(row) {
