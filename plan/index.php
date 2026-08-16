@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260816-29">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260816-31">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260816-30" defer></script>
+    <script src="assets/app-bills-total.js?v=20260816-31" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -697,6 +697,18 @@ $csrf = csrf_token();
             <label class="wide">Manter como<select name="target_id" required></select></label>
             <div class="modal-actions"><button type="button" class="ghost-btn" data-close>Cancelar</button><button class="primary-btn">Mesclar</button></div>
         </form>
+    </dialog>
+
+    <dialog id="categoryScopeModal" class="modal">
+        <div class="form-grid compact">
+            <h2>Alterar categoria</h2>
+            <p id="categoryScopeMessage" class="wide muted"></p>
+            <div class="modal-actions wide category-scope-actions">
+                <button type="button" class="ghost-btn" data-category-scope="cancel">Cancelar</button>
+                <button type="button" class="ghost-btn" data-category-scope="single">Somente esta</button>
+                <button type="button" class="primary-btn" data-category-scope="similar">Todas parecidas</button>
+            </div>
+        </div>
     </dialog>
 
     <dialog id="shareModal" class="modal">

@@ -860,12 +860,16 @@ async function updateInlineCategory(picker, categoryId) {
   const id = Number(picker.dataset.inlineId);
   const category = state.categories.find(item => Number(item.id) === Number(categoryId));
   const label = category ? categoryOptionLabel(category) : 'Sem categoria';
-  const applySimilar = confirm(`Categoria alterada para "${label}". Quer aplicar tambem nas ocorrencias parecidas que eu encontrar?`);
+  const scope = await chooseCategoryScope(label);
+  if (scope === 'cancel') {
+    await reloadAllData();
+    return;
+  }
   picker.querySelectorAll('select').forEach(select => { select.disabled = true; });
   try {
     await api(kind === 'bank_transaction' ? 'update_bank_transaction_category' : 'update_transaction_category', {
       method: 'POST',
-      body: { id, category_id: categoryId, apply_similar: applySimilar ? 1 : 0 },
+      body: { id, category_id: categoryId, apply_similar: scope === 'similar' ? 1 : 0 },
     });
     await reloadAllData();
   } catch (error) {
@@ -2081,6 +2085,29 @@ function renderMovements() {
     setText('movementRowsCount', `${rows.length} linhas`);
     renderCategorizedBankTable(rows);
   }
+}
+
+function chooseCategoryScope(label) {
+  const dialog = document.querySelector('#categoryScopeModal');
+  if (!dialog) return Promise.resolve('single');
+  setText('categoryScopeMessage', `Aplicar "${label}" somente nesta movimentacao ou tambem nas ocorrencias parecidas?`);
+  dialog.showModal();
+  return new Promise(resolve => {
+    const finish = scope => {
+      dialog.onclick = null;
+      dialog.oncancel = null;
+      dialog.close();
+      resolve(scope);
+    };
+    dialog.onclick = event => {
+      const button = event.target.closest('[data-category-scope]');
+      if (button) finish(button.dataset.categoryScope);
+    };
+    dialog.oncancel = event => {
+      event.preventDefault();
+      finish('cancel');
+    };
+  });
 }
 
 function renderSimilarTransactionGroups(rows) {
