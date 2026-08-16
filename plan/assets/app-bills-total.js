@@ -826,6 +826,7 @@ function inlineCategorySelect(row, kind) {
   const current = currentId ? storedCategory : null;
   const parentId = current?.parent_id ? Number(current.parent_id) : currentId;
   const children = state.categories.filter(category => Number(category.parent_id) === parentId);
+  const parent = state.categories.find(category => Number(category.id) === parentId);
   const parentOptions = state.categories.filter(category => !category.parent_id && !isUncategorizedCategory(category)).map(category => (
     `<option value="${category.id}" ${Number(category.id) === parentId ? 'selected' : ''}>${escapeHtml(category.name)}</option>`
   )).join('');
@@ -837,7 +838,8 @@ function inlineCategorySelect(row, kind) {
       <option value="">Sem categoria</option>${parentOptions}<option value="__new__">+ Nova categoria</option>
     </select>
     <select class="inline-category inline-subcategory" data-inline-subcategory aria-label="Alterar subcategoria" ${children.length ? '' : 'hidden disabled'}>
-      <option value="">Escolha a subcategoria</option>${childOptions}
+      <option value="">Escolha uma opcao</option>
+      <option value="${parentId || ''}" ${currentId === parentId ? 'selected' : ''}>${parent ? `Usar somente ${escapeHtml(parent.name)}` : 'Sem subcategoria'}</option>${childOptions}
     </select>
   </div>`;
 }
@@ -876,13 +878,14 @@ function syncInlineSubcategory(picker, parentId, selectedId = '') {
   const subcategory = picker.querySelector('[data-inline-subcategory]');
   if (!subcategory) return;
   const children = state.categories.filter(category => Number(category.parent_id) === Number(parentId));
-  subcategory.innerHTML = '<option value="">Escolha a subcategoria</option>' + children.map(category => (
+  const parent = state.categories.find(category => Number(category.id) === Number(parentId));
+  subcategory.innerHTML = `<option value="">Escolha uma opcao</option><option value="${parentId}">${parent ? `Usar somente ${escapeHtml(parent.name)}` : 'Sem subcategoria'}</option>` + children.map(category => (
     `<option value="${category.id}">${escapeHtml(category.name)}</option>`
   )).join('');
   subcategory.value = selectedId;
   subcategory.hidden = children.length === 0;
   subcategory.disabled = children.length === 0;
-  subcategory.required = children.length > 0;
+  subcategory.required = false;
 }
 
 async function updateInlineCategory(picker, categoryId) {
