@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260815-20">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260815-21">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260815-20" defer></script>
+    <script src="assets/app-bills-total.js?v=20260815-21" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -74,7 +74,7 @@ $csrf = csrf_token();
                         <button class="nav-item" data-section="transactions">Importar planilha</button>
                         <button class="nav-item" data-section="budgets">Orcamentos</button>
                         <button class="nav-item" data-section="goals">Metas</button>
-                        <button class="nav-item" data-section="recurring">Recorrencias</button>
+                        <button class="nav-item" data-section="recurring">Contas fixas</button>
                         <button class="nav-item" data-section="accounts">Contas/Caixas</button>
                         <button class="nav-item" data-section="categories">Categorias</button>
                         <a class="nav-item logout-option" href="logout.php">Sair</a>
@@ -92,18 +92,29 @@ $csrf = csrf_token();
                 </div>
                 <div class="top-actions">
                     <div class="period-control" aria-label="Periodo de analise">
-                        <label>
-                            <span>Periodo</span>
-                            <select id="periodPreset">
-                                <option value="month">Este mes</option>
-                                <option value="30">Ultimos 30 dias</option>
-                                <option value="90">Ultimos 90 dias</option>
-                                <option value="365">Ultimos 365 dias</option>
-                                <option value="custom">Personalizado</option>
-                            </select>
-                        </label>
-                        <label class="period-custom-date"><span>De</span><input id="periodDateFrom" type="date" value="<?= date('Y-m-01') ?>"></label>
-                        <label class="period-custom-date"><span>Ate</span><input id="periodDateTo" type="date" value="<?= date('Y-m-t') ?>"></label>
+                        <span class="period-label">Periodo</span>
+                        <div class="period-quick-toggle" role="group" aria-label="Periodo rapido">
+                            <button type="button" class="is-active" data-period-quick="yesterday">Ontem</button>
+                            <button type="button" data-period-quick="month">Este mes</button>
+                        </div>
+                        <details class="period-more">
+                            <summary>Outro periodo</summary>
+                            <div class="period-more-fields">
+                                <label>
+                                    <span>Atalho</span>
+                                    <select id="periodPreset">
+                                        <option value="yesterday" selected>Ontem</option>
+                                        <option value="month">Este mes</option>
+                                        <option value="30">Ultimos 30 dias</option>
+                                        <option value="90">Ultimos 90 dias</option>
+                                        <option value="365">Ultimos 365 dias</option>
+                                        <option value="custom">Personalizado</option>
+                                    </select>
+                                </label>
+                                <label class="period-custom-date"><span>De</span><input id="periodDateFrom" type="date" value="<?= date('Y-m-d', strtotime('-1 day')) ?>"></label>
+                                <label class="period-custom-date"><span>Ate</span><input id="periodDateTo" type="date" value="<?= date('Y-m-d', strtotime('-1 day')) ?>"></label>
+                            </div>
+                        </details>
                     </div>
                     <div class="top-actions-row">
                         <button class="ghost-btn" id="refreshBtn">Atualizar</button>
@@ -131,12 +142,13 @@ $csrf = csrf_token();
                     <div class="fixed-coverage-head">
                         <div>
                             <p class="eyebrow">Contas fixas</p>
-                            <h2>Quanto das contas fixas ja esta coberto</h2>
-                            <p id="fixedCoverageMeta">Comparando as entradas com suas recorrencias ativas.</p>
+                            <h2>Quanto das contas fixas ja foi pago</h2>
+                            <p id="fixedCoverageMeta">Acompanhe o que ja foi quitado neste mes.</p>
                         </div>
                         <div class="fixed-coverage-value">
                             <strong id="fixedCoveragePercent">0%</strong>
                             <span id="fixedCoverageRemaining">Faltam R$ 0,00</span>
+                            <button type="button" class="small-btn" data-nav-target="recurring">Ver contas fixas</button>
                         </div>
                     </div>
                     <div class="coverage-track" aria-label="Cobertura das contas fixas">
@@ -570,8 +582,11 @@ $csrf = csrf_token();
 
             <section class="section" id="recurring">
                 <div class="panel">
-                    <div class="panel-head">
-                        <h2>Despesas recorrentes</h2>
+                    <div class="panel-head wrap">
+                        <div>
+                            <h2>Contas fixas do mes</h2>
+                            <span id="recurringMonthLabel"><?= date('m/Y') ?></span>
+                        </div>
                         <button class="small-btn" data-open-modal="recurringModal">Nova regra</button>
                     </div>
                     <div id="recurringList" class="stack-list"></div>
@@ -647,7 +662,7 @@ $csrf = csrf_token();
     <dialog id="recurringModal" class="modal">
         <form id="recurringForm" method="dialog" class="form-grid compact">
             <input type="hidden" name="id">
-            <h2 id="recurringFormTitle">Nova recorrencia</h2>
+            <h2 id="recurringFormTitle">Nova conta fixa</h2>
             <label>Descricao<input name="description" required></label>
             <label>Valor<input name="amount" inputmode="decimal" required></label>
             <label>Categoria<select name="category_id" data-categories></select></label>

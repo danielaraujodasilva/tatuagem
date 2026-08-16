@@ -86,6 +86,14 @@ CREATE TABLE IF NOT EXISTS recurring_rules (
   CONSTRAINT fk_recurring_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS recurring_rule_payments (
+  rule_id INT UNSIGNED NOT NULL,
+  month CHAR(7) NOT NULL,
+  paid_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (rule_id, month),
+  CONSTRAINT fk_recurring_payment_rule FOREIGN KEY (rule_id) REFERENCES recurring_rules(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS audit_log (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id INT UNSIGNED NULL,

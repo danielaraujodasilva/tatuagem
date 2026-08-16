@@ -49,6 +49,7 @@ try {
         'delete_account' => delete_account(),
         'save_recurring' => save_recurring(),
         'delete_recurring' => delete_recurring(),
+        'toggle_recurring_paid' => toggle_recurring_paid(),
         'bank_transactions' => bank_transactions(),
         'bank_sync_status' => json_response(['ok' => true, 'bankSync' => bank_sync_status()]),
         'sync_banks' => sync_banks(),
@@ -74,7 +75,17 @@ function bootstrap(array $user): never
     ensure_bank_schema();
     ensure_share_schema();
     ensure_bank_sync_schema();
+    ensure_recurring_payment_schema();
     ensure_default_users();
+    $recurringMonth = date('Y-m');
+    $recurringStmt = db()->prepare("SELECT r.*, COALESCE(NULLIF(CONCAT_WS(' / ', p.name, c.name), ''), 'Sem categoria') category_name,
+        c.parent_id, p.name parent_name, CASE WHEN rp.rule_id IS NULL THEN 0 ELSE 1 END paid_this_month, rp.paid_at
+        FROM recurring_rules r
+        LEFT JOIN categories c ON c.id = r.category_id
+        LEFT JOIN categories p ON p.id = c.parent_id
+        LEFT JOIN recurring_rule_payments rp ON rp.rule_id = r.id AND rp.month = ?
+        ORDER BY r.next_due_date");
+    $recurringStmt->execute([$recurringMonth]);
     json_response([
         'ok' => true,
         'user' => $user,
@@ -84,8 +95,8 @@ function bootstrap(array $user): never
         'budgets' => db()->query("SELECT b.*, COALESCE(NULLIF(CONCAT_WS(' / ', p.name, c.name), ''), 'Sem categoria') category_name, c.color, c.parent_id, p.name parent_name
             FROM budgets b JOIN categories c ON c.id = b.category_id LEFT JOIN categories p ON p.id = c.parent_id ORDER BY b.month DESC, category_name")->fetchAll(),
         'goals' => db()->query('SELECT * FROM goals ORDER BY target_date IS NULL, target_date, name')->fetchAll(),
-        'recurring' => db()->query("SELECT r.*, COALESCE(NULLIF(CONCAT_WS(' / ', p.name, c.name), ''), 'Sem categoria') category_name, c.parent_id, p.name parent_name
-            FROM recurring_rules r LEFT JOIN categories c ON c.id = r.category_id LEFT JOIN categories p ON p.id = c.parent_id ORDER BY next_due_date")->fetchAll(),
+        'recurring' => $recurringStmt->fetchAll(),
+        'recurringMonth' => $recurringMonth,
         'bankImports' => db()->query('SELECT * FROM bank_imports ORDER BY imported_at DESC LIMIT 30')->fetchAll(),
         'bankOverview' => build_bank_overview(),
         'bankSync' => bank_sync_status(),
@@ -1204,6 +1215,42 @@ function build_overview(): array
         'monthly' => $monthly,
         'upcoming' => $upcoming->fetchAll(),
     ];
+}
+
+function ensure_recurring_payment_schema(): void
+{
+    db()->exec("CREATE TABLE IF NOT EXISTS recurring_rule_payments (
+        rule_id INT UNSIGNED NOT NULL,
+        month CHAR(7) NOT NULL,
+        paid_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (rule_id, month),
+        CONSTRAINT fk_recurring_payment_rule FOREIGN KEY (rule_id) REFERENCES recurring_rules(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+}
+
+function toggle_recurring_paid(): never
+{
+    ensure_recurring_payment_schema();
+    $input = json_input();
+    $id = (int)($input['id'] ?? 0);
+    $month = trim((string)($input['month'] ?? date('Y-m')));
+    $paid = !empty($input['paid']);
+    if ($id <= 0 || !preg_match('/^\d{4}-\d{2}$/', $month)) {
+        json_response(['ok' => false, 'message' => 'Conta fixa ou mes invalido.'], 422);
+    }
+    $exists = db()->prepare('SELECT id FROM recurring_rules WHERE id = ? LIMIT 1');
+    $exists->execute([$id]);
+    if (!$exists->fetchColumn()) {
+        json_response(['ok' => false, 'message' => 'Conta fixa nao encontrada.'], 404);
+    }
+    if ($paid) {
+        db()->prepare('INSERT INTO recurring_rule_payments (rule_id, month, paid_at) VALUES (?, ?, NOW())
+            ON DUPLICATE KEY UPDATE paid_at = VALUES(paid_at)')->execute([$id, $month]);
+    } else {
+        db()->prepare('DELETE FROM recurring_rule_payments WHERE rule_id = ? AND month = ?')->execute([$id, $month]);
+    }
+    audit('toggle_paid', 'recurring_rule', $id, ['month' => $month, 'paid' => $paid]);
+    json_response(['ok' => true]);
 }
 
 function request_period(): array

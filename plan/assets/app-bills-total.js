@@ -5,6 +5,7 @@ const state = {
   budgets: [],
   goals: [],
   recurring: [],
+  recurringMonth: '',
   transactions: [],
   bankImports: [],
   bankTransactions: [],
@@ -102,6 +103,7 @@ async function loadBootstrap() {
     budgets: payload.budgets,
     goals: payload.goals,
     recurring: payload.recurring,
+    recurringMonth: payload.recurringMonth || '',
     bankImports: payload.bankImports || [],
     bankOverview: payload.bankOverview || null,
     bankSync: payload.bankSync || null,
@@ -244,7 +246,7 @@ const pageContexts = {
   transactions: ['Importar dados', 'Planilha de planejamento', 'Traga suas contas e preserve as edicoes feitas no sistema.'],
   budgets: ['Planejar', 'Orcamentos mensais', 'Defina limites por categoria e acompanhe suas escolhas.'],
   goals: ['Planejar', 'Metas', 'Acompanhe o progresso do que voce quer construir.'],
-  recurring: ['Planejar', 'Recorrencias', 'Mantenha regras prontas para contas que se repetem.'],
+  recurring: ['Planejar', 'Contas fixas do mes', 'Veja rapidamente o que ja foi pago e o que ainda esta pendente.'],
   accounts: ['Configurar', 'Contas e caixas', 'Organize onde o seu dinheiro fica e ajuste saldos quando precisar.'],
   categories: ['Configurar', 'Categorias', 'Use uma linguagem consistente para entender seus gastos.'],
 };
@@ -350,6 +352,15 @@ async function copyShareLink() {
 
 function bindFilters() {
   syncPeriodControlVisibility();
+  document.querySelectorAll('[data-period-quick]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const preset = document.querySelector('#periodPreset');
+      if (preset) preset.value = button.dataset.periodQuick;
+      applyPeriodPreset(button.dataset.periodQuick);
+      syncPeriodControlVisibility();
+      await reloadPeriodData();
+    });
+  });
   document.querySelector('#periodPreset')?.addEventListener('change', async event => {
     applyPeriodPreset(event.currentTarget.value);
     syncPeriodControlVisibility();
@@ -435,7 +446,10 @@ function applyPeriodPreset(preset) {
   const today = new Date();
   const to = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   let from;
-  if (preset === 'month') {
+  if (preset === 'yesterday') {
+    to.setDate(to.getDate() - 1);
+    from = new Date(to);
+  } else if (preset === 'month') {
     from = new Date(today.getFullYear(), today.getMonth(), 1);
     to.setMonth(today.getMonth() + 1, 0);
   } else {
@@ -451,7 +465,11 @@ function applyPeriodPreset(preset) {
 
 function syncPeriodControlVisibility() {
   const control = document.querySelector('.period-control');
-  control?.classList.toggle('is-custom', document.querySelector('#periodPreset')?.value === 'custom');
+  const value = document.querySelector('#periodPreset')?.value || 'yesterday';
+  control?.classList.toggle('is-custom', value === 'custom');
+  document.querySelectorAll('[data-period-quick]').forEach(button => {
+    button.classList.toggle('is-active', button.dataset.periodQuick === value);
+  });
 }
 
 function normalizeSelectedPeriod(changedId) {
@@ -831,7 +849,7 @@ function renderOverview() {
   setText('dashboardExpenses', asMoney(expenses));
   setText('dashboardBalance', asMoney(balance));
   document.querySelector('#dashboardBalance')?.classList.toggle('negative', balance < 0);
-  renderFixedCoverage(income);
+  renderFixedCoverage();
   renderDashboardBreakdown('dashboardIncomeBreakdown', credits);
   renderDashboardBreakdown('dashboardExpenseBreakdown', debits);
   renderWorkflowStrip();
@@ -840,29 +858,16 @@ function renderOverview() {
   renderBankingSummary();
 }
 
-function renderFixedCoverage(income) {
-  const monthlyFixed = state.recurring
-    .filter(rule => Number(rule.is_active) === 1)
-    .reduce((sum, rule) => {
-      const amount = Number(rule.amount || 0);
-      const multiplier = { daily: 365 / 12, weekly: 52 / 12, yearly: 1 / 12 }[rule.frequency] || 1;
-      return sum + (amount * multiplier);
-    }, 0);
-  const { dateFrom, dateTo } = selectedPeriod();
-  const from = new Date(`${dateFrom}T00:00:00`);
-  const to = new Date(`${dateTo}T00:00:00`);
-  const sameMonth = dateFrom.slice(0, 7) === dateTo.slice(0, 7)
-    && from.getDate() === 1
-    && to.getDate() === new Date(to.getFullYear(), to.getMonth() + 1, 0).getDate();
-  const days = Math.max(1, Math.round((to - from) / 86400000) + 1);
-  const periodFactor = sameMonth ? 1 : days / (365 / 12);
-  const target = monthlyFixed * periodFactor;
-  const remaining = Math.max(0, target - income);
-  const percent = target > 0 ? Math.min(100, (income / target) * 100) : 0;
+function renderFixedCoverage() {
+  const activeRules = state.recurring.filter(rule => Number(rule.is_active) === 1);
+  const target = sumAmounts(activeRules);
+  const paid = sumAmounts(activeRules.filter(rule => Number(rule.paid_this_month) === 1));
+  const remaining = Math.max(0, target - paid);
+  const percent = target > 0 ? Math.min(100, (paid / target) * 100) : 0;
   setText('fixedCoveragePercent', `${Math.round(percent)}%`);
   setText('fixedCoverageRemaining', remaining > 0 ? `Faltam ${asMoney(remaining)}` : 'Contas fixas cobertas');
   setText('fixedCoverageMeta', target > 0
-    ? `${asMoney(income)} em entradas para ${asMoney(target)} de contas fixas no periodo.`
+    ? `${asMoney(paid)} pagos de ${asMoney(target)} em contas fixas deste mes.`
     : 'Cadastre suas contas em Recorrencias para acompanhar esta meta.');
   const bar = document.querySelector('#fixedCoverageBar');
   if (bar) bar.style.width = `${percent}%`;
@@ -877,15 +882,43 @@ function renderDashboardBreakdown(targetId, rows) {
     acc[label].total += Number(row.amount || 0);
     acc[label].count += 1;
     return acc;
-  }, {})).sort((a, b) => b.total - a.total).slice(0, 5);
+  }, {})).sort((a, b) => b.total - a.total);
   const total = sumAmounts(rows);
   target.innerHTML = groups.length ? groups.map(group => `
-    <div class="money-breakdown-row">
-      <div><strong>${escapeHtml(group.label)}</strong><small>${group.count} movimentacoes</small></div>
-      <span>${asMoney(group.total)}</span>
-      <div class="money-breakdown-track"><i style="width:${Math.max(3, (group.total / total) * 100)}%"></i></div>
-    </div>
+    <details class="money-breakdown-row">
+      <summary>
+        <div><strong>${escapeHtml(group.label)}</strong><small>${group.count} movimentacoes</small></div>
+        <span><strong>${asMoney(group.total)}</strong><small>${formatPercent(group.total, total)}</small></span>
+        <div class="money-breakdown-track"><i style="width:${Math.max(3, (group.total / total) * 100)}%"></i></div>
+      </summary>
+      <div class="money-breakdown-items">
+        ${rows.filter(row => (row.category_name || 'Sem categoria') === group.label).slice(0, 100).map(row => `
+          <div class="money-breakdown-item">
+            <div><strong>${escapeHtml(row.description || '(sem descricao)')}</strong><small>${formatBankTransactionMoment(row)}</small></div>
+            <span>${asMoney(row.amount)}</span>
+          </div>
+        `).join('')}
+        ${group.count > 100 ? `<small class="muted">Mostrando as 100 movimentacoes mais recentes.</small>` : ''}
+      </div>
+    </details>
   `).join('') : '<p class="muted">Nenhuma movimentacao neste periodo.</p>';
+}
+
+function formatBankTransactionMoment(row) {
+  try {
+    const raw = typeof row.raw_json === 'string' ? JSON.parse(row.raw_json) : row.raw_json;
+    const moment = new Date(raw?.date || '');
+    if (!Number.isNaN(moment.getTime())) {
+      return new Intl.DateTimeFormat('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+        timeZone: 'America/Sao_Paulo',
+      }).format(moment);
+    }
+  } catch (error) {
+    // Arquivos antigos podem nao ter o JSON original completo.
+  }
+  return formatDate(row.transaction_date);
 }
 
 function renderCategoryAnalysis() {
@@ -2686,19 +2719,40 @@ function renderAccounts() {
 function renderRecurring() {
   const target = document.querySelector('#recurringList');
   if (!target) return;
-  target.innerHTML = state.recurring.map(rule => `
-    <div class="list-row">
+  setText('recurringMonthLabel', formatReferenceMonth(state.recurringMonth));
+  target.innerHTML = state.recurring.map(rule => {
+    const paid = Number(rule.paid_this_month) === 1;
+    return `
+    <div class="list-row recurring-payment-row">
       <div>
         <strong>${escapeHtml(rule.description)}</strong>
         <small>${escapeHtml(frequencyLabel(rule.frequency))} · proximo ${formatDate(rule.next_due_date)} · ${rule.is_active == 1 ? 'ativa' : 'inativa'}${rule.category_name ? ' · ' + escapeHtml(rule.category_name) : ''}</small>
       </div>
       <div class="row-actions">
         <span class="amount">${asMoney(rule.amount)}</span>
+        <span class="status ${paid ? 'paid' : 'pending'}">${paid ? 'Paga' : 'Pendente'}</span>
+        <button class="small-btn" data-recurring-paid="${rule.id}" data-paid="${paid ? '0' : '1'}">${paid ? 'Desmarcar' : 'Marcar paga'}</button>
         <button class="icon-btn" title="Editar recorrencia" data-recurring-edit="${rule.id}">✎</button>
         <button class="icon-btn" title="Excluir recorrencia" data-recurring-delete="${rule.id}">×</button>
       </div>
     </div>
-  `).join('');
+  `; }).join('');
+
+  target.querySelectorAll('[data-recurring-paid]').forEach(button => {
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      try {
+        await api('toggle_recurring_paid', {
+          method: 'POST',
+          body: { id: Number(button.dataset.recurringPaid), month: state.recurringMonth, paid: Number(button.dataset.paid) },
+        });
+        await loadBootstrap();
+      } catch (error) {
+        alert(error.message || 'Nao foi possivel atualizar a conta fixa.');
+        button.disabled = false;
+      }
+    });
+  });
 
   target.querySelectorAll('[data-recurring-edit]').forEach(button => {
     button.addEventListener('click', () => editRecurring(Number(button.dataset.recurringEdit)));
@@ -2852,7 +2906,7 @@ function prepareRecurringForm(rule = null) {
   form.elements.frequency.value = rule?.frequency || 'monthly';
   form.elements.next_due_date.value = rule?.next_due_date || '';
   form.elements.is_active.checked = rule ? rule.is_active == 1 : true;
-  setText('recurringFormTitle', rule ? 'Editar recorrencia' : 'Nova recorrencia');
+  setText('recurringFormTitle', rule ? 'Editar conta fixa' : 'Nova conta fixa');
 }
 
 async function deleteRecurring(id) {
@@ -2890,6 +2944,12 @@ function formatDate(value) {
   if (!value) return 'Sem data';
   const [year, month, day] = value.split('-');
   return `${day}/${month}/${year}`;
+}
+
+function formatReferenceMonth(month) {
+  if (!/^\d{4}-\d{2}$/.test(month || '')) return 'Mes atual';
+  const [year, monthNumber] = month.split('-').map(Number);
+  return new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(new Date(year, monthNumber - 1, 1));
 }
 
 function formatDateTime(value) {
