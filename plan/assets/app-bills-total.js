@@ -837,9 +837,10 @@ function inlineCategorySelect(row, kind) {
     <select class="inline-category" data-inline-category aria-label="Alterar categoria principal">
       <option value="">Sem categoria</option>${parentOptions}<option value="__new__">+ Nova categoria</option>
     </select>
-    <select class="inline-category inline-subcategory" data-inline-subcategory aria-label="Alterar subcategoria" ${children.length ? '' : 'hidden disabled'}>
+    <select class="inline-category inline-subcategory" data-inline-subcategory data-inline-parent-id="${parentId || ''}" aria-label="Alterar subcategoria" ${children.length ? '' : 'hidden disabled'}>
       <option value="">Escolha uma opcao</option>
       <option value="${parentId || ''}" ${currentId === parentId ? 'selected' : ''}>${parent ? `Usar somente ${escapeHtml(parent.name)}` : 'Sem subcategoria'}</option>${childOptions}
+      <option value="__new_sub__">+ Nova subcategoria</option>
     </select>
   </div>`;
 }
@@ -871,6 +872,10 @@ function handleInlineCategoryChange(select) {
     updateInlineCategory(picker, select.value);
     return;
   }
+  if (select.value === '__new_sub__') {
+    startInlineCategoryCreation(picker, Number(select.dataset.inlineParentId || 0));
+    return;
+  }
   if (select.value) updateInlineCategory(picker, select.value);
 }
 
@@ -881,7 +886,8 @@ function syncInlineSubcategory(picker, parentId, selectedId = '') {
   const parent = state.categories.find(category => Number(category.id) === Number(parentId));
   subcategory.innerHTML = `<option value="">Escolha uma opcao</option><option value="${parentId}">${parent ? `Usar somente ${escapeHtml(parent.name)}` : 'Sem subcategoria'}</option>` + children.map(category => (
     `<option value="${category.id}">${escapeHtml(category.name)}</option>`
-  )).join('');
+  )).join('') + '<option value="__new_sub__">+ Nova subcategoria</option>';
+  subcategory.dataset.inlineParentId = parentId;
   subcategory.value = selectedId;
   subcategory.hidden = children.length === 0;
   subcategory.disabled = children.length === 0;
@@ -932,12 +938,12 @@ function renderOverview() {
   renderBankingSummary();
 }
 
-function startInlineCategoryCreation(picker) {
+function startInlineCategoryCreation(picker, parentId = 0) {
   state.pendingCategoryAssignment = {
     kind: picker.dataset.inlineKind,
     id: Number(picker.dataset.inlineId),
   };
-  prepareCategoryForm();
+  prepareCategoryForm(null, parentId || '');
   document.querySelector('#categoryModal')?.showModal();
 }
 
