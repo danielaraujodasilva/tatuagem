@@ -261,7 +261,8 @@ label { display: grid; gap: 7px; color: var(--muted); font-size: 13px; font-weig
 .money-breakdown-item:last-child { border-bottom: 0; }
 .money-breakdown-item > span { font-weight: 800; white-space: nowrap; }
 .money-breakdown-item-main { min-width: 0; }
-.dashboard-category-trigger { margin-top: 6px; padding: 0; border: 0; background: transparent; color: var(--blue); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+.dashboard-item-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; margin-top: 6px; }
+.dashboard-category-trigger { padding: 0; border: 0; background: transparent; color: var(--blue); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
 .dashboard-category-trigger:hover { text-decoration: underline; }
 .dashboard-category-picker { max-width: 260px; margin-top: 7px; }
 .dashboard-category-picker .category-picker { min-width: 0; }

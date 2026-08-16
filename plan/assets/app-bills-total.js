@@ -938,7 +938,10 @@ function renderDashboardBreakdown(targetId, rows) {
             <div class="money-breakdown-item-main">
               <strong>${escapeHtml(row.description || '(sem descricao)')}</strong>
               <small>${formatBankTransactionMoment(row)}</small>
-              <button type="button" class="dashboard-category-trigger" data-dashboard-category>${group.label === 'Sem categoria' ? '+ Categoria' : 'Editar categoria'}</button>
+              <div class="dashboard-item-actions">
+                <button type="button" class="dashboard-category-trigger" data-dashboard-category>${group.label === 'Sem categoria' ? '+ Categoria' : 'Editar categoria'}</button>
+                ${row.direction === 'debit' ? `<button type="button" class="dashboard-category-trigger" data-dashboard-recurring="${row.id}">Conta fixa</button>` : ''}
+              </div>
               <div class="dashboard-category-picker" data-dashboard-category-picker hidden>${inlineCategorySelect(row, 'bank_transaction')}</div>
             </div>
             <span>${asMoney(row.amount)}</span>
@@ -957,7 +960,21 @@ function renderDashboardBreakdown(targetId, rows) {
       picker.querySelector('[data-inline-category]')?.focus();
     });
   });
+  target.querySelectorAll('[data-dashboard-recurring]').forEach(button => {
+    button.addEventListener('click', () => {
+      const row = rows.find(item => Number(item.id) === Number(button.dataset.dashboardRecurring));
+      if (row) prepareRecurringFromBankRow(row);
+    });
+  });
   bindInlineCategoryControls(target);
+}
+
+function prepareRecurringFromBankRow(row) {
+  prepareRecurringFromGroup({
+    label: row.description || '(sem descricao)',
+    rows: [row],
+    categoryIds: new Set([row.category_id || '']),
+  });
 }
 
 function formatBankTransactionMoment(row) {
