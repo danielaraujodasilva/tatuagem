@@ -32,6 +32,7 @@ const state = {
   profitChartWindowSize: 0,
   profitChartWindowStart: 0,
   profitChartPeriodKey: '',
+  profitChartTooltipIndex: null,
 };
 
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -515,6 +516,10 @@ function bindProfitChart() {
     const maxStart = Math.max(0, buckets.length - windowSize);
     state.profitChartWindowStart = Math.round((Number(event.currentTarget.value) / 100) * maxStart);
     renderProfitChart();
+  });
+  document.addEventListener('pointerdown', event => {
+    const canvas = document.querySelector('#profitTimelineChart');
+    if (canvas && event.target !== canvas) clearProfitChartTooltip();
   });
 }
 
@@ -1101,6 +1106,7 @@ function renderProfitChart() {
   document.querySelector('[data-profit-zoom="out"]')?.toggleAttribute('disabled', windowSize >= total);
   document.querySelector('[data-profit-reset]')?.toggleAttribute('disabled', windowSize >= total);
   state.charts.profitTimelineChart?.destroy();
+  state.profitChartTooltipIndex = null;
   state.charts.profitTimelineChart = new Chart(canvas, {
     type: 'line',
     data: {
@@ -1139,6 +1145,14 @@ function renderProfitChart() {
       maintainAspectRatio: false,
       animation: { duration: 700, easing: 'easeOutQuart' },
       interaction: { mode: 'index', intersect: false },
+      onClick: (event, elements, chart) => {
+        const index = elements[0]?.index;
+        if (index === undefined || index === state.profitChartTooltipIndex) {
+          window.requestAnimationFrame(() => clearProfitChartTooltip(chart));
+          return;
+        }
+        state.profitChartTooltipIndex = index;
+      },
       plugins: {
         legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, padding: 18 } },
         tooltip: {
@@ -1158,6 +1172,14 @@ function renderProfitChart() {
       },
     },
   });
+}
+
+function clearProfitChartTooltip(chart = state.charts.profitTimelineChart) {
+  state.profitChartTooltipIndex = null;
+  if (!chart?.tooltip) return;
+  chart.tooltip.setActiveElements([], { x: 0, y: 0 });
+  chart.setActiveElements([]);
+  chart.draw();
 }
 
 function changeProfitChartZoom(direction) {
