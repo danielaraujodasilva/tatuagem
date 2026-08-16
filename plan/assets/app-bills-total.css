@@ -151,6 +151,7 @@ label { display: grid; gap: 7px; color: var(--muted); font-size: 13px; font-weig
 .top-actions, .filters { display: flex; align-items: center; gap: 10px; }
 .top-actions { flex-wrap: wrap; justify-content: flex-end; }
 .top-actions-row { display: flex; gap: 10px; }
+.selected-period-label { flex: 1 0 100%; margin: -2px 0 0; color: var(--blue-deep); text-align: right; font-size: 12px; font-weight: 800; }
 .period-control {
   display: flex;
   align-items: flex-end;
@@ -880,6 +881,7 @@ tr.share-focus > td { background: #eff6ff; box-shadow: inset 0 2px 0 rgba(37,99,
   .form-grid { grid-template-columns: 1fr; }
   .category-scope-actions > button { flex: 1 1 100%; }
   .top-actions > *, .top-actions-row { width: 100%; }
+  .selected-period-label { text-align: left; }
   .top-actions-row > * { flex: 1; }
   .period-control, .period-control.is-custom { width: 100%; flex-wrap: wrap; }
   .period-label { flex: 0 0 100%; }

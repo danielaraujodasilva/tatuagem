@@ -514,6 +514,18 @@ function syncPeriodControlVisibility() {
   document.querySelectorAll('[data-period-quick]').forEach(button => {
     button.classList.toggle('is-active', button.dataset.periodQuick === value);
   });
+  renderSelectedPeriodLabel(value);
+}
+
+function renderSelectedPeriodLabel(preset) {
+  const label = document.querySelector('#selectedPeriodLabel');
+  if (!label) return;
+  const isQuickPeriod = preset === 'yesterday' || preset === 'month';
+  label.hidden = isQuickPeriod;
+  if (isQuickPeriod) return;
+  const { dateFrom, dateTo } = selectedPeriod();
+  const dates = dateFrom === dateTo ? formatDate(dateFrom) : `${formatDate(dateFrom)} a ${formatDate(dateTo)}`;
+  label.textContent = `Periodo selecionado: ${dates}`;
 }
 
 function normalizeSelectedPeriod(changedId) {
