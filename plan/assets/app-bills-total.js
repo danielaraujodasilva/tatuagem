@@ -300,6 +300,9 @@ function bindModals() {
       dialog?.close();
     });
   });
+  document.querySelector('#categoryModal')?.addEventListener('cancel', () => {
+    state.pendingCategoryAssignment = null;
+  });
 }
 
 function bindSharing() {
@@ -989,7 +992,7 @@ function renderDashboardBreakdown(targetId, rows) {
   `).join('') : '<p class="muted">Nenhuma movimentacao neste periodo.</p>';
   target.querySelectorAll('[data-dashboard-category]').forEach(button => {
     button.addEventListener('click', () => {
-      const picker = button.parentElement?.querySelector('[data-dashboard-category-picker]');
+      const picker = button.closest('.money-breakdown-item-main')?.querySelector('[data-dashboard-category-picker]');
       if (!picker) return;
       picker.hidden = false;
       button.hidden = true;
@@ -1979,9 +1982,6 @@ function renderMovementSearchSuggestions() {
       await loadBankTransactions();
       hideMovementSearchSuggestions();
     });
-  });
-  document.querySelector('#categoryModal')?.addEventListener('cancel', () => {
-    state.pendingCategoryAssignment = null;
   });
 }
 
