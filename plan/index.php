@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260815-22">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260815-23">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260815-22" defer></script>
+    <script src="assets/app-bills-total.js?v=20260815-23" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -123,36 +123,40 @@ $csrf = csrf_token();
             </header>
 
             <section class="section is-visible" id="dashboard">
-                <section class="money-summary">
-                    <div class="money-balance">
+                <details class="money-summary" open>
+                    <summary class="money-balance">
                         <span>Saldo do periodo</span>
                         <strong id="dashboardBalance">R$ 0,00</strong>
-                    </div>
-                    <div class="money-flow-grid">
-                        <section class="money-flow positive">
-                            <div class="money-flow-head">
+                    </summary>
+                    <div class="money-flow-list">
+                        <details class="money-flow positive">
+                            <summary class="money-flow-head">
                                 <span>Entrou</span>
                                 <strong id="dashboardIncome">R$ 0,00</strong>
+                            </summary>
+                            <div class="money-flow-content">
+                                <div class="money-flow-breakdown-head">
+                                    <div><p class="eyebrow">Como ganhou</p><h2>Origem das entradas</h2></div>
+                                    <button class="link-btn" data-nav-target="categoryAnalysis">Detalhes</button>
+                                </div>
+                                <div id="dashboardIncomeBreakdown" class="money-breakdown-list"></div>
                             </div>
-                            <div class="money-flow-breakdown-head">
-                                <div><p class="eyebrow">Como ganhou</p><h2>Origem das entradas</h2></div>
-                                <button class="link-btn" data-nav-target="categoryAnalysis">Detalhes</button>
-                            </div>
-                            <div id="dashboardIncomeBreakdown" class="money-breakdown-list"></div>
-                        </section>
-                        <section class="money-flow negative">
-                            <div class="money-flow-head">
+                        </details>
+                        <details class="money-flow negative">
+                            <summary class="money-flow-head">
                                 <span>Saiu</span>
                                 <strong id="dashboardExpenses">R$ 0,00</strong>
+                            </summary>
+                            <div class="money-flow-content">
+                                <div class="money-flow-breakdown-head">
+                                    <div><p class="eyebrow">Como gastou</p><h2>Destino das saidas</h2></div>
+                                    <button class="link-btn" data-nav-target="categoryAnalysis">Detalhes</button>
+                                </div>
+                                <div id="dashboardExpenseBreakdown" class="money-breakdown-list"></div>
                             </div>
-                            <div class="money-flow-breakdown-head">
-                                <div><p class="eyebrow">Como gastou</p><h2>Destino das saidas</h2></div>
-                                <button class="link-btn" data-nav-target="categoryAnalysis">Detalhes</button>
-                            </div>
-                            <div id="dashboardExpenseBreakdown" class="money-breakdown-list"></div>
-                        </section>
+                        </details>
                     </div>
-                </section>
+                </details>
 
                 <section class="panel fixed-coverage">
                     <div class="fixed-coverage-head">
