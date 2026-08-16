@@ -19,6 +19,8 @@ const state = {
   pendingShare: null,
   handledShareToken: '',
   lastAnalysis: null,
+  movementView: 'grouped',
+  similarTransactionGroups: [],
 };
 
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -113,11 +115,9 @@ async function loadBootstrap() {
 }
 
 async function loadBankTransactions() {
-  const dateFrom = document.querySelector('#movementDateFrom')?.value || '';
-  const dateTo = document.querySelector('#movementDateTo')?.value || '';
+  const { dateFrom, dateTo } = selectedPeriod();
   const params = new URLSearchParams({
     action: 'bank_transactions',
-    month: dateFrom || dateTo ? '' : document.querySelector('#monthFilter')?.value || '',
     date_from: dateFrom,
     date_to: dateTo,
     q: document.querySelector('#movementSearchInput')?.value || document.querySelector('#bankSearchInput')?.value || '',
@@ -139,10 +139,11 @@ async function loadBankTransactions() {
 }
 
 async function loadTransactions() {
-  const selectedMonth = document.querySelector('#monthFilter')?.value || '';
+  const { dateFrom, dateTo } = selectedPeriod();
   const params = new URLSearchParams({
     action: 'transactions',
-    month: selectedMonth,
+    date_from: dateFrom,
+    date_to: dateTo,
     q: '',
     status: '',
     type: '',
@@ -151,16 +152,6 @@ async function loadTransactions() {
   const payload = await response.json();
   if (!payload.ok) throw new Error(payload.message || 'Erro ao carregar.');
   state.transactions = payload.transactions || [];
-  if (selectedMonth && state.transactions.length === 0) {
-    const fallbackResponse = await fetch('api.php?action=transactions', { headers: { 'X-CSRF-Token': state.csrf } });
-    const fallbackPayload = await fallbackResponse.json();
-    if (fallbackPayload.ok) {
-      state.transactions = (fallbackPayload.transactions || []).filter(row => matchesMonth(row, selectedMonth));
-      if (state.transactions.length) {
-        payload.overview = buildClientOverview(selectedMonth, state.transactions, payload.overview);
-      }
-    }
-  }
   state.overview = payload.overview;
   renderSelects();
   renderTransactions();
@@ -240,9 +231,9 @@ function navigateToSection(sectionId) {
 }
 
 const pageContexts = {
-  dashboard: ['Visao geral', 'Seu dinheiro em ordem', 'Veja o que entrou, saiu e precisa da sua atencao no mes selecionado.'],
+  dashboard: ['Visao geral', 'Seu dinheiro em ordem', 'Veja o que entrou, saiu e precisa da sua atencao no periodo selecionado.'],
   categoryAnalysis: ['Visao geral', 'Entenda seus padroes', 'Compare categorias, percentuais e linhas sem perder o contexto.'],
-  bills: ['Acompanhar', 'Contas do mes', 'Controle o que ja foi pago e o que ainda precisa de uma acao.'],
+  bills: ['Acompanhar', 'Contas do periodo', 'Controle o que ja foi pago e o que ainda precisa de uma acao.'],
   movements: ['Acompanhar', 'Extratos reais', 'Explore o dinheiro que realmente entrou e saiu das suas contas.'],
   reconciliation: ['Acompanhar', 'Conferir o planejado contra o realizado', 'Compare suas contas da planilha com o que realmente apareceu no banco e resolva apenas os alertas.'],
   transactions: ['Importar dados', 'Planilha de planejamento', 'Traga suas contas e preserve as edicoes feitas no sistema.'],
@@ -354,11 +345,18 @@ async function copyShareLink() {
 }
 
 function bindFilters() {
-  document.querySelector('#monthFilter')?.addEventListener('input', debounce(async () => {
-    syncMovementDatesFromMonth();
-    await loadTransactions();
-    await loadBankTransactions();
-  }, 250));
+  document.querySelector('#periodPreset')?.addEventListener('change', async event => {
+    applyPeriodPreset(event.currentTarget.value);
+    await reloadPeriodData();
+  });
+  ['periodDateFrom', 'periodDateTo'].forEach(id => {
+    document.querySelector(`#${id}`)?.addEventListener('change', async () => {
+      normalizeSelectedPeriod(id);
+      const preset = document.querySelector('#periodPreset');
+      if (preset) preset.value = 'custom';
+      await reloadPeriodData();
+    });
+  });
   ['searchInput', 'statusFilter', 'typeFilter'].forEach(id => {
     document.querySelector(`#${id}`)?.addEventListener('input', () => renderTransactions());
   });
@@ -374,12 +372,11 @@ function bindFilters() {
     syncCategoryFilter('bills');
     renderBills();
   });
-  ['movementDateFrom', 'movementDateTo', 'movementSearchInput', 'movementBankFilter', 'movementDirectionFilter', 'movementMatchFilter'].forEach(id => {
+  ['movementSearchInput', 'movementBankFilter', 'movementDirectionFilter', 'movementMatchFilter'].forEach(id => {
     document.querySelector(`#${id}`)?.addEventListener('input', debounce(loadBankTransactions, 250));
   });
   bindCategoryFilter('movement', () => loadBankTransactions());
   document.querySelector('#clearMovementFilters')?.addEventListener('click', async () => {
-    syncMovementDatesFromMonth();
     ['movementBankFilter', 'movementCategoryParentFilter', 'movementCategoryFilter', 'movementDirectionFilter', 'movementMatchFilter', 'movementSearchInput', 'bankFilter', 'bankSearchInput'].forEach(id => {
       const input = document.querySelector(`#${id}`);
       if (input) input.value = '';
@@ -403,20 +400,61 @@ function bindFilters() {
   });
   bindCategoryFilter('analysis', renderCategoryAnalysis);
   document.querySelector('#copyAnalysisTable')?.addEventListener('click', copyAnalysisTable);
+  document.querySelectorAll('[data-movement-view]').forEach(button => {
+    button.addEventListener('click', () => {
+      state.movementView = button.dataset.movementView === 'list' ? 'list' : 'grouped';
+      renderMovements();
+    });
+  });
   document.querySelectorAll('[data-pivot-toggle]').forEach(button => {
     button.addEventListener('click', () => setPivotOpenState(button.dataset.pivotScope, button.dataset.pivotToggle === 'open'));
   });
 }
 
-function syncMovementDatesFromMonth() {
-  const month = document.querySelector('#monthFilter')?.value;
-  if (!month) return;
-  const from = document.querySelector('#movementDateFrom');
-  const to = document.querySelector('#movementDateTo');
-  if (!from || !to) return;
-  const lastDay = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate();
-  from.value = `${month}-01`;
-  to.value = `${month}-${String(lastDay).padStart(2, '0')}`;
+function selectedPeriod() {
+  return {
+    dateFrom: document.querySelector('#periodDateFrom')?.value || '',
+    dateTo: document.querySelector('#periodDateTo')?.value || '',
+  };
+}
+
+async function reloadPeriodData() {
+  await loadTransactions();
+  await loadBankTransactions();
+}
+
+function applyPeriodPreset(preset) {
+  if (preset === 'custom') return;
+  const today = new Date();
+  const to = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  let from;
+  if (preset === 'month') {
+    from = new Date(today.getFullYear(), today.getMonth(), 1);
+    to.setMonth(today.getMonth() + 1, 0);
+  } else {
+    const days = Math.max(1, Number(preset) || 30);
+    from = new Date(to);
+    from.setDate(from.getDate() - days + 1);
+  }
+  const fromInput = document.querySelector('#periodDateFrom');
+  const toInput = document.querySelector('#periodDateTo');
+  if (fromInput) fromInput.value = inputDate(from);
+  if (toInput) toInput.value = inputDate(to);
+}
+
+function normalizeSelectedPeriod(changedId) {
+  const from = document.querySelector('#periodDateFrom');
+  const to = document.querySelector('#periodDateTo');
+  if (!from?.value || !to?.value || from.value <= to.value) return;
+  if (changedId === 'periodDateFrom') to.value = from.value;
+  else from.value = to.value;
+}
+
+function inputDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function mirrorLegacyBankFilters(changedId) {
@@ -461,11 +499,13 @@ async function handleSharedLink() {
 async function focusSharedTarget(share, target) {
   if (share.entity_type === 'bank_transaction') {
     const date = target.transaction_date || '';
-    const from = document.querySelector('#movementDateFrom');
-    const to = document.querySelector('#movementDateTo');
+    const from = document.querySelector('#periodDateFrom');
+    const to = document.querySelector('#periodDateTo');
+    const preset = document.querySelector('#periodPreset');
     const search = document.querySelector('#movementSearchInput');
     if (from && date) from.value = date;
     if (to && date) to.value = date;
+    if (preset) preset.value = 'custom';
     if (search) search.value = '';
     ['movementBankFilter', 'movementCategoryParentFilter', 'movementCategoryFilter', 'movementDirectionFilter', 'movementMatchFilter', 'bankFilter', 'bankSearchInput'].forEach(id => {
       const input = document.querySelector(`#${id}`);
@@ -478,9 +518,13 @@ async function focusSharedTarget(share, target) {
     return;
   }
 
-  const month = target.reference_month || String(target.due_date || '').slice(0, 7);
-  const monthFilter = document.querySelector('#monthFilter');
-  if (monthFilter && month) monthFilter.value = month;
+  const date = target.due_date || (target.reference_month ? `${target.reference_month}-01` : '');
+  const from = document.querySelector('#periodDateFrom');
+  const to = document.querySelector('#periodDateTo');
+  const preset = document.querySelector('#periodPreset');
+  if (from && date) from.value = date;
+  if (to && date) to.value = date;
+  if (preset) preset.value = 'custom';
   ['searchInput', 'statusFilter', 'typeFilter'].forEach(id => {
     const input = document.querySelector(`#${id}`);
     if (input) input.value = '';
@@ -1191,7 +1235,9 @@ function buildAnalysisWhatsappTable(analysis) {
 }
 
 function analysisFilterSummary() {
+  const { dateFrom, dateTo } = selectedPeriod();
   const labels = [
+    dateFrom && dateTo ? `${formatDate(dateFrom)} a ${formatDate(dateTo)}` : '',
     selectLabel('analysisSourceFilter'),
     selectLabel('analysisDirectionFilter'),
     selectLabel('analysisCategoryParentFilter'),
@@ -1842,9 +1888,140 @@ function renderMovements() {
   setText('movementDebits', asMoney(sumAmounts(debits)));
   setText('movementNet', asMoney(sumAmounts(credits) - sumAmounts(debits)));
   setText('movementMatched', String(matched.length));
-  setText('movementRowsCount', `${rows.length} linhas`);
   renderMovementCategorySummary(rows);
-  renderCategorizedBankTable(rows);
+  const grouped = state.movementView === 'grouped';
+  document.querySelectorAll('[data-movement-view]').forEach(button => {
+    button.classList.toggle('is-active', button.dataset.movementView === state.movementView);
+  });
+  const groupedView = document.querySelector('#similarTransactionsView');
+  const listView = document.querySelector('#movementListView');
+  if (groupedView) groupedView.hidden = !grouped;
+  if (listView) listView.hidden = grouped;
+  setText('movementViewTitle', grouped ? 'Transacoes semelhantes' : 'Transacoes');
+  if (grouped) {
+    const groups = renderSimilarTransactionGroups(rows);
+    setText('movementRowsCount', `${rows.length} transacoes · ${groups.length} grupos`);
+  } else {
+    setText('movementRowsCount', `${rows.length} linhas`);
+    renderCategorizedBankTable(rows);
+  }
+}
+
+function renderSimilarTransactionGroups(rows) {
+  const target = document.querySelector('#similarTransactionsView');
+  if (!target) return [];
+  const groups = groupSimilarTransactions(rows);
+  state.similarTransactionGroups = groups;
+  target.innerHTML = groups.length ? groups.map((group, index) => {
+    const directionClass = group.direction === 'credit' ? 'positive' : 'negative';
+    const sign = group.direction === 'credit' ? '+' : '-';
+    const dateLabel = group.dateFrom === group.dateTo
+      ? formatDate(group.dateFrom)
+      : `${formatDate(group.dateFrom)} a ${formatDate(group.dateTo)}`;
+    return `
+      <details class="similar-group">
+        <summary>
+          <div class="similar-group-main">
+            <strong>${escapeHtml(group.label)}</strong>
+            <small>${group.rows.length} transacoes · ${escapeHtml(dateLabel)} · ${escapeHtml(group.bank)}</small>
+          </div>
+          <span class="amount ${directionClass}">${sign} ${asMoney(group.total)}</span>
+          <label class="similar-category-control">
+            <span>Categoria do grupo</span>
+            ${similarGroupCategorySelect(group, index)}
+          </label>
+        </summary>
+        <div class="similar-group-rows">
+          ${group.rows.map(row => `
+            <div class="similar-transaction-row" data-bank-transaction-id="${row.id}">
+              <span>${formatDate(row.transaction_date)}</span>
+              <div><strong>${escapeHtml(row.description)}</strong><small>${escapeHtml(row.category_name || 'Sem categoria')}</small></div>
+              <span class="amount ${directionClass}">${sign} ${asMoney(row.amount)}</span>
+            </div>
+          `).join('')}
+        </div>
+      </details>`;
+  }).join('') : '<p class="muted">Nenhuma transacao para os filtros atuais.</p>';
+  target.querySelectorAll('[data-similar-category]').forEach(select => {
+    select.addEventListener('click', event => event.stopPropagation());
+    select.addEventListener('change', () => updateSimilarGroupCategory(select));
+  });
+  target.querySelectorAll('.similar-category-control').forEach(control => {
+    control.addEventListener('click', event => event.stopPropagation());
+  });
+  return groups;
+}
+
+function groupSimilarTransactions(rows) {
+  const grouped = rows.reduce((acc, row) => {
+    const similarity = transactionSimilarityKey(row.description) || `transacao ${row.id}`;
+    const key = `${row.bank_account_id || row.bank_name || 'bank'}|${row.direction}|${similarity}`;
+    acc[key] ||= {
+      key,
+      direction: row.direction,
+      label: row.description || '(sem descricao)',
+      bank: row.bank_name || 'Banco',
+      total: 0,
+      rows: [],
+      categoryIds: new Set(),
+      dateFrom: row.transaction_date,
+      dateTo: row.transaction_date,
+    };
+    const group = acc[key];
+    group.total += Number(row.amount || 0);
+    group.rows.push(row);
+    group.categoryIds.add(String(row.category_id || ''));
+    if (row.transaction_date < group.dateFrom) group.dateFrom = row.transaction_date;
+    if (row.transaction_date > group.dateTo) group.dateTo = row.transaction_date;
+    return acc;
+  }, {});
+  return Object.values(grouped).sort((a, b) => {
+    const aUncategorized = a.categoryIds.has('') ? 1 : 0;
+    const bUncategorized = b.categoryIds.has('') ? 1 : 0;
+    return bUncategorized - aUncategorized || b.rows.length - a.rows.length || b.total - a.total;
+  });
+}
+
+function transactionSimilarityKey(description) {
+  return norm(description)
+    .replace(/\b\d{1,2}[\s/-]\d{1,2}(?:[\s/-]\d{2,4})?\b/g, ' ')
+    .replace(/\b\d{4,}\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function similarGroupCategorySelect(group, index) {
+  const categoryIds = [...group.categoryIds];
+  const selected = categoryIds.length === 1 ? categoryIds[0] : '__mixed__';
+  const mixed = selected === '__mixed__' ? '<option value="__mixed__" selected disabled>Categorias diferentes</option>' : '';
+  const uncategorized = `<option value="" ${selected === '' ? 'selected' : ''}>Sem categoria</option>`;
+  const options = state.categories
+    .filter(category => !isUncategorizedCategory(category))
+    .map(category => `<option value="${category.id}" ${selected === String(category.id) ? 'selected' : ''}>${escapeHtml(categoryOptionLabel(category))}</option>`)
+    .join('');
+  return `<select data-similar-category data-similar-group-index="${index}">${mixed}${uncategorized}${options}</select>`;
+}
+
+async function updateSimilarGroupCategory(select) {
+  const group = state.similarTransactionGroups[Number(select.dataset.similarGroupIndex)];
+  if (!group || select.value === '__mixed__') return;
+  const category = state.categories.find(item => String(item.id) === String(select.value));
+  const label = category ? categoryOptionLabel(category) : 'Sem categoria';
+  if (!confirm(`Aplicar "${label}" nas ${group.rows.length} transacoes semelhantes deste periodo?`)) {
+    renderMovements();
+    return;
+  }
+  select.disabled = true;
+  try {
+    await api('update_bank_transaction_categories', {
+      method: 'POST',
+      body: { ids: group.rows.map(row => Number(row.id)), category_id: select.value },
+    });
+    await loadBankTransactions();
+  } catch (error) {
+    alert(error.message || 'Nao foi possivel categorizar o grupo.');
+    await loadBankTransactions();
+  }
 }
 
 function renderMovementCategorySummary(rows) {

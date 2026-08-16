@@ -54,6 +54,7 @@ try {
         'bank_sync_status' => json_response(['ok' => true, 'bankSync' => bank_sync_status()]),
         'sync_banks' => sync_banks(),
         'update_bank_transaction_category' => update_bank_transaction_category(),
+        'update_bank_transaction_categories' => update_bank_transaction_categories(),
         'create_share' => create_share(),
         'resolve_share' => resolve_share(),
         'overview' => overview(),
@@ -124,6 +125,18 @@ function transactions(): never
         $sourceFallback = $sheetPatterns ? ' OR (t.reference_month IS NULL AND t.source_sheet IS NOT NULL AND (' . implode(' OR ', array_fill(0, count($sheetPatterns), 't.source_sheet LIKE ?')) . '))' : '';
         $where[] = "(t.reference_month = ? OR (t.reference_month IS NULL AND DATE_FORMAT(t.due_date, '%Y-%m') = ?)$sourceFallback)";
         array_push($params, $_GET['month'], $_GET['month'], ...$sheetPatterns);
+    } else {
+        $dateExpression = transaction_effective_date_sql('t');
+        $dateFrom = normalize_date($_GET['date_from'] ?? null);
+        $dateTo = normalize_date($_GET['date_to'] ?? null);
+        if ($dateFrom) {
+            $where[] = "$dateExpression >= ?";
+            $params[] = $dateFrom;
+        }
+        if ($dateTo) {
+            $where[] = "$dateExpression <= ?";
+            $params[] = $dateTo;
+        }
     }
 
     if (!empty($_GET['q'])) {
@@ -140,7 +153,7 @@ function transactions(): never
     if ($where) {
         $sql .= ' WHERE ' . implode(' AND ', $where);
     }
-    $sql .= ' ORDER BY COALESCE(t.due_date, t.created_at) DESC, t.id DESC LIMIT 600';
+    $sql .= ' ORDER BY COALESCE(t.due_date, t.paid_at, t.created_at) DESC, t.id DESC LIMIT 5000';
 
     $stmt = db()->prepare($sql);
     $stmt->execute($params);
@@ -278,6 +291,23 @@ function update_bank_transaction_category(): never
 
     update_category_for_ids('bank_transactions', $ids, $categoryId);
     audit('update_category', 'bank_transaction', $id, ['category_id' => $categoryId, 'affected' => count($ids)]);
+    json_response(['ok' => true, 'affected' => count($ids)]);
+}
+
+function update_bank_transaction_categories(): never
+{
+    ensure_bank_schema();
+    $input = json_input();
+    $categoryId = normalize_category_id($input['category_id'] ?? '');
+    $ids = is_array($input['ids'] ?? null) ? $input['ids'] : [];
+    $ids = array_values(array_unique(array_filter(array_map('intval', $ids), fn(int $id): bool => $id > 0)));
+
+    if (!$ids || count($ids) > 5000) {
+        json_response(['ok' => false, 'message' => 'Selecione entre 1 e 5000 movimentacoes.'], 422);
+    }
+    assert_category_exists($categoryId);
+    update_category_for_ids('bank_transactions', $ids, $categoryId);
+    audit('update_category_group', 'bank_transaction', $ids[0], ['category_id' => $categoryId, 'affected' => count($ids)]);
     json_response(['ok' => true, 'affected' => count($ids)]);
 }
 
@@ -1010,7 +1040,7 @@ function bank_transactions(): never
     if ($where) {
         $sql .= ' WHERE ' . implode(' AND ', $where);
     }
-    $sql .= ' ORDER BY bt.transaction_date DESC, bt.id DESC LIMIT 800';
+    $sql .= ' ORDER BY bt.transaction_date DESC, bt.id DESC LIMIT 5000';
 
     $stmt = db()->prepare($sql);
     $stmt->execute($params);
@@ -1128,24 +1158,23 @@ function overview(): never
 function build_overview(): array
 {
     ensure_finance_schema();
-    $month = $_GET['month'] ?? date('Y-m');
-    $monthStart = $month . '-01';
-    $monthEnd = date('Y-m-t', strtotime($monthStart));
+    [$dateFrom, $dateTo] = request_period();
+    $dateExpression = transaction_effective_date_sql('transactions');
 
     $stmt = db()->prepare("SELECT
         SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) income,
         SUM(CASE WHEN type = 'expense' AND status <> 'ignored' THEN amount ELSE 0 END) expenses,
         SUM(CASE WHEN type = 'expense' AND status = 'paid' THEN amount ELSE 0 END) paid,
         SUM(CASE WHEN type = 'expense' AND status IN ('pending','late') THEN amount ELSE 0 END) pending
-        FROM transactions WHERE (reference_month = ? OR (reference_month IS NULL AND due_date BETWEEN ? AND ?))");
-    $stmt->execute([$month, $monthStart, $monthEnd]);
+        FROM transactions WHERE $dateExpression BETWEEN ? AND ?");
+    $stmt->execute([$dateFrom, $dateTo]);
     $totals = $stmt->fetch() ?: [];
 
     $byCategory = db()->prepare("SELECT COALESCE(NULLIF(CONCAT_WS(' / ', pc.name, c.name), ''), 'Sem categoria') name, COALESCE(c.color, '#64748b') color, SUM(t.amount) total
         FROM transactions t LEFT JOIN categories c ON c.id = t.category_id LEFT JOIN categories pc ON pc.id = c.parent_id
-        WHERE t.type = 'expense' AND t.status <> 'ignored' AND (t.reference_month = ? OR (t.reference_month IS NULL AND t.due_date BETWEEN ? AND ?))
+        WHERE t.type = 'expense' AND t.status <> 'ignored' AND " . transaction_effective_date_sql('t') . " BETWEEN ? AND ?
         GROUP BY name, color ORDER BY total DESC");
-    $byCategory->execute([$month, $monthStart, $monthEnd]);
+    $byCategory->execute([$dateFrom, $dateTo]);
 
     $monthly = db()->query("SELECT COALESCE(reference_month, DATE_FORMAT(due_date, '%Y-%m')) month,
         SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) income,
@@ -1159,7 +1188,9 @@ function build_overview(): array
     $upcoming->execute();
 
     return [
-        'month' => $month,
+        'month' => substr($dateFrom, 0, 7) === substr($dateTo, 0, 7) ? substr($dateFrom, 0, 7) : null,
+        'date_from' => $dateFrom,
+        'date_to' => $dateTo,
         'totals' => [
             'income' => (float)($totals['income'] ?? 0),
             'expenses' => (float)($totals['expenses'] ?? 0),
@@ -1171,4 +1202,26 @@ function build_overview(): array
         'monthly' => $monthly,
         'upcoming' => $upcoming->fetchAll(),
     ];
+}
+
+function request_period(): array
+{
+    $month = trim((string)($_GET['month'] ?? ''));
+    $dateFrom = normalize_date($_GET['date_from'] ?? null);
+    $dateTo = normalize_date($_GET['date_to'] ?? null);
+    if (!$dateFrom && !$dateTo && preg_match('/^\d{4}-\d{2}$/', $month)) {
+        $dateFrom = $month . '-01';
+        $dateTo = date('Y-m-t', strtotime($dateFrom));
+    }
+    $dateFrom ??= date('Y-m-01');
+    $dateTo ??= date('Y-m-t');
+    if ($dateFrom > $dateTo) {
+        [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
+    }
+    return [$dateFrom, $dateTo];
+}
+
+function transaction_effective_date_sql(string $alias): string
+{
+    return "COALESCE($alias.due_date, $alias.paid_at, STR_TO_DATE(CONCAT($alias.reference_month, '-01'), '%Y-%m-%d'), DATE($alias.created_at))";
 }

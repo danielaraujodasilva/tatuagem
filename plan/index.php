@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260815-17">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260815-18">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260815-17" defer></script>
+    <script src="assets/app-bills-total.js?v=20260815-18" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -67,7 +67,7 @@ $csrf = csrf_token();
                 </div>
                 <div class="nav-group">
                     <p class="nav-group-label">Acompanhar</p>
-                    <button class="nav-item" data-section="bills">Contas do mes</button>
+                    <button class="nav-item" data-section="bills">Contas do periodo</button>
                     <button class="nav-item" data-section="movements">Extratos</button>
                     <button class="nav-item" data-section="reconciliation">Conciliacao</button>
                 </div>
@@ -96,13 +96,23 @@ $csrf = csrf_token();
                 <div>
                     <p class="eyebrow" id="pageKicker">Visao geral</p>
                     <h1 id="pageTitle">Seu dinheiro em ordem</h1>
-                    <p class="topbar-description" id="pageDescription">Veja o que entrou, saiu e precisa da sua atencao no mes selecionado.</p>
+                    <p class="topbar-description" id="pageDescription">Veja o que entrou, saiu e precisa da sua atencao no periodo selecionado.</p>
                 </div>
                 <div class="top-actions">
-                    <label class="month-control">
-                        <span>Mes de referencia</span>
-                        <input id="monthFilter" type="month" value="<?= date('Y-m') ?>">
-                    </label>
+                    <div class="period-control" aria-label="Periodo de analise">
+                        <label>
+                            <span>Periodo</span>
+                            <select id="periodPreset">
+                                <option value="month">Este mes</option>
+                                <option value="30">Ultimos 30 dias</option>
+                                <option value="90">Ultimos 90 dias</option>
+                                <option value="365">Ultimos 365 dias</option>
+                                <option value="custom">Personalizado</option>
+                            </select>
+                        </label>
+                        <label><span>De</span><input id="periodDateFrom" type="date" value="<?= date('Y-m-01') ?>"></label>
+                        <label><span>Ate</span><input id="periodDateTo" type="date" value="<?= date('Y-m-t') ?>"></label>
+                    </div>
                     <div class="top-actions-row">
                         <button class="ghost-btn" id="refreshBtn">Atualizar</button>
                         <button class="primary-btn" data-open-modal="transactionModal">Novo lancamento</button>
@@ -147,7 +157,7 @@ $csrf = csrf_token();
                     <section class="panel chart-panel">
                         <div class="panel-head">
                             <h2>Gastos por categoria</h2>
-                            <span>Mes selecionado</span>
+                            <span>Periodo selecionado</span>
                         </div>
                         <canvas id="categoryChart"></canvas>
                     </section>
@@ -256,15 +266,15 @@ $csrf = csrf_token();
             <section class="section" id="bills">
                 <div class="section-intro">
                     <div>
-                        <p class="eyebrow">Contas do mes</p>
+                        <p class="eyebrow">Contas do periodo</p>
                         <h2>Pagas e pendentes</h2>
-                        <p>Esta e a tela principal para controlar boletos, pix, mensalidades e contas da planilha no mes selecionado no topo.</p>
+                        <p>Esta e a tela principal para controlar boletos, pix, mensalidades e contas da planilha no periodo selecionado no topo.</p>
                     </div>
                     <button class="primary-btn" data-open-modal="transactionModal">Nova conta</button>
                 </div>
 
                 <div class="kpi-grid compact-kpis">
-                    <article class="metric-card"><span>Total do mes</span><strong id="billsMonthTotal">R$ 0,00</strong></article>
+                    <article class="metric-card"><span>Total do periodo</span><strong id="billsMonthTotal">R$ 0,00</strong></article>
                     <article class="metric-card success"><span>Pagas</span><strong id="billsPaidTotal">R$ 0,00</strong></article>
                     <article class="metric-card warning"><span>Pendentes</span><strong id="billsPendingTotal">R$ 0,00</strong></article>
                     <article class="metric-card"><span>Quantidade</span><strong id="billsCount">0</strong></article>
@@ -275,7 +285,7 @@ $csrf = csrf_token();
                     <div class="filter-heading">
                         <div>
                             <strong>Encontre uma conta</strong>
-                            <span>Filtre sem sair do mes selecionado</span>
+                            <span>Filtre sem sair do periodo selecionado</span>
                         </div>
                         <button type="button" class="link-btn" id="clearBillsFilters">Limpar filtros</button>
                     </div>
@@ -320,8 +330,6 @@ $csrf = csrf_token();
                 </div>
 
                 <div class="panel movement-filters">
-                    <input id="movementDateFrom" type="date" value="<?= date('Y-m-01') ?>">
-                    <input id="movementDateTo" type="date" value="<?= date('Y-m-t') ?>">
                     <select id="movementBankFilter"><option value="">Todos bancos</option></select>
                     <select id="movementCategoryParentFilter" aria-label="Categoria principal"><option value="">Todas as categorias</option></select>
                     <select id="movementCategoryFilter" aria-label="Subcategoria" hidden disabled><option value="">Todas as subcategorias</option></select>
@@ -357,10 +365,17 @@ $csrf = csrf_token();
                     </section>
                     <section class="panel wide-panel">
                         <div class="panel-head wrap">
-                            <h2>Transacoes</h2>
-                            <span id="movementRowsCount">0 linhas</span>
+                            <div>
+                                <h2 id="movementViewTitle">Transacoes semelhantes</h2>
+                                <span id="movementRowsCount">0 linhas</span>
+                            </div>
+                            <div class="segmented-control" role="group" aria-label="Modo de visualizacao das transacoes">
+                                <button type="button" class="is-active" data-movement-view="grouped">Agrupadas</button>
+                                <button type="button" data-movement-view="list">Lista</button>
+                            </div>
                         </div>
-                        <div class="table-wrap">
+                        <div id="similarTransactionsView" class="similar-groups"></div>
+                        <div class="table-wrap" id="movementListView" hidden>
                             <table>
                                 <thead>
                                     <tr>
@@ -440,7 +455,7 @@ $csrf = csrf_token();
                     <section class="panel">
                         <div class="panel-head">
                             <h2>Origem dos lancamentos</h2>
-                            <span>Mes selecionado</span>
+                            <span>Periodo selecionado</span>
                         </div>
                         <div id="sourceBreakdown" class="source-list"></div>
                     </section>
