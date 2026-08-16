@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/banking/PluggyClient.php';
 require_once __DIR__ . '/bank-core.php';
+require_once __DIR__ . '/recurring-match.php';
 
 function bank_sync_config(): array
 {
@@ -134,6 +135,7 @@ function sync_pluggy_banks(string $trigger = 'manual'): array
         $message = $totals['accounts'] === 0 ? 'Nenhuma conta bancaria encontrada no Item do Meu Pluggy.' : null;
         $pdo->prepare("UPDATE bank_sync_runs SET status='success', accounts_count=?, fetched_rows=?, inserted_rows=?, updated_rows=?, matched_rows=?, message=?, finished_at=NOW() WHERE id=?")
             ->execute([$totals['accounts'], $totals['fetched'], $totals['inserted'], $totals['updated'], $totals['matched'], $message, $runId]);
+        $totals['recurring_paid'] = sync_recurring_payments()['matched'];
         audit('sync', 'bank_provider', null, ['provider' => 'pluggy'] + $totals);
     } catch (Throwable $e) {
         $message = substr($e->getMessage(), 0, 500);

@@ -90,8 +90,27 @@ CREATE TABLE IF NOT EXISTS recurring_rule_payments (
   rule_id INT UNSIGNED NOT NULL,
   month CHAR(7) NOT NULL,
   paid_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  status VARCHAR(20) NOT NULL DEFAULT 'paid',
+  match_method VARCHAR(20) NOT NULL DEFAULT 'manual',
+  source_bank_transaction_id BIGINT UNSIGNED NULL,
   PRIMARY KEY (rule_id, month),
+  INDEX idx_recurring_payment_source (source_bank_transaction_id),
   CONSTRAINT fk_recurring_payment_rule FOREIGN KEY (rule_id) REFERENCES recurring_rules(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS recurring_rule_matchers (
+  rule_id INT UNSIGNED NOT NULL,
+  match_key VARCHAR(255) NOT NULL,
+  account_id INT UNSIGNED NULL,
+  bank_name VARCHAR(80) NULL,
+  source_bank_transaction_id BIGINT UNSIGNED NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (rule_id),
+  INDEX idx_recurring_match_key (match_key),
+  INDEX idx_recurring_match_account (account_id),
+  CONSTRAINT fk_recurring_match_rule FOREIGN KEY (rule_id) REFERENCES recurring_rules(id) ON DELETE CASCADE,
+  CONSTRAINT fk_recurring_match_account FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS audit_log (

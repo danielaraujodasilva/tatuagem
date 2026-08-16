@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260816-26" defer></script>
+    <script src="assets/app-bills-total.js?v=20260816-27" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -668,6 +668,7 @@ $csrf = csrf_token();
     <dialog id="recurringModal" class="modal">
         <form id="recurringForm" method="dialog" class="form-grid compact">
             <input type="hidden" name="id">
+            <input type="hidden" name="source_bank_transaction_id">
             <h2 id="recurringFormTitle">Nova conta fixa</h2>
             <label>Descricao<input name="description" required></label>
             <label>Valor<input name="amount" inputmode="decimal" required></label>

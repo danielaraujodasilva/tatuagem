@@ -76,14 +76,17 @@ function bootstrap(array $user): never
     ensure_share_schema();
     ensure_bank_sync_schema();
     ensure_recurring_payment_schema();
+    sync_recurring_payments();
     ensure_default_users();
     $recurringMonth = date('Y-m');
     $recurringStmt = db()->prepare("SELECT r.*, COALESCE(NULLIF(CONCAT_WS(' / ', p.name, c.name), ''), 'Sem categoria') category_name,
-        c.parent_id, p.name parent_name, CASE WHEN rp.rule_id IS NULL THEN 0 ELSE 1 END paid_this_month, rp.paid_at
+        c.parent_id, p.name parent_name, CASE WHEN rp.status = 'paid' THEN 1 ELSE 0 END paid_this_month,
+        rp.paid_at, rp.match_method, rp.source_bank_transaction_id, CASE WHEN rm.rule_id IS NULL THEN 0 ELSE 1 END has_auto_match
         FROM recurring_rules r
         LEFT JOIN categories c ON c.id = r.category_id
         LEFT JOIN categories p ON p.id = c.parent_id
         LEFT JOIN recurring_rule_payments rp ON rp.rule_id = r.id AND rp.month = ?
+        LEFT JOIN recurring_rule_matchers rm ON rm.rule_id = r.id
         ORDER BY r.next_due_date");
     $recurringStmt->execute([$recurringMonth]);
     json_response([
@@ -589,6 +592,7 @@ function save_recurring(): never
 {
     $input = json_input();
     $id = (int)($input['id'] ?? 0);
+    $sourceBankTransactionId = (int)($input['source_bank_transaction_id'] ?? 0);
     $frequency = trim((string)($input['frequency'] ?? 'monthly'));
     $data = [
         trim((string)($input['description'] ?? '')),
@@ -624,7 +628,12 @@ function save_recurring(): never
             'is_active' => $data[5],
         ]);
     }
-    json_response(['ok' => true, 'id' => $id]);
+    $matchResult = ['matched' => 0];
+    if ($sourceBankTransactionId > 0) {
+        save_recurring_matcher($id, $sourceBankTransactionId);
+        $matchResult = sync_recurring_payments($id);
+    }
+    json_response(['ok' => true, 'id' => $id, 'automaticPayments' => $matchResult['matched']]);
 }
 
 function delete_recurring(): never
@@ -1218,17 +1227,6 @@ function build_overview(): array
     ];
 }
 
-function ensure_recurring_payment_schema(): void
-{
-    db()->exec("CREATE TABLE IF NOT EXISTS recurring_rule_payments (
-        rule_id INT UNSIGNED NOT NULL,
-        month CHAR(7) NOT NULL,
-        paid_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (rule_id, month),
-        CONSTRAINT fk_recurring_payment_rule FOREIGN KEY (rule_id) REFERENCES recurring_rules(id) ON DELETE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-}
-
 function toggle_recurring_paid(): never
 {
     ensure_recurring_payment_schema();
@@ -1244,12 +1242,11 @@ function toggle_recurring_paid(): never
     if (!$exists->fetchColumn()) {
         json_response(['ok' => false, 'message' => 'Conta fixa nao encontrada.'], 404);
     }
-    if ($paid) {
-        db()->prepare('INSERT INTO recurring_rule_payments (rule_id, month, paid_at) VALUES (?, ?, NOW())
-            ON DUPLICATE KEY UPDATE paid_at = VALUES(paid_at)')->execute([$id, $month]);
-    } else {
-        db()->prepare('DELETE FROM recurring_rule_payments WHERE rule_id = ? AND month = ?')->execute([$id, $month]);
-    }
+    $status = $paid ? 'paid' : 'ignored';
+    db()->prepare("INSERT INTO recurring_rule_payments (rule_id, month, paid_at, status, match_method, source_bank_transaction_id)
+        VALUES (?, ?, NOW(), ?, 'manual', NULL)
+        ON DUPLICATE KEY UPDATE paid_at=VALUES(paid_at), status=VALUES(status), match_method='manual', source_bank_transaction_id=NULL")
+        ->execute([$id, $month, $status]);
     audit('toggle_paid', 'recurring_rule', $id, ['month' => $month, 'paid' => $paid]);
     json_response(['ok' => true]);
 }

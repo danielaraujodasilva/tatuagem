@@ -25,7 +25,6 @@ const state = {
   movementSearchSuggestions: [],
   movementSuggestionScope: '',
   bankRequestId: 0,
-  pendingRecurringPaymentMonth: '',
 };
 
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -669,15 +668,7 @@ function bindForms() {
           submitButton.disabled = true;
           submitButton.textContent = 'Salvando...';
         }
-        const payload = await api(action, { method: 'POST', body: formPayload(form) });
-        if (id === 'recurringForm' && state.pendingRecurringPaymentMonth && payload.id) {
-          form.elements.id.value = payload.id;
-          await api('toggle_recurring_paid', {
-            method: 'POST',
-            body: { id: Number(payload.id), month: state.pendingRecurringPaymentMonth, paid: 1 },
-          });
-          state.pendingRecurringPaymentMonth = '';
-        }
+        await api(action, { method: 'POST', body: formPayload(form) });
         form.reset();
         form.closest('dialog')?.close();
         await reloadAllData();
@@ -2143,7 +2134,7 @@ function prepareRecurringFromGroup(group) {
   form.elements.frequency.value = 'monthly';
   form.elements.next_due_date.value = nextMonthlyDate(latest.transaction_date);
   form.elements.is_active.checked = true;
-  state.pendingRecurringPaymentMonth = String(latest.transaction_date || '').slice(0, 7);
+  form.elements.source_bank_transaction_id.value = latest.id;
   setText('recurringFormTitle', 'Confirmar conta fixa');
   document.querySelector('#recurringModal')?.showModal();
 }
@@ -2835,7 +2826,7 @@ function renderRecurring() {
       </div>
       <div class="row-actions">
         <span class="amount">${asMoney(rule.amount)}</span>
-        <span class="status ${paid ? 'paid' : 'pending'}">${paid ? 'Paga' : 'Pendente'}</span>
+        <span class="status ${paid ? 'paid' : 'pending'}">${paid ? (rule.match_method === 'automatic' ? 'Paga automaticamente' : 'Paga') : 'Pendente'}</span>
         <button class="small-btn" data-recurring-paid="${rule.id}" data-paid="${paid ? '0' : '1'}">${paid ? 'Desmarcar' : 'Marcar paga'}</button>
         <button class="icon-btn" title="Editar recorrencia" data-recurring-edit="${rule.id}">✎</button>
         <button class="icon-btn" title="Excluir recorrencia" data-recurring-delete="${rule.id}">×</button>
@@ -3003,9 +2994,9 @@ function editRecurring(id) {
 function prepareRecurringForm(rule = null) {
   const form = document.querySelector('#recurringForm');
   if (!form) return;
-  state.pendingRecurringPaymentMonth = '';
   form.reset();
   form.elements.id.value = rule?.id || '';
+  form.elements.source_bank_transaction_id.value = '';
   form.elements.description.value = rule?.description || '';
   form.elements.amount.value = rule?.amount ?? '';
   form.elements.category_id.value = rule?.category_id || '';
