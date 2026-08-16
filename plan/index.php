@@ -123,7 +123,7 @@ $csrf = csrf_token();
             </header>
 
             <section class="section is-visible" id="dashboard">
-                <details class="money-summary" open>
+                <details class="money-summary">
                     <summary class="money-balance">
                         <span>Saldo do periodo</span>
                         <strong id="dashboardBalance">R$ 0,00</strong>
