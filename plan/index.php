@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260815-21">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260815-22">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260815-21" defer></script>
+    <script src="assets/app-bills-total.js?v=20260815-22" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -128,13 +128,29 @@ $csrf = csrf_token();
                         <span>Saldo do periodo</span>
                         <strong id="dashboardBalance">R$ 0,00</strong>
                     </div>
-                    <div class="money-flow positive">
-                        <span>Entrou</span>
-                        <strong id="dashboardIncome">R$ 0,00</strong>
-                    </div>
-                    <div class="money-flow negative">
-                        <span>Saiu</span>
-                        <strong id="dashboardExpenses">R$ 0,00</strong>
+                    <div class="money-flow-grid">
+                        <section class="money-flow positive">
+                            <div class="money-flow-head">
+                                <span>Entrou</span>
+                                <strong id="dashboardIncome">R$ 0,00</strong>
+                            </div>
+                            <div class="money-flow-breakdown-head">
+                                <div><p class="eyebrow">Como ganhou</p><h2>Origem das entradas</h2></div>
+                                <button class="link-btn" data-nav-target="categoryAnalysis">Detalhes</button>
+                            </div>
+                            <div id="dashboardIncomeBreakdown" class="money-breakdown-list"></div>
+                        </section>
+                        <section class="money-flow negative">
+                            <div class="money-flow-head">
+                                <span>Saiu</span>
+                                <strong id="dashboardExpenses">R$ 0,00</strong>
+                            </div>
+                            <div class="money-flow-breakdown-head">
+                                <div><p class="eyebrow">Como gastou</p><h2>Destino das saidas</h2></div>
+                                <button class="link-btn" data-nav-target="categoryAnalysis">Detalhes</button>
+                            </div>
+                            <div id="dashboardExpenseBreakdown" class="money-breakdown-list"></div>
+                        </section>
                     </div>
                 </section>
 
@@ -156,22 +172,6 @@ $csrf = csrf_token();
                     </div>
                 </section>
 
-                <div class="cashflow-breakdown">
-                    <section class="panel">
-                        <div class="panel-head">
-                            <div><p class="eyebrow">Como ganhou</p><h2>Origem das entradas</h2></div>
-                            <button class="link-btn" data-nav-target="categoryAnalysis">Detalhes</button>
-                        </div>
-                        <div id="dashboardIncomeBreakdown" class="money-breakdown-list"></div>
-                    </section>
-                    <section class="panel">
-                        <div class="panel-head">
-                            <div><p class="eyebrow">Como gastou</p><h2>Destino das saidas</h2></div>
-                            <button class="link-btn" data-nav-target="categoryAnalysis">Detalhes</button>
-                        </div>
-                        <div id="dashboardExpenseBreakdown" class="money-breakdown-list"></div>
-                    </section>
-                </div>
             </section>
 
             <section class="section" id="categoryAnalysis">
