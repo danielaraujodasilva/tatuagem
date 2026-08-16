@@ -281,17 +281,25 @@ function upsert_pluggy_transaction(int $importId, int $accountId, string $source
         return ['action' => 'updated', 'matched' => 0];
     }
 
-    $sourceHash = hash('sha256', implode('|', [
+    $contentHash = hash('sha256', implode('|', [
         $row['bank_name'], $row['transaction_date'], $row['description'], $row['document_number'], $row['direction'],
         number_format($row['amount'], 2, '.', ''), $row['balance'] === null ? '' : (string)$row['balance'],
     ]));
-    $existing = $pdo->prepare('SELECT id FROM bank_transactions WHERE source_hash=? LIMIT 1');
-    $existing->execute([$sourceHash]);
+    $existing = $pdo->prepare("SELECT bt.id
+        FROM bank_transactions bt
+        LEFT JOIN bank_provider_transactions bpt
+          ON bpt.provider='pluggy' AND bpt.bank_transaction_id=bt.id
+        WHERE bt.source_hash=? AND bpt.id IS NULL
+        ORDER BY bt.id
+        LIMIT 1");
+    $existing->execute([$contentHash]);
     $bankTransactionId = (int)($existing->fetchColumn() ?: 0);
     $linkedExistingTransaction = $bankTransactionId > 0;
     $matchedId = null;
 
     if (!$bankTransactionId) {
+        // IDs remotos distinguem movimentos bancarios com conteudo identico.
+        $sourceHash = hash('sha256', 'pluggy|' . $row['external_id']);
         $matchedId = auto_match_transaction($row['transaction_date'], $row['amount'], $row['direction'], $row['description'], $accountId);
         $insert = $pdo->prepare('INSERT INTO bank_transactions
             (import_id, account_id, bank_name, source_file, source_hash, transaction_date, description, movement_type, document_number, direction, amount, balance, category_id, matched_transaction_id, raw_json)
