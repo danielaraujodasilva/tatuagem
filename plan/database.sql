@@ -99,6 +99,7 @@ CREATE TABLE IF NOT EXISTS recurring_rule_payments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS recurring_rule_matchers (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   rule_id INT UNSIGNED NOT NULL,
   match_key VARCHAR(255) NOT NULL,
   account_id INT UNSIGNED NULL,
@@ -106,7 +107,8 @@ CREATE TABLE IF NOT EXISTS recurring_rule_matchers (
   source_bank_transaction_id BIGINT UNSIGNED NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (rule_id),
+  UNIQUE KEY uniq_recurring_match (rule_id, match_key, account_id),
+  INDEX idx_recurring_match_rule (rule_id),
   INDEX idx_recurring_match_key (match_key),
   INDEX idx_recurring_match_account (account_id),
   CONSTRAINT fk_recurring_match_rule FOREIGN KEY (rule_id) REFERENCES recurring_rules(id) ON DELETE CASCADE,

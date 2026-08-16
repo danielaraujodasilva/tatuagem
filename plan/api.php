@@ -48,6 +48,7 @@ try {
         'save_account' => save_account(),
         'delete_account' => delete_account(),
         'save_recurring' => save_recurring(),
+        'merge_recurring' => merge_recurring(),
         'delete_recurring' => delete_recurring(),
         'toggle_recurring_paid' => toggle_recurring_paid(),
         'bank_transactions' => bank_transactions(),
@@ -81,12 +82,12 @@ function bootstrap(array $user): never
     $recurringMonth = date('Y-m');
     $recurringStmt = db()->prepare("SELECT r.*, COALESCE(NULLIF(CONCAT_WS(' / ', p.name, c.name), ''), 'Sem categoria') category_name,
         c.parent_id, p.name parent_name, CASE WHEN rp.status = 'paid' THEN 1 ELSE 0 END paid_this_month,
-        rp.paid_at, rp.match_method, rp.source_bank_transaction_id, CASE WHEN rm.rule_id IS NULL THEN 0 ELSE 1 END has_auto_match
+        rp.paid_at, rp.match_method, rp.source_bank_transaction_id,
+        CASE WHEN EXISTS (SELECT 1 FROM recurring_rule_matchers rm WHERE rm.rule_id = r.id) THEN 1 ELSE 0 END has_auto_match
         FROM recurring_rules r
         LEFT JOIN categories c ON c.id = r.category_id
         LEFT JOIN categories p ON p.id = c.parent_id
         LEFT JOIN recurring_rule_payments rp ON rp.rule_id = r.id AND rp.month = ?
-        LEFT JOIN recurring_rule_matchers rm ON rm.rule_id = r.id
         ORDER BY r.next_due_date");
     $recurringStmt->execute([$recurringMonth]);
     json_response([
@@ -99,6 +100,7 @@ function bootstrap(array $user): never
             FROM budgets b JOIN categories c ON c.id = b.category_id LEFT JOIN categories p ON p.id = c.parent_id ORDER BY b.month DESC, category_name")->fetchAll(),
         'goals' => db()->query('SELECT * FROM goals ORDER BY target_date IS NULL, target_date, name')->fetchAll(),
         'recurring' => $recurringStmt->fetchAll(),
+        'recurringMatchers' => db()->query('SELECT rule_id, match_key, account_id, bank_name FROM recurring_rule_matchers ORDER BY rule_id, id')->fetchAll(),
         'recurringMonth' => $recurringMonth,
         'bankImports' => db()->query('SELECT * FROM bank_imports ORDER BY imported_at DESC LIMIT 30')->fetchAll(),
         'bankOverview' => build_bank_overview(),
@@ -592,7 +594,19 @@ function save_recurring(): never
 {
     $input = json_input();
     $id = (int)($input['id'] ?? 0);
+    $targetRecurringId = (int)($input['target_recurring_id'] ?? 0);
     $sourceBankTransactionId = (int)($input['source_bank_transaction_id'] ?? 0);
+    if ($targetRecurringId > 0 && $sourceBankTransactionId > 0) {
+        $exists = db()->prepare('SELECT id FROM recurring_rules WHERE id = ? LIMIT 1');
+        $exists->execute([$targetRecurringId]);
+        if (!$exists->fetchColumn()) {
+            json_response(['ok' => false, 'message' => 'Conta fixa de destino nao encontrada.'], 404);
+        }
+        save_recurring_matcher($targetRecurringId, $sourceBankTransactionId);
+        $matchResult = sync_recurring_payments($targetRecurringId);
+        audit('link_bank_pattern', 'recurring_rule', $targetRecurringId, ['bank_transaction_id' => $sourceBankTransactionId]);
+        json_response(['ok' => true, 'id' => $targetRecurringId, 'automaticPayments' => $matchResult['matched']]);
+    }
     $frequency = trim((string)($input['frequency'] ?? 'monthly'));
     $data = [
         trim((string)($input['description'] ?? '')),
@@ -634,6 +648,47 @@ function save_recurring(): never
         $matchResult = sync_recurring_payments($id);
     }
     json_response(['ok' => true, 'id' => $id, 'automaticPayments' => $matchResult['matched']]);
+}
+
+function merge_recurring(): never
+{
+    ensure_recurring_payment_schema();
+    $input = json_input();
+    $sourceId = (int)($input['source_id'] ?? 0);
+    $targetId = (int)($input['target_id'] ?? 0);
+    if ($sourceId <= 0 || $targetId <= 0 || $sourceId === $targetId) {
+        json_response(['ok' => false, 'message' => 'Escolha duas contas fixas diferentes.'], 422);
+    }
+    $stmt = db()->prepare('SELECT id FROM recurring_rules WHERE id IN (?, ?)');
+    $stmt->execute([$sourceId, $targetId]);
+    if (count($stmt->fetchAll()) !== 2) {
+        json_response(['ok' => false, 'message' => 'Uma das contas fixas nao foi encontrada.'], 404);
+    }
+
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare("INSERT INTO recurring_rule_matchers (rule_id, match_key, account_id, bank_name, source_bank_transaction_id)
+            SELECT ?, match_key, account_id, bank_name, source_bank_transaction_id FROM recurring_rule_matchers WHERE rule_id = ?
+            ON DUPLICATE KEY UPDATE source_bank_transaction_id=VALUES(source_bank_transaction_id), bank_name=VALUES(bank_name)")
+            ->execute([$targetId, $sourceId]);
+        $pdo->prepare("INSERT INTO recurring_rule_payments (rule_id, month, paid_at, status, match_method, source_bank_transaction_id)
+            SELECT ?, month, paid_at, status, match_method, source_bank_transaction_id FROM recurring_rule_payments WHERE rule_id = ?
+            ON DUPLICATE KEY UPDATE
+                status=IF(status='paid' OR VALUES(status)='paid','paid',status),
+                paid_at=IF(VALUES(status)='paid',VALUES(paid_at),paid_at),
+                match_method=IF(VALUES(status)='paid',VALUES(match_method),match_method),
+                source_bank_transaction_id=IF(VALUES(status)='paid',VALUES(source_bank_transaction_id),source_bank_transaction_id)")
+            ->execute([$targetId, $sourceId]);
+        $pdo->prepare('DELETE FROM recurring_rules WHERE id = ?')->execute([$sourceId]);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+    sync_recurring_payments($targetId);
+    audit('merge', 'recurring_rule', $targetId, ['source_id' => $sourceId]);
+    json_response(['ok' => true, 'id' => $targetId]);
 }
 
 function delete_recurring(): never

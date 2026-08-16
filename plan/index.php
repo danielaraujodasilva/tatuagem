@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260816-27" defer></script>
+    <script src="assets/app-bills-total.js?v=20260816-28" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -593,7 +593,15 @@ $csrf = csrf_token();
                             <h2>Contas fixas do mes</h2>
                             <span id="recurringMonthLabel"><?= date('m/Y') ?></span>
                         </div>
-                        <button class="small-btn" data-open-modal="recurringModal">Nova regra</button>
+                        <div class="row-actions">
+                            <select id="recurringLocationFilter" aria-label="Filtrar contas fixas por local">
+                                <option value="">Todos os locais</option>
+                                <option value="apartment">Apartamento</option>
+                                <option value="studio">Estudio</option>
+                                <option value="other">Outras</option>
+                            </select>
+                            <button class="small-btn" data-open-modal="recurringModal">Nova regra</button>
+                        </div>
                     </div>
                     <div id="recurringList" class="stack-list"></div>
                 </div>
@@ -670,6 +678,7 @@ $csrf = csrf_token();
             <input type="hidden" name="id">
             <input type="hidden" name="source_bank_transaction_id">
             <h2 id="recurringFormTitle">Nova conta fixa</h2>
+            <label id="recurringTargetField" class="wide" hidden>Vincular com<select name="target_recurring_id"></select></label>
             <label>Descricao<input name="description" required></label>
             <label>Valor<input name="amount" inputmode="decimal" required></label>
             <label>Categoria<select name="category_id" data-categories></select></label>
@@ -677,6 +686,16 @@ $csrf = csrf_token();
             <label>Proximo vencimento<input name="next_due_date" type="date"></label>
             <label class="check-row"><input name="is_active" type="checkbox" checked> Ativa</label>
             <div class="modal-actions"><button type="button" class="ghost-btn" data-close>Cancelar</button><button class="primary-btn">Salvar</button></div>
+        </form>
+    </dialog>
+
+    <dialog id="mergeRecurringModal" class="modal">
+        <form id="mergeRecurringForm" method="dialog" class="form-grid compact">
+            <input type="hidden" name="source_id">
+            <h2>Mesclar contas fixas</h2>
+            <p id="mergeRecurringDescription" class="wide muted"></p>
+            <label class="wide">Manter como<select name="target_id" required></select></label>
+            <div class="modal-actions"><button type="button" class="ghost-btn" data-close>Cancelar</button><button class="primary-btn">Mesclar</button></div>
         </form>
     </dialog>
 

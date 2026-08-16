@@ -5,7 +5,9 @@ const state = {
   budgets: [],
   goals: [],
   recurring: [],
+  recurringMatchers: [],
   recurringMonth: '',
+  recurringLocationFilter: '',
   transactions: [],
   bankImports: [],
   bankTransactions: [],
@@ -106,6 +108,7 @@ async function loadBootstrap() {
     budgets: payload.budgets,
     goals: payload.goals,
     recurring: payload.recurring,
+    recurringMatchers: payload.recurringMatchers || [],
     recurringMonth: payload.recurringMonth || '',
     bankImports: payload.bankImports || [],
     bankOverview: payload.bankOverview || null,
@@ -370,6 +373,10 @@ async function copyShareLink() {
 
 function bindFilters() {
   syncPeriodControlVisibility();
+  document.querySelector('#recurringLocationFilter')?.addEventListener('change', event => {
+    state.recurringLocationFilter = event.currentTarget.value;
+    renderRecurring();
+  });
   document.querySelectorAll('[data-period-quick]').forEach(button => {
     button.addEventListener('click', async () => {
       const preset = document.querySelector('#periodPreset');
@@ -656,6 +663,7 @@ function bindForms() {
     goalForm: 'save_goal',
     accountForm: 'save_account',
     recurringForm: 'save_recurring',
+    mergeRecurringForm: 'merge_recurring',
   };
   Object.entries(forms).forEach(([id, action]) => {
     document.querySelector(`#${id}`)?.addEventListener('submit', async event => {
@@ -2084,7 +2092,7 @@ function renderSimilarTransactionGroups(rows) {
               <span>Categoria do grupo</span>
               ${similarGroupCategorySelect(group, index)}
             </label>
-            ${group.direction === 'debit' ? `<button type="button" class="small-btn" data-similar-recurring="${index}">${similarGroupHasRecurringRule(group) ? 'Ja e conta fixa' : 'Tornar conta fixa'}</button>` : ''}
+            ${group.direction === 'debit' ? `<button type="button" class="small-btn" data-similar-recurring="${index}">${similarGroupHasRecurringRule(group) ? 'Vincular a outra' : 'Tornar conta fixa'}</button>` : ''}
           </div>
         </summary>
         <div class="similar-group-rows">
@@ -2107,10 +2115,6 @@ function renderSimilarTransactionGroups(rows) {
   });
   target.querySelectorAll('[data-similar-recurring]').forEach(button => {
     const group = groups[Number(button.dataset.similarRecurring)];
-    if (similarGroupHasRecurringRule(group)) {
-      button.disabled = true;
-      return;
-    }
     button.addEventListener('click', () => prepareRecurringFromGroup(group));
   });
   return groups;
@@ -2119,7 +2123,7 @@ function renderSimilarTransactionGroups(rows) {
 function similarGroupHasRecurringRule(group) {
   if (!group) return false;
   const key = transactionSimilarityKey(group.label);
-  return state.recurring.some(rule => Number(rule.is_active) === 1 && transactionSimilarityKey(rule.description) === key);
+  return state.recurringMatchers.some(matcher => matcher.match_key === key);
 }
 
 function prepareRecurringFromGroup(group) {
@@ -2135,6 +2139,11 @@ function prepareRecurringFromGroup(group) {
   form.elements.next_due_date.value = nextMonthlyDate(latest.transaction_date);
   form.elements.is_active.checked = true;
   form.elements.source_bank_transaction_id.value = latest.id;
+  const targetField = document.querySelector('#recurringTargetField');
+  form.elements.target_recurring_id.innerHTML = '<option value="">Criar nova conta fixa</option>' + state.recurring
+    .filter(rule => Number(rule.is_active) === 1)
+    .map(rule => `<option value="${rule.id}">${escapeHtml(rule.description)}</option>`).join('');
+  targetField.hidden = false;
   setText('recurringFormTitle', 'Confirmar conta fixa');
   document.querySelector('#recurringModal')?.showModal();
 }
@@ -2816,23 +2825,26 @@ function renderRecurring() {
   const target = document.querySelector('#recurringList');
   if (!target) return;
   setText('recurringMonthLabel', formatReferenceMonth(state.recurringMonth));
-  target.innerHTML = state.recurring.map(rule => {
+  const rules = state.recurring.filter(rule => !state.recurringLocationFilter || recurringLocation(rule) === state.recurringLocationFilter);
+  target.innerHTML = rules.length ? rules.map(rule => {
     const paid = Number(rule.paid_this_month) === 1;
+    const matcherCount = state.recurringMatchers.filter(matcher => Number(matcher.rule_id) === Number(rule.id)).length;
     return `
     <div class="list-row recurring-payment-row">
       <div>
         <strong>${escapeHtml(rule.description)}</strong>
-        <small>${escapeHtml(frequencyLabel(rule.frequency))} · proximo ${formatDate(rule.next_due_date)} · ${rule.is_active == 1 ? 'ativa' : 'inativa'}${rule.category_name ? ' · ' + escapeHtml(rule.category_name) : ''}</small>
+        <small>${escapeHtml(frequencyLabel(rule.frequency))} · proximo ${formatDate(rule.next_due_date)} · ${rule.is_active == 1 ? 'ativa' : 'inativa'}${rule.category_name ? ' · ' + escapeHtml(rule.category_name) : ''}${matcherCount ? ` · ${matcherCount} ${matcherCount === 1 ? 'forma reconhecida' : 'formas reconhecidas'}` : ''}</small>
       </div>
       <div class="row-actions">
         <span class="amount">${asMoney(rule.amount)}</span>
         <span class="status ${paid ? 'paid' : 'pending'}">${paid ? (rule.match_method === 'automatic' ? 'Paga automaticamente' : 'Paga') : 'Pendente'}</span>
         <button class="small-btn" data-recurring-paid="${rule.id}" data-paid="${paid ? '0' : '1'}">${paid ? 'Desmarcar' : 'Marcar paga'}</button>
+        <button class="small-btn" data-recurring-merge="${rule.id}">Mesclar</button>
         <button class="icon-btn" title="Editar recorrencia" data-recurring-edit="${rule.id}">✎</button>
         <button class="icon-btn" title="Excluir recorrencia" data-recurring-delete="${rule.id}">×</button>
       </div>
     </div>
-  `; }).join('');
+  `; }).join('') : '<p class="muted">Nenhuma conta fixa neste local.</p>';
 
   target.querySelectorAll('[data-recurring-paid]').forEach(button => {
     button.addEventListener('click', async () => {
@@ -2853,9 +2865,19 @@ function renderRecurring() {
   target.querySelectorAll('[data-recurring-edit]').forEach(button => {
     button.addEventListener('click', () => editRecurring(Number(button.dataset.recurringEdit)));
   });
+  target.querySelectorAll('[data-recurring-merge]').forEach(button => {
+    button.addEventListener('click', () => prepareRecurringMerge(Number(button.dataset.recurringMerge)));
+  });
   target.querySelectorAll('[data-recurring-delete]').forEach(button => {
     button.addEventListener('click', () => deleteRecurring(Number(button.dataset.recurringDelete)));
   });
+}
+
+function recurringLocation(rule) {
+  const category = norm(rule.category_name || '');
+  if (category === 'moradia' || category.startsWith('moradia /')) return 'apartment';
+  if (category === 'estudio' || category.startsWith('estudio /')) return 'studio';
+  return 'other';
 }
 
 function editTransaction(id) {
@@ -2997,6 +3019,8 @@ function prepareRecurringForm(rule = null) {
   form.reset();
   form.elements.id.value = rule?.id || '';
   form.elements.source_bank_transaction_id.value = '';
+  form.elements.target_recurring_id.value = '';
+  document.querySelector('#recurringTargetField').hidden = true;
   form.elements.description.value = rule?.description || '';
   form.elements.amount.value = rule?.amount ?? '';
   form.elements.category_id.value = rule?.category_id || '';
@@ -3004,6 +3028,19 @@ function prepareRecurringForm(rule = null) {
   form.elements.next_due_date.value = rule?.next_due_date || '';
   form.elements.is_active.checked = rule ? rule.is_active == 1 : true;
   setText('recurringFormTitle', rule ? 'Editar conta fixa' : 'Nova conta fixa');
+}
+
+function prepareRecurringMerge(sourceId) {
+  const source = state.recurring.find(item => Number(item.id) === sourceId);
+  const form = document.querySelector('#mergeRecurringForm');
+  if (!source || !form) return;
+  form.reset();
+  form.elements.source_id.value = sourceId;
+  form.elements.target_id.innerHTML = '<option value="">Selecione</option>' + state.recurring
+    .filter(rule => Number(rule.id) !== sourceId)
+    .map(rule => `<option value="${rule.id}">${escapeHtml(rule.description)}</option>`).join('');
+  setText('mergeRecurringDescription', `Os pagamentos e reconhecimentos de "${source.description}" serao levados para a conta escolhida.`);
+  document.querySelector('#mergeRecurringModal')?.showModal();
 }
 
 async function deleteRecurring(id) {
