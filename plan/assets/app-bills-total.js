@@ -934,10 +934,8 @@ function renderDashboardBreakdown(targetId, rows) {
             <div class="money-breakdown-item-main">
               <strong>${escapeHtml(row.description || '(sem descricao)')}</strong>
               <small>${formatBankTransactionMoment(row)}</small>
-              ${group.label === 'Sem categoria' ? `
-                <button type="button" class="dashboard-category-trigger" data-dashboard-category>+ Categoria</button>
-                <div class="dashboard-category-picker" data-dashboard-category-picker hidden>${inlineCategorySelect(row, 'bank_transaction')}</div>
-              ` : ''}
+              <button type="button" class="dashboard-category-trigger" data-dashboard-category>${group.label === 'Sem categoria' ? '+ Categoria' : 'Editar categoria'}</button>
+              <div class="dashboard-category-picker" data-dashboard-category-picker hidden>${inlineCategorySelect(row, 'bank_transaction')}</div>
             </div>
             <span>${asMoney(row.amount)}</span>
           </div>
