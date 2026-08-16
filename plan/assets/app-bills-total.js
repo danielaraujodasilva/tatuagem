@@ -22,6 +22,7 @@ const state = {
   lastAnalysis: null,
   movementView: 'grouped',
   similarTransactionGroups: [],
+  pendingRecurringPaymentMonth: '',
 };
 
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -639,7 +640,15 @@ function bindForms() {
           submitButton.disabled = true;
           submitButton.textContent = 'Salvando...';
         }
-        await api(action, { method: 'POST', body: formPayload(form) });
+        const payload = await api(action, { method: 'POST', body: formPayload(form) });
+        if (id === 'recurringForm' && state.pendingRecurringPaymentMonth && payload.id) {
+          form.elements.id.value = payload.id;
+          await api('toggle_recurring_paid', {
+            method: 'POST',
+            body: { id: Number(payload.id), month: state.pendingRecurringPaymentMonth, paid: 1 },
+          });
+          state.pendingRecurringPaymentMonth = '';
+        }
         form.reset();
         form.closest('dialog')?.close();
         await reloadAllData();
@@ -2027,10 +2036,13 @@ function renderSimilarTransactionGroups(rows) {
             <small>${group.rows.length} transacoes · ${escapeHtml(dateLabel)} · ${escapeHtml(group.bank)}</small>
           </div>
           <span class="amount ${directionClass}">${sign} ${asMoney(group.total)}</span>
-          <label class="similar-category-control">
-            <span>Categoria do grupo</span>
-            ${similarGroupCategorySelect(group, index)}
-          </label>
+          <div class="similar-group-controls">
+            <label class="similar-category-control">
+              <span>Categoria do grupo</span>
+              ${similarGroupCategorySelect(group, index)}
+            </label>
+            ${group.direction === 'debit' ? `<button type="button" class="small-btn" data-similar-recurring="${index}">${similarGroupHasRecurringRule(group) ? 'Ja e conta fixa' : 'Tornar conta fixa'}</button>` : ''}
+          </div>
         </summary>
         <div class="similar-group-rows">
           ${group.rows.map(row => `
@@ -2047,10 +2059,51 @@ function renderSimilarTransactionGroups(rows) {
     select.addEventListener('click', event => event.stopPropagation());
     select.addEventListener('change', () => updateSimilarGroupCategory(select));
   });
-  target.querySelectorAll('.similar-category-control').forEach(control => {
+  target.querySelectorAll('.similar-group-controls').forEach(control => {
     control.addEventListener('click', event => event.stopPropagation());
   });
+  target.querySelectorAll('[data-similar-recurring]').forEach(button => {
+    const group = groups[Number(button.dataset.similarRecurring)];
+    if (similarGroupHasRecurringRule(group)) {
+      button.disabled = true;
+      return;
+    }
+    button.addEventListener('click', () => prepareRecurringFromGroup(group));
+  });
   return groups;
+}
+
+function similarGroupHasRecurringRule(group) {
+  if (!group) return false;
+  const key = transactionSimilarityKey(group.label);
+  return state.recurring.some(rule => Number(rule.is_active) === 1 && transactionSimilarityKey(rule.description) === key);
+}
+
+function prepareRecurringFromGroup(group) {
+  if (!group?.rows?.length) return;
+  const latest = [...group.rows].sort((a, b) => String(b.transaction_date).localeCompare(String(a.transaction_date)))[0];
+  prepareRecurringForm();
+  const form = document.querySelector('#recurringForm');
+  if (!form) return;
+  form.elements.description.value = group.label || latest.description || '';
+  form.elements.amount.value = Number(latest.amount || 0).toFixed(2).replace('.', ',');
+  form.elements.category_id.value = group.categoryIds.size === 1 ? ([...group.categoryIds][0] || '') : '';
+  form.elements.frequency.value = 'monthly';
+  form.elements.next_due_date.value = nextMonthlyDate(latest.transaction_date);
+  form.elements.is_active.checked = true;
+  state.pendingRecurringPaymentMonth = String(latest.transaction_date || '').slice(0, 7);
+  setText('recurringFormTitle', 'Confirmar conta fixa');
+  document.querySelector('#recurringModal')?.showModal();
+}
+
+function nextMonthlyDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
+  if (!match) return '';
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  return inputDate(new Date(year, month, Math.min(day, lastDay)));
 }
 
 function groupSimilarTransactions(rows) {
@@ -2898,6 +2951,7 @@ function editRecurring(id) {
 function prepareRecurringForm(rule = null) {
   const form = document.querySelector('#recurringForm');
   if (!form) return;
+  state.pendingRecurringPaymentMonth = '';
   form.reset();
   form.elements.id.value = rule?.id || '';
   form.elements.description.value = rule?.description || '';
