@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260816-32" defer></script>
+    <script src="assets/app-bills-total.js?v=20260816-33" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>

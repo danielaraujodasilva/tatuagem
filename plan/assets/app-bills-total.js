@@ -20,6 +20,7 @@ const state = {
   overview: null,
   charts: {},
   pendingShare: null,
+  pendingCategoryAssignment: null,
   handledShareToken: '',
   lastAnalysis: null,
   movementView: 'grouped',
@@ -293,7 +294,11 @@ function bindModals() {
     });
   });
   document.querySelectorAll('[data-close]').forEach(button => {
-    button.addEventListener('click', () => button.closest('dialog')?.close());
+    button.addEventListener('click', () => {
+      const dialog = button.closest('dialog');
+      if (dialog?.id === 'categoryModal') state.pendingCategoryAssignment = null;
+      dialog?.close();
+    });
   });
 }
 
@@ -676,7 +681,25 @@ function bindForms() {
           submitButton.disabled = true;
           submitButton.textContent = 'Salvando...';
         }
-        await api(action, { method: 'POST', body: formPayload(form) });
+        const payload = await api(action, { method: 'POST', body: formPayload(form) });
+        if (id === 'categoryForm' && state.pendingCategoryAssignment && payload.id) {
+          const pending = state.pendingCategoryAssignment;
+          const name = form.elements.name.value;
+          const parent = state.categories.find(category => Number(category.id) === Number(form.elements.parent_id.value || 0));
+          const label = parent ? `${parent.name} / ${name}` : name;
+          state.pendingCategoryAssignment = null;
+          form.reset();
+          form.closest('dialog')?.close();
+          const scope = await chooseCategoryScope(label);
+          if (scope !== 'cancel') {
+            await api(pending.kind === 'bank_transaction' ? 'update_bank_transaction_category' : 'update_transaction_category', {
+              method: 'POST',
+              body: { id: pending.id, category_id: payload.id, apply_similar: scope === 'similar' ? 1 : 0 },
+            });
+          }
+          await reloadAllData();
+          return;
+        }
         form.reset();
         form.closest('dialog')?.close();
         await reloadAllData();
@@ -808,7 +831,7 @@ function inlineCategorySelect(row, kind) {
   )).join('');
   return `<div class="category-picker" data-category-picker data-inline-kind="${kind}" data-inline-id="${row.id}">
     <select class="inline-category" data-inline-category aria-label="Alterar categoria principal">
-      <option value="">Sem categoria</option>${parentOptions}
+      <option value="">Sem categoria</option>${parentOptions}<option value="__new__">+ Nova categoria</option>
     </select>
     <select class="inline-category inline-subcategory" data-inline-subcategory aria-label="Alterar subcategoria" ${children.length ? '' : 'hidden disabled'}>
       <option value="">Escolha a subcategoria</option>${childOptions}
@@ -829,6 +852,10 @@ function handleInlineCategoryChange(select) {
   const picker = select.closest('[data-category-picker]');
   if (!picker) return;
   if (select.hasAttribute('data-inline-category')) {
+    if (select.value === '__new__') {
+      startInlineCategoryCreation(picker);
+      return;
+    }
     const parentId = Number(select.value || 0);
     const children = state.categories.filter(category => Number(category.parent_id) === parentId);
     syncInlineSubcategory(picker, parentId, '');
@@ -897,6 +924,15 @@ function renderOverview() {
   renderUpcoming();
   renderCharts();
   renderBankingSummary();
+}
+
+function startInlineCategoryCreation(picker) {
+  state.pendingCategoryAssignment = {
+    kind: picker.dataset.inlineKind,
+    id: Number(picker.dataset.inlineId),
+  };
+  prepareCategoryForm();
+  document.querySelector('#categoryModal')?.showModal();
 }
 
 function renderFixedCoverage() {
@@ -1943,6 +1979,9 @@ function renderMovementSearchSuggestions() {
       await loadBankTransactions();
       hideMovementSearchSuggestions();
     });
+  });
+  document.querySelector('#categoryModal')?.addEventListener('cancel', () => {
+    state.pendingCategoryAssignment = null;
   });
 }
 
