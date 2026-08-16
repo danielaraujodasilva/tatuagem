@@ -111,6 +111,38 @@ function recurring_category_key(string $description): string
     return trim(preg_replace('/\s+/', ' ', $key) ?? $key);
 }
 
+function is_santander_client_pix(string $description, ?string $bankName, ?string $direction): bool
+{
+    return $direction === 'credit'
+        && str_contains(normalize_match_text((string)$bankName), 'santander')
+        && str_starts_with(recurring_category_key($description), 'pix recebido');
+}
+
+function studio_clients_category_id(): int
+{
+    static $categoryId = null;
+    if ($categoryId !== null) {
+        return $categoryId;
+    }
+    $pdo = db();
+    $parent = $pdo->prepare('SELECT id FROM categories WHERE name = ? AND parent_id IS NULL LIMIT 1');
+    $parent->execute(['Estudio']);
+    $parentId = (int)($parent->fetchColumn() ?: 0);
+    if (!$parentId) {
+        $pdo->prepare('INSERT INTO categories (name, color, parent_id) VALUES (?, ?, NULL)')->execute(['Estudio', '#2563eb']);
+        $parentId = (int)$pdo->lastInsertId();
+    }
+
+    $child = $pdo->prepare('SELECT id FROM categories WHERE name = ? AND parent_id = ? LIMIT 1');
+    $child->execute(['Clientes', $parentId]);
+    $categoryId = (int)($child->fetchColumn() ?: 0);
+    if (!$categoryId) {
+        $pdo->prepare('INSERT INTO categories (name, color, parent_id) VALUES (?, ?, ?)')->execute(['Clientes', '#059669', $parentId]);
+        $categoryId = (int)$pdo->lastInsertId();
+    }
+    return $categoryId;
+}
+
 function learned_category_id(string $description, ?string $bankName, ?string $direction, ?int $accountId): ?int
 {
     static $cache = [];
@@ -154,6 +186,10 @@ function learned_category_id(string $description, ?string $bankName, ?string $di
 
 function guess_category_id(string $description, ?string $bankName = null, ?string $direction = null, ?int $accountId = null): ?int
 {
+    if (is_santander_client_pix($description, $bankName, $direction)) {
+        return studio_clients_category_id();
+    }
+
     $learnedCategory = learned_category_id($description, $bankName, $direction, $accountId);
     if ($learnedCategory !== null) {
         return $learnedCategory;

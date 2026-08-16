@@ -136,6 +136,7 @@ async function loadBankTransactions() {
   renderMovements();
   renderReconciliation();
   renderCategoryAnalysis();
+  renderOverview();
 }
 
 async function loadTransactions() {
@@ -226,12 +227,16 @@ function bindNavigation() {
 function navigateToSection(sectionId) {
   document.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.section === sectionId));
   document.querySelectorAll('.section').forEach(section => section.classList.toggle('is-visible', section.id === sectionId));
+  const activeItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
+  const moreMenu = activeItem?.closest('.nav-more');
+  const compactNav = window.matchMedia('(max-width: 980px)').matches;
+  document.querySelectorAll('.nav-more').forEach(menu => { menu.open = !compactNav && menu === moreMenu; });
   updatePageContext(sectionId);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 const pageContexts = {
-  dashboard: ['Visao geral', 'Seu dinheiro em ordem', 'Veja o que entrou, saiu e precisa da sua atencao no periodo selecionado.'],
+  dashboard: ['Resumo', 'Seu dinheiro', 'O essencial do periodo, sem complicacao.'],
   categoryAnalysis: ['Visao geral', 'Entenda seus padroes', 'Compare categorias, percentuais e linhas sem perder o contexto.'],
   bills: ['Acompanhar', 'Contas do periodo', 'Controle o que ja foi pago e o que ainda precisa de uma acao.'],
   movements: ['Acompanhar', 'Extratos reais', 'Explore o dinheiro que realmente entrou e saiu das suas contas.'],
@@ -344,8 +349,10 @@ async function copyShareLink() {
 }
 
 function bindFilters() {
+  syncPeriodControlVisibility();
   document.querySelector('#periodPreset')?.addEventListener('change', async event => {
     applyPeriodPreset(event.currentTarget.value);
+    syncPeriodControlVisibility();
     await reloadPeriodData();
   });
   ['periodDateFrom', 'periodDateTo'].forEach(id => {
@@ -353,6 +360,7 @@ function bindFilters() {
       normalizeSelectedPeriod(id);
       const preset = document.querySelector('#periodPreset');
       if (preset) preset.value = 'custom';
+      syncPeriodControlVisibility();
       await reloadPeriodData();
     });
   });
@@ -441,6 +449,11 @@ function applyPeriodPreset(preset) {
   if (toInput) toInput.value = inputDate(to);
 }
 
+function syncPeriodControlVisibility() {
+  const control = document.querySelector('.period-control');
+  control?.classList.toggle('is-custom', document.querySelector('#periodPreset')?.value === 'custom');
+}
+
 function normalizeSelectedPeriod(changedId) {
   const from = document.querySelector('#periodDateFrom');
   const to = document.querySelector('#periodDateTo');
@@ -505,6 +518,7 @@ async function focusSharedTarget(share, target) {
     if (from && date) from.value = date;
     if (to && date) to.value = date;
     if (preset) preset.value = 'custom';
+    syncPeriodControlVisibility();
     if (search) search.value = '';
     ['movementBankFilter', 'movementCategoryParentFilter', 'movementCategoryFilter', 'movementDirectionFilter', 'movementMatchFilter', 'bankFilter', 'bankSearchInput'].forEach(id => {
       const input = document.querySelector(`#${id}`);
@@ -524,6 +538,7 @@ async function focusSharedTarget(share, target) {
   if (from && date) from.value = date;
   if (to && date) to.value = date;
   if (preset) preset.value = 'custom';
+  syncPeriodControlVisibility();
   ['searchInput', 'statusFilter', 'typeFilter'].forEach(id => {
     const input = document.querySelector(`#${id}`);
     if (input) input.value = '';
@@ -807,16 +822,70 @@ async function updateInlineCategory(picker, categoryId) {
 }
 
 function renderOverview() {
-  const totals = state.overview?.totals || {};
-  setText('kpiIncome', asMoney(totals.income));
-  setText('kpiExpenses', asMoney(totals.expenses));
-  setText('kpiPaid', asMoney(totals.paid));
-  setText('kpiPending', asMoney(totals.pending));
-  setText('balanceBadge', `Saldo ${asMoney(totals.balance)}`);
+  const credits = state.bankTransactions.filter(row => row.direction === 'credit');
+  const debits = state.bankTransactions.filter(row => row.direction === 'debit');
+  const income = sumAmounts(credits);
+  const expenses = sumAmounts(debits);
+  const balance = income - expenses;
+  setText('dashboardIncome', asMoney(income));
+  setText('dashboardExpenses', asMoney(expenses));
+  setText('dashboardBalance', asMoney(balance));
+  document.querySelector('#dashboardBalance')?.classList.toggle('negative', balance < 0);
+  renderFixedCoverage(income);
+  renderDashboardBreakdown('dashboardIncomeBreakdown', credits);
+  renderDashboardBreakdown('dashboardExpenseBreakdown', debits);
   renderWorkflowStrip();
   renderUpcoming();
   renderCharts();
   renderBankingSummary();
+}
+
+function renderFixedCoverage(income) {
+  const monthlyFixed = state.recurring
+    .filter(rule => Number(rule.is_active) === 1)
+    .reduce((sum, rule) => {
+      const amount = Number(rule.amount || 0);
+      const multiplier = { daily: 365 / 12, weekly: 52 / 12, yearly: 1 / 12 }[rule.frequency] || 1;
+      return sum + (amount * multiplier);
+    }, 0);
+  const { dateFrom, dateTo } = selectedPeriod();
+  const from = new Date(`${dateFrom}T00:00:00`);
+  const to = new Date(`${dateTo}T00:00:00`);
+  const sameMonth = dateFrom.slice(0, 7) === dateTo.slice(0, 7)
+    && from.getDate() === 1
+    && to.getDate() === new Date(to.getFullYear(), to.getMonth() + 1, 0).getDate();
+  const days = Math.max(1, Math.round((to - from) / 86400000) + 1);
+  const periodFactor = sameMonth ? 1 : days / (365 / 12);
+  const target = monthlyFixed * periodFactor;
+  const remaining = Math.max(0, target - income);
+  const percent = target > 0 ? Math.min(100, (income / target) * 100) : 0;
+  setText('fixedCoveragePercent', `${Math.round(percent)}%`);
+  setText('fixedCoverageRemaining', remaining > 0 ? `Faltam ${asMoney(remaining)}` : 'Contas fixas cobertas');
+  setText('fixedCoverageMeta', target > 0
+    ? `${asMoney(income)} em entradas para ${asMoney(target)} de contas fixas no periodo.`
+    : 'Cadastre suas contas em Recorrencias para acompanhar esta meta.');
+  const bar = document.querySelector('#fixedCoverageBar');
+  if (bar) bar.style.width = `${percent}%`;
+}
+
+function renderDashboardBreakdown(targetId, rows) {
+  const target = document.querySelector(`#${targetId}`);
+  if (!target) return;
+  const groups = Object.values(rows.reduce((acc, row) => {
+    const label = row.category_name || 'Sem categoria';
+    acc[label] ||= { label, total: 0, count: 0 };
+    acc[label].total += Number(row.amount || 0);
+    acc[label].count += 1;
+    return acc;
+  }, {})).sort((a, b) => b.total - a.total).slice(0, 5);
+  const total = sumAmounts(rows);
+  target.innerHTML = groups.length ? groups.map(group => `
+    <div class="money-breakdown-row">
+      <div><strong>${escapeHtml(group.label)}</strong><small>${group.count} movimentacoes</small></div>
+      <span>${asMoney(group.total)}</span>
+      <div class="money-breakdown-track"><i style="width:${Math.max(3, (group.total / total) * 100)}%"></i></div>
+    </div>
+  `).join('') : '<p class="muted">Nenhuma movimentacao neste periodo.</p>';
 }
 
 function renderCategoryAnalysis() {

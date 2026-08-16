@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260815-19">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260815-20">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260815-19" defer></script>
+    <script src="assets/app-bills-total.js?v=20260815-20" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -61,41 +61,34 @@ $csrf = csrf_token();
             </a>
             <nav aria-label="Navegacao principal">
                 <div class="nav-group">
-                    <p class="nav-group-label">Visao geral</p>
-                    <button class="nav-item active" data-section="dashboard">Painel</button>
-                    <button class="nav-item" data-section="categoryAnalysis">Analise</button>
-                </div>
-                <div class="nav-group">
-                    <p class="nav-group-label">Acompanhar</p>
-                    <button class="nav-item" data-section="bills">Contas do periodo</button>
+                    <p class="nav-group-label">Principal</p>
+                    <button class="nav-item active" data-section="dashboard">Inicio</button>
                     <button class="nav-item" data-section="movements">Extratos</button>
-                    <button class="nav-item" data-section="reconciliation">Conciliacao</button>
+                    <button class="nav-item" data-section="bills">Contas</button>
                 </div>
-                <div class="nav-group">
-                    <p class="nav-group-label">Importar dados</p>
-                    <button class="nav-item" data-section="transactions">Importar planilha</button>
-                </div>
-                <div class="nav-group">
-                    <p class="nav-group-label">Planejar</p>
-                    <button class="nav-item" data-section="budgets">Orcamentos</button>
-                    <button class="nav-item" data-section="goals">Metas</button>
-                    <button class="nav-item" data-section="recurring">Recorrencias</button>
-                </div>
-                <div class="nav-group">
-                    <p class="nav-group-label">Configurar</p>
-                    <button class="nav-item" data-section="accounts">Contas/Caixas</button>
-                    <button class="nav-item" data-section="categories">Categorias</button>
-                </div>
+                <details class="nav-more">
+                    <summary>Mais opcoes</summary>
+                    <div class="nav-more-items">
+                        <button class="nav-item" data-section="categoryAnalysis">Analise detalhada</button>
+                        <button class="nav-item" data-section="reconciliation">Conciliacao</button>
+                        <button class="nav-item" data-section="transactions">Importar planilha</button>
+                        <button class="nav-item" data-section="budgets">Orcamentos</button>
+                        <button class="nav-item" data-section="goals">Metas</button>
+                        <button class="nav-item" data-section="recurring">Recorrencias</button>
+                        <button class="nav-item" data-section="accounts">Contas/Caixas</button>
+                        <button class="nav-item" data-section="categories">Categorias</button>
+                        <a class="nav-item logout-option" href="logout.php">Sair</a>
+                    </div>
+                </details>
             </nav>
-            <a class="logout" href="logout.php">Sair</a>
         </aside>
 
         <main class="workspace">
             <header class="topbar">
                 <div>
-                    <p class="eyebrow" id="pageKicker">Visao geral</p>
-                    <h1 id="pageTitle">Seu dinheiro em ordem</h1>
-                    <p class="topbar-description" id="pageDescription">Veja o que entrou, saiu e precisa da sua atencao no periodo selecionado.</p>
+                    <p class="eyebrow" id="pageKicker">Resumo</p>
+                    <h1 id="pageTitle">Seu dinheiro</h1>
+                    <p class="topbar-description" id="pageDescription">O essencial do periodo, sem complicacao.</p>
                 </div>
                 <div class="top-actions">
                     <div class="period-control" aria-label="Periodo de analise">
@@ -109,70 +102,62 @@ $csrf = csrf_token();
                                 <option value="custom">Personalizado</option>
                             </select>
                         </label>
-                        <label><span>De</span><input id="periodDateFrom" type="date" value="<?= date('Y-m-01') ?>"></label>
-                        <label><span>Ate</span><input id="periodDateTo" type="date" value="<?= date('Y-m-t') ?>"></label>
+                        <label class="period-custom-date"><span>De</span><input id="periodDateFrom" type="date" value="<?= date('Y-m-01') ?>"></label>
+                        <label class="period-custom-date"><span>Ate</span><input id="periodDateTo" type="date" value="<?= date('Y-m-t') ?>"></label>
                     </div>
                     <div class="top-actions-row">
                         <button class="ghost-btn" id="refreshBtn">Atualizar</button>
-                        <button class="primary-btn" data-open-modal="transactionModal">Novo lancamento</button>
                     </div>
                 </div>
             </header>
 
             <section class="section is-visible" id="dashboard">
-                <div class="kpi-grid">
-                    <article class="metric-card"><span>Receitas</span><strong id="kpiIncome">R$ 0,00</strong></article>
-                    <article class="metric-card danger"><span>Despesas</span><strong id="kpiExpenses">R$ 0,00</strong></article>
-                    <article class="metric-card success"><span>Pago</span><strong id="kpiPaid">R$ 0,00</strong></article>
-                    <article class="metric-card warning"><span>Falta pagar</span><strong id="kpiPending">R$ 0,00</strong></article>
-                </div>
+                <section class="money-summary">
+                    <div class="money-balance">
+                        <span>Saldo do periodo</span>
+                        <strong id="dashboardBalance">R$ 0,00</strong>
+                    </div>
+                    <div class="money-flow positive">
+                        <span>Entrou</span>
+                        <strong id="dashboardIncome">R$ 0,00</strong>
+                    </div>
+                    <div class="money-flow negative">
+                        <span>Saiu</span>
+                        <strong id="dashboardExpenses">R$ 0,00</strong>
+                    </div>
+                </section>
 
-                <div class="workflow-strip">
-                    <button class="workflow-card" data-nav-target="transactions">
-                        <span>1. Planilha</span>
-                        <strong id="sheetFlowCount">0 lancamentos</strong>
-                        <small>Base de contas, vencimentos e categorias</small>
-                    </button>
-                    <button class="workflow-card" data-nav-target="movements">
-                        <span>2. Extratos</span>
-                        <strong id="bankFlowCount">0 movimentacoes</strong>
-                        <small>Pagamentos reais importados dos bancos</small>
-                    </button>
-                    <button class="workflow-card action" data-nav-target="reconciliation">
-                        <span>3. Conciliacao</span>
-                        <strong id="matchFlowCount">0 pendencias</strong>
-                        <small>Veja o que bateu e o que precisa revisar</small>
-                    </button>
-                </div>
+                <section class="panel fixed-coverage">
+                    <div class="fixed-coverage-head">
+                        <div>
+                            <p class="eyebrow">Contas fixas</p>
+                            <h2>Quanto das contas fixas ja esta coberto</h2>
+                            <p id="fixedCoverageMeta">Comparando as entradas com suas recorrencias ativas.</p>
+                        </div>
+                        <div class="fixed-coverage-value">
+                            <strong id="fixedCoveragePercent">0%</strong>
+                            <span id="fixedCoverageRemaining">Faltam R$ 0,00</span>
+                        </div>
+                    </div>
+                    <div class="coverage-track" aria-label="Cobertura das contas fixas">
+                        <span id="fixedCoverageBar"></span>
+                    </div>
+                </section>
 
-                <div class="dashboard-grid">
-                    <section class="panel chart-panel">
+                <div class="cashflow-breakdown">
+                    <section class="panel">
                         <div class="panel-head">
-                            <h2>Evolucao mensal</h2>
-                            <span id="balanceBadge">Saldo R$ 0,00</span>
+                            <div><p class="eyebrow">Como ganhou</p><h2>Origem das entradas</h2></div>
+                            <button class="link-btn" data-nav-target="categoryAnalysis">Detalhes</button>
                         </div>
-                        <canvas id="monthlyChart"></canvas>
-                    </section>
-                    <section class="panel chart-panel">
-                        <div class="panel-head">
-                            <h2>Gastos por categoria</h2>
-                            <span>Periodo selecionado</span>
-                        </div>
-                        <canvas id="categoryChart"></canvas>
+                        <div id="dashboardIncomeBreakdown" class="money-breakdown-list"></div>
                     </section>
                     <section class="panel">
                         <div class="panel-head">
-                            <h2>Proximos vencimentos</h2>
-                            <span>21 dias</span>
+                            <div><p class="eyebrow">Como gastou</p><h2>Destino das saidas</h2></div>
+                            <button class="link-btn" data-nav-target="categoryAnalysis">Detalhes</button>
                         </div>
-                        <div id="upcomingList" class="stack-list"></div>
-                    </section>
-                    <section class="panel">
-                        <div class="panel-head">
-                            <h2>Metas</h2>
-                            <button class="small-btn" data-nav-target="goals">Gerenciar</button>
-                        </div>
-                        <div id="goalsList" class="stack-list"></div>
+                        <div id="dashboardExpenseBreakdown" class="money-breakdown-list"></div>
                     </section>
                 </div>
             </section>
