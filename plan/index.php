@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260816-37">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260816-38">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260816-36" defer></script>
+    <script src="assets/app-bills-total.js?v=20260816-38" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -127,6 +127,7 @@ $csrf = csrf_token();
                     <summary class="money-balance">
                         <span>Saldo do periodo</span>
                         <strong id="dashboardBalance">R$ 0,00</strong>
+                        <span id="dashboardSpentPercent" class="spent-ratio">0% gasto</span>
                     </summary>
                     <div class="money-flow-list">
                         <details class="money-flow positive">
@@ -158,23 +159,29 @@ $csrf = csrf_token();
                     </div>
                 </details>
 
-                <section class="panel fixed-coverage">
-                    <div class="fixed-coverage-head">
-                        <div>
-                            <p class="eyebrow">Contas fixas</p>
-                            <h2>Quanto das contas fixas ja foi pago</h2>
-                            <p id="fixedCoverageMeta">Acompanhe o que ja foi quitado neste mes.</p>
+                <details class="panel fixed-coverage fixed-coverage-collapse">
+                    <summary class="fixed-coverage-toggle">
+                        <span>Contas fixas</span>
+                        <small id="fixedCoverageToggleMeta">0% pago</small>
+                    </summary>
+                    <div class="fixed-coverage-content">
+                        <div class="fixed-coverage-head">
+                            <div>
+                                <p class="eyebrow">Contas fixas</p>
+                                <h2>Quanto das contas fixas ja foi pago</h2>
+                                <p id="fixedCoverageMeta">Acompanhe o que ja foi quitado neste mes.</p>
+                            </div>
+                            <div class="fixed-coverage-value">
+                                <strong id="fixedCoveragePercent">0%</strong>
+                                <span id="fixedCoverageRemaining">Faltam R$ 0,00</span>
+                                <button type="button" class="small-btn" data-nav-target="recurring">Ver contas fixas</button>
+                            </div>
                         </div>
-                        <div class="fixed-coverage-value">
-                            <strong id="fixedCoveragePercent">0%</strong>
-                            <span id="fixedCoverageRemaining">Faltam R$ 0,00</span>
-                            <button type="button" class="small-btn" data-nav-target="recurring">Ver contas fixas</button>
+                        <div class="coverage-track" aria-label="Cobertura das contas fixas">
+                            <span id="fixedCoverageBar"></span>
                         </div>
                     </div>
-                    <div class="coverage-track" aria-label="Cobertura das contas fixas">
-                        <span id="fixedCoverageBar"></span>
-                    </div>
-                </section>
+                </details>
 
             </section>
 

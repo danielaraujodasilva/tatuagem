@@ -928,6 +928,7 @@ function renderOverview() {
   setText('dashboardIncome', asMoney(income));
   setText('dashboardExpenses', asMoney(expenses));
   setText('dashboardBalance', asMoney(balance));
+  setText('dashboardSpentPercent', income > 0 ? `${Math.round((expenses / income) * 100)}% gasto` : 'Sem entradas');
   document.querySelector('#dashboardBalance')?.classList.toggle('negative', balance < 0);
   renderFixedCoverage();
   renderDashboardBreakdown('dashboardIncomeBreakdown', credits);
@@ -954,6 +955,7 @@ function renderFixedCoverage() {
   const remaining = Math.max(0, target - paid);
   const percent = target > 0 ? Math.min(100, (paid / target) * 100) : 0;
   setText('fixedCoveragePercent', `${Math.round(percent)}%`);
+  setText('fixedCoverageToggleMeta', `${Math.round(percent)}% pago`);
   setText('fixedCoverageRemaining', remaining > 0 ? `Faltam ${asMoney(remaining)}` : 'Contas fixas cobertas');
   setText('fixedCoverageMeta', target > 0
     ? `${asMoney(paid)} pagos de ${asMoney(target)} em contas fixas deste mes.`

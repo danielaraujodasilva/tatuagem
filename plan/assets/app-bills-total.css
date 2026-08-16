@@ -230,6 +230,7 @@ label { display: grid; gap: 7px; color: var(--muted); font-size: 13px; font-weig
 .money-balance > span, .money-flow-head > span { color: var(--muted); font-size: 13px; font-weight: 800; }
 .money-balance strong { font-size: clamp(34px, 5vw, 52px); line-height: 1; color: var(--green); }
 .money-balance strong.negative { color: var(--red); }
+.money-balance .spent-ratio { position: absolute; top: 16px; right: 18px; margin: 0; padding: 4px 7px; border-radius: 6px; background: var(--surface-2); color: var(--muted); font-size: 11px; font-weight: 800; line-height: 1; }
 .money-flow-head > strong { font-size: clamp(24px, 3vw, 32px); }
 .money-flow.positive .money-flow-head > strong { color: var(--green); }
 .money-flow.negative .money-flow-head > strong { color: var(--red); }
@@ -237,7 +238,13 @@ label { display: grid; gap: 7px; color: var(--muted); font-size: 13px; font-weig
 .money-flow-breakdown-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding-top: 17px; }
 .money-flow-breakdown-head .eyebrow { margin-bottom: 3px; }
 .money-flow-breakdown-head h2 { margin: 0; font-size: 18px; }
-.fixed-coverage { margin-bottom: 14px; padding: 20px 22px; border-radius: 8px; }
+.fixed-coverage { margin-bottom: 14px; padding: 0; border-radius: 8px; overflow: hidden; }
+.fixed-coverage-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; color: var(--blue-deep); cursor: pointer; list-style: none; font-weight: 900; }
+.fixed-coverage-toggle::-webkit-details-marker { display: none; }
+.fixed-coverage-toggle::after { content: "+"; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--surface-2); color: var(--blue); }
+.fixed-coverage-collapse[open] .fixed-coverage-toggle::after { content: "-"; }
+.fixed-coverage-toggle small { margin-left: auto; color: var(--muted); font-size: 12px; }
+.fixed-coverage-content { padding: 4px 22px 20px; border-top: 1px solid var(--line); }
 .fixed-coverage-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
 .fixed-coverage h2 { margin: 0 0 7px; font-size: 20px; }
 .fixed-coverage p:not(.eyebrow) { margin: 0; color: var(--muted); }
