@@ -1040,7 +1040,8 @@ function bank_transactions(): never
     }
     if (!empty($_GET['q'])) {
         $where[] = '(bt.description LIKE ? OR bt.movement_type LIKE ? OR bt.document_number LIKE ?)';
-        $term = '%' . $_GET['q'] . '%';
+        $query = trim((string)$_GET['q']);
+        $term = '%' . preg_replace('/\s+/u', '%', $query) . '%';
         array_push($params, $term, $term, $term);
     }
 

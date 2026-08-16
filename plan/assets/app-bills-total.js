@@ -22,6 +22,9 @@ const state = {
   lastAnalysis: null,
   movementView: 'grouped',
   similarTransactionGroups: [],
+  movementSearchSuggestions: [],
+  movementSuggestionScope: '',
+  bankRequestId: 0,
   pendingRecurringPaymentMonth: '',
 };
 
@@ -118,7 +121,19 @@ async function loadBootstrap() {
 }
 
 async function loadBankTransactions() {
+  const requestId = ++state.bankRequestId;
   const { dateFrom, dateTo } = selectedPeriod();
+  const suggestionScope = [
+    dateFrom,
+    dateTo,
+    document.querySelector('#movementBankFilter')?.value || '',
+    categoryFilterValue('movement'),
+    document.querySelector('#movementDirectionFilter')?.value || '',
+  ].join('|');
+  if (suggestionScope !== state.movementSuggestionScope) {
+    state.movementSuggestionScope = suggestionScope;
+    state.movementSearchSuggestions = [];
+  }
   const params = new URLSearchParams({
     action: 'bank_transactions',
     date_from: dateFrom,
@@ -132,7 +147,10 @@ async function loadBankTransactions() {
   const response = await fetch(`api.php?${params.toString()}`, { headers: { 'X-CSRF-Token': state.csrf } });
   const payload = await response.json();
   if (!payload.ok) throw new Error(payload.message || 'Erro ao carregar extratos.');
+  if (requestId !== state.bankRequestId) return;
   state.bankTransactions = payload.bankTransactions || [];
+  const suggestionValues = state.bankTransactions.flatMap(row => [row.description, row.bank_name]).map(clean).filter(Boolean);
+  state.movementSearchSuggestions = [...new Set([...state.movementSearchSuggestions, ...suggestionValues])];
   state.bankOverview = payload.bankOverview || null;
   renderMovementSearchSuggestions();
   renderBanking();
@@ -391,8 +409,19 @@ function bindFilters() {
     syncCategoryFilter('bills');
     renderBills();
   });
-  ['movementSearchInput', 'movementBankFilter', 'movementDirectionFilter', 'movementMatchFilter'].forEach(id => {
+  ['movementBankFilter', 'movementDirectionFilter', 'movementMatchFilter'].forEach(id => {
     document.querySelector(`#${id}`)?.addEventListener('input', debounce(loadBankTransactions, 250));
+  });
+  const movementSearch = document.querySelector('#movementSearchInput');
+  const debouncedMovementSearch = debounce(loadBankTransactions, 250);
+  movementSearch?.addEventListener('input', () => {
+    renderMovementSearchSuggestions();
+    debouncedMovementSearch();
+  });
+  movementSearch?.addEventListener('focus', renderMovementSearchSuggestions);
+  movementSearch?.addEventListener('blur', () => window.setTimeout(hideMovementSearchSuggestions, 140));
+  movementSearch?.addEventListener('keydown', event => {
+    if (event.key === 'Escape') hideMovementSearchSuggestions();
   });
   bindCategoryFilter('movement', () => loadBankTransactions());
   document.querySelector('#clearMovementFilters')?.addEventListener('click', async () => {
@@ -1857,11 +1886,34 @@ function renderBillList(targetId, rows, mode) {
 
 function renderMovementSearchSuggestions() {
   const target = document.querySelector('#movementSearchOptions');
-  if (!target) return;
-  const values = [...new Set(state.bankTransactions.flatMap(row => [row.description, row.bank_name]).map(clean).filter(Boolean))]
+  const search = document.querySelector('#movementSearchInput');
+  if (!target || !search) return;
+  const query = norm(search.value || '');
+  if (!query || document.activeElement !== search) {
+    target.hidden = true;
+    return;
+  }
+  const values = state.movementSearchSuggestions
+    .filter(value => norm(value).includes(query))
     .sort((a, b) => a.localeCompare(b, 'pt-BR'))
-    .slice(0, 80);
-  target.innerHTML = values.map(value => `<option value="${escapeHtml(value)}"></option>`).join('');
+    .slice(0, 12);
+  target.innerHTML = values.map(value => `<button type="button" role="option" data-movement-suggestion="${escapeHtml(value)}">${escapeHtml(value)}</button>`).join('');
+  target.hidden = values.length === 0;
+  target.querySelectorAll('[data-movement-suggestion]').forEach(button => {
+    button.addEventListener('mousedown', event => event.preventDefault());
+    button.addEventListener('click', async () => {
+      search.value = button.dataset.movementSuggestion || '';
+      search.setSelectionRange?.(search.value.length, search.value.length);
+      hideMovementSearchSuggestions();
+      await loadBankTransactions();
+      hideMovementSearchSuggestions();
+    });
+  });
+}
+
+function hideMovementSearchSuggestions() {
+  const target = document.querySelector('#movementSearchOptions');
+  if (target) target.hidden = true;
 }
 
 function normalizedBillStatus(row) {

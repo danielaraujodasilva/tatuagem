@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260816-25">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260816-26">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260816-25" defer></script>
+    <script src="assets/app-bills-total.js?v=20260816-26" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -342,8 +342,10 @@ $csrf = csrf_token();
                         <option value="yes">Conciliadas</option>
                         <option value="no">Sem conciliacao</option>
                     </select>
-                    <input id="movementSearchInput" list="movementSearchOptions" placeholder="Buscar descricao, banco ou tipo">
-                    <datalist id="movementSearchOptions"></datalist>
+                    <div class="movement-search-field">
+                        <input id="movementSearchInput" autocomplete="off" placeholder="Buscar descricao, banco ou tipo">
+                        <div id="movementSearchOptions" class="movement-search-options" role="listbox" hidden></div>
+                    </div>
                     <button type="button" class="secondary-btn" id="clearMovementFilters">Limpar filtros</button>
                 </div>
 
