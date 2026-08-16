@@ -822,11 +822,12 @@ tr.share-focus > td { background: #eff6ff; box-shadow: inset 0 2px 0 rgba(37,99,
 @media (max-width: 980px) {
   .login-shell, .app-shell { grid-template-columns: 1fr; }
   .login-panel { min-height: auto; border-left: 0; border-top: 1px solid var(--line); }
-  .sidebar { position: sticky; top: 0; z-index: 20; height: auto; flex-direction: row; align-items: center; overflow-x: auto; padding: 12px; }
+  .sidebar { position: sticky; top: 0; z-index: 20; height: auto; flex-direction: row; align-items: center; overflow: visible; padding: 12px; }
   .sidebar nav { display: flex; gap: 6px; overflow: visible; }
   .nav-group { display: flex; gap: 6px; align-items: center; }
   .nav-group-label { display: none; }
   .nav-more { position: relative; flex: 0 0 auto; border-top: 0; padding-top: 0; }
+  .nav-more[open] { z-index: 30; }
   .nav-more summary { white-space: nowrap; padding: 10px 11px; }
   .nav-more-items { position: absolute; top: calc(100% + 8px); right: 0; width: 210px; padding: 8px; border: 1px solid rgba(255,255,255,.14); border-radius: 8px; background: #0f172a; box-shadow: 0 14px 30px rgba(15,23,42,.28); }
   .nav-more-items .nav-item { width: 100%; }
