@@ -1,221 +1,62 @@
 import { SERVICES, LEGEND } from './services.js';
 import { TECH_SERVICES } from './technology.js';
 
-const BASE_METRICS = {
-  'documentos-cartorios': { score: 92, ease: 95, revenue: 70, recurring: 70, complexity: 25 },
-  'conflitos-extrajudicial': { score: 84, ease: 78, revenue: 80, recurring: 72, complexity: 45 },
-  imobiliario: { score: 94, ease: 72, revenue: 100, recurring: 85, complexity: 68 },
-  'empresarial-administrativo': { score: 93, ease: 85, revenue: 90, recurring: 95, complexity: 48 },
-  'familia-sucessoes': { score: 72, ease: 50, revenue: 92, recurring: 45, complexity: 82 },
-  consumidor: { score: 68, ease: 82, revenue: 55, recurring: 35, complexity: 35 },
-  b2b: { score: 95, ease: 72, revenue: 100, recurring: 100, complexity: 65 },
-  educacao: { score: 55, ease: 70, revenue: 75, recurring: 80, complexity: 60 }
-};
-
-const PRICE_RANGES = {
-  'documentos-cartorios': [80,450], 'conflitos-extrajudicial': [180,1400], imobiliario: [250,3200],
-  'empresarial-administrativo': [150,1500], 'familia-sucessoes': [450,3800], consumidor: [100,700], b2b: [500,3500], educacao: [250,1800],
-  'Sites & Presença Digital': [250,2200], 'CRM & Sistemas Internos': [700,5500], 'WhatsApp & Atendimento': [350,3000],
-  'Automação de Processos': [350,4500], 'IA Aplicada a Negócios': [600,5500], 'Dados, Relatórios & Financeiro': [300,2600],
-  'Infraestrutura Digital': [120,1600], 'Pacotes de Transformação Digital': [900,6000]
-};
-
-const PRICE_OVERRIDES = {
-  'Certidão de nascimento':100,'Certidão de casamento':120,'Certidão de óbito':100,'Certidão de protesto':120,
-  'Assessoria para reconhecimento de firma':100,'Assessoria para autenticação':100,'Consulta de protestos':100,
-  'Pesquisa de matrícula':150,'Matrícula atualizada':150,'Site institucional':1200,'Landing page de captação':700,
-  'Página de serviço':450,'Catálogo digital':900,'Manutenção de site':300,'Hospedagem e gestão técnica':200,
-  'Domínio, DNS e SSL':250,'E-mail profissional':250,'Acesso remoto seguro':350,'Diagnóstico de processos digitais':600,
-  'Kit Presença Digital':1800,'Kit Atendimento':2800,'Kit Escritório Digital':4500,'Kit Automação Administrativa':3500
-};
-
-const LEGAL_CHILDREN = SERVICES.map(item => ({...item, metrics:item.metrics ?? BASE_METRICS[item.id], pricingKey:item.id}));
-const TECH_CHILDREN = TECH_SERVICES.children.map(item => ({...item, pricingKey:item.title}));
-const ROOT = [{ id:'cnjp', title:'CNJP — Soluções', icon:'account_tree', description:'Visão completa dos serviços possíveis da empresa.', children:[
-  { id:'juridico', title:'Jurídico & Extrajudicial', icon:'balance', description:'Serviços jurídicos, administrativos, documentais e extrajudiciais.', children:LEGAL_CHILDREN },
-  { id:'tecnologia', title:'Tecnologia', icon:'terminal', description:'Sites, sistemas, automações, WhatsApp, IA, dados e infraestrutura.', children:TECH_CHILDREN }
-]}];
-
-const $ = s => document.querySelector(s);
-const catalog=$('#catalog'), filtersEl=$('#filters'), searchEl=$('#search'), resultCount=$('#resultCount'), summaryEl=$('#summary'), template=$('#nodeTemplate');
-const clearFiltersBtn=$('#clearFilters'), sortByEl=$('#sortBy'), sortDirectionBtn=$('#sortDirection'), sortDirectionText=$('#sortDirectionText'), applySortBtn=$('#applySort');
-const branchFilterEl=$('#branchFilter'), decisionModesEl=$('#decisionModes'), resetDecisionBtn=$('#resetDecision');
-
+const BASE_METRICS={
+'documentos-cartorios':{score:92,ease:95,revenue:70,recurring:70,complexity:25},
+'conflitos-extrajudicial':{score:84,ease:78,revenue:80,recurring:72,complexity:45},
+imobiliario:{score:94,ease:72,revenue:100,recurring:85,complexity:68},
+'empresarial-administrativo':{score:93,ease:85,revenue:90,recurring:95,complexity:48},
+'familia-sucessoes':{score:72,ease:50,revenue:92,recurring:45,complexity:82},
+consumidor:{score:68,ease:82,revenue:55,recurring:35,complexity:35},b2b:{score:95,ease:72,revenue:100,recurring:100,complexity:65},educacao:{score:55,ease:70,revenue:75,recurring:80,complexity:60}};
+const PRICE_RANGES={'documentos-cartorios':[80,450],'conflitos-extrajudicial':[180,1400],imobiliario:[250,3200],'empresarial-administrativo':[150,1500],'familia-sucessoes':[450,3800],consumidor:[100,700],b2b:[500,3500],educacao:[250,1800],'Sites & Presença Digital':[250,2200],'CRM & Sistemas Internos':[700,5500],'WhatsApp & Atendimento':[350,3000],'Automação de Processos':[350,4500],'IA Aplicada a Negócios':[600,5500],'Dados, Relatórios & Financeiro':[300,2600],'Infraestrutura Digital':[120,1600],'Pacotes de Transformação Digital':[900,6000]};
+const PRICE_OVERRIDES={'Certidão de nascimento':100,'Certidão de casamento':120,'Certidão de óbito':100,'Certidão de protesto':120,'Assessoria para reconhecimento de firma':100,'Assessoria para autenticação':100,'Consulta de protestos':100,'Pesquisa de matrícula':150,'Matrícula atualizada':150,'Site institucional':1200,'Landing page de captação':700,'Página de serviço':450,'Catálogo digital':900,'Manutenção de site':300,'Hospedagem e gestão técnica':200,'Domínio, DNS e SSL':250,'E-mail profissional':250,'Acesso remoto seguro':350,'Diagnóstico de processos digitais':600,'Kit Presença Digital':1800,'Kit Atendimento':2800,'Kit Escritório Digital':4500,'Kit Automação Administrativa':3500};
+const LEGAL_CHILDREN=SERVICES.map(item=>({...item,metrics:item.metrics??BASE_METRICS[item.id],pricingKey:item.id}));
+const TECH_CHILDREN=TECH_SERVICES.children.map(item=>({...item,pricingKey:item.title}));
+const ROOT=[{id:'cnjp',title:'CNJP — Soluções',icon:'account_tree',description:'Visão completa dos serviços possíveis da empresa.',children:[{id:'juridico',title:'Jurídico & Extrajudicial',icon:'balance',description:'Serviços jurídicos, administrativos, documentais e extrajudiciais.',children:LEGAL_CHILDREN},{id:'tecnologia',title:'Tecnologia',icon:'terminal',description:'Sites, sistemas, automações, WhatsApp, IA, dados e infraestrutura.',children:TECH_CHILDREN}]}];
+const $=s=>document.querySelector(s);
+const catalog=$('#catalog'),filtersEl=$('#filters'),searchEl=$('#search'),resultCount=$('#resultCount'),summaryEl=$('#summary'),template=$('#nodeTemplate');
+const clearFiltersBtn=$('#clearFilters'),sortByEl=$('#sortBy'),sortDirectionBtn=$('#sortDirection'),sortDirectionText=$('#sortDirectionText'),applySortBtn=$('#applySort');
+const branchFilterEl=$('#branchFilter'),decisionModesEl=$('#decisionModes'),resetDecisionBtn=$('#resetDecision'),selectVisibleBtn=$('#selectVisible'),clearVisibleBtn=$('#clearVisible');
 const state={query:'',filters:new Set(),branch:'all',mode:'all',sortBy:'score',direction:'desc',focusedUid:null};
 let pendingDirection='desc';
-const selected=new Set(JSON.parse(localStorage.getItem('cnjp2-selected') || '[]'));
-
+const selected=new Set(JSON.parse(localStorage.getItem('cnjp2-selected')||'[]'));
 const normalize=(v='')=>v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const clamp=v=>Math.max(0,Math.min(100,Math.round(v)));
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}).format(v);
 const round50=v=>Math.max(50,Math.round(v/50)*50);
-
-function deriveMetrics(item,parent=null){
-  if(item.metrics)return item.metrics;
-  const p=parent??{score:75,ease:75,revenue:70,recurring:65,complexity:45};
-  const tags=item.tags??[]; let ease=0,complexity=0,score=0;
-  if(tags.includes('green')){ease+=8;complexity-=8;score+=4;} if(tags.includes('blue')){ease+=2;complexity+=2;}
-  if(tags.includes('yellow')){ease-=12;complexity+=15;score-=5;} if(tags.includes('red')){ease-=6;complexity+=8;score-=3;} if(tags.includes('purple')){ease+=4;score+=2;}
-  return {score:clamp(p.score+score),ease:clamp(p.ease+ease),revenue:clamp(p.revenue),recurring:clamp(p.recurring),complexity:clamp(p.complexity+complexity)};
-}
-function estimateLeafPrice(item,key,m){
-  if(PRICE_OVERRIDES[item.title])return PRICE_OVERRIDES[item.title];
-  const [min,max]=PRICE_RANGES[key]??[150,1800]; const factor=clamp(m.revenue*.45+m.complexity*.35+m.score*.20)/100;
-  return round50(min+(max-min)*factor);
-}
-function hydrate(items,parent=null,key=null,path=[]){
-  return items.map(item=>{
-    const metrics=deriveMetrics(item,parent), pricingKey=item.pricingKey??key, uid=[...path,item.title].join(' > ');
-    const children=item.children?hydrate(item.children,metrics,pricingKey,[...path,item.title]):undefined;
-    if(!children?.length){const price=estimateLeafPrice(item,pricingKey,metrics);return {...item,uid,metrics,pricingKey,price,priceMin:price,priceMax:price,priceLabel:`~ ${money(price)}`};}
-    const mins=children.map(c=>c.priceMin).filter(Number.isFinite), maxs=children.map(c=>c.priceMax).filter(Number.isFinite);
-    const priceMin=mins.length?Math.min(...mins):0, priceMax=maxs.length?Math.max(...maxs):0, price=round50((priceMin+priceMax)/2);
-    return {...item,uid,metrics,pricingKey,children,price,priceMin,priceMax,priceLabel:priceMin===priceMax?`~ ${money(priceMin)}`:`${money(priceMin)} – ${money(priceMax)}`};
-  });
-}
+function deriveMetrics(item,parent=null){if(item.metrics)return item.metrics;const p=parent??{score:75,ease:75,revenue:70,recurring:65,complexity:45};const tags=item.tags??[];let ease=0,complexity=0,score=0;if(tags.includes('green')){ease+=8;complexity-=8;score+=4}if(tags.includes('blue')){ease+=2;complexity+=2}if(tags.includes('yellow')){ease-=12;complexity+=15;score-=5}if(tags.includes('red')){ease-=6;complexity+=8;score-=3}if(tags.includes('purple')){ease+=4;score+=2}return{score:clamp(p.score+score),ease:clamp(p.ease+ease),revenue:clamp(p.revenue),recurring:clamp(p.recurring),complexity:clamp(p.complexity+complexity)}}
+function estimateLeafPrice(item,key,m){if(PRICE_OVERRIDES[item.title])return PRICE_OVERRIDES[item.title];const[min,max]=PRICE_RANGES[key]??[150,1800];const factor=clamp(m.revenue*.45+m.complexity*.35+m.score*.20)/100;return round50(min+(max-min)*factor)}
+function hydrate(items,parent=null,key=null,path=[]){return items.map(item=>{const metrics=deriveMetrics(item,parent),pricingKey=item.pricingKey??key,uid=[...path,item.title].join(' > ');const children=item.children?hydrate(item.children,metrics,pricingKey,[...path,item.title]):undefined;if(!children?.length){const price=estimateLeafPrice(item,pricingKey,metrics);return{...item,uid,metrics,pricingKey,price,priceMin:price,priceMax:price,priceLabel:`~ ${money(price)}`}}const mins=children.map(c=>c.priceMin).filter(Number.isFinite),maxs=children.map(c=>c.priceMax).filter(Number.isFinite);const priceMin=mins.length?Math.min(...mins):0,priceMax=maxs.length?Math.max(...maxs):0,price=round50((priceMin+priceMax)/2);return{...item,uid,metrics,pricingKey,children,price,priceMin,priceMax,priceLabel:priceMin===priceMax?`~ ${money(priceMin)}`:`${money(priceMin)} – ${money(priceMax)}`}})}
 const DATA=hydrate(ROOT);
-
-function leaves(items,out=[]){items.forEach(i=>i.children?.length?leaves(i.children,out):out.push(i));return out;}
+function leaves(items,out=[]){items.forEach(i=>i.children?.length?leaves(i.children,out):out.push(i));return out}
 const ALL_LEAVES=leaves(DATA,[]);
-function countNodes(items){return items.reduce((a,i)=>a+1+(i.children?countNodes(i.children):0),0);}
-function saveSelected(){localStorage.setItem('cnjp2-selected',JSON.stringify([...selected]));renderSummary();}
-function renderSummary(){
-  const vals=[
-    [ALL_LEAVES.length,'serviços finais'],
-    [selected.size,'selecionados'],
-    [ALL_LEAVES.filter(i=>i.metrics.score>=90).length,'prioridade ≥ 90'],
-    [ALL_LEAVES.filter(i=>i.metrics.ease>=85&&i.metrics.complexity<=55&&!i.tags?.includes('yellow')&&!i.tags?.includes('red')).length,'prontos agora']
-  ];
-  summaryEl.innerHTML=vals.map(([v,l])=>`<article class="stat"><strong>${v}</strong><span>${l}</span></article>`).join('');
-}
-function renderFilters(){
-  filtersEl.innerHTML=Object.entries(LEGEND).map(([k,i])=>`<button type="button" class="chip ${k}" data-filter="${k}" title="${i.short}">${i.label}</button>`).join('');
-  filtersEl.addEventListener('click',e=>{const b=e.target.closest('[data-filter]');if(!b)return;const k=b.dataset.filter;state.filters.has(k)?state.filters.delete(k):state.filters.add(k);b.classList.toggle('active',state.filters.has(k));render();});
-}
-function modeSet(){
-  if(state.mode==='all')return null;
-  if(state.mode==='selected')return new Set([...selected]);
-  if(state.mode==='top10')return new Set([...ALL_LEAVES].sort((a,b)=>b.metrics.score-a.metrics.score||b.price-a.price).slice(0,10).map(i=>i.uid));
-  const filtered=ALL_LEAVES.filter(i=>{
-    if(state.mode==='ready')return i.metrics.ease>=85&&i.metrics.complexity<=55&&!i.tags?.includes('yellow')&&!i.tags?.includes('red');
-    if(state.mode==='recurring')return i.metrics.recurring>=90;
-    if(state.mode==='ticket')return i.price>=1000;
-    if(state.mode==='simple')return i.metrics.ease>=90&&i.metrics.complexity<=40;
-    return true;
-  });
-  return new Set(filtered.map(i=>i.uid));
-}
-function branchOf(item){return item.uid.includes(' > Jurídico & Extrajudicial > ')?'juridico':item.uid.includes(' > Tecnologia > ')?'tecnologia':'all';}
-function leafMatchesFilters(item,allowed){
-  if(state.branch!=='all'&&branchOf(item)!==state.branch)return false;
-  if(allowed&&!allowed.has(item.uid))return false;
-  if(state.query&&!normalize(`${item.title} ${item.description??''}`).includes(normalize(state.query)))return false;
-  if(state.filters.size&&![...state.filters].every(tag=>item.tags?.includes(tag)))return false;
-  return true;
-}
-function flatDecisionItems(){
-  const allowed=modeSet();
-  let items=ALL_LEAVES.filter(i=>leafMatchesFilters(i,allowed));
-  return sortFlat(items);
-}
-function sortFlat(items){
-  const mult=state.direction==='desc'?-1:1;
-  return [...items].sort((a,b)=>{
-    if(state.sortBy==='title')return mult*a.title.localeCompare(b.title,'pt-BR');
-    const av=state.sortBy==='price'?a.price:Number(a.metrics?.[state.sortBy]??0), bv=state.sortBy==='price'?b.price:Number(b.metrics?.[state.sortBy]??0);
-    return av===bv?(b.metrics?.score??0)-(a.metrics?.score??0):mult*(av-bv);
-  });
-}
-function branchAllowed(item,depth){if(state.branch==='all')return true;if(depth===1)return item.id===state.branch;return true;}
-function itemMatches(item,depth,allowed){
-  const q=!state.query||normalize(`${item.title} ${item.description??''}`).includes(normalize(state.query));
-  const t=!state.filters.size||[...state.filters].every(tag=>item.tags?.includes(tag));
-  const m=!allowed||allowed.has(item.uid)||item.children?.length;
-  return q&&t&&m&&branchAllowed(item,depth);
-}
-function filterTree(items,depth=0,allowed=modeSet()){
-  return items.map(item=>{
-    if(depth===1&&!branchAllowed(item,depth))return null;
-    const children=item.children?filterTree(item.children,depth+1,allowed):[];
-    const self=itemMatches(item,depth,allowed);
-    if(item.children?.length)return (children.length||self&&(!allowed||depth<2))?{...item,children}:null;
-    return self?item:null;
-  }).filter(Boolean);
-}
-function sortTree(items,depth=0){
-  const mapped=items.map(i=>({...i,children:i.children?sortTree(i.children,depth+1):undefined}));
-  if(depth<2)return mapped;
-  const mult=state.direction==='desc'?-1:1;
-  return mapped.sort((a,b)=>{
-    if(state.sortBy==='title')return mult*a.title.localeCompare(b.title,'pt-BR');
-    const av=state.sortBy==='price'?a.price:Number(a.metrics?.[state.sortBy]??0), bv=state.sortBy==='price'?b.price:Number(b.metrics?.[state.sortBy]??0);
-    return av===bv?(b.metrics?.score??0)-(a.metrics?.score??0):mult*(av-bv);
-  });
-}
-function createTags(tags=[]){const w=document.createElement('div');w.className='node-tags';tags.forEach(tag=>{const s=document.createElement('span');s.className=`tag ${tag}`;s.textContent=LEGEND[tag]?.label??tag;w.appendChild(s);});return w;}
-function metricPills(m){return [['Facilidade',m.ease],['Receita',m.revenue],['Recorrência',m.recurring],['Complexidade',m.complexity]].map(([l,v])=>`<span><b>${l}</b> ${v}</span>`).join('');}
-function scoreClass(s=0){return s>=95?'score-hot':s>=85?'score-good':s>=70?'score-mid':'score-low';}
-function candidateButton(item){
-  const b=document.createElement('button'); b.type='button'; b.className=`candidate-btn ${selected.has(item.uid)?'selected':''}`;
-  b.innerHTML=`<span class="material-symbols-rounded">${selected.has(item.uid)?'star':'star_outline'}</span>${selected.has(item.uid)?'Selecionado':'Selecionar'}`;
-  b.addEventListener('click',e=>{e.stopPropagation();selected.has(item.uid)?selected.delete(item.uid):selected.add(item.uid);saveSelected();render();});
-  return b;
-}
-function bindFocus(el,item){
-  if(state.focusedUid===item.uid)el.classList.add('focused');
-  el.addEventListener('click',e=>{
-    if(e.target.closest('button'))return;
-    state.focusedUid=state.focusedUid===item.uid?null:item.uid;
-    catalog.querySelectorAll('.focused').forEach(n=>n.classList.remove('focused'));
-    if(state.focusedUid)el.classList.add('focused');
-  });
-}
-function createLeaf(item,flat=false){
-  const el=document.createElement('article');el.className=flat?'leaf flat-card':'leaf';el.tabIndex=0;
-  const branch=branchOf(item)==='juridico'?'Jurídico':'Tecnologia';
-  el.innerHTML=`<div class="leaf-copy">${flat?`<div class="flat-kicker">${branch}</div>`:''}<div class="leaf-title-row"><strong>${item.title}</strong><span class="score-badge ${scoreClass(item.metrics.score)}">${item.metrics.score}</span><span class="price-badge">${item.priceLabel}</span></div><p>${item.description??''}</p><div class="metrics-mini">${metricPills(item.metrics)}</div></div>`;
-  const side=document.createElement('div');side.className='leaf-actions';side.append(candidateButton(item),createTags(item.tags));el.appendChild(side);bindFocus(el,item);return el;
-}
-function createNode(item,depth=0){
-  if(!item.children?.length)return createLeaf(item);
-  const f=template.content.cloneNode(true),node=f.querySelector('.service-node'),summary=f.querySelector('.node-summary'),content=f.querySelector('.node-content'),toggle=f.querySelector('.toggle-node-btn');
-  f.querySelector('.node-title').textContent=item.title;f.querySelector('.node-description').textContent=item.description??'';f.querySelector('.node-icon').textContent=item.icon??(depth===0?'account_tree':'folder');
-  f.querySelector('.node-tags').replaceWith(createTags(item.tags));const sb=f.querySelector('.score-badge');sb.textContent=item.metrics.score;sb.classList.add(scoreClass(item.metrics.score));f.querySelector('.price-badge').textContent=item.priceLabel;f.querySelector('.metrics-mini').innerHTML=metricPills(item.metrics);
-  const stage=f.querySelector('.stage-badge');if(item.stage){stage.hidden=false;stage.textContent=item.stage;}
-  item.children.forEach(c=>content.appendChild(createNode(c,depth+1)));
-  const initiallyOpen=depth===0||state.query||state.filters.size||state.branch!=='all';
-  content.hidden=!initiallyOpen;toggle.querySelector('.material-symbols-rounded').textContent=initiallyOpen?'expand_less':'expand_more';toggle.querySelector('.toggle-label').textContent=initiallyOpen?'Fechar':'Abrir';
-  toggle.addEventListener('click',e=>{e.stopPropagation();content.hidden=!content.hidden;const open=!content.hidden;toggle.querySelector('.material-symbols-rounded').textContent=open?'expand_less':'expand_more';toggle.querySelector('.toggle-label').textContent=open?'Fechar':'Abrir';node.classList.toggle('open',open);});
-  node.classList.toggle('open',initiallyOpen);bindFocus(node,item);summary.addEventListener('dblclick',()=>toggle.click());return node;
-}
-function render(){
-  catalog.replaceChildren();
-  if(state.mode!=='all'){
-    const items=flatDecisionItems();
-    if(!items.length){catalog.innerHTML='<div class="empty">Nada sobrou com esses critérios.</div>';resultCount.textContent='0 itens';return;}
-    items.forEach(i=>catalog.appendChild(createLeaf(i,true)));
-    const label=sortByEl.options[sortByEl.selectedIndex]?.textContent??state.sortBy;
-    resultCount.textContent=`${items.length} opções em lista • ${selected.size} selecionados • ordenação: ${label} (${state.direction==='desc'?'maior → menor':'menor → maior'})`;
-    return;
-  }
-  const ordered=sortTree(filterTree(DATA));
-  if(!ordered.length){catalog.innerHTML='<div class="empty">Nada sobrou com esses critérios.</div>';resultCount.textContent='0 itens';return;}
-  ordered.forEach(i=>catalog.appendChild(createNode(i)));const label=sortByEl.options[sortByEl.selectedIndex]?.textContent??state.sortBy;
-  resultCount.textContent=`${countNodes(ordered)} itens visíveis • ${selected.size} selecionados • ordenação: ${label} (${state.direction==='desc'?'maior → menor':'menor → maior'})`;
-}
-function setMode(mode){state.mode=mode;decisionModesEl.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));render();}
-function updateDirectionUI(){const desc=pendingDirection==='desc';sortDirectionBtn.querySelector('.material-symbols-rounded').textContent=desc?'south':'north';sortDirectionText.textContent=desc?'Maior → menor':'Menor → maior';}
-
-searchEl.addEventListener('input',e=>{state.query=e.target.value.trim();render();});
-branchFilterEl.addEventListener('change',e=>{state.branch=e.target.value;render();});
-decisionModesEl.addEventListener('click',e=>{const b=e.target.closest('[data-mode]');if(b)setMode(state.mode===b.dataset.mode?'all':b.dataset.mode);});
-resetDecisionBtn.addEventListener('click',()=>{state.mode='all';state.branch='all';branchFilterEl.value='all';decisionModesEl.querySelectorAll('.active').forEach(b=>b.classList.remove('active'));render();});
-sortByEl.addEventListener('change',()=>applySortBtn.classList.add('pending'));
-sortDirectionBtn.addEventListener('click',()=>{pendingDirection=pendingDirection==='desc'?'asc':'desc';updateDirectionUI();applySortBtn.classList.add('pending');});
-applySortBtn.addEventListener('click',()=>{state.sortBy=sortByEl.value;state.direction=pendingDirection;applySortBtn.classList.remove('pending');render();});
-clearFiltersBtn.addEventListener('click',()=>{state.filters.clear();state.query='';searchEl.value='';state.branch='all';branchFilterEl.value='all';document.querySelectorAll('.chip.active').forEach(c=>c.classList.remove('active'));render();});
-$('#expandAll').addEventListener('click',()=>catalog.querySelectorAll('.service-node').forEach(node=>{const content=node.querySelector(':scope > .node-content'),btn=node.querySelector(':scope > .node-summary .toggle-node-btn');if(!content||!btn)return;content.hidden=false;node.classList.add('open');btn.querySelector('.material-symbols-rounded').textContent='expand_less';btn.querySelector('.toggle-label').textContent='Fechar';}));
-$('#collapseAll').addEventListener('click',()=>catalog.querySelectorAll('.service-node').forEach(node=>{const content=node.querySelector(':scope > .node-content'),btn=node.querySelector(':scope > .node-summary .toggle-node-btn');if(!content||!btn)return;content.hidden=true;node.classList.remove('open');btn.querySelector('.material-symbols-rounded').textContent='expand_more';btn.querySelector('.toggle-label').textContent='Abrir';}));
-document.addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement!==searchEl){e.preventDefault();searchEl.focus();}if(e.key==='Escape'&&document.activeElement===searchEl){searchEl.value='';state.query='';searchEl.blur();render();}});
-
+function countNodes(items){return items.reduce((a,i)=>a+1+(i.children?countNodes(i.children):0),0)}
+function saveSelected(){localStorage.setItem('cnjp2-selected',JSON.stringify([...selected]));renderSummary()}
+function renderSummary(){const vals=[[ALL_LEAVES.length,'serviços finais'],[selected.size,'selecionados'],[ALL_LEAVES.filter(i=>i.metrics.score>=90).length,'prioridade ≥ 90'],[ALL_LEAVES.filter(i=>i.metrics.ease>=85&&i.metrics.complexity<=55&&!i.tags?.includes('yellow')&&!i.tags?.includes('red')).length,'prontos agora']];summaryEl.innerHTML=vals.map(([v,l])=>`<article class="stat"><strong>${v}</strong><span>${l}</span></article>`).join('')}
+function renderFilters(){filtersEl.innerHTML=Object.entries(LEGEND).map(([k,i])=>`<button type="button" class="chip ${k}" data-filter="${k}" title="${i.short}">${i.label}</button>`).join('');filtersEl.addEventListener('click',e=>{const b=e.target.closest('[data-filter]');if(!b)return;const k=b.dataset.filter;state.filters.has(k)?state.filters.delete(k):state.filters.add(k);b.classList.toggle('active',state.filters.has(k));render()})}
+function modeSet(){if(state.mode==='all')return null;if(state.mode==='selected')return new Set([...selected]);if(state.mode==='top10')return new Set([...ALL_LEAVES].sort((a,b)=>b.metrics.score-a.metrics.score||b.price-a.price).slice(0,10).map(i=>i.uid));const filtered=ALL_LEAVES.filter(i=>state.mode==='ready'?i.metrics.ease>=85&&i.metrics.complexity<=55&&!i.tags?.includes('yellow')&&!i.tags?.includes('red'):state.mode==='recurring'?i.metrics.recurring>=90:state.mode==='ticket'?i.price>=1000:state.mode==='simple'?i.metrics.ease>=90&&i.metrics.complexity<=40:true);return new Set(filtered.map(i=>i.uid))}
+function branchOf(item){return item.uid.includes(' > Jurídico & Extrajudicial > ')?'juridico':item.uid.includes(' > Tecnologia > ')?'tecnologia':'all'}
+function leafMatchesFilters(item,allowed=modeSet()){if(state.branch!=='all'&&branchOf(item)!==state.branch)return false;if(allowed&&!allowed.has(item.uid))return false;if(state.query&&!normalize(`${item.title} ${item.description??''}`).includes(normalize(state.query)))return false;if(state.filters.size&&![...state.filters].every(tag=>item.tags?.includes(tag)))return false;return true}
+function visibleLeafItems(){return ALL_LEAVES.filter(item=>leafMatchesFilters(item,modeSet()))}
+function sortFlat(items){const mult=state.direction==='desc'?-1:1;return[...items].sort((a,b)=>{if(state.sortBy==='title')return mult*a.title.localeCompare(b.title,'pt-BR');const av=state.sortBy==='price'?a.price:Number(a.metrics?.[state.sortBy]??0),bv=state.sortBy==='price'?b.price:Number(b.metrics?.[state.sortBy]??0);return av===bv?(b.metrics?.score??0)-(a.metrics?.score??0):mult*(av-bv)})}
+function flatDecisionItems(){return sortFlat(visibleLeafItems())}
+function branchAllowed(item,depth){if(state.branch==='all')return true;if(depth===1)return item.id===state.branch;return true}
+function itemMatches(item,depth,allowed){const q=!state.query||normalize(`${item.title} ${item.description??''}`).includes(normalize(state.query));const t=!state.filters.size||[...state.filters].every(tag=>item.tags?.includes(tag));const m=!allowed||allowed.has(item.uid)||item.children?.length;return q&&t&&m&&branchAllowed(item,depth)}
+function filterTree(items,depth=0,allowed=modeSet()){return items.map(item=>{if(depth===1&&!branchAllowed(item,depth))return null;const children=item.children?filterTree(item.children,depth+1,allowed):[];const self=itemMatches(item,depth,allowed);if(item.children?.length)return(children.length||self&&(!allowed||depth<2))?{...item,children}:null;return self?item:null}).filter(Boolean)}
+function sortTree(items,depth=0){const mapped=items.map(i=>({...i,children:i.children?sortTree(i.children,depth+1):undefined}));if(depth<2)return mapped;const mult=state.direction==='desc'?-1:1;return mapped.sort((a,b)=>{if(state.sortBy==='title')return mult*a.title.localeCompare(b.title,'pt-BR');const av=state.sortBy==='price'?a.price:Number(a.metrics?.[state.sortBy]??0),bv=state.sortBy==='price'?b.price:Number(b.metrics?.[state.sortBy]??0);return av===bv?(b.metrics?.score??0)-(a.metrics?.score??0):mult*(av-bv)})}
+function createTags(tags=[]){const w=document.createElement('div');w.className='node-tags';tags.forEach(tag=>{const s=document.createElement('span');s.className=`tag ${tag}`;s.textContent=LEGEND[tag]?.label??tag;w.appendChild(s)});return w}
+function metricPills(m){return[['Facilidade',m.ease],['Receita',m.revenue],['Recorrência',m.recurring],['Complexidade',m.complexity]].map(([l,v])=>`<span><b>${l}</b> ${v}</span>`).join('')}
+function scoreClass(s=0){return s>=95?'score-hot':s>=85?'score-good':s>=70?'score-mid':'score-low'}
+function candidateButton(item){const b=document.createElement('button');b.type='button';b.className=`candidate-btn ${selected.has(item.uid)?'selected':''}`;b.innerHTML=`<span class="material-symbols-rounded">${selected.has(item.uid)?'check_circle':'radio_button_unchecked'}</span>${selected.has(item.uid)?'Selecionado':'Selecionar'}`;b.addEventListener('click',e=>{e.stopPropagation();selected.has(item.uid)?selected.delete(item.uid):selected.add(item.uid);saveSelected();render()});return b}
+function bindFocus(el,item){if(state.focusedUid===item.uid)el.classList.add('focused');el.addEventListener('click',e=>{if(e.target.closest('button'))return;state.focusedUid=state.focusedUid===item.uid?null:item.uid;catalog.querySelectorAll('.focused').forEach(n=>n.classList.remove('focused'));if(state.focusedUid)el.classList.add('focused')})}
+function createLeaf(item,flat=false){const el=document.createElement('article');el.className=flat?'leaf flat-card':'leaf';el.tabIndex=0;const branch=branchOf(item)==='juridico'?'Jurídico':'Tecnologia';el.innerHTML=`<div class="leaf-copy">${flat?`<div class="flat-kicker">${branch}</div>`:''}<div class="leaf-title-row"><strong>${item.title}</strong><span class="score-badge ${scoreClass(item.metrics.score)}">${item.metrics.score}</span><span class="price-badge">${item.priceLabel}</span></div><p>${item.description??''}</p><div class="metrics-mini">${metricPills(item.metrics)}</div></div>`;const side=document.createElement('div');side.className='leaf-actions';side.append(candidateButton(item),createTags(item.tags));el.appendChild(side);bindFocus(el,item);return el}
+function createNode(item,depth=0){if(!item.children?.length)return createLeaf(item);const f=template.content.cloneNode(true),node=f.querySelector('.service-node'),summary=f.querySelector('.node-summary'),content=f.querySelector('.node-content'),toggle=f.querySelector('.toggle-node-btn');f.querySelector('.node-title').textContent=item.title;f.querySelector('.node-description').textContent=item.description??'';f.querySelector('.node-icon').textContent=item.icon??(depth===0?'account_tree':'folder');f.querySelector('.node-tags').replaceWith(createTags(item.tags));const sb=f.querySelector('.score-badge');sb.textContent=item.metrics.score;sb.classList.add(scoreClass(item.metrics.score));f.querySelector('.price-badge').textContent=item.priceLabel;f.querySelector('.metrics-mini').innerHTML=metricPills(item.metrics);const stage=f.querySelector('.stage-badge');if(item.stage){stage.hidden=false;stage.textContent=item.stage}item.children.forEach(c=>content.appendChild(createNode(c,depth+1)));const initiallyOpen=depth===0||state.query||state.filters.size||state.branch!=='all';content.hidden=!initiallyOpen;toggle.querySelector('.material-symbols-rounded').textContent=initiallyOpen?'expand_less':'expand_more';toggle.querySelector('.toggle-label').textContent=initiallyOpen?'Fechar':'Abrir';toggle.addEventListener('click',e=>{e.stopPropagation();content.hidden=!content.hidden;const open=!content.hidden;toggle.querySelector('.material-symbols-rounded').textContent=open?'expand_less':'expand_more';toggle.querySelector('.toggle-label').textContent=open?'Fechar':'Abrir';node.classList.toggle('open',open)});node.classList.toggle('open',initiallyOpen);bindFocus(node,item);summary.addEventListener('dblclick',()=>toggle.click());return node}
+function updateBulkButtons(){const visible=visibleLeafItems();const marked=visible.filter(i=>selected.has(i.uid)).length;selectVisibleBtn.disabled=!visible.length||marked===visible.length;clearVisibleBtn.disabled=!visible.length||marked===0;selectVisibleBtn.title=visible.length?`Marcar ${visible.length} opções visíveis`:'Nenhuma opção visível';clearVisibleBtn.title=marked?`Desmarcar ${marked} opções visíveis selecionadas`:'Nenhuma opção visível selecionada'}
+function render(){catalog.replaceChildren();if(state.mode!=='all'){const items=flatDecisionItems();if(!items.length){catalog.innerHTML='<div class="empty">Nada sobrou com esses critérios.</div>';resultCount.textContent='0 itens';updateBulkButtons();return}items.forEach(i=>catalog.appendChild(createLeaf(i,true)));const label=sortByEl.options[sortByEl.selectedIndex]?.textContent??state.sortBy;resultCount.textContent=`${items.length} opções em lista • ${selected.size} selecionados • ordenação: ${label} (${state.direction==='desc'?'maior → menor':'menor → maior'})`;updateBulkButtons();return}const ordered=sortTree(filterTree(DATA));if(!ordered.length){catalog.innerHTML='<div class="empty">Nada sobrou com esses critérios.</div>';resultCount.textContent='0 itens';updateBulkButtons();return}ordered.forEach(i=>catalog.appendChild(createNode(i)));const label=sortByEl.options[sortByEl.selectedIndex]?.textContent??state.sortBy;resultCount.textContent=`${countNodes(ordered)} itens visíveis • ${selected.size} selecionados • ordenação: ${label} (${state.direction==='desc'?'maior → menor':'menor → maior'})`;updateBulkButtons()}
+function setMode(mode){state.mode=mode;decisionModesEl.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));render()}
+function updateDirectionUI(){const desc=pendingDirection==='desc';sortDirectionBtn.querySelector('.material-symbols-rounded').textContent=desc?'south':'north';sortDirectionText.textContent=desc?'Maior → menor':'Menor → maior'}
+searchEl.addEventListener('input',e=>{state.query=e.target.value.trim();render()});branchFilterEl.addEventListener('change',e=>{state.branch=e.target.value;render()});decisionModesEl.addEventListener('click',e=>{const b=e.target.closest('[data-mode]');if(b)setMode(state.mode===b.dataset.mode?'all':b.dataset.mode)});resetDecisionBtn.addEventListener('click',()=>{state.mode='all';state.branch='all';branchFilterEl.value='all';decisionModesEl.querySelectorAll('.active').forEach(b=>b.classList.remove('active'));render()});sortByEl.addEventListener('change',()=>applySortBtn.classList.add('pending'));sortDirectionBtn.addEventListener('click',()=>{pendingDirection=pendingDirection==='desc'?'asc':'desc';updateDirectionUI();applySortBtn.classList.add('pending')});applySortBtn.addEventListener('click',()=>{state.sortBy=sortByEl.value;state.direction=pendingDirection;applySortBtn.classList.remove('pending');render()});clearFiltersBtn.addEventListener('click',()=>{state.filters.clear();state.query='';searchEl.value='';state.branch='all';branchFilterEl.value='all';document.querySelectorAll('.chip.active').forEach(c=>c.classList.remove('active'));render()});
+selectVisibleBtn.addEventListener('click',()=>{const items=visibleLeafItems();items.forEach(i=>selected.add(i.uid));saveSelected();render()});
+clearVisibleBtn.addEventListener('click',()=>{const items=visibleLeafItems();items.forEach(i=>selected.delete(i.uid));saveSelected();render()});
+$('#expandAll').addEventListener('click',()=>catalog.querySelectorAll('.service-node').forEach(node=>{const content=node.querySelector(':scope > .node-content'),btn=node.querySelector(':scope > .node-summary .toggle-node-btn');if(!content||!btn)return;content.hidden=false;node.classList.add('open');btn.querySelector('.material-symbols-rounded').textContent='expand_less';btn.querySelector('.toggle-label').textContent='Fechar'}));$('#collapseAll').addEventListener('click',()=>catalog.querySelectorAll('.service-node').forEach(node=>{const content=node.querySelector(':scope > .node-content'),btn=node.querySelector(':scope > .node-summary .toggle-node-btn');if(!content||!btn)return;content.hidden=true;node.classList.remove('open');btn.querySelector('.material-symbols-rounded').textContent='expand_more';btn.querySelector('.toggle-label').textContent='Abrir'}));document.addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement!==searchEl){e.preventDefault();searchEl.focus()}if(e.key==='Escape'&&document.activeElement===searchEl){searchEl.value='';state.query='';searchEl.blur();render()}});
 renderSummary();renderFilters();updateDirectionUI();render();
