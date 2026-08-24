@@ -41,7 +41,7 @@ const catalog=$('#catalog'), filtersEl=$('#filters'), searchEl=$('#search'), res
 const clearFiltersBtn=$('#clearFilters'), sortByEl=$('#sortBy'), sortDirectionBtn=$('#sortDirection'), sortDirectionText=$('#sortDirectionText'), applySortBtn=$('#applySort');
 const branchFilterEl=$('#branchFilter'), decisionModesEl=$('#decisionModes'), resetDecisionBtn=$('#resetDecision');
 
-const state={query:'',filters:new Set(),branch:'all',mode:'all',sortBy:'score',direction:'desc'};
+const state={query:'',filters:new Set(),branch:'all',mode:'all',sortBy:'score',direction:'desc',focusedUid:null};
 let pendingDirection='desc';
 const selected=new Set(JSON.parse(localStorage.getItem('cnjp2-selected') || '[]'));
 
@@ -64,7 +64,7 @@ function estimateLeafPrice(item,key,m){
   return round50(min+(max-min)*factor);
 }
 function hydrate(items,parent=null,key=null,path=[]){
-  return items.map((item,index)=>{
+  return items.map(item=>{
     const metrics=deriveMetrics(item,parent), pricingKey=item.pricingKey??key, uid=[...path,item.title].join(' > ');
     const children=item.children?hydrate(item.children,metrics,pricingKey,[...path,item.title]):undefined;
     if(!children?.length){const price=estimateLeafPrice(item,pricingKey,metrics);return {...item,uid,metrics,pricingKey,price,priceMin:price,priceMax:price,priceLabel:`~ ${money(price)}`};}
@@ -78,9 +78,7 @@ const DATA=hydrate(ROOT);
 function leaves(items,out=[]){items.forEach(i=>i.children?.length?leaves(i.children,out):out.push(i));return out;}
 const ALL_LEAVES=leaves(DATA,[]);
 function countNodes(items){return items.reduce((a,i)=>a+1+(i.children?countNodes(i.children):0),0);}
-function collectTagCount(tag,items=DATA){return items.reduce((a,i)=>a+(i.tags?.includes(tag)?1:0)+(i.children?collectTagCount(tag,i.children):0),0);}
 function saveSelected(){localStorage.setItem('cnjp2-selected',JSON.stringify([...selected]));renderSummary();}
-
 function renderSummary(){
   const vals=[
     [ALL_LEAVES.length,'serviços finais'],
@@ -94,7 +92,6 @@ function renderFilters(){
   filtersEl.innerHTML=Object.entries(LEGEND).map(([k,i])=>`<button type="button" class="chip ${k}" data-filter="${k}" title="${i.short}">${i.label}</button>`).join('');
   filtersEl.addEventListener('click',e=>{const b=e.target.closest('[data-filter]');if(!b)return;const k=b.dataset.filter;state.filters.has(k)?state.filters.delete(k):state.filters.add(k);b.classList.toggle('active',state.filters.has(k));render();});
 }
-
 function modeSet(){
   if(state.mode==='all')return null;
   if(state.mode==='selected')return new Set([...selected]);
@@ -108,11 +105,28 @@ function modeSet(){
   });
   return new Set(filtered.map(i=>i.uid));
 }
-function branchAllowed(item,depth){
-  if(state.branch==='all')return true;
-  if(depth===1)return item.id===state.branch;
+function branchOf(item){return item.uid.includes(' > Jurídico & Extrajudicial > ')?'juridico':item.uid.includes(' > Tecnologia > ')?'tecnologia':'all';}
+function leafMatchesFilters(item,allowed){
+  if(state.branch!=='all'&&branchOf(item)!==state.branch)return false;
+  if(allowed&&!allowed.has(item.uid))return false;
+  if(state.query&&!normalize(`${item.title} ${item.description??''}`).includes(normalize(state.query)))return false;
+  if(state.filters.size&&![...state.filters].every(tag=>item.tags?.includes(tag)))return false;
   return true;
 }
+function flatDecisionItems(){
+  const allowed=modeSet();
+  let items=ALL_LEAVES.filter(i=>leafMatchesFilters(i,allowed));
+  return sortFlat(items);
+}
+function sortFlat(items){
+  const mult=state.direction==='desc'?-1:1;
+  return [...items].sort((a,b)=>{
+    if(state.sortBy==='title')return mult*a.title.localeCompare(b.title,'pt-BR');
+    const av=state.sortBy==='price'?a.price:Number(a.metrics?.[state.sortBy]??0), bv=state.sortBy==='price'?b.price:Number(b.metrics?.[state.sortBy]??0);
+    return av===bv?(b.metrics?.score??0)-(a.metrics?.score??0):mult*(av-bv);
+  });
+}
+function branchAllowed(item,depth){if(state.branch==='all')return true;if(depth===1)return item.id===state.branch;return true;}
 function itemMatches(item,depth,allowed){
   const q=!state.query||normalize(`${item.title} ${item.description??''}`).includes(normalize(state.query));
   const t=!state.filters.size||[...state.filters].every(tag=>item.tags?.includes(tag));
@@ -144,26 +158,48 @@ function scoreClass(s=0){return s>=95?'score-hot':s>=85?'score-good':s>=70?'scor
 function candidateButton(item){
   const b=document.createElement('button'); b.type='button'; b.className=`candidate-btn ${selected.has(item.uid)?'selected':''}`;
   b.innerHTML=`<span class="material-symbols-rounded">${selected.has(item.uid)?'star':'star_outline'}</span>${selected.has(item.uid)?'Selecionado':'Selecionar'}`;
-  b.addEventListener('click',()=>{selected.has(item.uid)?selected.delete(item.uid):selected.add(item.uid);saveSelected();render();});
+  b.addEventListener('click',e=>{e.stopPropagation();selected.has(item.uid)?selected.delete(item.uid):selected.add(item.uid);saveSelected();render();});
   return b;
 }
-function createLeaf(item){
-  const el=document.createElement('article');el.className='leaf';
-  el.innerHTML=`<div class="leaf-copy"><div class="leaf-title-row"><strong>${item.title}</strong><span class="score-badge ${scoreClass(item.metrics.score)}">${item.metrics.score}</span><span class="price-badge">${item.priceLabel}</span></div><p>${item.description??''}</p><div class="metrics-mini">${metricPills(item.metrics)}</div></div>`;
-  const side=document.createElement('div');side.className='leaf-actions';side.append(candidateButton(item),createTags(item.tags));el.appendChild(side);return el;
+function bindFocus(el,item){
+  if(state.focusedUid===item.uid)el.classList.add('focused');
+  el.addEventListener('click',e=>{
+    if(e.target.closest('button'))return;
+    state.focusedUid=state.focusedUid===item.uid?null:item.uid;
+    catalog.querySelectorAll('.focused').forEach(n=>n.classList.remove('focused'));
+    if(state.focusedUid)el.classList.add('focused');
+  });
+}
+function createLeaf(item,flat=false){
+  const el=document.createElement('article');el.className=flat?'leaf flat-card':'leaf';el.tabIndex=0;
+  const branch=branchOf(item)==='juridico'?'Jurídico':'Tecnologia';
+  el.innerHTML=`<div class="leaf-copy">${flat?`<div class="flat-kicker">${branch}</div>`:''}<div class="leaf-title-row"><strong>${item.title}</strong><span class="score-badge ${scoreClass(item.metrics.score)}">${item.metrics.score}</span><span class="price-badge">${item.priceLabel}</span></div><p>${item.description??''}</p><div class="metrics-mini">${metricPills(item.metrics)}</div></div>`;
+  const side=document.createElement('div');side.className='leaf-actions';side.append(candidateButton(item),createTags(item.tags));el.appendChild(side);bindFocus(el,item);return el;
 }
 function createNode(item,depth=0){
   if(!item.children?.length)return createLeaf(item);
-  const f=template.content.cloneNode(true),d=f.querySelector('details');
+  const f=template.content.cloneNode(true),node=f.querySelector('.service-node'),summary=f.querySelector('.node-summary'),content=f.querySelector('.node-content'),toggle=f.querySelector('.toggle-node-btn');
   f.querySelector('.node-title').textContent=item.title;f.querySelector('.node-description').textContent=item.description??'';f.querySelector('.node-icon').textContent=item.icon??(depth===0?'account_tree':'folder');
   f.querySelector('.node-tags').replaceWith(createTags(item.tags));const sb=f.querySelector('.score-badge');sb.textContent=item.metrics.score;sb.classList.add(scoreClass(item.metrics.score));f.querySelector('.price-badge').textContent=item.priceLabel;f.querySelector('.metrics-mini').innerHTML=metricPills(item.metrics);
   const stage=f.querySelector('.stage-badge');if(item.stage){stage.hidden=false;stage.textContent=item.stage;}
-  const content=f.querySelector('.node-content');item.children.forEach(c=>content.appendChild(createNode(c,depth+1)));
-  if(depth===0||state.query||state.filters.size||state.mode!=='all'||state.branch!=='all')d.open=true;return d;
+  item.children.forEach(c=>content.appendChild(createNode(c,depth+1)));
+  const initiallyOpen=depth===0||state.query||state.filters.size||state.branch!=='all';
+  content.hidden=!initiallyOpen;toggle.querySelector('.material-symbols-rounded').textContent=initiallyOpen?'expand_less':'expand_more';toggle.querySelector('.toggle-label').textContent=initiallyOpen?'Fechar':'Abrir';
+  toggle.addEventListener('click',e=>{e.stopPropagation();content.hidden=!content.hidden;const open=!content.hidden;toggle.querySelector('.material-symbols-rounded').textContent=open?'expand_less':'expand_more';toggle.querySelector('.toggle-label').textContent=open?'Fechar':'Abrir';node.classList.toggle('open',open);});
+  node.classList.toggle('open',initiallyOpen);bindFocus(node,item);summary.addEventListener('dblclick',()=>toggle.click());return node;
 }
 function render(){
-  const ordered=sortTree(filterTree(DATA));catalog.replaceChildren();
-  if(!ordered.length){catalog.innerHTML='<div class="empty">Nada sobrou com esses critérios. Pelo menos o problema de excesso de opções foi resolvido com violência.</div>';resultCount.textContent='0 itens';return;}
+  catalog.replaceChildren();
+  if(state.mode!=='all'){
+    const items=flatDecisionItems();
+    if(!items.length){catalog.innerHTML='<div class="empty">Nada sobrou com esses critérios.</div>';resultCount.textContent='0 itens';return;}
+    items.forEach(i=>catalog.appendChild(createLeaf(i,true)));
+    const label=sortByEl.options[sortByEl.selectedIndex]?.textContent??state.sortBy;
+    resultCount.textContent=`${items.length} opções em lista • ${selected.size} selecionados • ordenação: ${label} (${state.direction==='desc'?'maior → menor':'menor → maior'})`;
+    return;
+  }
+  const ordered=sortTree(filterTree(DATA));
+  if(!ordered.length){catalog.innerHTML='<div class="empty">Nada sobrou com esses critérios.</div>';resultCount.textContent='0 itens';return;}
   ordered.forEach(i=>catalog.appendChild(createNode(i)));const label=sortByEl.options[sortByEl.selectedIndex]?.textContent??state.sortBy;
   resultCount.textContent=`${countNodes(ordered)} itens visíveis • ${selected.size} selecionados • ordenação: ${label} (${state.direction==='desc'?'maior → menor':'menor → maior'})`;
 }
@@ -177,9 +213,9 @@ resetDecisionBtn.addEventListener('click',()=>{state.mode='all';state.branch='al
 sortByEl.addEventListener('change',()=>applySortBtn.classList.add('pending'));
 sortDirectionBtn.addEventListener('click',()=>{pendingDirection=pendingDirection==='desc'?'asc':'desc';updateDirectionUI();applySortBtn.classList.add('pending');});
 applySortBtn.addEventListener('click',()=>{state.sortBy=sortByEl.value;state.direction=pendingDirection;applySortBtn.classList.remove('pending');render();});
-$('#expandAll').addEventListener('click',()=>document.querySelectorAll('details').forEach(d=>d.open=true));
-$('#collapseAll').addEventListener('click',()=>document.querySelectorAll('details').forEach(d=>d.open=false));
-clearFiltersBtn.addEventListener('click',()=>{state.filters.clear();state.query='';searchEl.value='';document.querySelectorAll('.chip.active').forEach(c=>c.classList.remove('active'));render();});
+clearFiltersBtn.addEventListener('click',()=>{state.filters.clear();state.query='';searchEl.value='';state.branch='all';branchFilterEl.value='all';document.querySelectorAll('.chip.active').forEach(c=>c.classList.remove('active'));render();});
+$('#expandAll').addEventListener('click',()=>catalog.querySelectorAll('.service-node').forEach(node=>{const content=node.querySelector(':scope > .node-content'),btn=node.querySelector(':scope > .node-summary .toggle-node-btn');if(!content||!btn)return;content.hidden=false;node.classList.add('open');btn.querySelector('.material-symbols-rounded').textContent='expand_less';btn.querySelector('.toggle-label').textContent='Fechar';}));
+$('#collapseAll').addEventListener('click',()=>catalog.querySelectorAll('.service-node').forEach(node=>{const content=node.querySelector(':scope > .node-content'),btn=node.querySelector(':scope > .node-summary .toggle-node-btn');if(!content||!btn)return;content.hidden=true;node.classList.remove('open');btn.querySelector('.material-symbols-rounded').textContent='expand_more';btn.querySelector('.toggle-label').textContent='Abrir';}));
 document.addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement!==searchEl){e.preventDefault();searchEl.focus();}if(e.key==='Escape'&&document.activeElement===searchEl){searchEl.value='';state.query='';searchEl.blur();render();}});
 
 renderSummary();renderFilters();updateDirectionUI();render();
