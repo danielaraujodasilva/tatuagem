@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..700,0..1,0&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css?v=20260824-1516" />
+  <link rel="stylesheet" href="./styles.css?v=20260824-1534" />
 </head>
 <body>
   <main class="shell">
@@ -90,8 +90,8 @@
   </main>
 
   <template id="nodeTemplate">
-    <details class="service-node">
-      <summary>
+    <article class="service-node" tabindex="0">
+      <div class="node-summary">
         <div class="summary-main">
           <span class="node-icon material-symbols-rounded">folder</span>
           <div class="node-copy">
@@ -99,12 +99,12 @@
             <p class="node-description"></p><div class="metrics-mini"></div>
           </div>
         </div>
-        <div class="summary-side"><div class="node-tags"></div><span class="chevron material-symbols-rounded">expand_more</span></div>
-      </summary>
-      <div class="node-content"></div>
-    </details>
+        <div class="summary-side"><div class="node-tags"></div><button class="toggle-node-btn" type="button"><span class="material-symbols-rounded">expand_more</span><span class="toggle-label">Abrir</span></button></div>
+      </div>
+      <div class="node-content" hidden></div>
+    </article>
   </template>
 
-  <script type="module" src="./app.js?v=20260824-1516"></script>
+  <script type="module" src="./app.js?v=20260824-1534"></script>
 </body>
 </html>
