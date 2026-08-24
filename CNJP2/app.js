@@ -1,5 +1,5 @@
-import { SERVICES, LEGEND } from './services.js?v=20260824-1448';
-import { TECH_SERVICES } from './technology.js?v=20260824-1448';
+import { SERVICES, LEGEND } from './services.js';
+import { TECH_SERVICES } from './technology.js';
 
 const BASE_METRICS = {
   'documentos-cartorios': { score: 92, ease: 95, revenue: 70, recurring: 70, complexity: 25 },
@@ -113,7 +113,7 @@ function sortTree(items) {
     if (state.sortBy === 'title') return multiplier * a.title.localeCompare(b.title, 'pt-BR');
     const av = Number(a.metrics?.[state.sortBy] ?? 0);
     const bv = Number(b.metrics?.[state.sortBy] ?? 0);
-    if (av === bv) return b.metrics.score - a.metrics.score;
+    if (av === bv) return (b.metrics?.score ?? 0) - (a.metrics?.score ?? 0);
     return multiplier * (av - bv);
   });
 }
@@ -130,10 +130,11 @@ function createTags(tags = []) {
   return wrap;
 }
 function metricPills(metrics) {
-  const items = [['Facilidade', metrics.ease], ['Receita', metrics.revenue], ['Recorrência', metrics.recurring], ['Complexidade', metrics.complexity]];
+  const safe = metrics ?? { ease: 0, revenue: 0, recurring: 0, complexity: 0 };
+  const items = [['Facilidade', safe.ease], ['Receita', safe.revenue], ['Recorrência', safe.recurring], ['Complexidade', safe.complexity]];
   return items.map(([label, value]) => `<span title="${label}: ${value}/100"><b>${label}</b> ${value}</span>`).join('');
 }
-function scoreClass(score) {
+function scoreClass(score = 0) {
   if (score >= 95) return 'score-hot';
   if (score >= 85) return 'score-good';
   if (score >= 70) return 'score-mid';
@@ -141,8 +142,9 @@ function scoreClass(score) {
 }
 function createLeaf(item) {
   const el = document.createElement('article');
+  const score = item.metrics?.score ?? 0;
   el.className = 'leaf';
-  el.innerHTML = `<div class="leaf-copy"><div class="leaf-title-row"><strong>${item.title}</strong><span class="score-badge ${scoreClass(item.metrics.score)}">${item.metrics.score}</span></div><p>${item.description ?? ''}</p><div class="metrics-mini">${metricPills(item.metrics)}</div></div>`;
+  el.innerHTML = `<div class="leaf-copy"><div class="leaf-title-row"><strong>${item.title}</strong><span class="score-badge ${scoreClass(score)}">${score}</span></div><p>${item.description ?? ''}</p><div class="metrics-mini">${metricPills(item.metrics)}</div></div>`;
   el.appendChild(createTags(item.tags));
   return el;
 }
@@ -154,10 +156,11 @@ function createNode(item, depth = 0) {
   fragment.querySelector('.node-description').textContent = item.description ?? '';
   fragment.querySelector('.node-icon').textContent = item.icon ?? (depth === 0 ? 'category' : 'folder');
   fragment.querySelector('.node-tags').replaceWith(createTags(item.tags));
+  const score = item.metrics?.score ?? 0;
   const scoreBadge = fragment.querySelector('.score-badge');
-  scoreBadge.textContent = item.metrics.score;
-  scoreBadge.classList.add(scoreClass(item.metrics.score));
-  scoreBadge.title = `Prioridade geral: ${item.metrics.score}/100`;
+  scoreBadge.textContent = score;
+  scoreBadge.classList.add(scoreClass(score));
+  scoreBadge.title = `Prioridade geral: ${score}/100`;
   fragment.querySelector('.metrics-mini').innerHTML = metricPills(item.metrics);
   const stageBadge = fragment.querySelector('.stage-badge');
   if (item.stage) { stageBadge.hidden = false; stageBadge.textContent = item.stage; }
@@ -178,7 +181,7 @@ function render() {
     resultCount.textContent = '0 áreas encontradas';
     return;
   }
-  ordered.forEach(item => catalog.appendChild(createNode(item));
+  ordered.forEach(item => catalog.appendChild(createNode(item)));
   const dirText = state.direction === 'desc' ? 'maior → menor' : 'menor → maior';
   resultCount.textContent = `${ordered.length} de ${HYDRATED_SERVICES.length} áreas • ${countNodes(ordered)} itens • ordenado por ${sortLabel()} (${dirText})`;
 }
@@ -208,7 +211,6 @@ applySortBtn.addEventListener('click', () => {
   state.direction = pendingDirection;
   clearSortPending();
   render();
-  applySortBtn.animate([{ transform: 'scale(1)' }, { transform: 'scale(.96)' }, { transform: 'scale(1)' }], { duration: 180 });
 });
 
 document.addEventListener('keydown', event => {
