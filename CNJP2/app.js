@@ -27,8 +27,16 @@ const clearFiltersBtn = document.querySelector('#clearFilters');
 const sortByEl = document.querySelector('#sortBy');
 const sortDirectionBtn = document.querySelector('#sortDirection');
 const sortDirectionText = document.querySelector('#sortDirectionText');
+const applySortBtn = document.querySelector('#applySort');
 
-const state = { query: '', filters: new Set(), sortBy: 'score', direction: 'desc' };
+const state = {
+  query: '',
+  filters: new Set(),
+  sortBy: 'score',
+  direction: 'desc',
+  pendingSortBy: 'score',
+  pendingDirection: 'desc'
+};
 
 const normalize = (value = '') => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const clamp = value => Math.max(0, Math.min(100, Math.round(value)));
@@ -232,9 +240,19 @@ function render() {
 }
 
 function updateDirectionUI() {
-  const desc = state.direction === 'desc';
+  const desc = state.pendingDirection === 'desc';
   sortDirectionBtn.querySelector('.material-symbols-rounded').textContent = desc ? 'south' : 'north';
   sortDirectionText.textContent = desc ? 'Maior → menor' : 'Menor → maior';
+}
+
+function markSortPending() {
+  applySortBtn.classList.add('active');
+  applySortBtn.title = 'Há uma alteração de ordenação aguardando aplicação';
+}
+
+function clearSortPending() {
+  applySortBtn.classList.remove('active');
+  applySortBtn.title = '';
 }
 
 searchEl.addEventListener('input', event => {
@@ -243,13 +261,20 @@ searchEl.addEventListener('input', event => {
 });
 
 sortByEl.addEventListener('change', event => {
-  state.sortBy = event.target.value;
-  render();
+  state.pendingSortBy = event.target.value;
+  markSortPending();
 });
 
 sortDirectionBtn.addEventListener('click', () => {
-  state.direction = state.direction === 'desc' ? 'asc' : 'desc';
+  state.pendingDirection = state.pendingDirection === 'desc' ? 'asc' : 'desc';
   updateDirectionUI();
+  markSortPending();
+});
+
+applySortBtn.addEventListener('click', () => {
+  state.sortBy = state.pendingSortBy;
+  state.direction = state.pendingDirection;
+  clearSortPending();
   render();
 });
 
