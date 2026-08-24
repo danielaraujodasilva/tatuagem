@@ -4,36 +4,117 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light" />
-  <meta name="theme-color" content="#f7f8fb" />
-  <title>CNJP2 • Mapa Interno</title>
-  <meta name="description" content="Mapa interno de serviços, prioridades e oportunidades da CNJP." />
+  <meta name="theme-color" content="#f4f6f8" />
+  <title>CNJP2 • Mapa de Decisão</title>
+  <meta name="description" content="Mapa interno para comparar, filtrar e selecionar serviços da CNJP." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..700,0..1,0&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css?v=20260824-1558" />
+  <link rel="stylesheet" href="./styles.css?v=20260824-1605" />
 </head>
 <body>
   <main class="shell">
-    <div class="topline"><div><strong>CNJP2</strong><span>mapa interno de serviços e prioridades</span></div><span class="internal-badge">uso interno</span></div>
-    <section class="toolbar" aria-label="Ferramentas">
-      <label class="search-box"><span class="material-symbols-rounded">search</span><input id="search" type="search" placeholder="Buscar serviço, problema ou tecnologia…" autocomplete="off" /><kbd>/</kbd></label>
-      <div class="toolbar-actions"><button id="expandAll" class="ghost-btn" type="button"><span class="material-symbols-rounded">unfold_more</span>Abrir tudo</button><button id="collapseAll" class="ghost-btn" type="button"><span class="material-symbols-rounded">unfold_less</span>Fechar tudo</button></div>
+    <header class="topline">
+      <div><strong>CNJP2</strong><span>mapa de decisão de serviços e prioridades</span></div>
+      <span class="internal-badge">uso interno</span>
+    </header>
+
+    <section class="toolbar" aria-label="Busca e navegação">
+      <label class="search-box">
+        <span class="material-symbols-rounded" aria-hidden="true">search</span>
+        <input id="search" type="search" placeholder="Buscar serviço, problema ou tecnologia…" autocomplete="off" aria-label="Buscar serviços" />
+        <kbd>/</kbd>
+      </label>
+      <div class="toolbar-actions">
+        <button id="expandAll" class="ghost-btn" type="button"><span class="material-symbols-rounded" aria-hidden="true">unfold_more</span>Abrir tudo</button>
+        <button id="collapseAll" class="ghost-btn" type="button"><span class="material-symbols-rounded" aria-hidden="true">unfold_less</span>Fechar tudo</button>
+      </div>
     </section>
-    <section class="summary-grid" id="summary"></section>
-    <section class="decision-panel">
-      <div class="decision-head"><div><strong>Modo decisão</strong><span>Reduza a árvore até sobrar coisa que vale discutir.</span></div><button id="resetDecision" class="text-btn" type="button">Mostrar tudo</button></div>
-      <div class="decision-chips" id="decisionModes"><button type="button" data-mode="top10">Top 10</button><button type="button" data-mode="ready">Prontos agora</button><button type="button" data-mode="recurring">Alta recorrência</button><button type="button" data-mode="ticket">Ticket ≥ R$ 1.000</button><button type="button" data-mode="simple">Baixa complexidade</button><button type="button" data-mode="selected">Só selecionados</button></div>
+
+    <section class="summary-grid" id="summary" aria-label="Resumo"></section>
+
+    <section class="decision-panel" aria-label="Modo decisão">
+      <div class="decision-head">
+        <div><strong>Modo decisão</strong><span>Use uma peneira rápida e compare só o que merece atenção.</span></div>
+        <button id="resetDecision" class="text-btn" type="button">Mostrar tudo</button>
+      </div>
+      <div class="decision-chips" id="decisionModes">
+        <button type="button" data-mode="top10">Top 10</button>
+        <button type="button" data-mode="ready">Prontos agora</button>
+        <button type="button" data-mode="recurring">Alta recorrência</button>
+        <button type="button" data-mode="ticket">Ticket ≥ R$ 1.000</button>
+        <button type="button" data-mode="simple">Baixa complexidade</button>
+        <button type="button" data-mode="selected">Só selecionados</button>
+      </div>
     </section>
-    <section class="control-panel">
-      <div class="filter-block"><span class="control-title">Tipo de atuação</span><div class="chips" id="filters"></div></div>
-      <div class="selector-block"><label><span class="control-title">Área</span><select id="branchFilter"><option value="all">Jurídico + Tecnologia</option><option value="juridico">Só Jurídico</option><option value="tecnologia">Só Tecnologia</option></select></label></div>
-      <div class="sort-block"><label><span class="control-title">Ordenar por</span><select id="sortBy"><option value="score">Prioridade geral</option><option value="price">Valor de venda</option><option value="ease">Facilidade de executar</option><option value="revenue">Potencial de receita</option><option value="recurring">Potencial de recorrência</option><option value="complexity">Complexidade</option><option value="title">Nome</option></select></label><button id="sortDirection" class="direction-btn" type="button" aria-label="Alternar ordem"><span class="material-symbols-rounded">south</span><span id="sortDirectionText">Maior → menor</span></button><button id="applySort" class="primary-btn" type="button"><span class="material-symbols-rounded">sort</span>Aplicar</button></div>
+
+    <section class="control-panel" aria-label="Filtros e ordenação">
+      <div class="filter-block">
+        <span class="control-title">Tipo de atuação</span>
+        <div class="chips" id="filters"></div>
+      </div>
+      <div class="selector-block">
+        <label>
+          <span class="control-title">Área</span>
+          <select id="branchFilter">
+            <option value="all">Jurídico + Tecnologia</option>
+            <option value="juridico">Só Jurídico</option>
+            <option value="tecnologia">Só Tecnologia</option>
+          </select>
+        </label>
+      </div>
+      <div class="sort-block">
+        <label>
+          <span class="control-title">Ordenar por</span>
+          <select id="sortBy">
+            <option value="score">Prioridade geral</option>
+            <option value="price">Valor de venda</option>
+            <option value="ease">Facilidade de executar</option>
+            <option value="revenue">Potencial de receita</option>
+            <option value="recurring">Potencial de recorrência</option>
+            <option value="complexity">Complexidade</option>
+            <option value="title">Nome</option>
+          </select>
+        </label>
+        <button id="sortDirection" class="direction-btn" type="button" aria-label="Alternar direção da ordenação"><span class="material-symbols-rounded" aria-hidden="true">south</span><span id="sortDirectionText">Maior → menor</span></button>
+        <button id="applySort" class="primary-btn" type="button"><span class="material-symbols-rounded" aria-hidden="true">sort</span>Aplicar</button>
+      </div>
     </section>
-    <div class="result-line"><span id="resultCount"></span><div class="selection-actions"><button id="selectVisible" type="button" class="bulk-btn"><span class="material-symbols-rounded">select_all</span>Marcar todas</button><button id="clearVisible" type="button" class="bulk-btn"><span class="material-symbols-rounded">deselect</span>Desmarcar todas</button><button id="clearFilters" type="button" class="text-btn">Limpar filtros</button></div></div>
+
+    <div class="result-line">
+      <span id="resultCount" aria-live="polite"></span>
+      <div class="selection-actions" aria-label="Seleção em lote">
+        <button id="selectVisible" type="button" class="bulk-btn"><span class="material-symbols-rounded" aria-hidden="true">select_all</span>Marcar visíveis</button>
+        <button id="clearVisible" type="button" class="bulk-btn"><span class="material-symbols-rounded" aria-hidden="true">deselect</span>Desmarcar visíveis</button>
+        <button id="clearFilters" type="button" class="text-btn">Limpar filtros</button>
+      </div>
+    </div>
+
     <section id="catalog" class="catalog" aria-live="polite"></section>
-    <footer><p>Valores e notas são estimativas internas para comparação. A seleção de candidatos fica salva neste navegador.</p></footer>
+
+    <footer><p>Valores e notas são estimativas internas para comparação. As seleções ficam salvas neste navegador.</p></footer>
   </main>
-  <template id="nodeTemplate"><article class="service-node" tabindex="0"><div class="node-summary"><div class="summary-main"><span class="node-icon material-symbols-rounded">folder</span><div class="node-copy"><div class="node-title-row"><h3 class="node-title"></h3><span class="stage-badge" hidden></span><span class="score-badge"></span><span class="price-badge"></span></div><p class="node-description"></p><div class="metrics-mini"></div></div></div><div class="summary-side"><div class="node-tags"></div><button class="toggle-node-btn" type="button"><span class="material-symbols-rounded">expand_more</span><span class="toggle-label">Abrir</span></button></div></div><div class="node-content" hidden></div></article></template>
+
+  <template id="nodeTemplate">
+    <article class="service-node" tabindex="0">
+      <div class="node-summary">
+        <div class="summary-main">
+          <span class="node-icon material-symbols-rounded" aria-hidden="true">folder</span>
+          <div class="node-copy">
+            <div class="node-title-row"><h3 class="node-title"></h3><span class="stage-badge" hidden></span><span class="score-badge"></span><span class="price-badge"></span></div>
+            <p class="node-description"></p>
+            <div class="metrics-mini"></div>
+          </div>
+        </div>
+        <div class="summary-side">
+          <div class="node-tags"></div>
+          <button class="toggle-node-btn" type="button" aria-expanded="false"><span class="material-symbols-rounded" aria-hidden="true">expand_more</span><span class="toggle-label">Abrir</span></button>
+        </div>
+      </div>
+      <div class="node-content" hidden></div>
+    </article>
+  </template>
+
   <script type="module" src="./app.js?v=20260824-1558"></script>
 </body>
 </html>
