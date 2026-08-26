@@ -110,7 +110,7 @@
     </section>
 
     <section class="section client-wrap">
-      <div class="track-box"><div><span class="material-symbols-rounded">search</span><div><strong>Já tem um pedido?</strong><p>Acompanhe status, pendências, documentos, valores e próxima ação sem se perder em conversa antiga.</p></div></div><form id="trackForm"><input value="CD-1086" aria-label="Número do pedido"><button class="btn primary" type="submit">Acompanhar</button></form></div>
+      <div class="track-box" id="clientPortal"><div><span class="material-symbols-rounded">lock_person</span><div><strong>Acompanhe seu pedido</strong><p>Entre com o código do ticket e o telefone informado no atendimento para ver a evolução, pendências, documentos e valores.</p></div></div><form id="customerLoginForm"><input required aria-label="Código do pedido" placeholder="Código (ex.: CD-1091)"><input required aria-label="Telefone do pedido" placeholder="Telefone cadastrado"><button class="btn primary" type="submit">Acessar pedido</button></form><div id="customerPortalResult" hidden></div></div>
     </section>
   </main>
 
@@ -122,5 +122,6 @@
   <script type="module" src="./catalog.js?v=20260826-4"></script>
   <script type="module" src="./enhancements.js?v=20260826-5"></script>
   <script src="./api-client.js?v=20260826-1"></script>
+  <script src="./customer-portal.js?v=20260826-1"></script>
 </body>
 </html>
