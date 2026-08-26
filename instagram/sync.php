@@ -224,6 +224,23 @@ function ig_normalize_item(array $item): ?array
     ];
 }
 
+function ig_caption_metadata(string $caption): array
+{
+    $clean = trim(preg_replace('/\s+/', ' ', $caption));
+    if ($clean === '') return [];
+    $first = trim((string)preg_split('/[.!?](?:\s|$)/', $clean, 2)[0]);
+    $pick = static function (string $key) use ($caption): string {
+        if (preg_match('/(?:^|[#|\n])\s*' . preg_quote($key, '/') . '\s*[:=]\s*([^|\n#]+)/iu', $caption, $m)) return trim($m[1]);
+        return '';
+    };
+    $meta = ['title' => mb_substr($first !== '' ? $first : 'Projeto de tatuagem', 0, 90), 'description' => mb_substr($clean, 0, 500), 'alt' => mb_substr($clean, 0, 160)];
+    foreach (['style' => 'estilo', 'body_area' => 'area', 'sessions' => 'sessoes'] as $field => $key) {
+        $value = $pick($key);
+        if ($value !== '') $meta[$field] = $field === 'sessions' ? max(1, (int)$value) : $value;
+    }
+    return $meta;
+}
+
 $fields = implode(',', ['id', 'caption', 'media_type', 'media_url', 'permalink', 'thumbnail_url', 'timestamp']);
 $nextUrl = 'https://graph.instagram.com/v24.0/me/media?' . http_build_query([
     'fields' => $fields,
@@ -275,6 +292,12 @@ if ($mirrorToGallery && count($items) > 0) {
     $downloaded = 0;
     $failed = 0;
     $total = count($items);
+    $galleryMetadata = [];
+    $metadataPath = $galleryDir . DIRECTORY_SEPARATOR . 'metadata.json';
+    if (is_file($metadataPath)) {
+        $existingMetadata = json_decode((string)@file_get_contents($metadataPath), true);
+        if (is_array($existingMetadata)) $galleryMetadata = $existingMetadata;
+    }
 
     if (empty($gallerySync['error'])) {
         foreach ($items as $pos => $post) {
@@ -293,10 +316,16 @@ if ($mirrorToGallery && count($items) > 0) {
 
             if (ig_download_media((string)$post['image'], $destination, $downloadTimeout)) {
                 $downloaded++;
+                $captionMeta = ig_caption_metadata((string)$post['caption']);
+                if ($captionMeta) $galleryMetadata[$filename] = $captionMeta;
             } else {
                 $failed++;
             }
         }
+    }
+
+    if (!empty($galleryMetadata)) {
+        @file_put_contents($metadataPath, json_encode($galleryMetadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
     }
 
     $gallerySync['downloaded'] = $downloaded;
