@@ -1,4 +1,4 @@
-import { SERVICES, CATEGORIES } from './data.js?v=20260826-3';
+import { SERVICES, CATEGORIES } from './data.js?v=20260826-4';
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -17,9 +17,14 @@ function serviceCard(s){
 }
 
 function initClientCatalog(){
-  const grid=$('#serviceGrid'),filters=$('#categoryFilters'),search=$('#serviceSearch'),count=$('#serviceCount'),label=$('#activeCategoryLabel'),empty=$('#serviceEmpty');
-  if(!grid||!filters)return;
+  const grid=$('#serviceGrid'),popularGrid=$('#popularServiceGrid'),filters=$('#categoryFilters'),search=$('#serviceSearch'),count=$('#serviceCount'),label=$('#activeCategoryLabel'),empty=$('#serviceEmpty'),full=$('#fullCatalog'),showFull=$('#showFullCatalog'),hideFull=$('#hideFullCatalog'),totalBadge=$('#totalServiceBadge');
+  if(!grid||!filters||!popularGrid)return;
   let category='all',query='';
+
+  const popularIds=['certidao-nascimento','certidao-casamento','assinaturas','autenticacao','procuracoes','imoveis','pesquisa-matricula','protestos','notificacao-cobranca','mediacao-geral'];
+  const popular=popularIds.map(id=>SERVICES.find(s=>s.id===id)).filter(Boolean).slice(0,10);
+  popularGrid.innerHTML=popular.map(serviceCard).join('');
+  if(totalBadge) totalBadge.textContent=`${SERVICES.length}+`;
 
   filters.innerHTML=[`<button class="category-chip active" data-category="all"><span class="material-symbols-rounded">apps</span>Todos <b>${SERVICES.length}</b></button>`,...CATEGORIES.map(c=>`<button class="category-chip" data-category="${c.id}"><span class="material-symbols-rounded">${c.icon}</span>${c.title} <b>${SERVICES.filter(s=>s.category===c.id).length}</b></button>`)].join('');
 
@@ -31,6 +36,12 @@ function initClientCatalog(){
     label.textContent=category==='all'?'Todos os assuntos':categoryBy(category)?.title||'';
     empty.hidden=items.length>0;
   };
+
+  const openFull=()=>{full.hidden=false;showFull.setAttribute('aria-expanded','true');render();requestAnimationFrame(()=>full.scrollIntoView({behavior:'smooth',block:'start'}))};
+  const closeFull=()=>{full.hidden=true;showFull.setAttribute('aria-expanded','false');$('#servicos')?.scrollIntoView({behavior:'smooth',block:'start'})};
+  showFull?.setAttribute('aria-expanded','false');
+  showFull?.addEventListener('click',openFull);
+  hideFull?.addEventListener('click',closeFull);
 
   filters.addEventListener('click',e=>{const b=e.target.closest('[data-category]');if(!b)return;category=b.dataset.category;$$('[data-category]',filters).forEach(x=>x.classList.toggle('active',x===b));render()});
   search?.addEventListener('input',e=>{query=e.target.value.trim();render()});
@@ -50,9 +61,6 @@ function initAdminCatalog(){
   const enhance=()=>{
     const grid=$('.service-admin-grid',root);
     if(!grid)return;
-
-    // O app base pode ter renderizado um catálogo antigo vindo do cache.
-    // Aqui o catálogo é sempre reconstruído usando o conjunto completo atual.
     grid.innerHTML=SERVICES.map(adminCard).join('');
 
     let toolbar=$('.admin-catalog-toolbar',root);
