@@ -14,13 +14,12 @@ if(document.body.dataset.page==='admin') initAdminEnhancements();
 function initClientEnhancements(){
   const modal=$('#flowModal'),content=$('#flowContent');
   if(!modal||!content)return;
-  const open=html=>{content.innerHTML=html;modal.showModal()};
-  const close=()=>modal.close();
+  const open=html=>{content.innerHTML=html;if(!modal.open)modal.showModal()};
+  const close=()=>{if(modal.open)modal.close()};
 
   const guided=$('#guidedTriage');
   if(guided) renderGuidedTriage(guided,open);
 
-  // Assume o clique dos cards antes do app antigo para exibir o detalhe novo.
   document.addEventListener('click',e=>{
     const card=e.target.closest('[data-service]');
     if(card&&document.body.dataset.page==='client'){
@@ -30,7 +29,7 @@ function initClientEnhancements(){
       return;
     }
     const track=e.target.closest('[data-track-enhanced]');
-    if(track){e.preventDefault();showEnhancedTracking(track.dataset.trackEnhanced||'CD-1086',open,close)}
+    if(track){e.preventDefault();e.stopImmediatePropagation();showEnhancedTracking(track.dataset.trackEnhanced||'CD-1086',open,close)}
   },true);
 
   const trackForm=$('#trackForm');
@@ -96,19 +95,20 @@ function estimate(s){
 }
 
 function showServiceDetail(s,open,close){
-  const ctx=serviceContext(s),est=estimate(s);
+  const content=$('#flowContent'),ctx=serviceContext(s),est=estimate(s);
   open(`<div class="flow-inner service-detail"><div class="service-detail-head">${icon(s.icon)}<div><span class="kicker">${ctx.cat}</span><h2>${s.title}</h2><p>${s.desc}</p></div></div><div class="service-detail-grid"><section><h3>Quando este serviço ajuda</h3><p>Quando a demanda se encaixa em <strong>${s.title.toLowerCase()}</strong> e o cliente quer evitar descobrir sozinho formulários, documentos, canais, protocolos e próximos passos.</p></section><section><h3>Quem faz o quê</h3><p>${ctx.limits}</p></section></div><section class="case-section"><h3>Para começar, normalmente precisamos de</h3>${s.docs.map(d=>`<div class="doc-line"><span>${d}</span><span class="ok">vamos conferir</span></div>`).join('')}</section><section class="case-section"><h3>Como o processo anda</h3><div class="service-stepper">${s.steps.map((st,i)=>`<div><b>${i+1}</b><span>${st}</span></div>`).join('')}</div></section><section class="quote-preview"><div class="quote-head"><div><span class="kicker">Estimativa simulada</span><h3>Veja como o orçamento seria apresentado</h3></div><span>valores apenas demonstrativos</span></div><div class="quote-lines"><div><span>Taxas / emolumentos oficiais estimados</span><strong>${money(est.official)}</strong></div>${est.third?`<div><span>Terceiros / profissional estimado</span><strong>${money(est.third)}</strong></div>`:''}<div><span>Serviço CNJP</span><strong>${money(est.fee)}</strong></div><div class="quote-total"><span>Total estimado</span><strong>${money(est.total)}</strong></div></div><p>O valor real dependerá do caso, da serventia, dos documentos e de eventuais profissionais necessários.</p></section><div class="flow-actions service-detail-actions"><button class="btn secondary" type="button" data-service-human>Falar com uma pessoa</button><button class="btn primary" type="button" data-request-quote>Continuar e pedir orçamento</button></div></div>`);
   $('[data-service-human]',content)?.addEventListener('click',()=>showLeadForm(s,est,open,close,'humano'));
   $('[data-request-quote]',content)?.addEventListener('click',()=>showLeadForm(s,est,open,close,'digital'));
 }
 
 function showLeadForm(s,est,open,close,mode){
+  const content=$('#flowContent');
   open(`<div class="flow-inner"><span class="kicker">${mode==='humano'?'Atendimento assistido':'Pré-orçamento'}</span><h2>${s.title}</h2><p>${mode==='humano'?'Deixe um contato e uma pessoa continua a conversa.':'Preencha o básico. O pedido só vira processo depois da conferência e aprovação do orçamento.'}</p><form id="enhancedLead" class="flow-form"><div class="field"><label>Nome</label><input required placeholder="Seu nome"></div><div class="field"><label>WhatsApp ou telefone</label><input required placeholder="(11) 99999-9999"></div><div class="field"><label>Conte o caso</label><textarea placeholder="Explique o que aconteceu e o que você já tem em mãos."></textarea></div><div class="field"><label>Como prefere ser atendido?</label><select><option>${mode==='humano'?'Quero falar com uma pessoa':'Quero continuar online'}</option><option>WhatsApp</option><option>Telefone</option><option>Presencial</option></select></div><section class="quote-mini"><span>Estimativa demonstrativa</span><strong>${money(est.total)}</strong><small>Taxas, terceiros e serviço aparecem separados antes da aprovação.</small></section><div class="flow-actions"><button class="btn primary" type="submit">Gerar pré-pedido simulado</button></div></form></div>`);
   $('#enhancedLead',content)?.addEventListener('submit',e=>{e.preventDefault();open(`<div class="flow-inner success-flow"><span class="success-icon material-symbols-rounded">task_alt</span><span class="kicker">Pré-pedido criado</span><h2>CD-1092</h2><p>Agora a equipe conferiria os dados e documentos. Depois disso o cliente receberia o orçamento final para aprovar antes de qualquer protocolo.</p><div class="track-summary"><div><span>Serviço</span><strong>${s.title}</strong></div><div><span>Status</span><strong>Aguardando conferência</strong></div><div><span>Estimativa</span><strong>${money(est.total)}</strong></div><div><span>Próxima ação</span><strong>Equipe revisar</strong></div></div><div class="flow-actions"><button class="btn primary" type="button" data-close-success>Entendi</button></div></div>`);$('[data-close-success]',content)?.addEventListener('click',close)})
 }
 
 function showEnhancedTracking(id,open,close){
-  const c=CASES.find(x=>x.id===id)||CASES[1];if(!c)return;
+  const content=$('#flowContent'),c=CASES.find(x=>x.id===id)||CASES[1];if(!c)return;
   const st=STATUS[c.status]||{label:c.status};
   const pending=c.docs.filter(([,s])=>s!=='ok');
   const next=c.status==='exigencia'?'Enviar o documento/correção exigida':c.status==='protocolado'?'Aguardar análise da serventia':c.status==='aguardando'?'Aguardar retorno do terceiro':c.status==='entregue'?'Nenhuma. Processo concluído':'Concluir checklist e conferência';
