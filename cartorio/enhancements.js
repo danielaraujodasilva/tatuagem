@@ -108,8 +108,8 @@ function showLeadForm(s,est,open,close,mode){
   $('#enhancedLead',content)?.addEventListener('submit',e=>{e.preventDefault();open(`<div class="flow-inner success-flow"><span class="success-icon material-symbols-rounded">task_alt</span><span class="kicker">Pré-pedido criado</span><h2>CD-1092</h2><p>Agora a equipe conferiria os dados e documentos. Depois disso o cliente receberia o orçamento final para aprovar antes de qualquer protocolo.</p><div class="track-summary"><div><span>Serviço</span><strong>${s.title}</strong></div><div><span>Status</span><strong>Aguardando conferência</strong></div><div><span>Estimativa</span><strong>${money(est.total)}</strong></div><div><span>Próxima ação</span><strong>Equipe revisar</strong></div></div><div class="flow-actions"><button class="btn primary" type="button" data-close-success>Entendi</button></div></div>`);$('[data-close-success]',content)?.addEventListener('click',close)})
 }
 
-function showEnhancedTracking(id,open,close){
-  const content=$('#flowContent'),c=CASES.find(x=>x.id===id)||CASES[1];if(!c)return;
+async function showEnhancedTracking(id,open,close){
+  const content=$('#flowContent');let c=CASES.find(x=>x.id===id)||CASES[1];try{const r=await fetch('./api.php?action=track&code='+encodeURIComponent(id));const d=await r.json();if(d.ok)c={...c,id:d.request.code,client:d.request.client,title:d.request.service,channel:d.request.channel,status:d.request.status,amount:Number(d.request.amount),description:d.request.description}}catch(e){};
   const st=STATUS[c.status]||{label:c.status};
   const pending=c.docs.filter(([,s])=>s!=='ok');
   const next=c.status==='exigencia'?'Enviar o documento/correção exigida':c.status==='protocolado'?'Aguardar análise da serventia':c.status==='aguardando'?'Aguardar retorno do terceiro':c.status==='entregue'?'Nenhuma. Processo concluído':'Concluir checklist e conferência';
