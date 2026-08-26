@@ -6,6 +6,7 @@ const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',ma
 const normalize=(v='')=>v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const categoryBy=id=>CATEGORIES.find(c=>c.id===id);
 const icon=n=>`<span class="material-symbols-rounded">${n}</span>`;
+let activeServices=SERVICES;
 
 if(document.body.dataset.page==='client') initClientCatalog();
 if(document.body.dataset.page==='admin') initAdminCatalog();
@@ -19,18 +20,19 @@ function serviceCard(s){
 function initClientCatalog(){
   const grid=$('#serviceGrid'),popularGrid=$('#popularServiceGrid'),filters=$('#categoryFilters'),search=$('#serviceSearch'),count=$('#serviceCount'),label=$('#activeCategoryLabel'),empty=$('#serviceEmpty'),full=$('#fullCatalog'),showFull=$('#showFullCatalog'),hideFull=$('#hideFullCatalog'),totalBadge=$('#totalServiceBadge');
   if(!grid||!filters||!popularGrid)return;
+  if(!window.__catalogLoaded){window.__catalogLoaded=true;fetch('./api.php?action=services_public').then(r=>r.json()).then(d=>{if(d.ok&&d.services?.length){activeServices=d.services.map(s=>({...s,docs:JSON.parse(s.docs_json||'[]'),steps:JSON.parse(s.steps_json||'[]')}));initClientCatalog()}}).catch(()=>{});}
   let category='all',query='';
 
   const popularIds=['certidao-nascimento','certidao-casamento','assinaturas','autenticacao','procuracoes','imoveis','pesquisa-matricula','protestos','notificacao-cobranca','mediacao-geral'];
-  const popular=popularIds.map(id=>SERVICES.find(s=>s.id===id)).filter(Boolean).slice(0,10);
+  const popular=popularIds.map(id=>activeServices.find(s=>s.id===id)).filter(Boolean).slice(0,10);
   popularGrid.innerHTML=popular.map(serviceCard).join('');
-  if(totalBadge) totalBadge.textContent=`${SERVICES.length}+`;
+  if(totalBadge) totalBadge.textContent=`${activeServices.length}+`;
 
   filters.innerHTML=[`<button class="category-chip active" data-category="all"><span class="material-symbols-rounded">apps</span>Todos <b>${SERVICES.length}</b></button>`,...CATEGORIES.map(c=>`<button class="category-chip" data-category="${c.id}"><span class="material-symbols-rounded">${c.icon}</span>${c.title} <b>${SERVICES.filter(s=>s.category===c.id).length}</b></button>`)].join('');
 
   const render=()=>{
     const q=normalize(query);
-    const items=SERVICES.filter(s=>(category==='all'||s.category===category)&&(!q||normalize(`${s.title} ${s.desc} ${s.channel} ${categoryBy(s.category)?.title||''}`).includes(q)));
+    const items=activeServices.filter(s=>(category==='all'||s.category===category)&&(!q||normalize(`${s.title} ${s.desc} ${s.channel} ${categoryBy(s.category)?.title||''}`).includes(q)));
     grid.innerHTML=items.map(serviceCard).join('');
     count.textContent=`${items.length} ${items.length===1?'serviço':'serviços'}`;
     label.textContent=category==='all'?'Todos os assuntos':categoryBy(category)?.title||'';
