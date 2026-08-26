@@ -33,11 +33,11 @@
         <div class="trust-row"><span><i class="material-symbols-rounded">verified_user</i>Dados protegidos</span><span><i class="material-symbols-rounded">receipt_long</i>Valores separados</span><span><i class="material-symbols-rounded">visibility</i>Acompanhamento claro</span></div>
       </div>
       <div class="hero-demo">
-        <div class="phone-card">
-          <div class="phone-top"><span>Pedido CD-1086</span><span class="status-dot">em andamento</span></div>
-          <div class="progress-ring"><strong>4/6</strong><span>etapas concluídas</span></div>
-          <div class="timeline compact"><div class="done">Solicitação recebida</div><div class="done">Documentos conferidos</div><div class="done">Pagamento aprovado</div><div class="done">Protocolado</div><div class="active">Em análise pelo cartório</div><div>Documento entregue</div></div>
-          <button class="mini-link" data-track-enhanced="CD-1086">Ver acompanhamento completo</button>
+        <div class="phone-card client-portal-card" id="clientPortal">
+          <div class="phone-top"><span><i class="material-symbols-rounded">lock_person</i> Portal do cliente</span><span class="status-dot">acesso seguro</span></div>
+          <h2>Acompanhe seu pedido</h2><p>Veja status, prazos, documentos, valores e histórico em um só lugar.</p>
+          <form id="customerLoginForm" class="portal-login-form"><input required aria-label="Código do pedido" placeholder="Código do pedido"><input required aria-label="Telefone do pedido" placeholder="Telefone cadastrado"><button class="btn primary" type="submit">Acessar portal</button></form>
+          <div id="customerPortalResult" hidden></div>
         </div>
       </div>
     </section>
@@ -109,9 +109,6 @@
       <div class="trust-block"><span class="kicker">Transparência</span><h2>Você sabe quem está cuidando, quanto custa e onde seu pedido está.</h2><p>Antes de virar funcional, a experiência já nasce com os pontos que mais importam para confiança em uma operação que lida com documentos pessoais e procedimentos formais.</p><div class="trust-grid"><article><span class="material-symbols-rounded">storefront</span><div><strong>Atendimento identificável</strong><span>Empresa, canais, endereço e horários visíveis ao cliente.</span></div></article><article><span class="material-symbols-rounded">shield_lock</span><div><strong>Proteção documental</strong><span>Acesso controlado, registro de atividades e política de retenção.</span></div></article><article><span class="material-symbols-rounded">receipt_long</span><div><strong>Preço separado</strong><span>Taxas oficiais, terceiros e remuneração CNJP aparecem discriminados.</span></div></article><article><span class="material-symbols-rounded">rule</span><div><strong>Limites claros</strong><span>A CNJP não se apresenta como cartório nem pratica ato reservado a terceiro.</span></div></article></div><div class="trust-note">Este ambiente ainda é uma simulação. Dados empresariais finais, endereço, política de privacidade, termos e canais oficiais entram quando a operação for regularizada e publicada.</div></div>
     </section>
 
-    <section class="section client-wrap">
-      <div class="track-box" id="clientPortal"><div><span class="material-symbols-rounded">lock_person</span><div><strong>Acompanhe seu pedido</strong><p>Entre com o código do ticket e o telefone informado no atendimento para ver a evolução, pendências, documentos e valores.</p></div></div><form id="customerLoginForm"><input required aria-label="Código do pedido" placeholder="Código (ex.: CD-1091)"><input required aria-label="Telefone do pedido" placeholder="Telefone cadastrado"><button class="btn primary" type="submit">Acessar pedido</button></form><div id="customerPortalResult" hidden></div></div>
-    </section>
   </main>
 
   <footer class="site-footer"><div class="client-wrap"><div class="brand inverse"><span class="brand-mark material-symbols-rounded">assured_workload</span><span><strong>CNJP</strong><small>Cartório Digital & Câmara</small></span></div><p>Ambiente beta. A CNJP organiza, facilita, acompanha e administra procedimentos dentro de sua competência.</p><a href="./manual.html">Manual do sistema</a> · <a href="./admin.php">Abrir painel administrativo →</a></div></footer>
