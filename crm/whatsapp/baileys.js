@@ -21,6 +21,7 @@ const lidToPhone = new Map();   // Backup caso precise no futuro
 const startedAt = Math.floor(Date.now() / 1000);
 const authDir = path.join(__dirname, "auth_info");
 const statusFile = path.join(__dirname, "..", "data", "whatsapp_status.json");
+const pidFile = path.join(__dirname, "..", "data", "whatsapp_service.pid");
 
 function jidToDigits(jid) {
     return String(jid || "").split("@")[0].replace(/\D/g, "");
@@ -164,8 +165,51 @@ function loadWhatsappStatus() {
     }
 }
 
+function isProcessAlive(pid) {
+    if (!pid || Number.isNaN(Number(pid))) return false;
+    try {
+        process.kill(Number(pid), 0);
+        return true;
+    } catch (err) {
+        return false;
+    }
+}
+
+function acquireSingleInstanceLock() {
+    try {
+        if (fs.existsSync(pidFile)) {
+            const existingPid = Number(String(fs.readFileSync(pidFile, "utf8") || "").trim());
+            if (isProcessAlive(existingPid) && existingPid !== process.pid) {
+                console.log(`🟡 WhatsApp ja esta em execucao no PID ${existingPid}. Encerrando esta instancia.`);
+                process.exit(0);
+            }
+        }
+
+        fs.mkdirSync(path.dirname(pidFile), { recursive: true });
+        fs.writeFileSync(pidFile, String(process.pid), "utf8");
+        process.on("exit", () => {
+            try {
+                if (fs.existsSync(pidFile) && String(fs.readFileSync(pidFile, "utf8") || "").trim() === String(process.pid)) {
+                    fs.unlinkSync(pidFile);
+                }
+            } catch (err) {}
+        });
+        process.on("SIGINT", () => {
+            try { if (fs.existsSync(pidFile)) fs.unlinkSync(pidFile); } catch (err) {}
+            process.exit(0);
+        });
+        process.on("SIGTERM", () => {
+            try { if (fs.existsSync(pidFile)) fs.unlinkSync(pidFile); } catch (err) {}
+            process.exit(0);
+        });
+    } catch (err) {
+        console.error("Erro ao criar lock do WhatsApp:", err.message);
+    }
+}
+
 async function startBot() {
     fs.mkdirSync(authDir, { recursive: true });
+    acquireSingleInstanceLock();
     console.log("Usando sessao WhatsApp em:", authDir);
     const { state, saveCreds } = await useMultiFileAuthState(authDir);
     const { version } = await fetchLatestBaileysVersion();
