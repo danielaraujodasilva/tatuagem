@@ -9,14 +9,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..700,0..1,0&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css?v=20260826-1">
+  <link rel="stylesheet" href="./catalog.css?v=20260826-2">
 </head>
 <body data-page="admin">
   <div class="admin-shell">
     <aside class="admin-sidebar">
-      <a class="brand admin-brand" href="./"><span class="brand-mark material-symbols-rounded">assured_workload</span><span><strong>CNJP</strong><small>Operação cartorial</small></span></a>
+      <a class="brand admin-brand" href="./"><span class="brand-mark material-symbols-rounded">assured_workload</span><span><strong>CNJP</strong><small>Operação cartorial + câmara</small></span></a>
       <nav id="adminNav">
         <button class="active" data-view="dashboard"><span class="material-symbols-rounded">space_dashboard</span>Visão geral</button>
-        <button data-view="atendimentos"><span class="material-symbols-rounded">inbox</span>Atendimentos <b>6</b></button>
+        <button data-view="atendimentos"><span class="material-symbols-rounded">inbox</span>Atendimentos <b>8</b></button>
         <button data-view="kanban"><span class="material-symbols-rounded">view_kanban</span>Processos</button>
         <button data-view="triagem"><span class="material-symbols-rounded">psychology_alt</span>Triagem</button>
         <button data-view="documentos"><span class="material-symbols-rounded">folder_open</span>Documentos</button>
@@ -39,6 +40,7 @@
   </div>
   <dialog id="caseModal" class="case-modal"><button class="modal-close" data-close aria-label="Fechar"><span class="material-symbols-rounded">close</span></button><div id="caseContent"></div></dialog>
   <div id="toast" class="toast" aria-live="polite"></div>
-  <script type="module" src="./app.js?v=20260826-1"></script>
+  <script type="module" src="./app.js?v=20260826-2"></script>
+  <script type="module" src="./catalog.js?v=20260826-2"></script>
 </body>
 </html>
