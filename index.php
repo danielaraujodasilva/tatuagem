@@ -11,17 +11,35 @@
   <meta name="theme-color" content="#060504">
   <title>Daniel Araujo Tatuador | Fechamentos em uma sessão</title>
   <meta name="description" content="Daniel Araujo Tatuador. Especialista em fechamentos em uma única sessão, realismo e black & grey. Atendimento em São Paulo, perto da Estação Artur Alvim.">
-  <meta name="keywords" content="tatuador São Paulo, fechamento tatuagem, fechamento em uma sessão, Daniel Araujo tatuador, realismo, black grey, Artur Alvim">
+  <meta name="keywords" content="tatuador Artur Alvim, tatuador Zona Leste São Paulo, fechamento de tatuagem, fechamento em uma sessão, tatuagem realismo São Paulo, black and grey São Paulo, Daniel Araujo tatuador">
+  <meta name="author" content="Daniel Araujo Tatuador">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://danieltatuador.com/">
   <meta property="og:title" content="Daniel Araujo Tatuador | Fechamentos em uma sessão">
   <meta property="og:description" content="Sua ideia, minha arte, nossa história. Fechamentos, realismo e black & grey perto da Estação Artur Alvim.">
-  <meta property="og:image" content="img/og-image.jpg">
+  <meta property="og:image" content="https://danieltatuador.com/img/og-image.jpg">
+  <meta property="og:image:alt" content="Daniel Araujo Tatuador — fechamentos, realismo e black & grey">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://danieltatuador.com/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Daniel Araujo Tatuador | Fechamentos em uma sessão">
+  <meta name="twitter:description" content="Fechamentos, realismo e black & grey em Artur Alvim, São Paulo.">
+  <meta name="twitter:image" content="https://danieltatuador.com/img/og-image.jpg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="icon" type="image/svg+xml" href="img/favicon1.svg">
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@graph":[
+      {"@type":"TattooParlor","@id":"https://danieltatuador.com/#estudio","name":"Daniel Araujo Tatuador","url":"https://danieltatuador.com/","image":"https://danieltatuador.com/img/og-image.jpg","telephone":"+55-11-99997-9785","priceRange":"$$","address":{"@type":"PostalAddress","streetAddress":"Rua Catende, 287B, Jardim Nordeste","addressLocality":"São Paulo","addressRegion":"SP","addressCountry":"BR"},"areaServed":{"@type":"City","name":"São Paulo"},"sameAs":["https://www.instagram.com/danielaraujotatuador/","https://www.tiktok.com/@danielaraujotatuador/"],"founder":{"@type":"Person","name":"Daniel Araujo"}},
+      {"@type":"WebSite","@id":"https://danieltatuador.com/#site","url":"https://danieltatuador.com/","name":"Daniel Araujo Tatuador","inLanguage":"pt-BR","publisher":{"@id":"https://danieltatuador.com/#estudio"}},
+      {"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Como peço um orçamento?","acceptedAnswer":{"@type":"Answer","text":"Chame no WhatsApp com a ideia, referências, tamanho aproximado e local do corpo."}},{"@type":"Question","name":"Você faz fechamento em uma sessão?","acceptedAnswer":{"@type":"Answer","text":"Sim. Fechamentos são uma das especialidades do estúdio, principalmente braço, perna, costas e peitoral."}},{"@type":"Question","name":"Onde fica o estúdio?","acceptedAnswer":{"@type":"Answer","text":"Rua Catende, 287B, Jardim Nordeste, São Paulo, perto da Estação Artur Alvim."}},{"@type":"Question","name":"Qual é o WhatsApp?","acceptedAnswer":{"@type":"Answer","text":"O WhatsApp é (11) 99997-9785."}}]}
+    ]
+  }
+  </script>
   <!-- Meta Pixel Code -->
   <script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','734722824598560');fbq('track','PageView');</script>
   <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=734722824598560&ev=PageView&noscript=1"></noscript>
@@ -80,7 +98,7 @@
   <div class="promo-modal" id="promoModal"><div class="promo-modal-card"><div class="promo-modal-head"><h3 id="promoModalTitle">Promoção</h3><button class="promo-modal-close" type="button">×</button></div><div class="promo-modal-body" id="promoModalBody"></div><div class="promo-modal-actions"><a class="btn btn-filled" href="<?= $whatsapp ?>" target="_blank" rel="noopener" onclick="trackLead('promo_modal_whatsapp')">Tirar dúvida no WhatsApp <i class="fa-brands fa-whatsapp"></i></a></div></div></div>
   <div class="gallery-modal" id="galleryModal" aria-hidden="true"><div class="gallery-modal-card"><button class="gallery-modal-close" type="button" aria-label="Fechar">×</button><img id="galleryModalImg" src="" alt="Foto ampliada da galeria"></div></div>
   <script>
-    function trackLead(label){try{if(typeof gtag==='function')gtag('event','conversion',{send_to:'AW-17619660621',event_category:'WhatsApp',event_label:label});if(typeof fbq==='function')fbq('track','Lead',{content_name:label})}catch(e){console.warn(e)}}
+    function trackLead(label){try{if(typeof gtag==='function')gtag('event','conversion',{send_to:'AW-17619660621/o6mzCPX--qUbEM3e2tFB',event_category:'WhatsApp',event_label:label});if(typeof fbq==='function')fbq('track','Lead',{content_name:label})}catch(e){console.warn(e)}}
     const navLinks=document.querySelectorAll('.nav a'),sections=[...navLinks].map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);sections.forEach(s=>new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)navLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id))}),{rootMargin:'-45% 0px -50% 0px'}).observe(s));
     const track=document.querySelector('.promo-track'),cards=[...document.querySelectorAll('.promo-col')],prev=document.querySelector('.carousel-btn.prev'),next=document.querySelector('.carousel-btn.next'),dots=document.querySelector('.promo-dots');let idx=0;function visible(){return innerWidth<720?1:innerWidth<1100?3:6}function step(){return (cards[0]?.getBoundingClientRect().width||230)+(innerWidth<720?18:-38)}function max(){return Math.max(0,cards.length-visible())}function renderDots(){dots.innerHTML='';for(let i=0;i<=max();i++){let b=document.createElement('button');b.className=i===idx?'active':'';b.onclick=()=>{idx=i;move()};dots.appendChild(b)}}function move(){idx=Math.max(0,Math.min(idx,max()));track.style.transform=`translateX(${-idx*step()}px)`;renderDots()}if(prev&&next){prev.onclick=()=>{idx--;move()};next.onclick=()=>{idx++;move()};addEventListener('resize',move);move();}
     const modal=document.getElementById('promoModal'),title=document.getElementById('promoModalTitle'),body=document.getElementById('promoModalBody');document.querySelector('.promo-modal-close').onclick=()=>modal.classList.remove('open');modal.onclick=e=>{if(e.target===modal)modal.classList.remove('open')};addEventListener('keydown',e=>{if(e.key==='Escape')modal.classList.remove('open')});cards.forEach(c=>c.onclick=()=>{title.textContent=c.dataset.title;body.innerHTML=c.dataset.content;modal.classList.add('open');trackLead('promo_card_'+c.dataset.title)});
