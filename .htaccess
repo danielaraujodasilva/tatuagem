@@ -2,8 +2,15 @@ DirectoryIndex home.php index.php index.html
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteCond %{HTTPS} !=on [OR]
+
+    # Canonicaliza o host sem criar loop quando a Cloudflare usa proxy HTTPS.
     RewriteCond %{HTTP_HOST} ^www\.danieltatuador\.com$ [NC]
+    RewriteRule ^ https://danieltatuador.com%{REQUEST_URI} [R=301,L]
+
+    # No modo proxy, o Apache pode receber HTTP mesmo quando o visitante usa HTTPS.
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !^https$ [NC]
+    RewriteCond %{HTTP:CF-Visitor} !https [NC]
     RewriteRule ^ https://danieltatuador.com%{REQUEST_URI} [R=301,L]
 </IfModule>
 
