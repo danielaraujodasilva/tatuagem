@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..700,0..1,0&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css?v=20260826-1">
-  <link rel="stylesheet" href="./catalog.css?v=20260826-2">
+  <link rel="stylesheet" href="./catalog.css?v=20260826-4">
 </head>
 <body data-page="client">
   <header class="site-header">
@@ -47,14 +47,25 @@
     </section>
 
     <section class="section client-wrap" id="servicos">
-      <div class="section-head"><div><span class="kicker">Serviços</span><h2>O que você precisa resolver?</h2></div><p>Agora a central reúne serviços cartorários, apoio documental, mediação, conciliação e Câmara Arbitral. Pesquise ou navegue por assunto.</p></div>
-      <div class="catalog-toolbar">
-        <label class="catalog-search"><span class="material-symbols-rounded">search</span><input id="serviceSearch" type="search" placeholder="Ex.: matrícula, divórcio, cobrança, mediação…" autocomplete="off"></label>
-        <div class="category-scroll" id="categoryFilters" aria-label="Categorias de serviços"></div>
-        <div class="catalog-result"><strong id="serviceCount">0 serviços</strong><span id="activeCategoryLabel">Todos os assuntos</span></div>
+      <div class="section-head services-showcase-head"><div><span class="kicker">Serviços</span><div class="service-count-badge"><span class="material-symbols-rounded">inventory_2</span><strong id="totalServiceBadge">60+</strong><span>serviços disponíveis</span></div><h2>O que você precisa resolver?</h2></div><p>Temos dezenas de soluções cartorárias, documentais, extrajudiciais, de mediação e arbitragem. Comece pelos serviços mais procurados ou abra o catálogo completo.</p></div>
+
+      <div class="popular-services-head"><div><strong>Mais procurados</strong><span>Um atalho para as demandas que aparecem com mais frequência.</span></div></div>
+      <div id="popularServiceGrid" class="service-grid"></div>
+      <div class="catalog-cta-row">
+        <button id="showFullCatalog" class="btn secondary catalog-main-action" type="button"><span class="material-symbols-rounded">apps</span>Ver todos os serviços</button>
+        <button class="btn primary catalog-main-action" type="button" data-start-triage><span class="material-symbols-rounded">help</span>Não sei o que preciso</button>
       </div>
-      <div id="serviceGrid" class="service-grid"></div>
-      <div id="serviceEmpty" class="catalog-empty" hidden><span class="material-symbols-rounded">search_off</span><strong>Nada apareceu com essa busca.</strong><p>Tente outra palavra ou escolha “Não sei o que preciso”. Um ser humano faz a tradução do burocratês.</p></div>
+
+      <div id="fullCatalog" class="full-catalog" hidden>
+        <div class="full-catalog-head"><div><span class="kicker">Catálogo completo</span><h3>Todos os serviços disponíveis</h3><p>Pesquise por palavra ou filtre pelo assunto mais próximo do seu caso.</p></div><button id="hideFullCatalog" class="text-action" type="button">Fechar catálogo</button></div>
+        <div class="catalog-toolbar">
+          <label class="catalog-search"><span class="material-symbols-rounded">search</span><input id="serviceSearch" type="search" placeholder="Ex.: matrícula, divórcio, cobrança, mediação…" autocomplete="off"></label>
+          <div class="category-scroll" id="categoryFilters" aria-label="Categorias de serviços"></div>
+          <div class="catalog-result"><strong id="serviceCount">0 serviços</strong><span id="activeCategoryLabel">Todos os assuntos</span></div>
+        </div>
+        <div id="serviceGrid" class="service-grid"></div>
+        <div id="serviceEmpty" class="catalog-empty" hidden><span class="material-symbols-rounded">search_off</span><strong>Nada apareceu com essa busca.</strong><p>Tente outra palavra ou escolha “Não sei o que preciso”. Um ser humano faz a tradução do burocratês.</p></div>
+      </div>
     </section>
 
     <section class="section steps-section" id="como-funciona">
@@ -87,6 +98,6 @@
   <dialog id="flowModal" class="flow-modal"><button class="modal-close" data-close aria-label="Fechar"><span class="material-symbols-rounded">close</span></button><div id="flowContent"></div></dialog>
   <div id="toast" class="toast" aria-live="polite"></div>
   <script type="module" src="./app.js?v=20260826-2"></script>
-  <script type="module" src="./catalog.js?v=20260826-2"></script>
+  <script type="module" src="./catalog.js?v=20260826-4"></script>
 </body>
 </html>
