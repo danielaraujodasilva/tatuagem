@@ -72,10 +72,10 @@ async function suggestFromText(text,root){
   let items=SERVICES.filter(s=>cats.includes(s.category));
   const terms=q.split(/\s+/).filter(x=>x.length>3);
   items=items.map(s=>({s,score:terms.reduce((n,t)=>n+(normalize(`${s.title} ${s.desc}`).includes(t)?1:0),0)+(cats.indexOf(s.category)===0?2:1)})).sort((a,b)=>b.score-a.score).map(x=>x.s).slice(0,5);
-  try{const r=await fetch('./api.php?action=triage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({problem:q,services:SERVICES.map(s=>({id:s.id,title:s.title,desc:s.desc}))})});const d=await r.json();if(d.ok)items=d.ids.map(id=>SERVICES.find(s=>s.id===id)).filter(Boolean)}catch(e){}
+  try{const r=await fetch('./api.php?action=triage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({problem:q,services:SERVICES.map(s=>({id:s.id,title:s.title,desc:s.desc}))})});const d=await r.json();if(d.ok){items=d.ids.map(id=>SERVICES.find(s=>s.id===id)).filter(Boolean);window.__triageExplanation=d.explanation||''}}catch(e){}
   if(!items.length)items=SERVICES.filter(s=>s.category==='apoio').slice(0,4);
   box.hidden=false;
-  box.innerHTML=`<div class="guided-result-head"><strong>Caminhos que parecem fazer sentido</strong><span>simulação de triagem</span></div>${items.map(s=>`<button type="button" class="guided-result" data-service="${s.id}">${icon(s.icon)}<span><strong>${s.title}</strong><small>${s.desc}</small></span></button>`).join('')}<p class="guided-disclaimer">Numa versão funcional, a sugestão será revisada antes de virar procedimento. A ferramenta não substitui análise jurídica ou ato de profissional habilitado.</p>`;
+  box.innerHTML=`<div class="guided-result-head"><strong>Caminhos mais relacionados ao seu caso</strong><span>análise por IA local</span></div>${window.__triageExplanation?`<p class="ai-explanation">${window.__triageExplanation}</p>`:''}${items.map(s=>`<button type="button" class="guided-result" data-service="${s.id}">${icon(s.icon)}<span><strong>${s.title}</strong><small>${s.desc}</small></span></button>`).join('')}<p class="guided-disclaimer">A IA oferece uma orientação inicial. A equipe revisará seu caso antes de confirmar documentos, custos e próximos passos.</p>`;
 }
 
 function serviceContext(s){
