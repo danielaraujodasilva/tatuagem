@@ -5,7 +5,7 @@
   const fix=()=>document.querySelectorAll('.ticket-table-wrap tr.case-row').forEach(row=>{
     const actions=row.querySelector('td[data-label="Ações"]');
     if(!actions)return;
-    row.querySelectorAll(':scope > .ticket-action, :scope > .ticket-urgency').forEach(button=>{
+    row.querySelectorAll('.ticket-action,.ticket-urgency').forEach(button=>{
       if(button.parentElement!==actions)actions.append(button);
     });
   });
