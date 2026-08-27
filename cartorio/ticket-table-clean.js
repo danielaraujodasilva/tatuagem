@@ -1,0 +1,1 @@
+(()=>{const s=document.createElement('style');s.textContent='.ticket-table-wrap tr.case-row button.ticket-urgency:not([data-crud-edit]):not(.ticket-action){display:none!important}';document.head.append(s)})();
