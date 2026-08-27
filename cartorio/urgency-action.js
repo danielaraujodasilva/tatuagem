@@ -1,0 +1,1 @@
+(()=>{const fix=()=>document.querySelectorAll('.ticket-urgency').forEach(b=>{if(b.dataset.actionFixed)return;b.dataset.actionFixed='1';b.onclick=e=>{e.stopPropagation();b.closest('.case-row,.kanban-card')?.querySelector('.ticket-action')?.click()}});new MutationObserver(fix).observe(document.body,{childList:true,subtree:true});fix()})();
