@@ -1,0 +1,1 @@
+(()=>{const s=document.createElement('style');s.textContent='.case-row button.ticket-urgency:not([data-crud-edit]):not(.ticket-action),.kanban-card button.ticket-urgency:not([data-crud-edit]):not(.ticket-action){display:grid!important;visibility:visible!important;opacity:1!important}';document.head.append(s)})();
