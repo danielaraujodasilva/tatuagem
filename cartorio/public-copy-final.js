@@ -1,0 +1,1 @@
+(()=>{const replace=()=>{document.querySelectorAll('.trust-note').forEach(e=>{e.textContent='Ambiente beta: confirme os documentos, valores e próximos passos com a equipe antes de qualquer protocolo oficial.'})};replace();new MutationObserver(replace).observe(document.body,{childList:true,subtree:true})})();
