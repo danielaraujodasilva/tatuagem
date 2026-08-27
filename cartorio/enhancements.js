@@ -1,10 +1,11 @@
-import { SERVICES, CATEGORIES, CASES, STATUS } from './data.js?v=20260826-5';
+import { SERVICES as STATIC_SERVICES, CATEGORIES, CASES, STATUS } from './data.js?v=20260826-5';
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
 const icon=n=>`<span class="material-symbols-rounded">${n}</span>`;
 const normalize=(v='')=>v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+let SERVICES=[...STATIC_SERVICES];
 const serviceBy=id=>SERVICES.find(s=>s.id===id);
 const categoryBy=id=>CATEGORIES.find(c=>c.id===id);
 
@@ -14,6 +15,7 @@ if(document.body.dataset.page==='admin') initAdminEnhancements();
 function initClientEnhancements(){
   const modal=$('#flowModal'),content=$('#flowContent');
   if(!modal||!content)return;
+  fetch('./api.php?action=services_public').then(r=>r.json()).then(d=>{if(!d.ok||!Array.isArray(d.services)||!d.services.length)return;SERVICES=d.services.map(s=>({...s,desc:s.desc||s.description||'',docs:Array.isArray(s.docs)?s.docs:(JSON.parse(s.docs_json||'[]')||[]),steps:Array.isArray(s.steps)?s.steps:(JSON.parse(s.steps_json||'[]')||[])}));document.dispatchEvent(new CustomEvent('cartorio:catalog-loaded'))}).catch(()=>{});
   const open=html=>{content.innerHTML=html;if(!modal.open)modal.showModal()};
   const close=()=>{if(modal.open)modal.close()};
 
@@ -40,7 +42,7 @@ function initClientEnhancements(){
 }
 
 function renderGuidedTriage(root,open){
-  root.innerHTML=`<div class="guided-shell"><div class="guided-copy"><span class="kicker">Triagem guiada</span><h2>Não sabe o nome do serviço? Conte o problema.</h2><p>Escolha um assunto ou descreva em linguagem normal. Esta simulação ainda não usa IA: ela apenas mostra como a experiência pode funcionar antes de ligarmos inteligência de verdade.</p></div><div class="guided-box"><div class="guided-categories">${CATEGORIES.slice(0,8).map(c=>`<button type="button" data-guide-category="${c.id}">${icon(c.icon)}<span>${c.title}</span></button>`).join('')}</div><label class="guided-text"><span class="material-symbols-rounded">chat_bubble</span><textarea id="guidedProblem" placeholder="Ex.: meu pai morreu e deixou uma casa; não sei quais documentos preciso nem por onde começar."></textarea></label><div class="guided-actions"><button class="btn primary" id="guidedSuggest" type="button">Sugerir caminhos</button><button class="text-action" id="guidedHuman" type="button">Prefiro falar com uma pessoa</button></div><div id="guidedSuggestions" class="guided-suggestions" hidden></div></div></div>`;
+  root.innerHTML=`<div class="guided-shell"><div class="guided-copy"><span class="kicker">Triagem guiada</span><h2>Não sabe o nome do serviço? Conte o problema.</h2><p>Descreva o que aconteceu. A IA local compara seu relato com o catálogo ativo e sugere caminhos para a equipe revisar.</p></div><div class="guided-box"><div class="guided-categories">${CATEGORIES.slice(0,8).map(c=>`<button type="button" data-guide-category="${c.id}">${icon(c.icon)}<span>${c.title}</span></button>`).join('')}</div><label class="guided-text"><span class="material-symbols-rounded">chat_bubble</span><textarea id="guidedProblem" placeholder="Ex.: meu pai morreu e deixou uma casa; não sei quais documentos preciso nem por onde começar."></textarea></label><div class="guided-actions"><button class="btn primary" id="guidedSuggest" type="button">Sugerir caminhos</button><button class="text-action" id="guidedHuman" type="button">Prefiro falar com uma pessoa</button></div><div id="guidedSuggestions" class="guided-suggestions" hidden></div></div></div>`;
   $$('[data-guide-category]',root).forEach(b=>b.addEventListener('click',()=>showGuideCategory(b.dataset.guideCategory,root)));
   $('#guidedSuggest',root)?.addEventListener('click',()=>suggestFromText($('#guidedProblem',root)?.value||'',root));
   $('#guidedHuman',root)?.addEventListener('click',()=>open(`<div class="flow-inner"><span class="kicker">Atendimento humano</span><h2>Sem problema. Uma pessoa assume daqui.</h2><p>Na operação real, o atendente faria exatamente a mesma triagem pelo balcão, telefone ou WhatsApp e preencheria o sistema por você.</p><div class="human-channels"><article>${icon('chat')}<div><strong>WhatsApp</strong><span>Conversa com atendente e envio de fotos/documentos.</span></div></article><article>${icon('call')}<div><strong>Telefone</strong><span>O operador registra tudo durante a ligação.</span></div></article><article>${icon('storefront')}<div><strong>Presencial</strong><span>O cliente leva o que tiver e a equipe organiza.</span></div></article></div></div>`));
