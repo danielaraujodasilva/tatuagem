@@ -56,21 +56,23 @@
     const $=id=>document.getElementById(id), container=$('viewer'), welcome=$('welcome'), dropZone=$('dropZone'), fileInput=$('fileInput'), loading=$('loading'), loaderSub=$('loaderSub'), resetBtn=$('resetBtn'), rotateBtn=$('rotateBtn'), hint=$('hint'), modelName=$('modelName');
     const scene=new THREE.Scene(); scene.background=new THREE.Color(0x101010);
     const camera=new THREE.PerspectiveCamera(38,innerWidth/innerHeight,.01,10000); camera.position.set(0,0,5);
-    const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'}); renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight); renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.22; container.appendChild(renderer.domElement);
+    const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'}); renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight); renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.06; container.appendChild(renderer.domElement);
     const controls=new OrbitControls(camera,renderer.domElement); controls.enableDamping=true; controls.dampingFactor=.07; controls.zoomToCursor=true; controls.autoRotateSpeed=1.25;
-    scene.add(new THREE.AmbientLight(0xffffff,2.15));
-    scene.add(new THREE.HemisphereLight(0xffffff,0x777777,1.15));
-    const key=new THREE.DirectionalLight(0xffffff,1.75); key.position.set(0,3,6); scene.add(key);
-    const fillLeft=new THREE.DirectionalLight(0xffffff,1.05); fillLeft.position.set(-5,1,4); scene.add(fillLeft);
-    const fillRight=new THREE.DirectionalLight(0xffffff,.9); fillRight.position.set(5,0,3); scene.add(fillRight);
-    const lowerFill=new THREE.DirectionalLight(0xffffff,.65); lowerFill.position.set(0,-5,4); scene.add(lowerFill);
-    const rim=new THREE.DirectionalLight(0xffffff,.45); rim.position.set(0,4,-6); scene.add(rim);
+
+    // Iluminação neutra de estúdio: volume visível sem estourar a pele.
+    scene.add(new THREE.AmbientLight(0xffffff,.72));
+    scene.add(new THREE.HemisphereLight(0xffffff,0x303030,.82));
+    const key=new THREE.DirectionalLight(0xffffff,1.55); key.position.set(1.5,3.5,6); scene.add(key);
+    const fillLeft=new THREE.DirectionalLight(0xffffff,.58); fillLeft.position.set(-5,1.5,4); scene.add(fillLeft);
+    const fillRight=new THREE.DirectionalLight(0xffffff,.42); fillRight.position.set(5,.5,3); scene.add(fillRight);
+    const lowerFill=new THREE.DirectionalLight(0xffffff,.18); lowerFill.position.set(0,-5,4); scene.add(lowerFill);
+    const rim=new THREE.DirectionalLight(0xffffff,.32); rim.position.set(0,4,-6); scene.add(rim);
     let model=null,home=null,textureUrls=[];
 
     function disposeCurrent(){ if(!model)return; scene.remove(model); model.traverse(c=>{if(c.geometry)c.geometry.dispose();if(c.material){const ms=Array.isArray(c.material)?c.material:[c.material];ms.forEach(m=>{if(m.map)m.map.dispose();m.dispose()})}}); model=null; textureUrls.forEach(URL.revokeObjectURL); textureUrls=[]; }
     function frameObject(object){const box=new THREE.Box3().setFromObject(object),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3()),maxDim=Math.max(size.x,size.y,size.z),fov=THREE.MathUtils.degToRad(camera.fov);let d=Math.abs(maxDim/(2*Math.tan(fov/2)))*1.42;controls.target.copy(center);camera.position.set(center.x,center.y+size.y*.02,center.z+d);camera.near=Math.max(d/1000,.01);camera.far=Math.max(d*100,1000);camera.updateProjectionMatrix();controls.minDistance=Math.max(maxDim*.18,.1);controls.maxDistance=maxDim*12;controls.update();home={position:camera.position.clone(),target:controls.target.clone()};}
     async function textureFromBlob(blob){const url=URL.createObjectURL(blob);textureUrls.push(url);return await new Promise((res,rej)=>new THREE.TextureLoader().load(url,t=>{t.colorSpace=THREE.SRGBColorSpace;res(t)},undefined,rej));}
-    function showObject(obj,name,map=null){disposeCurrent();const mat=new THREE.MeshStandardMaterial({map:map||null,color:map?0xffffff:0xc9c2ba,roughness:.82,metalness:0});obj.traverse(c=>{if(c.isMesh)c.material=mat});model=obj;scene.add(model);frameObject(model);modelName.textContent=name;welcome.style.display='none';loading.classList.remove('show');hint.style.opacity='1';setTimeout(()=>hint.style.opacity='0',5000);}
+    function showObject(obj,name,map=null){disposeCurrent();const mat=new THREE.MeshStandardMaterial({map:map||null,color:map?0xffffff:0xc9c2ba,roughness:.84,metalness:0});obj.traverse(c=>{if(c.isMesh)c.material=mat});model=obj;scene.add(model);frameObject(model);modelName.textContent=name;welcome.style.display='none';loading.classList.remove('show');hint.style.opacity='1';setTimeout(()=>hint.style.opacity='0',5000);}
     async function openObjText(text,name,map=null){loaderSub.textContent='Montando geometria…';await new Promise(r=>setTimeout(r,20));const obj=new OBJLoader().parse(text);showObject(obj,name,map);}
     async function openFile(file){loading.classList.add('show');try{const lower=file.name.toLowerCase();if(lower.endsWith('.obj')){await openObjText(await file.text(),file.name)}else if(lower.endsWith('.zip')){loaderSub.textContent='Abrindo ZIP do Procreate…';const zip=await JSZip.loadAsync(file);const files=Object.values(zip.files).filter(f=>!f.dir&&!f.name.includes('__MACOSX/'));const objEntry=files.find(f=>f.name.toLowerCase().endsWith('.obj'));if(!objEntry)throw new Error('Nenhum arquivo .obj encontrado no ZIP.');const colorEntry=files.find(f=>/(color|albedo|diffuse|basecolor)/i.test(f.name)&&/\.(png|jpe?g|webp)$/i.test(f.name));let map=null;if(colorEntry){loaderSub.textContent='Carregando textura…';map=await textureFromBlob(await colorEntry.async('blob'))}loaderSub.textContent='Lendo geometria…';await openObjText(await objEntry.async('text'),objEntry.name.split('/').pop(),map)}else throw new Error('Use um arquivo .OBJ ou .ZIP.')}catch(e){console.error(e);loading.classList.remove('show');welcome.style.display='grid';alert(e.message||'Não foi possível abrir o modelo.')}}
     fileInput.addEventListener('change',e=>{const f=e.target.files?.[0];if(f)openFile(f);fileInput.value=''});
