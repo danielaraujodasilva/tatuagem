@@ -19,7 +19,7 @@ function initClientEnhancements(){
   const close=()=>{if(modal.open)modal.close()};
 
   document.addEventListener('click',e=>{
-    const card=e.target.closest('[data-service]');
+    const card=e.target.closest('[data-service][data-service]:not(dialog)');
     if(card&&document.body.dataset.page==='client'){
       e.preventDefault();e.stopImmediatePropagation();
       const s=serviceBy(card.dataset.service);
@@ -64,9 +64,8 @@ function showServiceDetail(s,open,close){
 function showLeadForm(s,est,open,close,mode){
   const content=$('#flowContent');
   const modal=content?.closest('dialog')||document.querySelector('#flowModal');
-  if(modal){modal.dataset.service=s.id||'';modal.dataset.serviceTitle=s.title||'';}
+  if(modal){modal.dataset.serviceId=s.id||'';modal.dataset.serviceTitle=s.title||'';}
   open(`<div class="flow-inner"><span class="kicker">${mode==='humano'?'Atendimento assistido':'Pré-orçamento'}</span><h2>${s.title}</h2><p>${mode==='humano'?'Deixe um contato e uma pessoa continua a conversa.':'Preencha o básico. O pedido só vira processo depois da conferência e aprovação do orçamento.'}</p><form id="enhancedLead" class="flow-form"><div class="field"><label>Nome</label><input name="name" required placeholder="Seu nome"></div><div class="field"><label>WhatsApp ou telefone</label><input name="phone" required placeholder="(11) 99999-9999"></div><div class="field"><label>E-mail (opcional)</label><input name="email" type="email" placeholder="voce@email.com - recebe o código do pedido"></div><div class="field"><label>Conte o caso</label><textarea placeholder="Explique o que aconteceu e o que você já tem em mãos."></textarea></div><div class="field"><label>Como prefere ser atendido?</label><select><option>${mode==='humano'?'Quero falar com uma pessoa':'Quero continuar online'}</option><option>WhatsApp</option><option>Telefone</option><option>Presencial</option></select></div><section class="quote-mini"><span>Estimativa demonstrativa</span><strong>${money(est.total)}</strong><small>Taxas, terceiros e serviço aparecem separados antes da aprovação.</small></section><div class="flow-actions"><button class="btn primary" type="submit">Gerar pré-pedido</button></div></form></div>`);
-  $('#enhancedLead',content)?.addEventListener('submit',e=>{e.preventDefault();open(`<div class="flow-inner success-flow"><span class="success-icon material-symbols-rounded">task_alt</span><span class="kicker">Pré-pedido criado</span><h2>CD-1092</h2><p>Agora a equipe conferiria os dados e documentos. Depois disso o cliente receberia o orçamento final para aprovar antes de qualquer protocolo.</p><div class="track-summary"><div><span>Serviço</span><strong>${s.title}</strong></div><div><span>Status</span><strong>Aguardando conferência</strong></div><div><span>Estimativa</span><strong>${money(est.total)}</strong></div><div><span>Próxima ação</span><strong>Equipe revisar</strong></div></div><div class="flow-actions"><button class="btn primary" type="button" data-close-success>Entendi</button></div></div>`);$('[data-close-success]',content)?.addEventListener('click',close)})
 }
 
 async function showEnhancedTracking(id,open,close){
