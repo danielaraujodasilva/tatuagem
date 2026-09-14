@@ -121,13 +121,13 @@ export const STATUS = {
 
 export const AUTOMATIONS = [
   ['Triagem inteligente','Interpreta a solicitação e sugere serviço/checklist','Ativa'],
-  ['OCR de documentos','Extrai nomes, CPF, datas, matrículas e cartórios','Simulada'],
-  ['Cobrança automática','Gera cobrança separando taxa oficial e serviço operacional','Simulada'],
-  ['Atualização por WhatsApp','Avisa cada mudança relevante de status','Simulada'],
-  ['Leitura de exigências','Resume devolutivas em tarefas objetivas para o operador','Simulada'],
+  ['OCR de documentos','Extrai nomes, CPF, datas, matrículas e cartórios','Planejada'],
+  ['Cobrança automática','Gera cobrança separando taxa oficial e serviço operacional','Planejada'],
+  ['Atualização por WhatsApp','Avisa cada mudança relevante de status','Planejada'],
+  ['Leitura de exigências','Resume devolutivas em tarefas objetivas para o operador','Planejada'],
   ['Controle de prazo','Alerta processos próximos do vencimento','Ativa'],
   ['Portal do cliente','Linha do tempo, arquivos, valores e protocolo','Ativa'],
   ['RPA assistido','Preenche dados repetitivos em portais, com revisão humana antes do envio','Planejada'],
   ['Assistente de serviço por IA','Cliente descreve o problema e recebe sugestões de serviços adequados','Planejada'],
-  ['Secretaria arbitral digital','Organiza prazos, comunicações, documentos e audiências do procedimento','Simulada']
+  ['Secretaria arbitral digital','Organiza prazos, comunicações, documentos e audiências do procedimento','Planejada']
 ];

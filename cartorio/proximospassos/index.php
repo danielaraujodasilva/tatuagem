@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
-/* Roadmap interno do projeto CNJP Cartorio Digital.
-   Pagina noindex: nao deve entrar em buscadores nem ser linkada em anuncios. */
+/* Roadmap interno do projeto CNJP Cartório Digital.
+   Página noindex: não deve entrar em buscadores nem ser usada como destino de anúncio. */
 
 function e(?string $v): string
 {
@@ -12,193 +12,201 @@ $phases = [
     [
         'id' => 'f0',
         'tag' => 'Fase 0',
-        'title' => 'Fundacao (concluido)',
-        'goal' => 'Base tecnica limpa, publicando sozinha e sem dependencia deste computador.',
+        'title' => 'Fundação — concluído',
+        'goal' => 'Base técnica limpa, publicando sozinha e sem depender deste computador.',
         'state' => 'done',
         'steps' => [
             [
-                'id' => 'f0-triagem', 'title' => 'Remover a secao "Triagem guiada"', 'owner' => 'Assistente',
-                'prio' => 'feito', 'effort' => 'concluido', 'done' => true,
-                'why' => 'A secao saiu da home, junto com o script que a montava (triage-feedback.js).',
+                'id' => 'f0-triagem', 'title' => 'Remover a seção "Triagem guiada"', 'owner' => 'Assistente',
+                'prio' => 'feito', 'effort' => 'concluído', 'done' => true,
+                'why' => 'A seção saiu da home, junto com o script que a montava (triage-feedback.js).',
                 'how' => ['Commit e374801 publicado na branch main.'],
             ],
             [
-                'id' => 'f0-cta', 'title' => 'Remover CTA orfao e o endpoint de IA local', 'owner' => 'Assistente',
-                'prio' => 'feito', 'effort' => 'concluido', 'done' => true,
-                'why' => 'O botao "Resolver online" apontava para a secao removida. A action=triage era o unico uso do Ollama.',
-                'how' => ['Commit a867633.', 'Com isso o projeto nao depende mais do PC local (nem da extensao curl).'],
+                'id' => 'f0-cta', 'title' => 'Remover o CTA órfão e o endpoint de IA local', 'owner' => 'Assistente',
+                'prio' => 'feito', 'effort' => 'concluído', 'done' => true,
+                'why' => 'O botão "Resolver online" apontava para a seção removida. A action=triage era o único uso do Ollama.',
+                'how' => ['Commit a867633.', 'Com isso o projeto não depende mais do PC local (nem da extensão curl).'],
             ],
             [
-                'id' => 'f0-deploy', 'title' => 'Deploy automatico GitHub -> HostGator', 'owner' => 'Daniel + Assistente',
-                'prio' => 'feito', 'effort' => 'concluido', 'done' => true,
+                'id' => 'f0-deploy', 'title' => 'Deploy automático GitHub → HostGator', 'owner' => 'Daniel + Assistente',
+                'prio' => 'feito', 'effort' => 'concluído', 'done' => true,
                 'why' => 'Todo push na main dispara o workflow "Deploy Production Site", que chama o webhook no servidor e roda git pull.',
-                'how' => ['Os dois commits de hoje subiram sozinhos em ~7s cada.', 'Nao existe mais upload manual de arquivos.'],
+                'how' => ['Os commits de hoje subiram sozinhos em ~7 segundos cada.', 'Não existe mais upload manual de arquivos.'],
             ],
             [
                 'id' => 'f0-infra', 'title' => 'Servidor validado (PHP + SQLite + acesso)', 'owner' => 'Assistente',
-                'prio' => 'feito', 'effort' => 'concluido', 'done' => true,
-                'why' => 'O banco SQLite funciona na HostGator: a API responde no ar, o catalogo devolve 25 servicos e o usuario admin ja existe.',
-                'how' => ['Rotas de painel respondem 401 sem login (protecao ativa).'],
+                'prio' => 'feito', 'effort' => 'concluído', 'done' => true,
+                'why' => 'O banco SQLite funciona na HostGator: a API responde no ar, o catálogo devolve 25 serviços e o usuário admin já existe.',
+                'how' => ['As rotas do painel respondem 401 sem login (proteção ativa).'],
             ],
         ],
     ],
     [
         'id' => 'f1',
         'tag' => 'Fase 1',
-        'title' => 'Bloqueadores: resolver ANTES de ligar anuncio',
-        'goal' => 'Sem estes itens voce paga por cliques que nao convertem, e as contas de anuncio podem ser reprovadas.',
+        'title' => 'Bloqueadores — resolver ANTES de ligar anúncio',
+        'goal' => 'Sem estes itens você paga por cliques que não convertem, e as contas de anúncio podem ser reprovadas.',
         'state' => 'active',
         'steps' => [
             [
-                'id' => 'contato', 'title' => 'Dados de contato reais visiveis no site', 'owner' => 'Daniel',
+                'id' => 'contato', 'title' => 'Dados de contato reais visíveis no site', 'owner' => 'Daniel',
                 'prio' => 'P0', 'effort' => '30 min', 'done' => false,
-                'why' => 'Hoje nao existe telefone, WhatsApp, e-mail nem horario em lugar nenhum. O proprio modal promete "a equipe entrara em contato por WhatsApp" sem informar numero. Para servico local, o botao de WhatsApp e o principal canal de conversao.',
+                'why' => 'Hoje não existe telefone, WhatsApp, e-mail nem horário em lugar nenhum. O próprio modal promete "a equipe entrará em contato por WhatsApp" sem informar número. Para serviço local, o botão de WhatsApp é o principal canal de conversão.',
                 'how' => [
-                    'Definir o numero comercial (com DDD) usado no WhatsApp Business.',
-                    'Adicionar botao flutuante de WhatsApp + bloco de contato no rodape.',
-                    'Publicar horario de atendimento e e-mail.',
+                    'Definir o número comercial (com DDD) usado no WhatsApp Business.',
+                    'Adicionar botão flutuante de WhatsApp e um bloco de contato no rodapé.',
+                    'Publicar horário de atendimento e e-mail.',
                 ],
             ],
             [
-                'id' => 'identidade', 'title' => 'Identidade do anunciante (CNPJ, endereco, responsavel)', 'owner' => 'Daniel',
+                'id' => 'identidade', 'title' => 'Identidade do anunciante (CNPJ, endereço, responsável)', 'owner' => 'Daniel',
                 'prio' => 'P0', 'effort' => '1 h', 'done' => false,
-                'why' => 'Google Ads exige identidade verificavel do anunciante e o Meta analisa confianca/compliance. Site que capta dados sem identificar quem os trata e reprovado ou limitado.',
+                'why' => 'O Google Ads exige identidade verificável do anunciante e o Meta analisa confiança e conformidade. Site que capta dados sem identificar quem os trata é reprovado ou limitado.',
                 'how' => [
-                    'Informar CNPJ (ou CPF, se ainda MEI/pessoa fisica) e razao social.',
-                    'Endereco comercial e telefone fixo/celular.',
-                    'Enviar os dados para eu montar o rodape legal do site.',
+                    'Informar CNPJ (ou CPF, se ainda for MEI/pessoa física) e razão social.',
+                    'Endereço comercial e telefone de contato.',
+                    'Me enviar os dados para eu montar o rodapé legal do site.',
                 ],
             ],
             [
-                'id' => 'lgpd', 'title' => 'Politica de Privacidade e Termos de Uso', 'owner' => 'Assistente redige, Daniel revisa',
+                'id' => 'lgpd', 'title' => 'Política de Privacidade e Termos de Uso', 'owner' => 'Assistente redige, Daniel revisa',
                 'prio' => 'P0', 'effort' => '2 h', 'done' => false,
-                'why' => 'O site coleta nome, telefone e relato do caso, e guarda documentos (PDF/JPG) com retencao de 365 dias. Isso e dado pessoal sob a LGPD. Formulario de lead no Meta exige link de politica de privacidade.',
+                'why' => 'O site coleta nome, telefone e relato do caso, e guarda documentos (PDF/JPG) com retenção de 365 dias. Isso é dado pessoal sob a LGPD. Formulário de lead no Meta exige link de política de privacidade.',
                 'how' => [
-                    'Eu redijo os dois textos em linguagem simples e voce revisa.',
+                    'Eu redijo os dois textos em linguagem simples e você revisa.',
                     'Publicar em /cartorio/politica-de-privacidade e /cartorio/termos.',
-                    'Linkar no rodape e no formulario de envio.',
+                    'Linkar no rodapé e junto ao formulário de envio.',
                 ],
             ],
             [
                 'id' => 'simulado', 'title' => 'Tirar "simulado" e "beta" de todo o site', 'owner' => 'Assistente',
-                'prio' => 'P0', 'effort' => '1 h', 'done' => false,
-                'why' => 'A pagina diz hoje: "Criar pedido simulado", "Estimativa simulada - valores apenas demonstrativos" e "Ambiente beta". Anunciar uma pagina que avisa que e simulacao derruba conversao e a nota de experiencia da pagina de destino no Google.',
+                'prio' => 'P0', 'effort' => '1 h', 'done' => true,
+                'why' => 'A página diz hoje: "Criar pedido simulado", "Estimativa simulada — valores apenas demonstrativos" e "Ambiente beta". Anunciar uma página que avisa que é simulação derruba a conversão e a nota de experiência da página de destino no Google.',
                 'how' => [
-                    'Trocar os textos por promessas reais ("Enviar pedido", "Pedir orcamento").',
-                    'Manter o aviso honesto onde ele e juridicamente necessario, sem tom de maquete.',
+                    'Trocar os textos por promessas reais ("Enviar pedido", "Pedir orçamento").',
+                    'Manter o aviso honesto onde ele é juridicamente necessário, sem tom de maquete.',
                 ],
             ],
             [
-                'id' => 'aviso', 'title' => 'Aviso automatico quando entra um lead', 'owner' => 'Assistente',
+                'id' => 'aviso', 'title' => 'Aviso automático quando entra um lead', 'owner' => 'Assistente',
                 'prio' => 'P0', 'effort' => '2 h', 'done' => false,
-                'why' => 'Hoje o pedido cai no banco e ninguem e avisado: e preciso abrir o painel manualmente. Em campanha paga, lead que demora 1 hora para ser visto esfria. E o vazamento mais caro do sistema.',
+                'why' => 'Hoje o pedido cai no banco e ninguém é avisado: é preciso abrir o painel manualmente. Em campanha paga, lead que demora uma hora para ser visto esfria. É o vazamento mais caro do sistema.',
                 'how' => [
-                    'Enviar e-mail para cada novo pedido (remetente e destino definidos por voce).',
-                    'Opcional: aviso tambem no WhatsApp da equipe.',
-                    'Aviso curto, com codigo, servico, telefone e o relato do cliente.',
+                    'Enviar e-mail para cada novo pedido (remetente e destino definidos por você).',
+                    'Opcional: aviso também no WhatsApp da equipe.',
+                    'Aviso curto, com código, serviço, telefone e o relato do cliente.',
                 ],
             ],
             [
-                'id' => 'autoresposta', 'title' => 'Auto-resposta ao cliente com o codigo', 'owner' => 'Assistente',
+                'id' => 'autoresposta', 'title' => 'Auto-resposta ao cliente com o código', 'owner' => 'Assistente',
                 'prio' => 'P0', 'effort' => '1 h', 'done' => false,
-                'why' => 'Quem vem de anuncio espera resposta imediata. A tela ja mostra o codigo; falta confirmar por e-mail/WhatsApp para o cliente nao achar que caiu no vazio.',
-                'how' => ['Mensagem curta padrao com codigo do pedido, prazo de resposta e canais.'],
+                'why' => 'Quem vem de anúncio espera resposta imediata. A tela já mostra o código; falta confirmar por e-mail ou WhatsApp para o cliente não achar que caiu no vazio.',
+                'how' => ['Mensagem curta padrão com código do pedido, prazo de resposta e canais de atendimento.'],
             ],
             [
                 'id' => 'manual', 'title' => 'Corrigir o manual.html', 'owner' => 'Assistente',
                 'prio' => 'P1', 'effort' => '20 min', 'done' => false,
-                'why' => 'O manual (link no rodape) ainda tem um capitulo "Triagem" dizendo que "a IA local sugere ate tres servicos" - descreve a funcionalidade que foi removida.',
-                'how' => ['Reescrever o capitulo para o fluxo real: cliente escolhe o servico, equipe confere.'],
+                'why' => 'O manual (link no rodapé) ainda tem um capítulo "Triagem" dizendo que "a IA local sugere até três serviços" — descreve a funcionalidade que foi removida.',
+                'how' => ['Reescrever o capítulo para o fluxo real: o cliente escolhe o serviço e a equipe confere.'],
             ],
         ],
     ],
     [
         'id' => 'f2',
         'tag' => 'Fase 2',
-        'title' => 'Conversao: fazer o visitante virar pedido',
-        'goal' => 'Ajustes que aumentam quantos visitantes pedem orcamento, sem mudar o produto.',
+        'title' => 'Conversão — fazer o visitante virar pedido',
+        'goal' => 'Ajustes que aumentam quantos visitantes pedem orçamento, sem mudar o produto.',
         'state' => 'todo',
         'steps' => [
             [
-                'id' => 'portal', 'title' => 'Tirar o portal do cliente de dentro do heroi', 'owner' => 'Assistente',
+                'id' => 'portal', 'title' => 'Tirar o portal do cliente de dentro do herói', 'owner' => 'Assistente',
                 'prio' => 'P1', 'effort' => '1 h', 'done' => false,
-                'why' => 'A caixa "Acompanhe seu pedido" serve para quem ja e cliente e nao tem nada a fazer ali. Ela ocupa o espaco mais nobre da pagina e, no celular, aparece antes dos servicos.',
-                'how' => ['Mover para o rodape ou para um link discreto no topo ("Ja sou cliente").', 'Usar o espaco para a oferta e o botao principal.', 'No celular, isso libera a metade inferior da primeira dobra, hoje ocupada pelo formulario.'],
+                'why' => 'A caixa "Acompanhe seu pedido" serve para quem já é cliente e não tem nada a fazer ali. Ela ocupa o espaço mais nobre da página e, no celular, aparece logo abaixo do botão principal.',
+                'how' => [
+                    'Mover para o rodapé ou para um link discreto no topo ("Já sou cliente").',
+                    'Usar o espaço para a oferta e o botão principal.',
+                    'No celular, isso libera a metade inferior da primeira dobra, hoje ocupada pelo formulário.',
+                ],
             ],
             [
                 'id' => 'cta-mobile', 'title' => 'Encurtar a primeira dobra no celular', 'owner' => 'Assistente',
                 'prio' => 'P1', 'effort' => '1 h', 'done' => false,
-                'why' => 'Medicao em 390x844: o botao principal ja aparece inteiro (entre 445px e 491px) e nao ha estouro de largura. O que sobra e a metade de baixo da dobra: ela termina no portal do cliente, entao a oferta de servicos so aparece depois de rolar.',
-                'how' => ['Reduzir a altura da headline no celular.', 'Deixar os selos de confianca mais compactos.', 'Resultado: o catalogo aparece mais cedo na rolagem.'],
+                'why' => 'Medição em 390x844: o botão principal já aparece inteiro (entre 445px e 491px) e não há estouro de largura. O que sobra é a metade de baixo da dobra: ela termina no portal do cliente, então a oferta de serviços só aparece depois de rolar.',
+                'how' => [
+                    'Reduzir a altura da headline no celular.',
+                    'Deixar os selos de confiança mais compactos.',
+                    'Resultado: o catálogo aparece mais cedo na rolagem.',
+                ],
             ],
             [
                 'id' => 'prova', 'title' => 'Prova social e "quem somos"', 'owner' => 'Daniel',
-                'prio' => 'P1', 'effort' => '2 h (depende de conteudo)', 'done' => false,
-                'why' => 'Servico que lida com documentos e dinheiro precisa de confianca. Nao ha um depoimento, um tempo medio de resposta, um numero de casos atendidos.',
+                'prio' => 'P1', 'effort' => '2 h (depende de conteúdo)', 'done' => false,
+                'why' => 'Serviço que lida com documentos e dinheiro precisa de confiança. Não há um depoimento, um tempo médio de resposta, um número de casos atendidos.',
                 'how' => [
-                    'Me enviar depoimentos reais, tempo medio de resposta e formas de contato.',
-                    'Eu monto a secao com o material.',
+                    'Me enviar depoimentos reais, tempo médio de resposta e formas de contato.',
+                    'Eu monto a seção com o material.',
                 ],
             ],
             [
                 'id' => 'faq', 'title' => 'Bloco de perguntas frequentes', 'owner' => 'Assistente',
                 'prio' => 'P1', 'effort' => '2 h', 'done' => false,
-                'why' => 'As duvidas que travam a conversao sao sempre as mesmas e hoje nao estao respondidas: quanto custa, qual o prazo, quais documentos, "voces sao um cartorio?"',
-                'how' => ['Montar FAQ com as 8 perguntas mais provaveis.', 'Cada resposta curta e direta, em linguagem de cliente.'],
+                'why' => 'As dúvidas que travam a conversão são sempre as mesmas e hoje não estão respondidas: quanto custa, qual o prazo, quais documentos, "vocês são um cartório?".',
+                'how' => ['Montar FAQ com as 8 perguntas mais prováveis.', 'Cada resposta curta e direta, em linguagem de cliente.'],
             ],
             [
-                'id' => 'contagem', 'title' => 'Unificar a contagem de servicos', 'owner' => 'Assistente',
+                'id' => 'contagem', 'title' => 'Unificar a contagem de serviços', 'owner' => 'Assistente',
                 'prio' => 'P1', 'effort' => '30 min', 'done' => false,
-                'why' => 'O selo da pagina diz "60+ servicos", o catalogo carrega 25 do banco e o arquivo estatico tem 78. Numeros diferentes minam a credibilidade.',
-                'how' => ['Escolher uma fonte unica (o banco) e exibir a contagem real.'],
+                'why' => 'O selo da página diz "60+ serviços", o catálogo carrega 25 do banco e o arquivo estático tem 78. Números diferentes minam a credibilidade.',
+                'how' => ['Escolher uma fonte única (o banco) e exibir a contagem real.'],
             ],
             [
-                'id' => 'landing', 'title' => 'Landing page por servico', 'owner' => 'Assistente',
+                'id' => 'landing', 'title' => 'Landing page por serviço', 'owner' => 'Assistente',
                 'prio' => 'P2', 'effort' => '1 dia', 'done' => false,
-                'why' => 'Anuncio de "certidao de nascimento" caindo na home gera cliques caros e pouco foco. Pagina dedicada por servico (certidoes, firma, matricula, mediacao) converte muito mais.',
-                'how' => ['Template unico reaproveitando o banco de servicos.', 'Texto, documentos, prazo, preco e formulario direto.'],
+                'why' => 'Anúncio de "certidão de nascimento" caindo na home gera cliques caros e pouco foco. Página dedicada por serviço (certidões, firma, matrícula, mediação) converte muito mais.',
+                'how' => ['Template único reaproveitando o banco de serviços.', 'Texto, documentos, prazo, preço e formulário direto.'],
             ],
             [
-                'id' => 'obrigado', 'title' => 'Pagina de obrigado (thank-you)', 'owner' => 'Assistente',
+                'id' => 'obrigado', 'title' => 'Página de obrigado (thank-you)', 'owner' => 'Assistente',
                 'prio' => 'P2', 'effort' => '1 h', 'done' => false,
-                'why' => 'E onde se mede conversao com precisao e onde o cliente confirma que o pedido chegou.',
-                'how' => ['Pagina propria apos envio, com codigo do pedido e proximos passos.'],
+                'why' => 'É onde se mede conversão com precisão e onde o cliente confirma que o pedido chegou.',
+                'how' => ['Página própria após o envio, com o código do pedido e os próximos passos.'],
             ],
         ],
     ],
     [
         'id' => 'f3',
         'tag' => 'Fase 3',
-        'title' => 'Medicao: saber de onde vem o cliente',
-        'goal' => 'Sem isso a campanha roda no escuro: voce paga e nao sabe qual anuncio traz cliente.',
+        'title' => 'Medição — saber de onde vem o cliente',
+        'goal' => 'Sem isso a campanha roda no escuro: você paga e não sabe qual anúncio traz cliente.',
         'state' => 'todo',
         'steps' => [
             [
                 'id' => 'utm', 'title' => 'Gravar a origem (UTM) em cada pedido', 'owner' => 'Assistente',
                 'prio' => 'P1', 'effort' => '2 h', 'done' => false,
-                'why' => 'O ticket hoje guarda canal, mas nao guarda utm_source/medium/campaign. Sem isso nao ha como saber qual campanha gerou qual pedido.',
-                'how' => ['Capturar os parametros da URL no formulario.', 'Salvar no banco e exibir no painel.'],
+                'why' => 'O ticket hoje guarda o canal, mas não guarda utm_source, utm_medium e utm_campaign. Sem isso não há como saber qual campanha gerou qual pedido.',
+                'how' => ['Capturar os parâmetros da URL no formulário.', 'Salvar no banco e exibir no painel.'],
             ],
             [
                 'id' => 'pixel', 'title' => 'Pixel do Meta + GA4 + tag do Google Ads', 'owner' => 'Daniel + Assistente',
                 'prio' => 'P1', 'effort' => '2 h', 'done' => false,
-                'why' => 'Hoje nao existe nenhum rastreamento instalado. Sem pixel nao ha remarketing, nem otimizacao por conversao, nem medicao de custo por lead.',
+                'why' => 'Hoje não existe nenhum rastreamento instalado. Sem pixel não há remarketing, nem otimização por conversão, nem medição de custo por lead.',
                 'how' => [
-                    'Voce cria (ou me passa) os IDs de Pixel, GA4 e Google Ads.',
+                    'Você cria (ou me passa) os IDs de Pixel, GA4 e Google Ads.',
                     'Eu instalo as tags no template e valido com o Tag Assistant.',
                 ],
             ],
             [
-                'id' => 'eventos', 'title' => 'Marcar os eventos de conversao', 'owner' => 'Assistente',
+                'id' => 'eventos', 'title' => 'Marcar os eventos de conversão', 'owner' => 'Assistente',
                 'prio' => 'P1', 'effort' => '2 h', 'done' => false,
-                'why' => 'As plataformas precisam aprender o que e sucesso. Sem evento de conversao, a campanha otimiza por clique - que e justamente o que voce paga sem retorno.',
-                'how' => ['Disparar evento no envio do pedido e no login do portal.', 'Enviar o codigo do pedido como valor da conversao.'],
+                'why' => 'As plataformas precisam aprender o que é sucesso. Sem evento de conversão, a campanha otimiza por clique — que é justamente o que você paga sem retorno.',
+                'how' => ['Disparar evento no envio do pedido e no login do portal.', 'Enviar o código do pedido como valor da conversão.'],
             ],
             [
-                'id' => 'consent', 'title' => 'Aviso de cookies / consentimento (LGPD)', 'owner' => 'Assistente',
+                'id' => 'consent', 'title' => 'Aviso de cookies e consentimento (LGPD)', 'owner' => 'Assistente',
                 'prio' => 'P2', 'effort' => '2 h', 'done' => false,
-                'why' => 'Se instalar pixel e GA4, o site passa a rastrear navegacao. Um aviso simples de cookies mantem a operacao alinhada a LGPD.',
-                'how' => ['Banner discreto com aceite e link para a politica de privacidade.'],
+                'why' => 'Ao instalar pixel e GA4, o site passa a rastrear navegação. Um aviso simples de cookies mantém a operação alinhada à LGPD.',
+                'how' => ['Banner discreto com aceite e link para a política de privacidade.'],
             ],
         ],
     ],
@@ -206,29 +214,29 @@ $phases = [
         'id' => 'f4',
         'tag' => 'Fase 4',
         'title' => 'Campanha no ar',
-        'goal' => 'Ligar o trafego depois que as fases acima estiverem fechadas.',
+        'goal' => 'Ligar o tráfego depois que as fases acima estiverem fechadas.',
         'state' => 'todo',
         'steps' => [
             [
-                'id' => 'contas', 'title' => 'Contas de anuncio e verificacao', 'owner' => 'Daniel',
-                'prio' => 'P1', 'effort' => '1-3 dias (analise das plataformas)', 'done' => false,
-                'why' => 'Contas novas passam por verificacao. Melhor criar antes e deixar aprovada do que descobrir na hora de subir a campanha.',
-                'how' => ['Criar/verificar conta no Meta Ads e no Google Ads.', 'Configurar forma de pagamento e limites.'],
+                'id' => 'contas', 'title' => 'Contas de anúncio e verificação', 'owner' => 'Daniel',
+                'prio' => 'P1', 'effort' => '1 a 3 dias (análise das plataformas)', 'done' => false,
+                'why' => 'Contas novas passam por verificação. Melhor criar antes e deixar aprovada do que descobrir na hora de subir a campanha.',
+                'how' => ['Criar e verificar a conta no Meta Ads e no Google Ads.', 'Configurar forma de pagamento e limites.'],
             ],
             [
                 'id' => 'posicionamento', 'title' => 'Decidir o posicionamento do nome', 'owner' => 'Daniel',
-                'prio' => 'P1', 'effort' => 'decisao', 'done' => false,
-                'why' => 'O site se chama "Cartorio Digital", mas o proprio texto afirma que a CNJP nao e cartorio e nao pratica ato de fe publica. Quem clica num anuncio de "cartorio" espera o cartorio: gera lead ruim, reclamacao e risco de reprovacao do anuncio.',
+                'prio' => 'P1', 'effort' => 'decisão', 'done' => false,
+                'why' => 'O site se chama "Cartório Digital", mas o próprio texto afirma que a CNJP não é cartório e não pratica ato de fé pública. Quem clica num anúncio de "cartório" espera o cartório: gera lead ruim, reclamação e risco de reprovação do anúncio.',
                 'how' => [
-                    'Escolher o rotulo: "central de servicos e documentos" em vez de "cartorio".',
-                    'Decidir se a pagina fica em /cartorio/ ou ganha caminho/subdominio proprio (hoje ela vive dentro de danieltatuador.com, um dominio de estudio de tatuagem).',
+                    'Escolher o rótulo: "central de serviços e documentos" em vez de "cartório".',
+                    'Decidir se a página fica em /cartorio/ ou ganha caminho/subdomínio próprio (hoje ela vive dentro de danieltatuador.com, um domínio de estúdio de tatuagem).',
                 ],
             ],
             [
-                'id' => 'estrutura', 'title' => 'Estrutura de campanha por servico', 'owner' => 'Assistente',
+                'id' => 'estrutura', 'title' => 'Estrutura de campanha por serviço', 'owner' => 'Assistente',
                 'prio' => 'P2', 'effort' => '2 h', 'done' => false,
-                'why' => 'Campanha separada por servico permite cortar o que nao vende e escalar o que vende.',
-                'how' => ['Definir palavras-chave negativas.', 'Um conjunto de anuncios por servico, cada um para sua landing page.'],
+                'why' => 'Campanha separada por serviço permite cortar o que não vende e escalar o que vende.',
+                'how' => ['Definir palavras-chave negativas.', 'Um conjunto de anúncios por serviço, cada um para sua landing page.'],
             ],
         ],
     ],
@@ -254,101 +262,123 @@ $prioClass = ['P0' => 'p0', 'P1' => 'p1', 'P2' => 'p2', 'feito' => 'ok'];
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#0f766e">
-<title>Proximos passos - CNJP Cartorio Digital</title>
+<title>Próximos passos — CNJP Cartório Digital</title>
 <link rel="stylesheet" href="../assets/local-fonts.css">
 <style>
-:root{--ink:#162235;--muted:#667085;--line:#e4e7ec;--teal:#0f766e;--teal2:#115e59;--tealSoft:#ecfdf5;--white:#fff;--amber:#b45309;--red:#b42318;--slate:#0f172a;--radius:18px}
+:root{--ink:#162235;--muted:#5b6675;--line:#e4e7ec;--teal:#0f766e;--teal2:#115e59;--tealSoft:#ecfdf5;--white:#fff;--amber:#b45309;--red:#b42318;--radius:18px}
 *{box-sizing:border-box}
 body{margin:0;background:#f5f7f8;color:var(--ink);font-family:Inter,system-ui,-apple-system,sans-serif;line-height:1.5;-webkit-text-size-adjust:100%}
-.wrap{width:min(1080px,calc(100% - 24px));margin-inline:auto}
-.topbar{background:#101828;color:#98a2b3;font-size:.72rem;padding:9px 0}
+.wrap{width:min(1080px,calc(100% - 32px));margin-inline:auto}
+.topbar{background:#101828;color:#b6c0cc;font-size:.74rem;padding:10px 0}
 .topbar .wrap{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between}
 .topbar b{color:#5eead4}
-header.hero{background:linear-gradient(160deg,#0f2928,#123f3c 60%,#0f766e);color:#fff;padding:44px 0 34px}
-.brand{display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:#fff;margin-bottom:22px}
-.brand-mark{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.14);font-weight:800}
+header.hero{background:linear-gradient(160deg,#0f2928,#123f3c 60%,#0f766e);color:#fff;padding:52px 0 40px}
+.brand{display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:#fff;margin-bottom:26px}
+.brand-mark{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.16);font-weight:800}
 .brand strong,.brand small{display:block}
 .brand strong{font-size:.9rem;line-height:1}
 .brand small{font-size:.63rem;color:#9fd8d2;margin-top:3px}
-.kicker{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#6ee7d6}
-h1{font-size:clamp(1.7rem,5vw,2.9rem);line-height:1.05;letter-spacing:-.04em;margin:12px 0 12px;max-width:760px}
-h1 em{font-style:normal;color:#6ee7d6}
-.lead{color:#c3dedb;font-size:.95rem;max-width:680px;margin:0}
-.meter{margin-top:26px;display:grid;gap:8px;max-width:560px}
-.meter .bar{height:12px;border-radius:999px;background:rgba(255,255,255,.16);overflow:hidden}
-.meter .bar i{display:block;height:100%;width:<?= $pct ?>%;background:linear-gradient(90deg,#5eead4,#14b8a6);border-radius:999px;transition:width .3s}
-.meter span{font-size:.7rem;color:#9fd8d2}
-.meter b{color:#fff}
-main{padding:28px 0 10px}
-.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px}
-.need{border:1px solid #fed7aa;background:linear-gradient(135deg,#fff7ed,#fff)}
-.need h2{margin:0 0 6px;font-size:1.05rem}
-.need>p{margin:0 0 14px;color:var(--muted);font-size:.79rem}
-.need ul{margin:0;padding-left:0;list-style:none;display:grid;gap:7px}
-.need li{display:flex;gap:9px;align-items:flex-start;font-size:.79rem}
-.need li:before{content:'→';color:#c2410c;font-weight:800;flex:0 0 auto}
-.deploy{border:1px solid #bfdbfe;background:linear-gradient(135deg,#eff6ff,#fff)}
-.deploy h2{margin:0 0 6px;font-size:1.05rem}
-.deploy p{margin:0 0 10px;color:var(--muted);font-size:.79rem}
-.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.72rem;margin:0 0 12px}
-.flow span{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-weight:650}
-.flow i{color:#94a3b8;font-style:normal}
-.phase{border-top:3px solid var(--line)}
-.phase.done{border-top-color:#10b981}
+.kicker{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:#7ff0e0}
+h1{font-size:clamp(1.75rem,5vw,3rem);line-height:1.06;letter-spacing:-.04em;margin:14px 0 14px;max-width:780px}
+h1 em{font-style:normal;color:#8df3e4}
+.lead{color:#dbeeeb;font-size:.97rem;max-width:690px;margin:0}
+.meter{margin-top:30px;display:grid;gap:9px;max-width:560px}
+.meter .bar{height:13px;border-radius:999px;background:rgba(255,255,255,.18);overflow:hidden}
+.meter .bar i{display:block;height:100%;width:<?= $pct ?>%;background:linear-gradient(90deg,#8df3e4,#14b8a6);border-radius:999px}
+.meter .txt{font-size:.8rem;color:#cfe9e6}
+.meter .txt b{color:#fff;font-size:1.05rem}
+main{padding:30px 0 10px}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.card h2{margin:0 0 8px;font-size:1.08rem;letter-spacing:-.02em}
+.need{border:1px solid #fdba74;background:linear-gradient(135deg,#fff7ed,#fff)}
+.need>p{margin:0 0 14px;color:#7c4a12;font-size:.8rem}
+.need ul{margin:0;padding-left:0;list-style:none;display:grid;gap:8px}
+.need li{display:flex;gap:10px;align-items:flex-start;font-size:.8rem}
+.need li::before{content:'→';color:#c2410c;font-weight:800;flex:0 0 auto}
+.deploy{border:1px solid #93c5fd;background:linear-gradient(135deg,#eff6ff,#fff)}
+.deploy p{margin:0 0 12px;color:#3c4a5c;font-size:.8rem}
+.flow{display:flex;flex-wrap:wrap;gap:7px;align-items:center;font-size:.73rem;margin:0 0 14px}
+.flow span{background:#fff;border:1px solid #cbd5e1;border-radius:999px;padding:6px 11px;font-weight:650}
+.flow i{color:#64748b;font-style:normal;font-weight:700}
+.phase{border-top:4px solid #cbd5e1;padding-top:10px}
+.phase.done{border-top-color:#12b76a}
 .phase.active{border-top-color:var(--teal)}
-.phase-head{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:4px}
-.phase-tag{background:#f2f4f7;color:#475467;border-radius:999px;padding:4px 10px;font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
-.phase.active .phase-tag{background:var(--tealSoft);color:var(--teal)}
-.phase.done .phase-tag{background:#ecfdf3;color:#067647}
-.phase h2{margin:0;font-size:1.12rem;letter-spacing:-.02em}
-.phase-goal{margin:0 0 16px;color:var(--muted);font-size:.79rem}
-.step{border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:9px;background:#fff;transition:.15s}
-.step:hover{border-color:#99d5ce}
+.phase-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:none;border:none;width:100%;text-align:left;padding:12px 4px;margin:0;cursor:pointer;border-radius:10px;transition:background .15s}
+.phase-head:hover{background:#f3f6f6}
+.phase-tag{background:#eef1f4;color:#3f4a58;border-radius:999px;padding:5px 11px;font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em}
+.phase.active .phase-tag{background:var(--teal);color:#fff}
+.phase.done .phase-tag{background:#d1fadf;color:#05603a}
+.phase h2{margin:0;font-size:1.1rem;flex:1;min-width:180px}
+.phase-chev{transition:transform .2s;color:var(--muted);flex:0 0 auto;font-size:.8rem}
+.phase.closed .phase-chev{transform:rotate(-90deg)}
+.phase-goal{margin:0 0 16px;color:var(--muted);font-size:.8rem;padding:0 4px}
+/* arvore: indentacao + conector */
+.tree{padding-left:6px}
+.tree .step{position:relative;margin-left:9px;border-left:1px solid #d7dde3;border-radius:0 14px 14px 0}
+.tree .step::before{content:'';position:absolute;left:-1px;top:20px;width:14px;height:1px;background:#d7dde3}
+.step.closed{border-bottom-width:1px}
+.step{border:1px solid var(--line);border-radius:14px;padding:0;margin-bottom:0;background:#fff;transition:.15s}
+.step + .step{margin-top:11px}
+.step:hover{border-color:#8ecfc7}
 .step.is-done{background:#fbfdfc;border-color:#cdece6}
-.step-top{display:flex;gap:10px;align-items:flex-start}
-.step-top input[type=checkbox]{width:19px;height:19px;margin:2px 0 0;accent-color:var(--teal);flex:0 0 auto;cursor:pointer}
+.step-top{display:flex;gap:11px;align-items:flex-start;padding:14px 15px 13px}
+.step.is-closed .step-top{padding:14px 15px 14px}
+.step-top input[type=checkbox]{width:19px;height:19px;margin:3px 0 0;accent-color:var(--teal);flex:0 0 auto;cursor:pointer}
 .step-body{min-width:0;flex:1}
-.step-title{font-weight:750;font-size:.86rem;display:block;margin-bottom:6px}
-.step.is-done .step-title{color:#475467;text-decoration:line-through;text-decoration-color:#a7d8d2}
-.chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
-.chip{border-radius:999px;padding:3px 8px;font-size:.57rem;font-weight:750;background:#f2f4f7;color:#475467;white-space:nowrap}
-.chip.p0{background:#fff1f0;color:var(--red)}
-.chip.p1{background:#fff7ed;color:var(--amber)}
-.chip.p2{background:#eff6ff;color:#2563eb}
-.chip.ok{background:#ecfdf3;color:#067647}
-.chip.owner{background:#f5f3ff;color:#6d28d9}
-.why{margin:0 0 8px;font-size:.77rem;color:#475467}
+.step-headline{display:flex;align-items:flex-start;gap:9px;justify-content:space-between}
+.step-title{font-weight:750;font-size:.88rem;cursor:pointer;margin-bottom:8px}
+.step.is-done .step-title{color:#5b6675;text-decoration:line-through;text-decoration-color:#8ecfc7}
+.step-chev{color:var(--muted);cursor:pointer;flex:0 0 auto;font-size:.78rem;margin-left:6px;transition:transform .18s;user-select:none}
+.step.closed .step-chev{transform:rotate(-90deg)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{border-radius:999px;padding:4px 9px;font-size:.6rem;font-weight:800;background:#eef1f4;color:#3f4a58;white-space:nowrap;letter-spacing:.02em}
+.chip.p0{background:#b42318;color:#fff}
+.chip.p1{background:#fef0c7;color:#93370d}
+.chip.p2{background:#dbe7fe;color:#1d4ed8}
+.chip.ok{background:#d1fadf;color:#05603a}
+.chip.owner{background:#ece9fe;color:#5925dc}
+.step-detail{overflow:hidden}
+.step.closed .step-detail{display:none}
+.step-detail{padding:0 15px 15px}
+.why{margin:0 0 9px;font-size:.78rem;color:#3f4a58}
 .why strong{color:var(--ink)}
-.how{margin:0;padding-left:18px;display:grid;gap:4px}
-.how li{font-size:.75rem;color:var(--muted)}
-footer{border-top:1px solid var(--line);margin-top:8px;padding:22px 0 40px;color:#98a2b3;font-size:.72rem;background:#101828}
+.how{margin:0;padding-left:19px;display:grid;gap:5px}
+.how li{font-size:.76rem;color:var(--muted)}
+.seq{margin:0;padding-left:20px;display:grid;gap:6px}
+.seq li{font-size:.79rem;color:#3f4a58}
+@media(max-width:520px){
+  .tree{padding-left:0}
+  .tree .step{margin-left:6px}
+}
+.reset{border:1px solid #cfd5dc;background:#fff;color:#344054;border-radius:10px;padding:9px 13px;font-size:.72rem;font-weight:700;cursor:pointer}
+.reset:hover{border-color:#8ecfc7;color:var(--teal)}
+footer{border-top:1px solid var(--line);margin-top:10px;padding:24px 0 44px;color:#9aa4b1;font-size:.73rem;background:#101828}
 footer a{color:#5eead4}
-footer .wrap{display:grid;gap:8px}
-.reset{border:1px solid #cfd5dc;background:#fff;color:#344054;border-radius:10px;padding:8px 12px;font-size:.7rem;font-weight:700;cursor:pointer}
+footer .wrap{display:grid;gap:9px}
+.hidden{display:none}
 @media(min-width:700px){
-  .step-top{gap:12px}
-  .card{padding:22px}
-  .steps-grid{display:grid;gap:9px}
+  .card{padding:24px}
+  h1{margin-top:16px}
 }
 </style>
 </head>
 <body>
 <div class="topbar">
   <div class="wrap">
-    <span>Pagina interna do projeto - <b>nao indexar, nao usar como destino de anuncio</b></span>
+    <span>Página interna do projeto — <b>não indexar e não usar como destino de anúncio</b></span>
     <span>Atualizada em <?= e(date('d/m/Y')) ?></span>
   </div>
 </div>
 
 <header class="hero">
   <div class="wrap">
-    <a class="brand" href="../"><span class="brand-mark">CN</span><span><strong>CNJP</strong><small>Cartorio Digital</small></span></a>
+    <a class="brand" href="../"><span class="brand-mark">CN</span><span><strong>CNJP</strong><small>Cartório Digital</small></span></a>
     <span class="kicker">Roadmap do projeto</span>
-    <h1>O que falta para essa pagina <em>vender de verdade.</em></h1>
-    <p class="lead">Auditoria honesta da pagina atual, com o caminho em ordem de prioridade. O que esta em vermelho (P0) trava campanha: sem isso, o dinheiro de anuncio vaza e as plataformas podem reprovar a conta.</p>
+    <h1>O que falta para essa página <em>vender de verdade.</em></h1>
+    <p class="lead">Auditoria honesta da página atual, com o caminho em ordem de prioridade. O que está marcado como P0 trava campanha: sem isso, o dinheiro do anúncio vaza e as plataformas podem reprovar a conta.</p>
     <div class="meter">
       <div class="bar"><i></i></div>
-      <span><b><?= $doneSteps ?> de <?= $totalSteps ?></b> itens concluidos - <?= $pct ?>% do caminho</span>
+      <span class="txt"><b><?= $doneSteps ?> de <?= $totalSteps ?></b> itens concluídos — <?= $pct ?>% do caminho</span>
     </div>
   </div>
 </header>
@@ -356,21 +386,21 @@ footer .wrap{display:grid;gap:8px}
 <main class="wrap">
 
   <section class="card need">
-    <h2>Preciso de voce para destravar a Fase 1</h2>
-    <p>Sao informacoes que so voce tem. Com elas eu executo o resto.</p>
+    <h2>Preciso de você para destravar a Fase 1</h2>
+    <p>São informações que só você tem. Com elas eu executo o resto.</p>
     <ul>
-      <li>Numero de WhatsApp comercial (com DDD) que vai atender os leads.</li>
-      <li>Telefone, e-mail e horario de atendimento que devem aparecer no site.</li>
-      <li>CNPJ (ou CPF, se ainda for MEI/pessoa fisica), razao social e endereco comercial.</li>
+      <li>Número de WhatsApp comercial (com DDD) que vai atender os leads.</li>
+      <li>Telefone, e-mail e horário de atendimento que devem aparecer no site.</li>
+      <li>CNPJ (ou CPF, se ainda for MEI/pessoa física), razão social e endereço comercial.</li>
       <li>E-mail que deve receber o aviso de cada novo pedido.</li>
-      <li>IDs de Pixel do Meta, GA4 e Google Ads (ou aviso para eu criar a estrutura e voce so colar os IDs).</li>
-      <li>Depoimentos/clientes atendidos e tempo medio de resposta, se existirem.</li>
+      <li>IDs de Pixel do Meta, GA4 e Google Ads — ou o aviso para eu criar a estrutura e você apenas colar os IDs.</li>
+      <li>Depoimentos e tempo médio de resposta, se existirem.</li>
     </ul>
   </section>
 
   <section class="card deploy">
-    <h2>Como as alteracoes chegam ao site (ja e automatico)</h2>
-    <p>Nao existe mais upload manual de arquivos: a publicacao e feita pelo git.</p>
+    <h2>Como as alterações chegam ao site (já é automático)</h2>
+    <p>Não existe mais upload manual de arquivos: a publicação é feita pelo git.</p>
     <div class="flow">
       <span>Edito e testo aqui</span><i>→</i>
       <span>git commit</span><i>→</i>
@@ -379,61 +409,75 @@ footer .wrap{display:grid;gap:8px}
       <span>webhook no servidor</span><i>→</i>
       <span>git pull na HostGator</span>
     </div>
-    <p style="margin-bottom:0">Prova: os commits de 14/09/2026 (e374801 e a867633) subiram sozinhos, com sucesso, em cerca de 7 segundos cada - execucoes do workflow <b>Deploy Production Site</b>. O mesmo servidor ja roda o banco SQLite com o catalogo publicado e o acesso administrativo criado.</p>
+    <p style="margin-bottom:0">Prova: os commits de 14/09/2026 (e374801, a867633 e 874b239) subiram sozinhos, com sucesso, em cerca de 6 a 7 segundos cada — execuções do workflow <b>Deploy Production Site</b>. O mesmo servidor já roda o banco SQLite com o catálogo publicado e o acesso administrativo criado.</p>
   </section>
 
+  <?php $firstOpen = true; ?>
   <?php foreach ($phases as $phase): ?>
-  <section class="card phase <?= e($phase['state']) ?>">
-    <div class="phase-head">
+  <?php
+    $closed = empty($firstOpen);
+    $hidden = !empty($firstOpen);
+    $firstOpen = false;
+  ?>
+  <section class="card phase <?= e($phase['state']) ?> <?= $closed ? 'closed' : '' ?>">
+    <button type="button" class="phase-head" aria-expanded="<?= $closed ? 'false' : 'true' ?>">
       <span class="phase-tag"><?= e($phase['tag']) ?></span>
       <h2><?= e($phase['title']) ?></h2>
-    </div>
-    <p class="phase-goal"><?= e($phase['goal']) ?></p>
-    <?php foreach ($phase['steps'] as $step): ?>
-      <article class="step <?= !empty($step['done']) ? 'is-done' : '' ?>" data-step="<?= e($step['id']) ?>">
-        <div class="step-top">
-          <input type="checkbox" <?= !empty($step['done']) ? 'checked' : '' ?> aria-label="<?= e($step['title']) ?>">
-          <div class="step-body">
-            <label class="step-title"><?= e($step['title']) ?></label>
-            <div class="chips">
-              <span class="chip <?= e($prioClass[$step['prio']] ?? '') ?>"><?= e($step['prio']) ?></span>
-              <span class="chip owner"><?= e($step['owner']) ?></span>
-              <span class="chip"><?= e($step['effort']) ?></span>
+      <span class="phase-chev">▾</span>
+    </button>
+    <div class="phase-panel<?= $hidden ? '' : ' hidden' ?>">
+      <p class="phase-goal"><?= e($phase['goal']) ?></p>
+      <div class="tree">
+        <?php foreach ($phase['steps'] as $step): ?>
+          <article class="step <?= !empty($step['done']) ? 'is-done' : '' ?> closed" data-step="<?= e($step['id']) ?>">
+            <div class="step-top">
+              <input type="checkbox" <?= !empty($step['done']) ? 'checked' : '' ?> aria-label="<?= e($step['title']) ?>">
+              <div class="step-body">
+                <div class="step-headline">
+                  <span class="step-title"><?= e($step['title']) ?></span>
+                  <span class="step-chev" aria-hidden="true">▾</span>
+                </div>
+                <div class="chips">
+                  <span class="chip <?= e($prioClass[$step['prio']] ?? '') ?>"><?= e($step['prio']) ?></span>
+                  <span class="chip owner"><?= e($step['owner']) ?></span>
+                  <span class="chip"><?= e($step['effort']) ?></span>
+                </div>
+                <div class="step-detail">
+                  <p class="why"><strong>Por que importa:</strong> <?= e($step['why']) ?></p>
+                  <ul class="how">
+                    <?php foreach ($step['how'] as $line): ?>
+                      <li><?= e($line) ?></li>
+                    <?php endforeach; ?>
+                  </ul>
+                </div>
+              </div>
             </div>
-            <p class="why"><strong>Por que importa:</strong> <?= e($step['why']) ?></p>
-            <ul class="how">
-              <?php foreach ($step['how'] as $line): ?>
-                <li><?= e($line) ?></li>
-              <?php endforeach; ?>
-            </ul>
-          </div>
-        </div>
-      </article>
-    <?php endforeach; ?>
+          </article>
+        <?php endforeach; ?>
+      </div>
+    </div>
   </section>
   <?php endforeach; ?>
 
   <section class="card">
-    <div class="phase-head" style="margin-bottom:12px">
-      <h2 style="font-size:1rem">Sequencia recomendada</h2>
-    </div>
-    <ol class="how" style="padding-left:20px">
-      <li>Voce me envia os dados do bloco laranja (contato, CNPJ, e-mail de aviso).</li>
-      <li>Eu publico contato + politica de privacidade + termos e limpo o "simulado/beta".</li>
-      <li>Eu ligo o aviso automatico de lead novo e a auto-resposta ao cliente.</li>
-      <li>Eu instalo Pixel, GA4 e Google Ads e marco os eventos de conversao.</li>
-      <li>Eu faco os ajustes de conversao (heroi, mobile, prova social, FAQ).</li>
-      <li>So entao subimos a campanha, com uma landing page por servico.</li>
+    <h2>Sequência recomendada</h2>
+    <ol class="seq">
+      <li>Você me envia os dados do bloco laranja (contato, CNPJ e e-mail de aviso).</li>
+      <li>Eu publico contato, política de privacidade e termos. ("simulado/beta" já foi limpo do site.)</li>
+      <li>Eu ligo o aviso automático de lead novo e a auto-resposta ao cliente.</li>
+      <li>Eu instalo Pixel, GA4 e Google Ads e marco os eventos de conversão.</li>
+      <li>Eu faço os ajustes de conversão (herói, celular, prova social, FAQ).</li>
+      <li>Só então subimos a campanha, com uma landing page por serviço.</li>
     </ol>
-    <div style="margin-top:14px"><button class="reset" id="reset">Limpar marcacoes desta pagina</button></div>
+    <div style="margin-top:16px"><button class="reset" id="reset">Limpar marcações desta página</button></div>
   </section>
 
 </main>
 
 <footer>
   <div class="wrap">
-    <span>CNJP Cartorio Digital - pagina interna de planejamento.</span>
-    <span>Esta pagina nao aparece em buscadores e nao deve ser divulgada. <a href="../">Voltar ao site</a></span>
+    <span>CNJP Cartório Digital — página interna de planejamento.</span>
+    <span>Esta página não aparece em buscadores e não deve ser divulgada. <a href="../">Voltar ao site</a></span>
   </div>
 </footer>
 
@@ -442,6 +486,26 @@ footer .wrap{display:grid;gap:8px}
   const key = 'cnjp-proximospassos';
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(key) || '{}'); } catch (err) { saved = {}; }
+
+  // Acordeão das fases
+  document.querySelectorAll('.phase-head').forEach(head => {
+    head.addEventListener('click', () => {
+      const phase = head.closest('.phase');
+      const panel = phase.querySelector('.phase-panel');
+      const closed = phase.classList.toggle('closed');
+      panel.classList.toggle('hidden', closed);
+      head.setAttribute('aria-expanded', closed ? 'false' : 'true');
+    });
+  });
+
+  // Acordeão dos passos
+  document.querySelectorAll('.step').forEach(step => {
+    const titles = [step.querySelector('.step-title'), step.querySelector('.step-chev')]
+      .filter(el => el);
+    const toggle = () => step.classList.toggle('closed');
+    titles.forEach(el => el.addEventListener('click', toggle));
+  });
+
   document.querySelectorAll('.step').forEach(step => {
     const box = step.querySelector('input[type=checkbox]');
     const id = step.dataset.step;
