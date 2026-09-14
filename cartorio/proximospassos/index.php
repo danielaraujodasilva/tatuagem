@@ -126,24 +126,16 @@ $phases = [
         'state' => 'todo',
         'steps' => [
             [
-                'id' => 'portal', 'title' => 'Tirar o portal do cliente de dentro do herói', 'owner' => 'Assistente',
-                'prio' => 'P1', 'effort' => '1 h', 'done' => false,
-                'why' => 'A caixa "Acompanhe seu pedido" serve para quem já é cliente e não tem nada a fazer ali. Ela ocupa o espaço mais nobre da página e, no celular, aparece logo abaixo do botão principal.',
-                'how' => [
-                    'Mover para o rodapé ou para um link discreto no topo ("Já sou cliente").',
-                    'Usar o espaço para a oferta e o botão principal.',
-                    'No celular, isso libera a metade inferior da primeira dobra, hoje ocupada pelo formulário.',
-                ],
+                'id' => 'portal', 'title' => 'Tirar o portal do cliente de dentro do herói', 'owner' => 'Daniel',
+                'prio' => 'P1', 'effort' => 'decisão', 'done' => true,
+                'why' => 'Sugestão de tirar a caixa "Acompanhe seu pedido" do herói. Avaliada e recusada pelo Daniel: quem já é cliente precisa achar o acompanhamento de cara. Mantido como está.',
+                'how' => ['Decisão registrada: a caixa do portal permanece no herói.', 'Prioridade vai para encurtar o resto da dobra no celular (item cta-mobile).'],
             ],
             [
                 'id' => 'cta-mobile', 'title' => 'Encurtar a primeira dobra no celular', 'owner' => 'Assistente',
-                'prio' => 'P1', 'effort' => '1 h', 'done' => false,
-                'why' => 'Medição em 390x844: o botão principal já aparece inteiro (entre 445px e 491px) e não há estouro de largura. O que sobra é a metade de baixo da dobra: ela termina no portal do cliente, então a oferta de serviços só aparece depois de rolar.',
-                'how' => [
-                    'Reduzir a altura da headline no celular.',
-                    'Deixar os selos de confiança mais compactos.',
-                    'Resultado: o catálogo aparece mais cedo na rolagem.',
-                ],
+                'prio' => 'P1', 'effort' => '1 h', 'done' => true,
+                'why' => 'Medição em 390x844: o botão principal aparece entre 386px e 438px. A dobra terminava no portal do cliente, então a oferta de serviços só aparecia depois de rolar.',
+                'how' => ['Breakpoint novo para telas até 599px: headline, espaçamentos e caixa do portal compactados.', 'O portal permaneceu na dobra (decisão do Daniel); o catálogo subiu de 1433px para 1394px.'],
             ],
             [
                 'id' => 'prova', 'title' => 'Prova social e "quem somos"', 'owner' => 'Daniel',
@@ -156,15 +148,15 @@ $phases = [
             ],
             [
                 'id' => 'faq', 'title' => 'Bloco de perguntas frequentes', 'owner' => 'Assistente',
-                'prio' => 'P1', 'effort' => '2 h', 'done' => false,
-                'why' => 'As dúvidas que travam a conversão são sempre as mesmas e hoje não estão respondidas: quanto custa, qual o prazo, quais documentos, "vocês são um cartório?".',
-                'how' => ['Montar FAQ com as 8 perguntas mais prováveis.', 'Cada resposta curta e direta, em linguagem de cliente.'],
+                'prio' => 'P1', 'effort' => '2 h', 'done' => true,
+                'why' => 'As dúvidas que travam a conversão são sempre as mesmas e não estavam respondidas: quanto custa, qual o prazo, quais documentos, "vocês são um cartório?".',
+                'how' => ['8 perguntas em bloco recolhível, entre a seção de atendimento humano e a de transparência.', 'Cada resposta curta, em linguagem de cliente, ligada ao que o sistema faz hoje (código, portal, retenção de 365 dias).'],
             ],
             [
                 'id' => 'contagem', 'title' => 'Unificar a contagem de serviços', 'owner' => 'Assistente',
-                'prio' => 'P1', 'effort' => '30 min', 'done' => false,
-                'why' => 'O selo da página diz "60+ serviços", o catálogo carrega 25 do banco e o arquivo estático tem 78. Números diferentes minam a credibilidade.',
-                'how' => ['Escolher uma fonte única (o banco) e exibir a contagem real.'],
+                'prio' => 'P1', 'effort' => '30 min', 'done' => true,
+                'why' => 'O selo da página dizia "60+", o catálogo carregava 25 do banco e o arquivo estático tinha outros números. Números diferentes minam a credibilidade.',
+                'how' => ['O selo agora mostra a contagem real do banco (24 serviços), sem o "+" que prometia mais do que existe.', 'Removida a duplicata "procuracao-publica", que era o mesmo serviço de "procuracoes".', 'Texto da seção sem número chumbado.'],
             ],
             [
                 'id' => 'landing', 'title' => 'Landing page por serviço', 'owner' => 'Assistente',

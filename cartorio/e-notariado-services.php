@@ -18,7 +18,6 @@ $eNotariadoServices = [
   ['divorcio-extrajudicial','Divórcio extrajudicial','Triagem documental e encaminhamento para divórcio consensual em cartório, quando cabível.','familia',0,'family_restroom'],
   ['uniao-estavel','Escritura de união estável','Organização dos dados e documentos para formalização de união estável.','familia',0,'favorite'],
   ['dissolucao-uniao-estavel','Dissolução de união estável','Checklist e encaminhamento para dissolução consensual, quando cabível.','familia',0,'heart_broken'],
-  ['procuracao-publica','Procuração pública','Preparação de informações e documentos para procuração pública.','notas',199,'contract_edit'],
   ['testamento-publico','Testamento público','Orientação operacional e checklist para atendimento notarial de testamento.','familia',0,'description'],
   ['ata-notarial','Ata notarial','Organização do pedido e dos elementos para constatação por ata notarial.','notas',0,'fact_check'],
   ['apostilamento-haia','Apostilamento de Haia','Conferência e encaminhamento de documento para apostilamento.','documentos',0,'verified'],

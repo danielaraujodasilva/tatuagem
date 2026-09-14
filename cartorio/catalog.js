@@ -26,7 +26,7 @@ function initClientCatalog(){
   const popularIds=['certidao-nascimento','certidao-casamento','assinaturas','autenticacao','procuracoes','imoveis','pesquisa-matricula','protestos','notificacao-cobranca','mediacao-geral'];
   const popular=popularIds.map(id=>activeServices.find(s=>s.id===id)).filter(Boolean).slice(0,10);
   popularGrid.innerHTML=popular.map(serviceCard).join('');
-  if(totalBadge) totalBadge.textContent=`${activeServices.length}+`;
+  if(totalBadge) totalBadge.textContent=activeServices.length;
 
   filters.innerHTML=[`<button class="category-chip active" data-category="all"><span class="material-symbols-rounded">apps</span>Todos <b>${SERVICES.length}</b></button>`,...CATEGORIES.map(c=>`<button class="category-chip" data-category="${c.id}"><span class="material-symbols-rounded">${c.icon}</span>${c.title} <b>${SERVICES.filter(s=>s.category===c.id).length}</b></button>`)].join('');
 
