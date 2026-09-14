@@ -160,15 +160,15 @@ $phases = [
             ],
             [
                 'id' => 'landing', 'title' => 'Landing page por serviço', 'owner' => 'Assistente',
-                'prio' => 'P2', 'effort' => '1 dia', 'done' => false,
-                'why' => 'Anúncio de "certidão de nascimento" caindo na home gera cliques caros e pouco foco. Página dedicada por serviço (certidões, firma, matrícula, mediação) converte muito mais.',
-                'how' => ['Template único reaproveitando o banco de serviços.', 'Texto, documentos, prazo, preço e formulário direto.'],
+                'prio' => 'P2', 'effort' => '1 dia', 'done' => true,
+                'why' => 'Anúncio de "certidão de nascimento" caindo na home gera cliques caros e pouco foco. Página dedicada por serviço converte muito mais.',
+                'how' => ['/cartorio/s/<slug>/ com título, descrição, preço, documentos, etapas e formulário próprio do serviço.', 'Cada landing envia o pedido já com o serviço certo e com a origem marcada.', 'Title e description próprios para o anúncio; URLs bonitas via .htaccess.'],
             ],
             [
                 'id' => 'obrigado', 'title' => 'Página de obrigado (thank-you)', 'owner' => 'Assistente',
-                'prio' => 'P2', 'effort' => '1 h', 'done' => false,
+                'prio' => 'P2', 'effort' => '1 h', 'done' => true,
                 'why' => 'É onde se mede conversão com precisão e onde o cliente confirma que o pedido chegou.',
-                'how' => ['Página própria após o envio, com o código do pedido e os próximos passos.'],
+                'how' => ['/cartorio/obrigado/?code=CD-XXXX confirma o pedido, mostra o código, o serviço e os próximos passos.', 'É a URL de conversão a usar no Pixel e no GA4 (item eventos).', 'Dispara o evento cnjp:pedido no navegador para as tags escutarem.'],
             ],
         ],
     ],
@@ -181,9 +181,9 @@ $phases = [
         'steps' => [
             [
                 'id' => 'utm', 'title' => 'Gravar a origem (UTM) em cada pedido', 'owner' => 'Assistente',
-                'prio' => 'P1', 'effort' => '2 h', 'done' => false,
+                'prio' => 'P1', 'effort' => '2 h', 'done' => true,
                 'why' => 'O ticket hoje guarda o canal, mas não guarda utm_source, utm_medium e utm_campaign. Sem isso não há como saber qual campanha gerou qual pedido.',
-                'how' => ['Capturar os parâmetros da URL no formulário.', 'Salvar no banco e exibir no painel.'],
+                'how' => ['origem.js guarda utm_source/medium/campaign/content/term, gclid, fbclid, a página de entrada e o referrer externo na sessão.', 'Os pedidos do site, do pré-orçamento, do atendimento humano e da landing enviam essa origem e ela é salva no banco.', 'O painel mostra um bloco "Origem do pedido" dentro do ticket.'],
             ],
             [
                 'id' => 'pixel', 'title' => 'Pixel do Meta + GA4 + tag do Google Ads', 'owner' => 'Daniel + Assistente',

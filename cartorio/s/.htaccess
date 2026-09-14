@@ -1,0 +1,7 @@
+RewriteEngine On
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !^https$ [NC]
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# Landing por serviço: /cartorio/s/slug/ -> s/index.php?s=slug
+RewriteRule ^([a-z0-9-]+)/?$ index.php?s=$1 [L,QSA]
