@@ -100,9 +100,9 @@ $phases = [
             ],
             [
                 'id' => 'autoresposta', 'title' => 'Auto-resposta ao cliente com o código', 'owner' => 'Assistente',
-                'prio' => 'P0', 'effort' => '1 h', 'done' => false,
+                'prio' => 'P0', 'effort' => '1 h', 'done' => true,
                 'why' => 'Quem vem de anúncio espera resposta imediata. A tela já mostra o código; falta confirmar por e-mail ou WhatsApp para o cliente não achar que caiu no vazio.',
-                'how' => ['Mensagem curta padrão com código do pedido, prazo de resposta e canais de atendimento.'],
+                'how' => ['Implementado: campo de e-mail opcional no formulário, auto-resposta transacional com o código e o link do portal (notify.php).', 'Falta só o e-mail de contato/WhatsApp real em notify-config.php para a assinatura ficar completa.'],
             ],
             [
                 'id' => 'manual', 'title' => 'Corrigir o manual.html', 'owner' => 'Assistente',
