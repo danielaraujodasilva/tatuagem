@@ -14,7 +14,7 @@
 <body data-page="client">
   <header class="site-header">
     <a class="brand" href="./"><span class="brand-mark material-symbols-rounded">assured_workload</span><span><strong>CNJP</strong><small>Cartório Digital</small></span></a>
-    <nav class="desktop-nav"><a href="#triagem">Triagem</a><a href="#servicos">Serviços</a><a href="#como-funciona">Como funciona</a><a href="#humano">Atendimento humano</a></nav>
+    <nav class="desktop-nav"><a href="#servicos">Serviços</a><a href="#como-funciona">Como funciona</a><a href="#humano">Atendimento humano</a></nav>
     <a class="header-admin" href="./admin.php"><span class="material-symbols-rounded">dashboard</span><span>Painel operacional</span></a>
   </header>
 
@@ -25,7 +25,7 @@
         <h1>Resolva burocracias e conflitos <em>sem precisar entender o sistema.</em></h1>
         <p>Você conta o que precisa. Nós organizamos documentos, encontramos o caminho, acompanhamos pedidos e também oferecemos estrutura de mediação, conciliação e arbitragem.</p>
         <div class="hero-actions">
-          <a class="btn primary" href="#triagem"><span class="material-symbols-rounded">auto_awesome</span>Resolver online</a>
+          <a class="btn primary" href="#servicos"><span class="material-symbols-rounded">auto_awesome</span>Resolver online</a>
           <button class="btn secondary" data-human><span class="material-symbols-rounded">support_agent</span>Quero falar com uma pessoa</button>
         </div>
         <div class="trust-row"><span><i class="material-symbols-rounded">verified_user</i>Dados protegidos</span><span><i class="material-symbols-rounded">receipt_long</i>Valores separados</span><span><i class="material-symbols-rounded">visibility</i>Acompanhamento claro</span></div>
@@ -41,12 +41,8 @@
     </section>
 
     <section class="choice-strip client-wrap" id="humano">
-      <article><span class="choice-icon digital material-symbols-rounded">devices</span><div><strong>Sou do time digital</strong><p>Faça a triagem guiada, envie os documentos e acompanhe tudo pelo celular.</p></div><a class="text-action" href="#triagem">Começar triagem</a></article>
+      <article><span class="choice-icon digital material-symbols-rounded">devices</span><div><strong>Sou do time digital</strong><p>Escolha o serviço, envie os documentos e acompanhe tudo pelo celular.</p></div><a class="text-action" href="#servicos">Ver serviços</a></article>
       <article><span class="choice-icon human material-symbols-rounded">record_voice_over</span><div><strong>Prefiro falar com alguém</strong><p>Telefone, WhatsApp ou balcão. Um atendente paciente organiza tudo por você.</p></div><button class="text-action" data-human>Ver opções humanas</button></article>
-    </section>
-
-    <section class="section client-wrap guided-section" id="triagem">
-      <div id="guidedTriage"></div>
     </section>
 
     <section class="section client-wrap" id="servicos">
@@ -56,7 +52,7 @@
       <div id="popularServiceGrid" class="service-grid"></div>
       <div class="catalog-cta-row">
         <button id="showFullCatalog" class="btn secondary catalog-main-action" type="button"><span class="material-symbols-rounded">apps</span>Ver todos os serviços</button>
-        <a class="btn primary catalog-main-action" href="#triagem"><span class="material-symbols-rounded">help</span>Não sei o que preciso</a>
+        <button class="btn primary catalog-main-action" type="button" data-human><span class="material-symbols-rounded">help</span>Não sei o que preciso</button>
       </div>
 
       <div id="fullCatalog" class="full-catalog" hidden>
@@ -67,7 +63,7 @@
           <div class="catalog-result"><strong id="serviceCount">0 serviços</strong><span id="activeCategoryLabel">Todos os assuntos</span></div>
         </div>
         <div id="serviceGrid" class="service-grid"></div>
-        <div id="serviceEmpty" class="catalog-empty" hidden><span class="material-symbols-rounded">search_off</span><strong>Nada apareceu com essa busca.</strong><p>Tente outra palavra ou volte à triagem guiada. Um ser humano faz a tradução do burocratês quando necessário.</p></div>
+        <div id="serviceEmpty" class="catalog-empty" hidden><span class="material-symbols-rounded">search_off</span><strong>Nada apareceu com essa busca.</strong><p>Tente outra palavra ou fale com uma pessoa. Um ser humano faz a tradução do burocratês quando necessário.</p></div>
       </div>
     </section>
 
@@ -116,7 +112,6 @@
   <script type="module" src="./app.js?v=20260826-2"></script>
   <script type="module" src="./catalog.js?v=20260826-4"></script>
   <script type="module" src="./enhancements.js?v=20260826-6"></script>
-  <script src="./triage-feedback.js?v=20260826-1"></script>
   <script src="./api-client.js?v=20260826-1"></script><script src="./human-ticket.js?v=20260826-1"></script>
   <script src="./customer-portal.js?v=20260826-2"></script><script src="./customer-portal-note.js?v=20260826-3"></script><script src="./public-copy-fix.js?v=20260826-2"></script>
 </body>

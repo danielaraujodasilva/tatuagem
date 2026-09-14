@@ -4,7 +4,6 @@ const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
 const icon=n=>`<span class="material-symbols-rounded">${n}</span>`;
-const normalize=(v='')=>v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 let SERVICES=[...STATIC_SERVICES];
 const serviceBy=id=>SERVICES.find(s=>s.id===id);
 const categoryBy=id=>CATEGORIES.find(c=>c.id===id);
@@ -18,9 +17,6 @@ function initClientEnhancements(){
   fetch('./api.php?action=services_public').then(r=>r.json()).then(d=>{if(!d.ok||!Array.isArray(d.services)||!d.services.length)return;SERVICES=d.services.map(s=>({...s,desc:s.desc||s.description||'',docs:Array.isArray(s.docs)?s.docs:(JSON.parse(s.docs_json||'[]')||[]),steps:Array.isArray(s.steps)?s.steps:(JSON.parse(s.steps_json||'[]')||[])}));document.dispatchEvent(new CustomEvent('cartorio:catalog-loaded'))}).catch(()=>{});
   const open=html=>{content.innerHTML=html;if(!modal.open)modal.showModal()};
   const close=()=>{if(modal.open)modal.close()};
-
-  const guided=$('#guidedTriage');
-  if(guided) renderGuidedTriage(guided,open);
 
   document.addEventListener('click',e=>{
     const card=e.target.closest('[data-service]');
@@ -39,45 +35,6 @@ function initClientEnhancements(){
     e.preventDefault();e.stopImmediatePropagation();
     showEnhancedTracking(trackForm.querySelector('input')?.value.trim().toUpperCase()||'CD-1086',open,close);
   },true);
-}
-
-function renderGuidedTriage(root,open){
-  root.innerHTML=`<div class="guided-shell"><div class="guided-copy"><span class="kicker">Triagem guiada</span><h2>Não sabe o nome do serviço? Conte o problema.</h2><p>Descreva o que aconteceu. A IA local compara seu relato com o catálogo ativo e sugere caminhos para a equipe revisar.</p></div><div class="guided-box"><div class="guided-categories">${CATEGORIES.slice(0,8).map(c=>`<button type="button" data-guide-category="${c.id}">${icon(c.icon)}<span>${c.title}</span></button>`).join('')}</div><label class="guided-text"><span class="material-symbols-rounded">chat_bubble</span><textarea id="guidedProblem" placeholder="Ex.: meu pai morreu e deixou uma casa; não sei quais documentos preciso nem por onde começar."></textarea></label><div class="guided-actions"><button class="btn primary" id="guidedSuggest" type="button">Sugerir caminhos</button><button class="text-action" id="guidedHuman" type="button">Prefiro falar com uma pessoa</button></div><div id="guidedSuggestions" class="guided-suggestions" hidden></div></div></div>`;
-  $$('[data-guide-category]',root).forEach(b=>b.addEventListener('click',()=>showGuideCategory(b.dataset.guideCategory,root)));
-  $('#guidedSuggest',root)?.addEventListener('click',()=>suggestFromText($('#guidedProblem',root)?.value||'',root));
-  $('#guidedHuman',root)?.addEventListener('click',()=>open(`<div class="flow-inner"><span class="kicker">Atendimento humano</span><h2>Sem problema. Uma pessoa assume daqui.</h2><p>Na operação real, o atendente faria exatamente a mesma triagem pelo balcão, telefone ou WhatsApp e preencheria o sistema por você.</p><div class="human-channels"><article>${icon('chat')}<div><strong>WhatsApp</strong><span>Conversa com atendente e envio de fotos/documentos.</span></div></article><article>${icon('call')}<div><strong>Telefone</strong><span>O operador registra tudo durante a ligação.</span></div></article><article>${icon('storefront')}<div><strong>Presencial</strong><span>O cliente leva o que tiver e a equipe organiza.</span></div></article></div></div>`));
-}
-
-function showGuideCategory(category,root){
-  const cat=categoryBy(category),items=SERVICES.filter(s=>s.category===category).slice(0,6),box=$('#guidedSuggestions',root);
-  box.hidden=false;
-  box.innerHTML=`<div class="guided-result-head"><strong>${cat?.title||'Sugestões'}</strong><span>${items.length} caminhos iniciais</span></div>${items.map(s=>`<button type="button" class="guided-result" data-service="${s.id}">${icon(s.icon)}<span><strong>${s.title}</strong><small>${s.desc}</small></span></button>`).join('')}<button type="button" class="guided-open-catalog" id="guideOpenCatalog">Ver catálogo completo desta área</button>`;
-  $('#guideOpenCatalog',box)?.addEventListener('click',()=>{const full=$('#fullCatalog'),show=$('#showFullCatalog');if(full){full.hidden=false;show?.setAttribute('aria-expanded','true');full.scrollIntoView({behavior:'smooth',block:'start'});const chip=$(`[data-category="${category}"]`,$('#categoryFilters'));chip?.click()}});
-}
-
-async function suggestFromText(text,root){
-  const q=normalize(text),box=$('#guidedSuggestions',root);
-  if(!q){box.hidden=false;box.innerHTML='<div class="guided-empty">Escreva pelo menos um resumo do problema. A burocracia já é vaga o bastante por conta própria.</div>';return}
-  const keywords={
-    familia:['morreu','falecido','inventario','heranca','divorcio','casamento','filho','nascimento'],
-    imoveis:['casa','apartamento','imovel','terreno','matricula','escritura','proprietario','vendeu','comprou'],
-    cobranca:['divida','deve','cobrar','calote','protesto','pagamento','inadimplente'],
-    mediacao:['briga','conflito','acordo','vizinho','condominio','escola','familia','empresa'],
-    arbitragem:['contrato','clausula','arbitragem','socios','empresarial','obra'],
-    notas:['firma','assinatura','autenticar','procuracao','apostila','documento'],
-    civil:['certidao','nascimento','casamento','obito','segunda via'],
-    rtdpj:['empresa','associacao','estatuto','ata','contrato','registro']
-  };
-  const scores={};
-  Object.entries(keywords).forEach(([cat,words])=>scores[cat]=words.reduce((n,w)=>n+(q.includes(w)?1:0),0));
-  const cats=Object.entries(scores).sort((a,b)=>b[1]-a[1]).filter(x=>x[1]>0).slice(0,2).map(x=>x[0]);
-  let items=SERVICES.filter(s=>cats.includes(s.category));
-  const terms=q.split(/\s+/).filter(x=>x.length>3);
-  items=items.map(s=>({s,score:terms.reduce((n,t)=>n+(normalize(`${s.title} ${s.desc}`).includes(t)?1:0),0)+(cats.indexOf(s.category)===0?2:1)})).sort((a,b)=>b.score-a.score).map(x=>x.s).slice(0,5);
-  try{const r=await fetch('./api.php?action=triage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({problem:q,services:SERVICES.map(s=>({id:s.id,title:s.title,desc:s.desc}))})});const d=await r.json();if(d.ok){const matched=d.ids.map(id=>SERVICES.find(s=>s.id===id)).filter(Boolean);if(matched.length)items=matched;window.__triageExplanation=d.explanation||''}}catch(e){}
-  if(!items.length)items=SERVICES.filter(s=>s.category==='apoio').slice(0,4);
-  box.hidden=false;
-  box.innerHTML=`<div class="guided-result-head"><strong>Caminhos mais relacionados ao seu caso</strong><span>análise por IA local</span></div>${window.__triageExplanation?`<p class="ai-explanation">${window.__triageExplanation}</p>`:''}${items.map(s=>`<button type="button" class="guided-result" data-service="${s.id}">${icon(s.icon)}<span><strong>${s.title}</strong><small>${s.desc}</small></span></button>`).join('')}<p class="guided-disclaimer">A IA oferece uma orientação inicial. A equipe revisará seu caso antes de confirmar documentos, custos e próximos passos.</p>`;
 }
 
 function serviceContext(s){
