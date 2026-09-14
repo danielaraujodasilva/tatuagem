@@ -106,9 +106,9 @@ $phases = [
             ],
             [
                 'id' => 'manual', 'title' => 'Corrigir o manual.html', 'owner' => 'Assistente',
-                'prio' => 'P1', 'effort' => '20 min', 'done' => false,
-                'why' => 'O manual (link no rodapé) ainda tem um capítulo "Triagem" dizendo que "a IA local sugere até três serviços" — descreve a funcionalidade que foi removida.',
-                'how' => ['Reescrever o capítulo para o fluxo real: o cliente escolhe o serviço e a equipe confere.'],
+                'prio' => 'P1', 'effort' => '20 min', 'done' => true,
+                'why' => 'O manual (link no rodapé) ainda tinha um capítulo "Triagem" dizendo que "a IA local sugere até três serviços" — descrevia a funcionalidade que foi removida.',
+                'how' => ['Capítulo reescrito para o fluxo real: o cliente escolhe o serviço no catálogo, a equipe confere na triagem.', 'Simulador de decisão órfão removido (botões e script).', 'De quebra: corrigido o bug em que o serviço escolhido não entrava no pedido (faltava name nos campos e data-service no modal).'],
             ],
         ],
     ],
