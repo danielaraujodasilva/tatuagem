@@ -24,13 +24,40 @@ const Voz = (() => {
     { id: 7,  fase: 12, nome: 'Campo',           desc: 'As três vozes descobrem família e função.' },
     { id: 8,  fase: 13, nome: 'Frases',          desc: 'As vozes começam a terminar o que começam.' },
     { id: 9,  fase: 14, nome: 'Cores',           desc: 'A mesma escala, sete humores diferentes.' },
-    { id: 10, fase: 15, nome: 'Harmonia',        desc: 'A voz canta a estrutura inteira. Está completa.' }
+    { id: 10, fase: 15, nome: 'Harmonia',        desc: 'A voz canta a estrutura inteira. Está completa.' },
+    // ---- capítulo da escrita: o som vira símbolo ----
+    { id: 11, fase: 16, nome: 'A pauta',         desc: 'A voz ganha um lugar onde morar: cinco linhas.' },
+    { id: 12, fase: 17, nome: 'O símbolo',       desc: 'Ver um ponto e já ouvir o som dele.' },
+    { id: 13, fase: 18, nome: 'O tempo escrito', desc: 'A duração de cada nota vira figura.' },
+    { id: 14, fase: 19, nome: 'A escrita',       desc: 'Você escreve a melodia que ouviu.' },
+    { id: 15, fase: 20, nome: 'Ler e tocar',     desc: 'Lê uma frase nunca ouvida e sabe como ela soa. Fim da jornada.' }
   ];
 
   function estagioDe(fasesDominadas) {
     let atual = ESTAGIOS[0];
     ESTAGIOS.forEach(e => { if (fasesDominadas >= e.fase) atual = e; });
     return atual;
+  }
+
+  /**
+   * Estágio a partir da LISTA de fases dominadas.
+   *
+   * Atenção à diferença: `estagioDe(n)` compara com o número da fase de
+   * referência, então precisa receber uma CONTAGEM. Aqui a entrada é a lista
+   * real de ids dominados, e o critério é "a fase de referência está entre
+   * elas?" — que é o que o jogador espera ver ("terminei a 16, apareceu a
+   * pauta"). Sem isso, quem domina só a fase 16 veria o estágio errado.
+   */
+  function estagioDasDominadas(listaIds) {
+    const set = new Set((listaIds || []).map(Number));
+    let atual = ESTAGIOS[0];
+    ESTAGIOS.forEach(e => {
+      if (e.fase === 0) return;
+      if (set.has(e.fase)) atual = e;
+    });
+    // se dominou mais fases que o estágio alcançado, usa a contagem como piso
+    const porContagem = estagioDe(set.size);
+    return porContagem.id > atual.id ? porContagem : atual;
   }
 
   function progressoVisual(fasesDominadas, totalFases = 15) {
@@ -208,10 +235,14 @@ const Voz = (() => {
   /* ---------- retrato do estágio (tela de fase dominada) ---------- */
 
   function retratoEstagio(c, w, h, fasesDominadas, tempo = 0) {
-    const est = estagioDe(fasesDominadas);
+    // Aceita tanto uma lista de ids quanto uma contagem (compatibilidade).
+    const est = Array.isArray(fasesDominadas)
+      ? estagioDasDominadas(fasesDominadas)
+      : estagioDe(fasesDominadas);
+    const dom = Array.isArray(fasesDominadas) ? fasesDominadas.length : fasesDominadas;
     Engine.fundoGradiente(c, w, h, tempo, 205);
     Engine.grade(c, w, h, 52, 0.035);
-    desenharTrilha(c, w, h, { fasesDominadas, tempo });
+    desenharTrilha(c, w, h, { fasesDominadas: dom, tempo });
 
     const matizes = [210, 200, 190, 45, 35, 280, 320, 340, 20, 175, 150];
     const matiz = matizes[Math.min(matizes.length - 1, est.id)];
@@ -276,7 +307,7 @@ const Voz = (() => {
   }
 
   return {
-    ESTAGIOS, estagioDe, progressoVisual,
+    ESTAGIOS, estagioDe, estagioDasDominadas, progressoVisual,
     avatarDaniel, desenharTrilha, retratoEstagio, dica
   };
 })();

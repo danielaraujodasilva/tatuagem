@@ -8,6 +8,7 @@
      7-9   intermediárias — intervalos, armaduras
      10-12 médio      — acordes, campo harmônico, função
      13-15 avançadas  — cadências, modos, análise real
+     16-20 CAPÍTULO DA ESCRITA — ler e escrever partitura (o símbolo, no fim)
 
    Regra que vale para TODAS as fases: errar nunca é alarme. A resposta errada
    soa como a vizinha de meio-tom. O ouvido corrige o que está QUASE certo.
@@ -162,6 +163,56 @@ const Fases = (() => {
       modos: ['aprender', 'praticar', 'dominar'],
       curio: 'Você começou sem saber o que era um compasso. Agora ouve a arquitetura de uma música inteira.',
       ref: 'A modulação pra relativa menor é a virada de página mais usada da música popular.'
+    },
+
+    /* ---------- CAPÍTULO DA ESCRITA ----------
+       Aqui o símbolo aparece — por último, como manda o método. Você já sabe
+       ouvir tudo isso; agora aprende a escrever e a ler.
+       ------------------------------------------------------------------- */
+    {
+      id: 16, nome: 'A Pauta', nivel: 'escrita',
+      ensina: 'Cinco linhas, quatro espaços e uma clave. Onde a música mora escrita.',
+      ouve: 'O som que corresponde a cada linha, começando pelo Mi da linha de baixo.',
+      mecanica: 'A nota toca e acende na pauta. Você liga o que ouviu ao lugar onde ele mora.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'A clave de sol é a letra G desenhada mil vezes até virar esse enfeite. Ela marca onde mora o Sol.',
+      ref: 'Toda partitura de música popular começa com a clave de sol. É a assinatura do que vem depois.'
+    },
+    {
+      id: 17, nome: 'Ler e Ouvir', nivel: 'escrita',
+      ensina: 'Ler de verdade: ver o símbolo e saber o som, sem passar pelo nome.',
+      ouve: 'A ligação direta entre altura e posição na pauta.',
+      mecanica: 'Aparece uma nota escrita e três sons. Você escolhe qual é aquele.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Músico experiente não decora a posição: ele reconhece o intervalo de olho. É atalho de padrão, não de memória.',
+      ref: 'Ler à primeira vista é o que permite tocar uma música que você nunca ouviu.'
+    },
+    {
+      id: 18, nome: 'Figuras de Tempo', nivel: 'escrita',
+      ensina: 'Quanto cada nota dura: semibreve, mínima, semínima, colcheia.',
+      ouve: 'A diferença entre uma nota longa e duas curtas no mesmo espaço.',
+      mecanica: 'Você ouve o ritmo e escolhe a figura que o escreve. Ou toca no tempo certo.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'A semibreve vale 4, a mínima 2, a semínima 1 e a colcheia meio. Cada haste e bandeirola dobra ou corta pela metade.',
+      ref: 'A marcha de casamento é semínima atrás de semínima. O ritmo mais simples que existe, escrito.'
+    },
+    {
+      id: 19, nome: 'Escrever a Melodia', nivel: 'escrita',
+      ensina: 'Escrever de verdade: ouvir uma melodia curta e marcar na pauta.',
+      ouve: 'A melodia completa, nota por nota, com a direção e o tamanho dos saltos.',
+      mecanica: 'Você ouve e arrasta cada nota até a linha certa. A pauta é a resposta.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Antes de existir gravação, era assim que a música sobrevivia: alguém ouvindo e escrevendo os pontos.',
+      ref: 'Composição escrita é o motivo de uma música do século XVIII ainda poder ser tocada exatamente igual hoje.'
+    },
+    {
+      id: 20, nome: 'Ler e Tocar', nivel: 'escrita',
+      ensina: 'A prova final: ler uma frase escrita que você nunca ouviu e saber como ela soa.',
+      ouve: 'A estrutura escrita: melodias com graus repetidos, saltos e retorno à tônica.',
+      mecanica: 'Uma frase aparece na pauta. Você monta a melodia do jeito que está escrita.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Você começou sem saber o que era um compasso. Agora lê uma partitura e ouve ela na cabeça antes de tocar.',
+      ref: 'Ler e ouvir viraram a mesma coisa. É o fim da jornada — e o começo de tocar qualquer coisa.'
     }
   ];
 
@@ -511,11 +562,181 @@ const Fases = (() => {
     return { tipo: 'analise', rodadas, instrucao: 'Identifique a progressão, grau por grau.' };
   }
 
+  /* ====================================================================
+     CAPÍTULO DA ESCRITA (16-20)
+     O símbolo por último: a pessoa já ouve tudo isso, agora aprende a ler.
+     ==================================================================== */
+
+  // Região de leitura confortável na pauta da clave de sol.
+  // Grau 0 = Mi4 (linha de baixo) .. grau 8 = Dó5.
+  const ZONA_PAUTA = [-3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8];
+
+  /* --- Fase 16: a pauta e a linha de baixo (Mi) --- */
+  function fase16(n = 8) {
+    const rodadas = [];
+    // Começa pelas linhas e espaços de baixo, onde a leitura é mais intuitiva.
+    const alvos = [0, 1, 2, 3, 4];   // Mi, Fá, Sol, Lá, Si
+    for (let i = 0; i < n; i++) {
+      const grau = escolher(alvos);
+      const midi = Partitura.midiDoGrau(grau);
+      rodadas.push({
+        tipo: 'ler_pauta',
+        grau, midi,
+        correta: String(midi),
+        opcoes: embaralhar(unicos(alvos.map(g => String(Partitura.midiDoGrau(g))))),
+        oQueSoa: [Teoria.hzDoMidi(midi)],
+        dica: 'A linha de baixo é Mi. Cada linha e cada espaço sobem uma nota.',
+        nomeNota: Partitura.nomeDoGrau(grau)
+      });
+      const r = rodadas[i];
+      if (!r.opcoes.includes(r.correta)) r.opcoes[Math.floor(Math.random() * r.opcoes.length)] = r.correta;
+    }
+    return { tipo: 'ler_pauta', rodadas, instrucao: 'Ouça a nota. Qual ponto da pauta é ela?', zona: alvos };
+  }
+
+  /* --- Fase 17: ler e ouvir (o símbolo vira som) --- */
+  function fase17(n = 10) {
+    const rodadas = [];
+    for (let i = 0; i < n; i++) {
+      const grau = escolher(ZONA_PAUTA);
+      const midi = Partitura.midiDoGrau(grau);
+      // três candidatos sonoros: a certa e duas vizinhas
+      const vizinhos = [-2, -1, 1, 2].map(d => Partitura.midiDoGrau(grau + d))
+        .filter(m => m > 50 && m < 88);
+      const opcoesMidi = embaralhar([midi, ...embaralhar(vizinhos).slice(0, 2)]);
+      rodadas.push({
+        tipo: 'ouvir_pauta',
+        grau, midi,
+        correta: String(midi),
+        opcoes: opcoesMidi.map(String),
+        opcoesHz: opcoesMidi.map(Teoria.hzDoMidi),
+        oQueSoa: [Teoria.hzDoMidi(midi)],
+        dica: 'Compare com a linha de baixo: Mi. Suba de linha em linha.',
+        nomeNota: Partitura.nomeDoGrau(grau)
+      });
+    }
+    return { tipo: 'ouvir_pauta', rodadas, instrucao: 'Qual som corresponde à nota escrita?' };
+  }
+
+  /* --- Fase 18: figuras de tempo --- */
+  const FIGURAS = [
+    { nome: 'Semibreve', apelido: 'a inteira', valor: 4, desenho: 'inteira', desc: 'Uma nota que dura o compasso todo.' },
+    { nome: 'Mínima',    apelido: 'a de duas',  valor: 2, desenho: 'minima',   desc: 'Metade do compasso. Uma para cada lado.' },
+    { nome: 'Semínima',  apelido: 'a de uma',   valor: 1, desenho: 'seminima', desc: 'Um tempo. É a unidade do compasso.' },
+    { nome: 'Colcheia',  apelido: 'a de meio',  valor: 0.5, desenho: 'colcheia', desc: 'Meio tempo. Duas cabem num tempo.' }
+  ];
+
+  function fase18(n = 8) {
+    const rodadas = [];
+    // Cada padrão dura UM COMPASSO de 4 tempos e é feito de figuras iguais ou
+    // de pares claros. Assim a pergunta ("qual figura escreve isso?") tem uma
+    // resposta óbvia e o ritmo faz sentido musical.
+    const padroes = [
+      { figuras: ['seminima', 'seminima', 'seminima', 'seminima'], desc: 'Quatro semínimas: um tempo cada.' },
+      { figuras: ['minima', 'minima'],                            desc: 'Duas mínimas: metade do compasso cada.' },
+      { figuras: ['colcheia', 'colcheia', 'colcheia', 'colcheia', 'colcheia', 'colcheia', 'colcheia', 'colcheia'], desc: 'Oito colcheias: meio tempo cada.' },
+      { figuras: ['minima', 'seminima', 'seminima'],              desc: 'Metade longa, depois dois tempos curtos.' },
+      { figuras: ['colcheia', 'colcheia', 'colcheia', 'colcheia', 'minima'], desc: 'Dois tempos picados e um longo.' }
+    ];
+    for (let i = 0; i < n; i++) {
+      const p = escolher(padroes);
+      const figuras = p.figuras.map(nome => FIGURAS.find(f => f.desenho === nome));
+      const t = 0.42;  // duração de uma semínima em segundos
+      const sequencia = [];
+      figuras.forEach(f => {
+        sequencia.push([Teoria.hzDoMidi(67), f.valor * t * 0.9]);
+      });
+      // A resposta é a figura PREDOMINANTE do padrão (a que mais aparece).
+      // É inequívoca porque os padrões são construídos com uma figura-base.
+      const contagem = {};
+      figuras.forEach(f => { contagem[f.desenho] = (contagem[f.desenho] || 0) + 1; });
+      const predominante = Object.keys(contagem).sort((a, b) => contagem[b] - contagem[a])[0];
+      const figPred = FIGURAS.find(f => f.desenho === predominante);
+
+      rodadas.push({
+        tipo: 'figura',
+        figuras,
+        padrao: p.figuras.slice(),
+        correta: predominante,
+        opcoes: embaralhar(unicos(FIGURAS.map(f => f.desenho))),
+        oQueSoa: sequencia.map(x => x[0]),
+        sequencia,
+        bpm: Math.round(60 / t),
+        dica: p.desc + ' A figura que manda aqui é a ' + figPred.nome.toLowerCase() + '.',
+        todasFiguras: FIGURAS
+      });
+      const r = rodadas[i];
+      if (!r.opcoes.map(String).includes(String(r.correta))) {
+        r.opcoes[Math.floor(Math.random() * r.opcoes.length)] = r.correta;
+      }
+    }
+    return { tipo: 'figura', rodadas, instrucao: 'Qual figura escreve essa duração?', figuras: FIGURAS };
+  }
+
+  /* --- Fase 19: escrever a melodia na pauta --- */
+  function fase19(n = 6) {
+    const rodadas = [];
+    for (let i = 0; i < n; i++) {
+      // melodia curta: 3 notas dentro da zona, começando perto do repouso
+      let grau = escolher([0, 2, 4]);
+      const graus = [grau];
+      for (let k = 0; k < 2; k++) {
+        const salto = escolher([2, 2, 4, -2, -4, 1, -1]);
+        let novo = graus[graus.length - 1] + salto;
+        if (novo < -3) novo = -3;
+        if (novo > 8) novo = 8;
+        graus.push(novo);
+      }
+      const midis = graus.map(Partitura.midiDoGrau);
+      rodadas.push({
+        tipo: 'escrever',
+        graus,
+        midis,
+        correta: graus.join(','),
+        opcoes: [],
+        oQueSoa: midis.map(Teoria.hzDoMidi),
+        dica: 'Repita o que ouviu: subiu, desceu, ficou. Cada nota na sua linha.',
+        nomes: graus.map(Partitura.nomeDoGrau)
+      });
+    }
+    return { tipo: 'escrever', rodadas, instrucao: 'Ouça a melodia e coloque as três notas na pauta.' };
+  }
+
+  /* --- Fase 20: ler e tocar (a prova final) --- */
+  function fase20(n = 6) {
+    const rodadas = [];
+    const frases = [
+      { nome: 'Escada subindo',   graus: [0, 1, 2, 3, 4],      desc: 'Uma linha atrás da outra, sem pular nada.' },
+      { nome: 'Escada descendo',  graus: [4, 3, 2, 1, 0],      desc: 'A mesma coisa ao contrário.' },
+      { nome: 'Salto e volta',    graus: [0, 4, 0],            desc: 'Sobe longe e volta pra casa.' },
+      { nome: 'Arco no meio',     graus: [2, 5, 2],            desc: 'Sai do meio, sobe e volta.' },
+      { nome: 'Toca e repete',    graus: [2, 2, 2, 0],         desc: 'Três iguais e um degrau abaixo.' },
+      { nome: 'Vai e volta',      graus: [1, 3, 1, 3],         desc: 'Duas notas alternadas, como um balanço.' }
+    ];
+    for (let i = 0; i < n; i++) {
+      const f = escolher(frases);
+      const midis = f.graus.map(Partitura.midiDoGrau);
+      rodadas.push({
+        tipo: 'ler_tocar',
+        frase: f,
+        graus: f.graus,
+        midis,
+        correta: f.nome,
+        opcoes: embaralhar(unicos(frases.map(x => x.nome))),
+        oQueSoa: midis.map(Teoria.hzDoMidi),
+        dica: f.desc,
+        todasFrases: frases
+      });
+    }
+    return { tipo: 'ler_tocar', rodadas, instrucao: 'Leia a frase escrita. O que ela toca?', frases };
+  }
+
   /* --- gerador principal --- */
   const GERADORES = {
     1: fase1, 2: fase2, 3: fase3, 4: fase4, 5: fase5,
     6: fase6, 7: fase7, 8: fase8, 9: fase9, 10: fase10,
-    11: fase11, 12: fase12, 13: fase13, 14: fase14, 15: fase15
+    11: fase11, 12: fase12, 13: fase13, 14: fase14, 15: fase15,
+    16: fase16, 17: fase17, 18: fase18, 19: fase19, 20: fase20
   };
 
   // A fase 1 tem mecânica própria (ritmo), então `rodadas` é um CONTADOR,

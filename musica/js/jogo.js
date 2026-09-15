@@ -355,6 +355,7 @@
 
     const r = e.rodadas[e.idx];
     e.travado = false;
+    e.escreveu = null;   // fase 19: zera as notas já colocadas nesta rodada
     $('#jogo-contador').textContent = `${e.idx + 1} / ${e.rodadas.length}`;
     $('#jogo-pergunta').textContent = J.perguntaDe(r);
     $('#jogo-dica').textContent = (e.modo === 'dominar') ? '' : (r.dica || '');
@@ -384,7 +385,12 @@
       funcao: 'Esse acorde repousa, prepara ou empurra?',
       cadencia: 'Como essa frase termina?',
       modo: 'Que cor de escala é essa?',
-      analise: 'Qual é a roda de acordes?'
+      analise: 'Qual é a roda de acordes?',
+      ler_pauta: 'Ouça a nota. Onde ela mora na pauta?',
+      ouvir_pauta: 'Que som está escrito aqui?',
+      figura: 'Qual figura dura isso?',
+      escrever: 'Escreva a melodia que você ouviu.',
+      ler_tocar: 'Leia a frase escrita. O que ela toca?'
     };
     return mapa[r.tipo] || 'O que você ouviu?';
   };
@@ -398,6 +404,16 @@
     } else if (r.tipo === 'intervalo') {
       Audio.note(r.oQueSoa[0], { dur: 0.7, timbre: 'cristal', gain: 0.42 });
       setTimeout(() => Audio.note(r.oQueSoa[1], { dur: 1.3, timbre: 'cristal', gain: 0.42 }), 700);
+    } else if (r.tipo === 'figura') {
+      // o ritmo soa com durações reais: é o que a figura escreve
+      Audio.seq(r.sequencia.map(x => [x[0], x[1]]), { timbre: 'piano', gain: 0.42, gap: 0.02 });
+    } else if (r.tipo === 'escrever' || r.tipo === 'ler_tocar' || r.tipo === 'ler_pauta') {
+      // melodia: toca em sequência, uma nota clara depois da outra
+      Audio.seq(r.oQueSoa.map(hz => [hz, 0.5]), { timbre: 'cristal', gain: 0.42, gap: 0.1 });
+    } else if (r.tipo === 'ouvir_pauta') {
+      // mostra a nota escrita e toca só ela; os candidatos são ouvidos
+      // um a um pelo próprio jogador (no botão)
+      Audio.note(r.oQueSoa[0], { dur: 1.0, timbre: 'cristal', gain: 0.42 });
     } else if (r.tipo === 'cor') {
       Audio.seq(r.oQueSoa.map(hz => [hz, 0.32]), { timbre: 'piano', gain: 0.32, gap: 0.015 });
     } else if (r.oQueSoa.length === 1) {
@@ -486,6 +502,13 @@
       vis.appendChild(el);
       return;
     }
+
+    // ---- capítulo da escrita: tudo desenhado em pauta real ----
+    if (r.tipo === 'ler_pauta')   { visualLerPauta(r);    return; }
+    if (r.tipo === 'ouvir_pauta') { visualOuvirPauta(r);  return; }
+    if (r.tipo === 'figura')      { visualFigura(r);      return; }
+    if (r.tipo === 'escrever')    { visualEscrever(r);    return; }
+    if (r.tipo === 'ler_tocar')   { visualLerTocar(r);    return; }
     // ícone de onda para tipos baseados em escuta
     const el = document.createElement('div');
     el.className = 'onda-ouvir';
@@ -493,8 +516,275 @@
     vis.appendChild(el);
   };
 
+  /* ---------- desenho da PAUTA (capítulo da escrita) ----------
+     A pauta é desenhada em canvas porque precisa de linha, clave e nota
+     posicionadas com precisão musical — div não dá conta.
+     ------------------------------------------------------------------ */
+
+  /** Cria (ou reusa) um canvas de pauta dentro de #jogo-visual. */
+  function canvasPauta(larguraCss, alturaCss) {
+    let cv = document.getElementById('cv-pauta');
+    if (!cv) {
+      cv = document.createElement('canvas');
+      cv.id = 'cv-pauta';
+      cv.className = 'cv-pauta';
+      $('#jogo-visual').appendChild(cv);
+    }
+    const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+    cv.style.width = larguraCss + 'px';
+    cv.style.height = alturaCss + 'px';
+    cv.width = Math.floor(larguraCss * dpr);
+    cv.height = Math.floor(alturaCss * dpr);
+    const c = cv.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, larguraCss, alturaCss);
+    return { cv, c, w: larguraCss, h: alturaCss };
+  }
+
+  /** Geometria padrão da pauta para o canvas atual. */
+  function geometriaPauta(w, h, opts = {}) {
+    const espaco = opts.espaco ?? Math.max(11, Math.min(16, w / 34));
+    const largura = w - 96;
+    return { x: 62, y: (h - espaco * 4) / 2 - (opts.dy ?? 0), largura, espaco };
+  }
+
+  /** Desenha a pauta com uma nota destacada (fase 16) ou para ouvir (17). */
+  function desenharPautaComNota(alvo, opts = {}) {
+    const { c, w, h } = canvasPauta(Math.min(wOr(window.innerWidth - 90, 560), 560), 150);
+    const geo = Partitura.desenharPauta(c, geometriaPauta(w, h, opts));
+
+    // mostra todas as notas da zona como fantasmas (aprender) ou só a alvo
+    if (opts.mostrarZona) {
+      (opts.zona || []).forEach(g => {
+        Partitura.desenharNota(c, geo, {
+          grau: g, x: geo.x + geo.largura * 0.30,
+          cor: 'rgba(244,239,228,0.22)', haste: false, alpha: 0.55
+        });
+      });
+    }
+
+    if (alvo !== null && alvo !== undefined) {
+      Partitura.desenharNota(c, geo, {
+        grau: alvo,
+        x: geo.x + geo.largura * (opts.xRel ?? 0.45),
+        cor: opts.cor || '#f0d18a',
+        destaque: opts.destaque,
+        rotulo: opts.rotulo,
+        haste: true
+      });
+    }
+
+    // marca a linha de baixo como âncora ("chão" da leitura)
+    if (opts.ancora) {
+      const y = Partitura.yDoGrau(0, geo.linhas);
+      c.save();
+      c.fillStyle = 'rgba(95,179,161,0.9)';
+      c.font = '600 11px "Segoe UI", system-ui, sans-serif';
+      c.textAlign = 'right';
+      c.textBaseline = 'middle';
+      c.fillText('Mi', geo.x - 10, y);
+      c.beginPath();
+      c.arc(geo.x - 26, y, 3.5, 0, Math.PI * 2);
+      c.fill();
+      c.restore();
+    }
+
+    return { geo, c, w, h };
+  }
+
+  function wOr(a, b) { return Math.min(a, b); }
+
+  /** Fase 16: a nota soa, e você acha onde ela mora na pauta. */
+  function visualLerPauta(r) {
+    const vis = $('#jogo-visual');
+    vis.innerHTML = '';
+    const larguraCss = Math.min(window.innerWidth - 90, 560);
+    const { c, w, h } = canvasPauta(larguraCss, 132);
+    const geo = Partitura.desenharPauta(c, geometriaPauta(w, h));
+
+    // as opções são as casas da pauta; cada uma é um alvo clicável
+    const zona = r.zona || [0, 1, 2, 3, 4];
+    zona.forEach(g => {
+      Partitura.desenharNota(c, geo, {
+        grau: g, x: geo.x + geo.largura * 0.30,
+        cor: 'rgba(244,239,228,0.18)', haste: false
+      });
+    });
+    // nota-alvo escondida no meio, como interrogação
+    Partitura.desenharNota(c, geo, {
+      grau: 2, x: geo.x + geo.largura * 0.62,
+      cor: 'rgba(240,209,138,0.35)', haste: true
+    });
+    c.save();
+    c.fillStyle = 'rgba(240,209,138,0.85)';
+    c.font = '700 22px "Segoe UI", system-ui, sans-serif';
+    c.textAlign = 'center';
+    c.fillText('?', geo.x + geo.largura * 0.62, Partitura.yDoGrau(4, geo.linhas) - 6);
+    c.restore();
+
+    // casas clicáveis sobrepostas (alinham com os graus da zona)
+    const casas = document.createElement('div');
+    casas.className = 'casas-pauta';
+    casas.style.width = larguraCss + 'px';
+    zona.forEach(g => {
+      const b = document.createElement('button');
+      b.className = 'casa-pauta';
+      b.dataset.midi = Partitura.midiDoGrau(g);
+      b.dataset.grau = g;
+      const yGrau = Partitura.yDoGrau(g, geo.linhas);
+      b.style.top = (yGrau + 8) + 'px';   // +8 = offset do canvas dentro do wrapper
+      b.style.left = (geo.x + geo.largura * 0.30 - 34) + 'px';
+      b.title = Partitura.nomeDoGrau(g);
+      b.textContent = Partitura.nomeDoGrau(g);
+      b.addEventListener('click', () => {
+        const midi = Partitura.midiDoGrau(g);
+        Audio.note(Teoria.hzDoMidi(midi), { dur: 0.7, timbre: 'cristal', gain: 0.42 });
+        J.responder(String(midi), { ...r, correta: r.correta }, b);
+      });
+      casas.appendChild(b);
+    });
+    vis.appendChild(casas);
+    $('#jogo-opcoes').innerHTML = '<small class="ajuda">Toque o nome da nota no lugar certo da pauta.</small>';
+  }
+
+  /** Fase 17: vê a nota escrita e escolhe o som. */
+  function visualOuvirPauta(r) {
+    const vis = $('#jogo-visual');
+    vis.innerHTML = '';
+    const larguraCss = Math.min(window.innerWidth - 90, 520);
+    const { c, w, h } = canvasPauta(larguraCss, 138);
+    const geo = Partitura.desenharPauta(c, geometriaPauta(w, h));
+    Partitura.desenharNota(c, geo, {
+      grau: r.grau,
+      x: geo.x + geo.largura * 0.34,
+      cor: '#f0d18a', haste: true
+    });
+  }
+
+  /** Fase 18: as figuras de tempo desenhadas. */
+  function desenharFigura(c, x, y, espaco, desenho, cor) {
+    c.save();
+    c.strokeStyle = cor;
+    c.fillStyle = cor;
+    const r = espaco * 0.62;
+    c.beginPath();
+    c.ellipse(x, y, r * 1.18, r, -0.34, 0, Math.PI * 2);
+
+    if (desenho === 'inteira') {
+      c.lineWidth = 2.6; c.stroke();          // vazada, sem haste
+    } else if (desenho === 'minima') {
+      c.lineWidth = 2.6; c.stroke();          // vazada, com haste
+      c.beginPath(); c.moveTo(x + r * 1.15, y); c.lineTo(x + r * 1.15, y - espaco * 3.2); c.stroke();
+    } else if (desenho === 'seminima') {
+      c.fill();                                // cheia, com haste
+      c.beginPath(); c.moveTo(x + r * 1.15, y); c.lineTo(x + r * 1.15, y - espaco * 3.2);
+      c.lineWidth = 2.2; c.stroke();
+    } else if (desenho === 'colcheia') {
+      c.fill();                                // cheia, haste + bandeirola
+      const hx = x + r * 1.15, hy = y - espaco * 3.2;
+      c.beginPath(); c.moveTo(hx, y); c.lineTo(hx, hy); c.lineWidth = 2.2; c.stroke();
+      c.beginPath();
+      c.moveTo(hx, hy);
+      c.quadraticCurveTo(hx + espaco * 0.95, hy + espaco * 0.55, hx + espaco * 0.62, hy + espaco * 1.5);
+      c.quadraticCurveTo(hx + espaco * 0.75, hy + espaco * 0.6, hx, hy + espaco * 0.35);
+      c.closePath(); c.fill();
+    }
+    c.restore();
+  }
+
+  function visualFigura(r) {
+    const vis = $('#jogo-visual');
+    vis.innerHTML = '';
+    const larguraCss = Math.min(window.innerWidth - 90, 460);
+    const { c, w, h } = canvasPauta(larguraCss, 130);
+    // pauta simples para apoiar as figuras
+    const espaco = 13;
+    const y0 = (h - espaco * 4) / 2;
+    const linhas = [];
+    c.save();
+    c.strokeStyle = 'rgba(244,239,228,0.35)';
+    c.lineWidth = 1.2;
+    for (let i = 0; i < 5; i++) {
+      linhas.push(y0 + i * espaco);
+      c.beginPath(); c.moveTo(24, y0 + i * espaco); c.lineTo(w - 24, y0 + i * espaco); c.stroke();
+    }
+    c.restore();
+    // desenha o padrão rítmico lado a lado, na linha do meio
+    const n = r.figuras.length;
+    const passo = (w - 80) / n;
+    r.figuras.forEach((f, i) => {
+      desenharFigura(c, 52 + passo * i + passo / 2, linhas[2], espaco, f.desenho, '#f0d18a');
+    });
+  }
+
+  /** Fase 19: você arrasta as notas até a linha certa. */
+  function visualEscrever(r) {
+    const vis = $('#jogo-visual');
+    vis.innerHTML = '';
+    const larguraCss = Math.min(window.innerWidth - 90, 540);
+    const { c, w, h } = canvasPauta(larguraCss, 168);
+    const geo = Partitura.desenharPauta(c, geometriaPauta(w, h));
+
+    // slots onde as notas devem entrar
+    const n = r.graus.length;
+    const passo = geo.largura / (n + 1);
+    const slots = [];
+    for (let i = 0; i < n; i++) {
+      const x = geo.x + passo * (i + 1) * 0.85;
+      slots.push({ x, grau: null });
+      // guia pontilhado no slot
+      c.save();
+      c.setLineDash([3, 5]);
+      c.strokeStyle = 'rgba(244,239,228,0.22)';
+      c.beginPath();
+      c.moveTo(x, geo.y - 8);
+      c.lineTo(x, geo.y + geo.espaco * 4 + 8);
+      c.stroke();
+      c.restore();
+    }
+
+    // casa clicável por grau: a pessoa coloca a nota acertando a linha
+    const casas = document.createElement('div');
+    casas.className = 'casas-escrever';
+    casas.style.width = larguraCss + 'px';
+    const zona = [-2, -1, 0, 1, 2, 3, 4, 5, 6];
+    zona.forEach(g => {
+      const b = document.createElement('button');
+      b.className = 'casa-escrever';
+      b.dataset.grau = g;
+      b.textContent = Partitura.nomeDoGrau(g);
+      const yGrau = Partitura.yDoGrau(g, geo.linhas);
+      b.style.top = (yGrau + 8) + 'px';
+      b.addEventListener('click', () => {
+        const midi = Partitura.midiDoGrau(g);
+        Audio.note(Teoria.hzDoMidi(midi), { dur: 0.6, timbre: 'cristal', gain: 0.4 });
+        J.escreverNota(g);
+      });
+      casas.appendChild(b);
+    });
+    vis.appendChild(casas);
+  }
+
+  /** Fase 20: a frase escrita, para ler e reconhecer. */
+  function visualLerTocar(r) {
+    const vis = $('#jogo-visual');
+    vis.innerHTML = '';
+    const larguraCss = Math.min(window.innerWidth - 90, 540);
+    const { c, w, h } = canvasPauta(larguraCss, 150);
+    const geo = Partitura.desenharPauta(c, geometriaPauta(w, h));
+    const n = r.graus.length;
+    const passo = geo.largura / (n + 1);
+    r.graus.forEach((g, i) => {
+      Partitura.desenharNota(c, geo, {
+        grau: g,
+        x: geo.x + passo * (i + 1) * 0.9,
+        cor: '#f0d18a', haste: true
+      });
+    });
+  }
+
   J.montarOpcoes = function (r) {
-    if (r.tipo === 'teclado') return;
+    if (r.tipo === 'teclado' || r.tipo === 'ler_pauta' || r.tipo === 'escrever') return;
     const cont = $('#jogo-opcoes');
     const rotulos = {
       direcao: { sobe: '↑ Subiu', desce: '↓ Desceu' },
@@ -504,7 +794,13 @@
         '1,0': '↗→ subiu, parou', '-1,0': '↘→ desceu, parou'
       },
       cor: { alegre: 'Maior · alegre', triste: 'Menor · triste' },
-      degrau: { curto: 'Perto · meio-tom', longo: 'Longe · tom inteiro' }
+      degrau: { curto: 'Perto · meio-tom', longo: 'Longe · tom inteiro' },
+      figura: {
+        inteira: 'Semibreve · o compasso todo',
+        minima: 'Mínima · metade',
+        seminima: 'Semínima · um tempo',
+        colcheia: 'Colcheia · meio tempo'
+      }
     };
     const sufixo = (r.tipo === 'armadura' && r.tipoAlt)
       ? (r.tipoAlt === 'sustenidos' ? ' ♯' : ' ♭') : '';
@@ -512,7 +808,16 @@
       const b = document.createElement('button');
       b.className = 'opcao';
       b.dataset.op = String(op);
-      b.textContent = ((rotulos[r.tipo] && rotulos[r.tipo][op]) || op) + sufixo;
+      const rot = (rotulos[r.tipo] && rotulos[r.tipo][op]) || op;
+      // na fase 17 o próprio botão toca o candidato ao passar/ouvir
+      if (r.tipo === 'ouvir_pauta') {
+        const hz = (r.opcoesHz || [])[r.opcoes.indexOf(op)];
+        b.textContent = '♪ tocar';
+        b.addEventListener('mouseenter', () => { if (hz) Audio.note(hz, { dur: 0.8, timbre: 'cristal', gain: 0.38 }); });
+        b.addEventListener('click', () => { if (hz) Audio.note(hz, { dur: 0.8, timbre: 'cristal', gain: 0.38 }); });
+      } else {
+        b.textContent = rot + sufixo;
+      }
       b.addEventListener('click', () => J.responder(op, r, b));
       cont.appendChild(b);
     });
@@ -555,6 +860,104 @@
       Audio.erro(base, 0.16);
     }
     J.avancar(acertou ? 800 : 1250);
+  };
+
+  /* ---------- fase 19: escrever a melodia nota a nota ----------
+     O jogador coloca as notas uma por uma. Cada nota tem de cair no grau
+     certo. Acerta todas = acertou a rodada. Erra uma = a rodada está errada,
+     mas ele vê onde errou e continua.
+     ------------------------------------------------------------------ */
+  J.escreverNota = function (grau) {
+    const e = J.estado;
+    if (e.travado) return;
+    const r = e.rodadas[e.idx];
+    if (!r || r.tipo !== 'escrever') return;
+
+    const pos = e.escreveu ? e.escreveu.length : 0;
+    if (pos >= r.graus.length) return;
+
+    const esperado = r.graus[pos];
+    const certo = grau === esperado;
+
+    if (!e.escreveu) e.escreveu = [];
+    e.escreveu.push({ grau, certo });
+
+    // redesenha a pauta com o que já foi colocado
+    const vis = $('#jogo-visual');
+    vis.innerHTML = '';
+    const larguraCss = Math.min(window.innerWidth - 90, 540);
+    const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+    const cv = document.createElement('canvas');
+    cv.className = 'cv-pauta';
+    cv.style.width = larguraCss + 'px';
+    cv.style.height = '168px';
+    cv.width = Math.floor(larguraCss * dpr);
+    cv.height = Math.floor(168 * dpr);
+    vis.appendChild(cv);
+    const c = cv.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const geo = Partitura.desenharPauta(c, geometriaPauta(larguraCss, 168));
+    const passo = geo.largura / (r.graus.length + 1);
+
+    e.escreveu.forEach((n, i) => {
+      const x = geo.x + passo * (i + 1) * 0.85;
+      const cor = n.certo ? '#5fb3a1' : '#c8453c';
+      Partitura.desenharNota(c, geo, { grau: n.grau, x, cor, haste: true });
+      // mostra a certa quando errou, para aprender
+      if (!n.certo) {
+        Partitura.desenharNota(c, geo, {
+          grau: r.graus[i], x, cor: 'rgba(240,209,138,0.9)', haste: false, alpha: 0.75
+        });
+      }
+    });
+
+    // slots ainda vazios
+    for (let i = e.escreveu.length; i < r.graus.length; i++) {
+      const x = geo.x + passo * (i + 1) * 0.85;
+      c.save();
+      c.setLineDash([3, 5]);
+      c.strokeStyle = 'rgba(244,239,228,0.25)';
+      c.beginPath();
+      c.moveTo(x, geo.y - 8);
+      c.lineTo(x, geo.y + geo.espaco * 4 + 8);
+      c.stroke();
+      c.restore();
+    }
+
+    // casas clicáveis, agora reposicionadas
+    const casas = document.createElement('div');
+    casas.className = 'casas-escrever';
+    casas.style.width = larguraCss + 'px';
+    [-2, -1, 0, 1, 2, 3, 4, 5, 6].forEach(g => {
+      const b = document.createElement('button');
+      b.className = 'casa-escrever';
+      b.dataset.grau = g;
+      b.textContent = Partitura.nomeDoGrau(g);
+      b.style.top = (Partitura.yDoGrau(g, geo.linhas) + 8) + 'px';
+      b.addEventListener('click', () => {
+        Audio.note(Teoria.hzDoMidi(Partitura.midiDoGrau(g)), { dur: 0.6, timbre: 'cristal', gain: 0.4 });
+        J.escreverNota(g);
+      });
+      casas.appendChild(b);
+    });
+    vis.appendChild(casas);
+
+    // feedback imediato por nota
+    if (certo) {
+      Audio.acerto(Teoria.hzDoMidi(Partitura.midiDoGrau(grau)), 0.18);
+    } else {
+      Audio.erro(Teoria.hzDoMidi(Partitura.midiDoGrau(esperado)), 0.15);
+    }
+
+    // terminou a melodia?
+    if (e.escreveu.length === r.graus.length) {
+      e.travado = true;
+      const todosCertos = e.escreveu.every(n => n.certo);
+      J.registrarAcerto(todosCertos);
+      $('#jogo-opcoes').innerHTML = '';
+      J.avancar(todosCertos ? 1000 : 1600);
+    }
   };
 
   J.registrarAcerto = function (bom) {
@@ -645,7 +1048,7 @@
     if (estrelas > 0) Audio.selo();
 
     const dom = J.progresso.dominadas.length;
-    const est = Voz.estagioDe(dom);
+    const est = Voz.estagioDasDominadas(J.progresso.dominadas);
     $('#fim-estagio').textContent = est.nome;
     $('#fim-estagio-desc').textContent = est.desc;
 
@@ -661,7 +1064,7 @@
     Engine.play({
       update(dt, t) { gesto = 0.5 + 0.5 * Math.sin(t * 0.9); },
       draw(ctx, w, h, t) {
-        Voz.retratoEstagio(ctx, w, h, dom, t);
+        Voz.retratoEstagio(ctx, w, h, J.progresso.dominadas, t);
       }
     });
   };
@@ -674,11 +1077,21 @@
     const grid = $('#grid-fases');
     if (!grid) return;
     grid.innerHTML = '';
+    let divisorPosto = false;
     Fases.LISTA.forEach(f => {
+      const daEscrita = f.nivel === 'escrita';
+      // divisor entre a jornada sonora e o capítulo da escrita
+      if (daEscrita && !divisorPosto) {
+        divisorPosto = true;
+        const d = document.createElement('div');
+        d.className = 'grid-divisor';
+        d.innerHTML = '<span>✎ CAPÍTULO DA ESCRITA · PARTITURA</span>';
+        grid.appendChild(d);
+      }
       const est = J.progresso.estrelas[f.id] || 0;
       const feita = J.progresso.dominadas.includes(f.id);
       const b = document.createElement('button');
-      b.className = 'no' + (feita ? ' feita' : '');
+      b.className = 'no' + (feita ? ' feita' : '') + (daEscrita ? ' escrita' : '');
       b.dataset.fase = f.id;
       b.title = f.nome;
       b.innerHTML = `
@@ -694,7 +1107,7 @@
 
   J.atualizarCapa = function () {
     const dom = J.progresso.dominadas.length;
-    const est = Voz.estagioDe(dom);
+    const est = Voz.estagioDasDominadas(J.progresso.dominadas);
     const el = $('#capa-estagio');
     if (el) el.textContent = est.nome;
     const barra = $('#capa-barra');

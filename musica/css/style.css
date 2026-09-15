@@ -287,6 +287,33 @@ body { padding-bottom: env(safe-area-inset-bottom); }
 
 .no.feita { border-color: rgba(95,179,161,0.45); background: linear-gradient(160deg, rgba(95,179,161,0.12), rgba(244,239,228,0.02)); }
 
+/* capítulo da escrita: destaque próprio, para separar da jornada sonora */
+.no.escrita {
+  border-color: rgba(139,107,184,0.42);
+  background: linear-gradient(160deg, rgba(139,107,184,0.13), rgba(244,239,228,0.02));
+}
+.no.escrita .no-num { color: #cbb4e8; }
+.no.escrita:hover { border-color: rgba(139,107,184,0.8); }
+
+/* divisor entre capítulos no grid */
+.grid-divisor {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0 2px;
+  color: var(--roxo);
+  font-size: 10.5px;
+  letter-spacing: 2.6px;
+  font-weight: 700;
+}
+.grid-divisor::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(139,107,184,0.5), transparent);
+}
+
 .no-num {
   position: absolute; top: 9px; right: 11px;
   font-size: 11px; font-weight: 700;
@@ -517,6 +544,80 @@ body { padding-bottom: env(safe-area-inset-bottom); }
 }
 .btn-bater:hover { box-shadow: 0 0 30px rgba(240,209,138,.35); }
 .btn-bater:active { transform: scale(.96); box-shadow: 0 0 46px rgba(240,209,138,.55); }
+
+/* ---------- capítulo da escrita: pauta ---------- */
+.cv-pauta {
+  display: block;
+  margin: 0 auto;
+  border-radius: 10px;
+}
+
+/* wrapper relativo para ancorar as casas clicáveis sobre o canvas */
+#jogo-visual { position: relative; }
+
+.casas-pauta,
+.casas-escrever {
+  position: absolute;
+  inset: 0;
+  margin: 0 auto;
+  pointer-events: none;   /* só os botões capturam o toque */
+}
+
+.casa-pauta,
+.casa-escrever {
+  position: absolute;
+  pointer-events: auto;
+  appearance: none;
+  transform: translateY(-50%);
+  padding: 7px 11px;
+  border: 1px solid rgba(217,169,74,0.4);
+  border-radius: 9px;
+  background: rgba(14,12,11,0.88);
+  color: var(--ouro-claro);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .14s, border-color .14s, transform .1s;
+  white-space: nowrap;
+}
+
+.casa-pauta:hover,
+.casa-escrever:hover {
+  background: rgba(217,169,74,0.24);
+  border-color: var(--ouro);
+  transform: translateY(-50%) scale(1.07);
+}
+
+.casa-pauta:active,
+.casa-escrever:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+/* as casas de escrever ficam numa coluna só, à esquerda da pauta */
+.casas-escrever .casa-escrever {
+  left: 6px;
+  min-width: 46px;
+  text-align: center;
+}
+
+/* lista de notas já colocadas na fase 19 */
+.notas-escritas {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.nota-escrita {
+  padding: 5px 12px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid var(--borda);
+}
+.nota-escrita.certa { border-color: var(--menta); color: #a8e4d6; background: rgba(95,179,161,0.14); }
+.nota-escrita.errada { border-color: var(--vermelho); color: #e9948c; background: rgba(200,69,60,0.14); }
 
 /* ---------- fim de fase ---------- */
 
