@@ -29,6 +29,7 @@ $projectNotes = [
     'instagram' => ['title' => 'Instagram Sync', 'group' => 'Infra e base tecnica', 'status' => 'Ativo', 'description' => 'Fluxos de callback, feed, sincronizacao e painel para integrar conteudo do Instagram.'],
     'joguiunho' => ['title' => 'Joguiunho', 'group' => 'Ferramentas pequenas', 'status' => 'Teste', 'description' => 'Jogo/teste simples dentro do site Daniel Tatuador.'],
     'meduri' => ['title' => 'Meduri / Ankh Tattoo', 'group' => 'Revisar ou arquivar', 'status' => 'Revisar', 'description' => 'Projeto promocional de tattoo com admin, vouchers, Mercado Pago e ferramentas antigas.'],
+    'musica' => ['title' => 'Primeira Voz', 'group' => 'Ferramentas pequenas', 'status' => 'Publicado', 'description' => 'Jogo de teoria musical do zero ao avançado: 15 fases, do silêncio à harmonia, com todo o som gerado no navegador.'],
     'orcamento' => ['title' => 'Orcamento Tattoo', 'group' => 'Operacao do estudio', 'status' => 'Ativo', 'description' => 'Ferramenta para montar estimativa de tattoo, hotspots corporais, admin e dados de preco.'],
     'paula' => ['title' => 'Projeto Paula', 'group' => 'Sistemas de negocio', 'status' => 'Em construcao', 'description' => 'Agente de vagas: curriculos, extracao de perfil, busca em fontes publicas e compatibilidade com vagas.'],
     'plan' => ['title' => 'Plan Financeiro', 'group' => 'Sistemas de negocio', 'status' => 'Ativo', 'description' => 'Gerenciamento financeiro em PHP/MySQL inspirado em planilha, com importacao de extratos e categorias.'],
