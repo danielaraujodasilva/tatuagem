@@ -1,0 +1,896 @@
+/* ==========================================================================
+   Primeira Voz — jogo.js  (camada de jogo interativo)
+   Substitui a navegação de menu por uma experiência jogável de imediato.
+
+   REGRA DE OURO: nenhum clique em vão. A tela de entrada já é um jogo
+   tocando. Você aperta JOGAR e está dentro da fase na mesma batida.
+   ========================================================================== */
+
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => Array.from(document.querySelectorAll(s));
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const escolher = (a) => a[Math.floor(Math.random() * a.length)];
+  const embaralhar = (a) => {
+    const c = a.slice();
+    for (let i = c.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [c[i], c[j]] = [c[j], c[i]]; }
+    return c;
+  };
+
+  /* ======================================================================
+     MODO LIVRE na capa: um mini-jogo já ativo ao abrir.
+     Adivinhe a nota que o jogo toca. Sem explicação prévia.
+     ====================================================================== */
+
+  const Livre = {
+    ativo: false,
+    alvo: null,
+    acertos: 0,
+    tentativas: 0,
+    combo: 0,
+    melhorCombo: 0,
+
+    iniciar() {
+      this.ativo = true;
+      this.acertos = 0; this.tentativas = 0; this.combo = 0; this.melhorCombo = 0;
+      this.novaRodada();
+      this.atualizarPlacar();
+    },
+
+    parar() { this.ativo = false; },
+
+    novaRodada() {
+      // nota aleatória da escala de Dó, registro confortável
+      const brancas = [60, 62, 64, 65, 67, 69, 71, 72];
+      const midi = escolher(brancas);
+      this.alvo = { midi, hz: Teoria.hzDoMidi(midi), nome: Teoria.doMidi(midi).nome };
+      setTimeout(() => { if (this.ativo) this.tocarAlvo(); }, 260);
+    },
+
+    tocarAlvo() {
+      if (!this.alvo) return;
+      Audio.note(this.alvo.hz, { dur: 1.4, timbre: 'cristal', gain: 0.42 });
+      const vis = $('#livre-onda');
+      if (vis) { vis.classList.remove('onda-on'); void vis.offsetWidth; vis.classList.add('onda-on'); }
+    },
+
+    responder(midi) {
+      if (!this.ativo || !this.alvo) return;
+      this.tentativas++;
+      const acertou = midi === this.alvo.midi;
+      Audio.unlock();
+
+      if (acertou) {
+        this.acertos++;
+        this.combo++;
+        this.melhorCombo = Math.max(this.melhorCombo, this.combo);
+        Audio.acerto(Teoria.hzDoMidi(midi), 0.2);
+        Escore.estourar(midi, true);
+        $('#livre-feedback').textContent = escolher(['Isso!', 'Na mosca.', 'Ouvido afiado.', 'Certou de primeira.', 'Boa!']);
+        $('#livre-feedback').className = 'livre-feedback ok';
+      } else {
+        this.combo = 0;
+        Audio.erro(this.alvo.hz, 0.16);
+        Escore.estourar(midi, false);
+        $('#livre-feedback').textContent = `Quase. Era ${this.alvo.nome}.`;
+        $('#livre-feedback').className = 'livre-feedback nao';
+      }
+      this.atualizarPlacar();
+      setTimeout(() => { if (this.ativo) this.novaRodada(); }, acertou ? 760 : 1150);
+    },
+
+    atualizarPlacar() {
+      const pct = this.tentativas ? Math.round((this.acertos / this.tentativas) * 100) : 0;
+      const el = $('#livre-placar');
+      if (el) {
+        el.textContent = this.tentativas
+          ? `${this.acertos}/${this.tentativas} · ${pct}%${this.combo >= 3 ? `  ·  ${this.combo} seguidos!` : ''}`
+          : '';
+        el.className = 'livre-placar' + (this.combo >= 3 ? ' combo' : '');
+      }
+      const cb = $('#livre-combo');
+      if (cb) cb.style.width = `${Math.min(100, this.combo * 20)}%`;
+    }
+  };
+
+  /* ======================================================================
+     ESCORE: feedback que salta na tela. É o que faz parecer jogo.
+     ====================================================================== */
+
+  const Escore = {
+    estourar(midi, bom) {
+      const x = rnd(window.innerWidth * 0.2, window.innerWidth * 0.8);
+      const y = rnd(window.innerHeight * 0.35, window.innerHeight * 0.6);
+      const el = document.createElement('div');
+      el.className = 'estouro ' + (bom ? 'bom' : 'ruim');
+      el.textContent = bom ? escolher(['+1', '+1', 'BOM!', '+1']) : escolher(['por pouco', 'quase', 'opa']);
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 900);
+      Particulas2.emitir(x, y, bom ? 16 : 7, bom ? '#f0d18a' : '#c8453c');
+    }
+  };
+
+  /* partículas leves em DOM (o canvas fica pro fundo) */
+  const Particulas2 = {
+    emitir(x, y, n, cor) {
+      for (let i = 0; i < n; i++) {
+        const d = document.createElement('div');
+        d.className = 'faisca';
+        d.style.left = x + 'px';
+        d.style.top = y + 'px';
+        d.style.background = cor;
+        const ang = Math.random() * Math.PI * 2;
+        const dist = 30 + Math.random() * 90;
+        d.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
+        d.style.setProperty('--dy', Math.sin(ang) * dist + 'px');
+        document.body.appendChild(d);
+        setTimeout(() => d.remove(), 800);
+      }
+    }
+  };
+
+  /* ======================================================================
+     TELAS
+     ====================================================================== */
+
+  window.Jogo = {
+    Livre, Escore,
+    telas: {},
+    estado: {
+      fase: null,
+      rodadas: [],
+      idx: 0,
+      acertos: 0,
+      combo: 0,
+      melhorCombo: 0,
+      modo: 'praticar',
+      travado: false
+    }
+  };
+
+  const J = window.Jogo;
+  const CHAVE = 'primeiravoz.v2';
+
+  function carregar() {
+    try {
+      const raw = localStorage.getItem(CHAVE);
+      if (raw) {
+        const p = JSON.parse(raw);
+        return {
+          dominadas: p.dominadas || [],
+          selos: p.selos || [],
+          melhor: p.melhor || {},
+          estrelas: p.estrelas || {},
+          mudo: !!p.mudo,
+          livreRecorde: p.livreRecorde || 0
+        };
+      }
+    } catch (e) {}
+    return { dominadas: [], selos: [], melhor: {}, estrelas: {}, mudo: false, livreRecorde: 0 };
+  }
+  J.progresso = carregar();
+  function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(J.progresso)); } catch (e) {} }
+  J.salvar = salvar;
+
+  function mostrar(id) {
+    $$('.tela').forEach(t => t.hidden = true);
+    const el = document.getElementById(id);
+    if (el) el.hidden = false;
+  }
+  J.mostrar = mostrar;
+
+  /* ======================================================================
+     JOGO: roda uma fase de verdade, com combo, estrelas e ritmo
+     ====================================================================== */
+
+  /* --- fase 1 é ritmo puro: mecânica própria e interativa ---
+     Regras pensadas para ser justo e divertido:
+     1. Tem contagem de entrada (4 cliques) para você se preparar — sem isso,
+        quem abre a fase perde as primeiras batidas sem entender o porquê.
+     2. Só entra no julgamento DEPOIS da contagem.
+     3. A rodada é curta (12 batidas), termina rápido e você quer repetir.
+     4. Não existe "nota" negativa: batida sem toque não é erro, é espaço.
+        Só conta o que você tocou, então tocar pouco nunca zera o placar.
+     ------------------------------------------------------------------- */
+  const Ritmo = {
+    ativo: false,
+    alvoBpm: 76,
+    batidas: [],
+    acertos: 0,
+    tentativas: 0,
+    combo: 0,
+    total: 12,
+
+    iniciar() {
+      // Cancela a demonstração da tela de modo: se ela ficar pendente, o
+      // stopMetronome atrasado dela mataria o metrônomo deste jogo.
+      if (J.timerDemo) { clearTimeout(J.timerDemo); J.timerDemo = null; }
+
+      this.ativo = true;
+      this.batidas = [];
+      this.acertos = 0;
+      this.tentativas = 0;
+      this.combo = 0;
+      this.contador = 0;
+      this.contagem = 4;      // cliques de entrada
+      this.julgando = false;
+      const compasso = 4;
+      const periodo = 60000 / this.alvoBpm;
+
+      $('#jogo-pergunta').textContent = 'Sinta o pulso. Depois bata junto — bem em cima.';
+      $('#jogo-opcoes').hidden = true;
+      $('#btn-bater').hidden = false;
+      $('#jogo-contador').textContent = 'Preparar…';
+      $('#jogo-dica').textContent = 'O primeiro tempo de cada grupo de 4 é mais forte. Deixe o corpo marcar, não a cabeça.';
+
+      Audio.unlock();
+      Audio.startMetronome(this.alvoBpm, compasso, (i, acento) => {
+        this.pulsoVisual(acento);
+
+        // contagem de entrada: só escuta
+        if (this.contagem > 0) {
+          this.contagem--;
+          $('#jogo-contador').textContent = `Preparar… ${this.contagem + 1}`;
+          if (this.contagem === 0) {
+            this.julgando = true;
+            $('#jogo-contador').textContent = `0 / ${this.total} em cima`;
+          }
+          return;
+        }
+
+        // fase de jogo: registra a batida para julgar
+        this.batidas.push({ t: performance.now(), acento });
+        this.contador++;
+        if (this.contador > this.total) { this.finalizar(); return; }
+        $('#jogo-contador').textContent =
+          `${this.acertos} de ${this.tentativas} em cima · ${this.contador}/${this.total}`;
+      });
+    },
+
+    pulsoVisual(acento) {
+      const wrap = $('#jogo-visual');
+      if (!wrap) return;
+      const el = document.createElement('div');
+      el.className = 'anel-pulso' + (acento ? ' acento' : '');
+      wrap.appendChild(el);
+      setTimeout(() => el.remove(), 720);
+    },
+
+    bater() {
+      if (!this.ativo || !this.julgando) return;
+      Audio.unlock();
+      const agora = performance.now();
+      const periodo = 60000 / this.alvoBpm;
+
+      // procura a batida mais próxima, aceitando tocar um pouco antes
+      let dist = Infinity;
+      this.batidas.forEach(b => {
+        const d = Math.abs(agora - b.t);
+        const d2 = Math.abs(agora - (b.t + periodo));  // antecipar é tocar no tempo
+        if (d < dist) dist = d;
+        if (d2 < dist) dist = d2;
+      });
+      if (!isFinite(dist)) return;
+
+      this.tentativas++;
+      const emCima = dist < 150;
+      if (emCima) {
+        this.acertos++;
+        this.combo++;
+        if (this.combo > 2) this.combo = 2;   // teto: o combo visual não some sozinho
+        Audio.acerto(659.25, 0.15);
+        Escore.estourar(window.innerWidth / 2, window.innerHeight * 0.45, true);
+      } else {
+        this.combo = 0;
+        Audio.erro(493.88, 0.12);
+      }
+      const cb = $('#ritmo-combo');
+      if (cb) cb.style.width = `${Math.min(100, this.combo * 50)}%`;
+      $('#jogo-contador').textContent =
+        `${this.acertos} de ${this.tentativas} em cima · ${this.contador}/${this.total}`;
+    },
+
+    finalizar() {
+      if (!this.ativo) return;
+      this.ativo = false;
+      this.julgando = false;
+      Audio.stopMetronome();
+      $('#btn-bater').hidden = true;
+      // Sem toque nenhum não há o que medir: manda de volta pro começo em vez
+      // de cravar 0% como se o jogador tivesse errado tudo.
+      if (this.tentativas === 0) {
+        J.finalizarFase(0, 0);
+        return;
+      }
+      J.finalizarFase(this.acertos, this.tentativas);
+    },
+
+    parar() {
+      this.ativo = false;
+      this.julgando = false;
+      Audio.stopMetronome();
+    }
+  };
+  J.Ritmo = Ritmo;
+
+  /* --- fases 2-15: ouve e responde, com combo e tempo --- */
+  J.comecarFase = function (idFase, modo = 'praticar') {
+    Audio.unlock();
+    if (J.progresso.mudo) Audio.setMuted(true);
+    Livre.parar();
+    Ritmo.parar();
+    // zera qualquer avanço ou demonstração pendente da tela anterior
+    if (J.timerAvancar) { clearTimeout(J.timerAvancar); J.timerAvancar = null; }
+    if (J.timerDemo) { clearTimeout(J.timerDemo); J.timerDemo = null; }
+
+    const fase = Fases.porId(idFase);
+    if (!fase) return;
+    J.estado.fase = fase;
+    J.estado.modo = modo;
+    J.estado.idx = 0;
+    J.estado.acertos = 0;
+    J.estado.combo = 0;
+    J.estado.melhorCombo = 0;
+    J.estado.travado = false;
+
+    $('#titulo-fase').textContent = `${fase.id}. ${fase.nome}`;
+    $('#btn-voltar').hidden = false;
+    mostrar('tela-jogo');
+
+    if (fase.id === 1) { Ritmo.iniciar(); return; }
+
+    const dados = Fases.gerar(idFase, modo);
+    J.estado.rodadas = dados.rodadas;
+    J.estado.total = dados.rodadas.length;
+    $('#jogo-opcoes').hidden = false;
+    $('#btn-bater').hidden = true;
+    J.proximaRodada();
+  };
+
+  J.proximaRodada = function () {
+    const e = J.estado;
+    if (e.idx >= e.rodadas.length) { J.finalizarFase(e.acertos, e.rodadas.length); return; }
+
+    const r = e.rodadas[e.idx];
+    e.travado = false;
+    $('#jogo-contador').textContent = `${e.idx + 1} / ${e.rodadas.length}`;
+    $('#jogo-pergunta').textContent = J.perguntaDe(r);
+    $('#jogo-dica').textContent = (e.modo === 'dominar') ? '' : (r.dica || '');
+    $('#jogo-visual').innerHTML = '';
+    $('#jogo-opcoes').innerHTML = '';
+
+    J.montarVisual(r);
+    J.montarOpcoes(r);
+    J.tocarRodada(r);
+
+    const cb = $('#ritmo-combo');
+    if (cb) cb.style.width = `${Math.min(100, e.combo * 20)}%`;
+  };
+
+  J.perguntaDe = function (r) {
+    const mapa = {
+      direcao: 'A segunda nota subiu ou desceu?',
+      contorno: 'Qual desenho elas fazem?',
+      cor: 'Alegre ou triste?',
+      teclado: 'Toque a nota que você ouviu.',
+      degrau: 'Perto ou longe?',
+      intervalo: 'Qual distância é essa?',
+      solfejo: 'Que nota da escala é essa?',
+      armadura: 'Quantas alterações?',
+      acorde: 'Que acorde é esse?',
+      rota: 'Quantos passos no círculo?',
+      funcao: 'Esse acorde repousa, prepara ou empurra?',
+      cadencia: 'Como essa frase termina?',
+      modo: 'Que cor de escala é essa?',
+      analise: 'Qual é a roda de acordes?'
+    };
+    return mapa[r.tipo] || 'O que você ouviu?';
+  };
+
+  J.tocarRodada = function (r) {
+    if (!r.oQueSoa) return;
+    if (r.tipo === 'acorde' || r.tipo === 'funcao') {
+      Audio.chord(r.oQueSoa, { dur: 1.1, timbre: 'piano', gain: 0.4 });
+    } else if (r.tipo === 'cadencia' || r.tipo === 'analise') {
+      J.tocarProgressao(r.progressaoHz);
+    } else if (r.tipo === 'intervalo') {
+      Audio.note(r.oQueSoa[0], { dur: 0.7, timbre: 'cristal', gain: 0.42 });
+      setTimeout(() => Audio.note(r.oQueSoa[1], { dur: 1.3, timbre: 'cristal', gain: 0.42 }), 700);
+    } else if (r.tipo === 'cor') {
+      Audio.seq(r.oQueSoa.map(hz => [hz, 0.32]), { timbre: 'piano', gain: 0.32, gap: 0.015 });
+    } else if (r.oQueSoa.length === 1) {
+      Audio.note(r.oQueSoa[0], { dur: 1.2, timbre: 'cristal', gain: 0.42 });
+    } else {
+      Audio.seq(r.oQueSoa.map(hz => [hz, 0.5]), { timbre: 'cristal', gain: 0.4, gap: 0.07 });
+    }
+  };
+
+  J.tocarProgressao = function (hzs) {
+    if (!hzs) return;
+    const t = Audio.now() + 0.05;
+    hzs.forEach((grupo, i) => {
+      const hz = Array.isArray(grupo) ? grupo : [grupo];
+      Audio.chord(hz, { dur: 0.7, timbre: 'piano', gain: 0.34, at: t + i * 0.78 });
+    });
+  };
+
+  J.montarVisual = function (r) {
+    const vis = $('#jogo-visual');
+    if (r.tipo === 'teclado') {
+      const brancas = [60, 62, 64, 65, 67, 69, 71, 72];
+      const nomes = ['Dó', 'Ré', 'Mi', 'Fá', 'Sol', 'Lá', 'Si', 'Dó'];
+      const kb = document.createElement('div');
+      kb.className = 'teclado';
+      brancas.forEach((m, i) => {
+        const t = document.createElement('button');
+        t.className = 'tecla';
+        t.dataset.midi = m;
+        t.textContent = nomes[i];
+        t.addEventListener('click', () => { Audio.note(Teoria.hzDoMidi(m), { dur: 0.6, timbre: 'cristal', gain: 0.4 }); J.responderTeclado(m, r, t); });
+        kb.appendChild(t);
+      });
+      vis.appendChild(kb);
+      return;
+    }
+    if (r.tipo === 'rota') {
+      const circ = document.createElement('div');
+      circ.className = 'circulo';
+      Teoria.CIRCULO_QUINTAS.forEach((c, i) => {
+        const el = document.createElement('span');
+        el.className = 'casa' + (c === r.de ? ' de' : '') + (c === r.para ? ' para' : '');
+        el.textContent = c;
+        const ang = (i * 30 - 90) * Math.PI / 180;
+        el.style.left = `${50 + Math.cos(ang) * 36}%`;
+        el.style.top = `${50 + Math.sin(ang) * 36}%`;
+        circ.appendChild(el);
+      });
+      vis.appendChild(circ);
+      return;
+    }
+    if (r.tipo === 'armadura') {
+      const el = document.createElement('div');
+      el.className = 'armadura';
+      el.innerHTML = `<b>${r.cifra}</b><small>maior · ${r.tipoAlt || ''}</small>`;
+      vis.appendChild(el);
+      return;
+    }
+    if (r.tipo === 'acorde' || r.tipo === 'funcao') {
+      const el = document.createElement('div');
+      el.className = 'acorde-card';
+      el.innerHTML = `<span class="ac-nome">?</span><small>ouça e escolha</small>`;
+      vis.appendChild(el);
+      return;
+    }
+    if (r.tipo === 'cadencia' || r.tipo === 'analise') {
+      const el = document.createElement('div');
+      el.className = 'progressao';
+      (r.nomes || []).forEach(() => {
+        const s = document.createElement('span');
+        s.className = 'ac-nome oculto';
+        s.textContent = '?';
+        el.appendChild(s);
+      });
+      vis.appendChild(el);
+      return;
+    }
+    if (r.tipo === 'contorno') {
+      const el = document.createElement('div');
+      el.className = 'contorno';
+      for (let i = 0; i < 3; i++) {
+        const d = document.createElement('span');
+        d.className = 'ponto';
+        el.appendChild(d);
+      }
+      vis.appendChild(el);
+      return;
+    }
+    // ícone de onda para tipos baseados em escuta
+    const el = document.createElement('div');
+    el.className = 'onda-ouvir';
+    el.innerHTML = '<span></span><span></span><span></span><span></span><span></span>';
+    vis.appendChild(el);
+  };
+
+  J.montarOpcoes = function (r) {
+    if (r.tipo === 'teclado') return;
+    const cont = $('#jogo-opcoes');
+    const rotulos = {
+      direcao: { sobe: '↑ Subiu', desce: '↓ Desceu' },
+      contorno: {
+        '1,1': '↗↗ subiu, subiu', '1,-1': '↗↘ subiu, desceu',
+        '-1,-1': '↘↘ desceu, desceu', '-1,1': '↘↗ desceu, subiu',
+        '1,0': '↗→ subiu, parou', '-1,0': '↘→ desceu, parou'
+      },
+      cor: { alegre: 'Maior · alegre', triste: 'Menor · triste' },
+      degrau: { curto: 'Perto · meio-tom', longo: 'Longe · tom inteiro' }
+    };
+    const sufixo = (r.tipo === 'armadura' && r.tipoAlt)
+      ? (r.tipoAlt === 'sustenidos' ? ' ♯' : ' ♭') : '';
+    (r.opcoes || []).forEach(op => {
+      const b = document.createElement('button');
+      b.className = 'opcao';
+      b.dataset.op = String(op);
+      b.textContent = ((rotulos[r.tipo] && rotulos[r.tipo][op]) || op) + sufixo;
+      b.addEventListener('click', () => J.responder(op, r, b));
+      cont.appendChild(b);
+    });
+  };
+
+  J.responderTeclado = function (midi, r, teclaEl) {
+    if (J.estado.travado) return;
+    J.estado.travado = true;
+    const acertou = midi === r.correta;
+    const todas = $$('.tecla');
+    todas.forEach(t => t.classList.remove('certa', 'errada'));
+    if (acertou) {
+      teclaEl.classList.add('certa'); J.registrarAcerto(true);
+      Audio.acerto(Teoria.hzDoMidi(midi), 0.2);
+    } else {
+      teclaEl.classList.add('errada');
+      const alvo = $(`.tecla[data-midi="${r.correta}"]`);
+      if (alvo) alvo.classList.add('certa');
+      J.registrarAcerto(false);
+      Audio.erro(Teoria.hzDoMidi(r.correta), 0.16);
+    }
+    J.avancar(acertou ? 820 : 1300);
+  };
+
+  J.responder = function (op, r, btn) {
+    if (J.estado.travado) return;
+    J.estado.travado = true;
+    const acertou = String(op) === String(r.correta);
+    if (acertou) {
+      btn.classList.add('certa');
+      J.registrarAcerto(true);
+      Audio.acerto(523.25, 0.19);
+    } else {
+      btn.classList.add('errada');
+      [...btn.parentElement.children].forEach(b => {
+        if (b.dataset && b.dataset.op === String(r.correta)) b.classList.add('certa');
+      });
+      J.registrarAcerto(false);
+      const base = Array.isArray(r.oQueSoa?.[0]) ? 523.25 : (r.oQueSoa?.[0] || 523.25);
+      Audio.erro(base, 0.16);
+    }
+    J.avancar(acertou ? 800 : 1250);
+  };
+
+  J.registrarAcerto = function (bom) {
+    const e = J.estado;
+    if (bom) {
+      e.acertos++;
+      e.combo++;
+      e.melhorCombo = Math.max(e.melhorCombo, e.combo);
+      Escore.estourar(window.innerWidth / 2, window.innerHeight * 0.4, true);
+      if (e.combo >= 3) J.flashCombo(e.combo);
+    } else {
+      e.combo = 0;
+    }
+  };
+
+  J.flashCombo = function (n) {
+    const el = document.createElement('div');
+    el.className = 'combo-flash';
+    el.textContent = `${n} seguidas!`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1100);
+  };
+
+  J.avancar = function (ms) {
+    // Cancela um avanço pendente antes de agendar outro. Sem isso, um timeout
+    // antigo pode disparar depois de o jogador trocar de fase e embaralhar o
+    // estado — a rodada fica travada e o jogo parece congelar.
+    if (J.timerAvancar) { clearTimeout(J.timerAvancar); J.timerAvancar = null; }
+    J.timerAvancar = setTimeout(() => {
+      J.timerAvancar = null;
+      J.estado.idx++;
+      J.proximaRodada();
+    }, ms);
+  };
+
+  /* ======================================================================
+     FIM DE FASE: celebrado, com estrelas
+     ====================================================================== */
+
+  J.finalizarFase = function (acertos, total) {
+    const fase = J.estado.fase;
+    if (!fase) return;
+
+    // Caso especial do ritmo: ninguém tocou nada. Não é fracasso, é falta de
+    // tentativa. Devolve uma tela clara em vez de cravar 0% como se a pessoa
+    // tivesse errado — isso desmotiva quem só abriu para ver.
+    const semTentativa = total === 0;
+
+    const pct = semTentativa ? 0
+      : Math.max(0, Math.min(100, Math.round((acertos / Math.max(1, total)) * 100)));
+
+    // estrelas: 1 = passou, 2 = bem, 3 = excelente
+    const estrelas = semTentativa ? 0 : (pct >= 90 ? 3 : pct >= 70 ? 2 : pct >= 50 ? 1 : 0);
+    const dominou = !semTentativa && pct >= 80;
+
+    if (!semTentativa) {
+      if ((J.progresso.melhor[fase.id] || 0) < pct) J.progresso.melhor[fase.id] = pct;
+      if ((J.progresso.estrelas[fase.id] || 0) < estrelas) J.progresso.estrelas[fase.id] = estrelas;
+    }
+    let novo = false;
+    if (dominou && !J.progresso.dominadas.includes(fase.id)) {
+      J.progresso.dominadas.push(fase.id);
+      J.progresso.selos.push(fase.id);
+      novo = true;
+    }
+    salvar();
+
+    mostrar('tela-fim');
+    $('#fim-titulo').textContent = semTentativa ? 'Você só escutou.'
+      : novo ? 'Fase dominada!'
+      : dominou ? 'De novo, firme.'
+      : 'Continue tentando.';
+    $('#fim-pct').textContent = semTentativa ? '—' : `${pct}%`;
+    $('#fim-detalhe').textContent = semTentativa
+      ? 'Bata no botão junto com o pulso para valer.'
+      : `${acertos} de ${total} · melhor combo ${J.estado.melhorCombo}`;
+
+    // estrelas aparecem uma a uma
+    const box = $('#fim-estrelas');
+    box.innerHTML = '';
+    for (let i = 0; i < 3; i++) {
+      const s = document.createElement('span');
+      s.className = 'estrela' + (i < estrelas ? ' ganha' : '');
+      s.textContent = '★';
+      s.style.animationDelay = `${0.15 + i * 0.18}s`;
+      box.appendChild(s);
+    }
+    if (estrelas > 0) Audio.selo();
+
+    const dom = J.progresso.dominadas.length;
+    const est = Voz.estagioDe(dom);
+    $('#fim-estagio').textContent = est.nome;
+    $('#fim-estagio-desc').textContent = est.desc;
+
+    const prox = Fases.LISTA.find(f => !J.progresso.dominadas.includes(f.id));
+    $('#fim-prox').textContent = prox ? `Próxima parada: ${prox.id}. ${prox.nome}` : 'Você dominou todas as 15 fases.';
+
+    J.desenharRetrato();
+  };
+
+  J.desenharRetrato = function () {
+    const dom = J.progresso.dominadas.length;
+    let gesto = 0;
+    Engine.play({
+      update(dt, t) { gesto = 0.5 + 0.5 * Math.sin(t * 0.9); },
+      draw(ctx, w, h, t) {
+        Voz.retratoEstagio(ctx, w, h, dom, t);
+      }
+    });
+  };
+
+  /* ======================================================================
+     CAPA: já jogável
+     ====================================================================== */
+
+  J.montarCapa = function () {
+    const grid = $('#grid-fases');
+    if (!grid) return;
+    grid.innerHTML = '';
+    Fases.LISTA.forEach(f => {
+      const est = J.progresso.estrelas[f.id] || 0;
+      const feita = J.progresso.dominadas.includes(f.id);
+      const b = document.createElement('button');
+      b.className = 'no' + (feita ? ' feita' : '');
+      b.dataset.fase = f.id;
+      b.title = f.nome;
+      b.innerHTML = `
+        <span class="no-num">${f.id}</span>
+        <span class="no-nome">${f.nome}</span>
+        <span class="no-estrelas">${'★'.repeat(est)}${'☆'.repeat(3 - est)}</span>
+      `;
+      b.addEventListener('click', () => J.abrirFase(f.id));
+      grid.appendChild(b);
+    });
+    J.atualizarCapa();
+  };
+
+  J.atualizarCapa = function () {
+    const dom = J.progresso.dominadas.length;
+    const est = Voz.estagioDe(dom);
+    const el = $('#capa-estagio');
+    if (el) el.textContent = est.nome;
+    const barra = $('#capa-barra');
+    if (barra) barra.style.width = `${(dom / Fases.total) * 100}%`;
+    const cont = $('#capa-contagem');
+    if (cont) cont.textContent = `${dom} / ${Fases.total}`;
+    const rec = $('#livre-recorde');
+    if (rec && J.progresso.livreRecorde) rec.textContent = `Melhor sequência: ${J.progresso.livreRecorde}`;
+  };
+
+  /* --- escolha de modo como um jogo, não uma lista --- */
+  J.abrirFase = function (id) {
+    Audio.tick();
+    const f = Fases.porId(id);
+    if (!f) return;
+    J.estado.fasePendente = f;
+
+    $('#titulo-fase').textContent = `${f.id}. ${f.nome}`;
+    $('#btn-voltar').hidden = false;
+    mostrar('tela-modo');
+
+    $('#modo-ensina').textContent = f.ensina;
+    $('#modo-ouve').textContent = f.ouve;
+
+    const est = J.progresso.estrelas[f.id] || 0;
+    $('#modo-estrelas').textContent = est ? '★'.repeat(est) + '☆'.repeat(3 - est) : '☆☆☆';
+    const best = J.progresso.melhor[f.id];
+    $('#modo-melhor').textContent = best ? `seu melhor: ${best}%` : 'nunca jogada';
+
+    // demonstra o som da fase ali mesmo, para você saber no que está entrando
+    setTimeout(() => J.demonstrarFase(f), 200);
+  };
+
+  J.demonstrarFase = function (f) {
+    Audio.unlock();
+    // Guarda o timer para cancelar se o jogador entrar na fase antes do fim da
+    // demo. O autoStopMs do Audio cuida da parada; este campo só marca que a
+    // demo está em curso.
+    if (J.timerDemo) { clearTimeout(J.timerDemo); J.timerDemo = null; }
+    try {
+      const d = Fases.gerar(f.id, 'praticar');
+      if (f.id === 1) {
+        // autoStopMs deixa o próprio Audio garantir a parada, sem timer solto
+        Audio.startMetronome(76, 4, () => {}, 2400);
+        return;
+      }
+      const r = d.rodadas[0];
+      if (r && r.oQueSoa) {
+        if (r.tipo === 'acorde' || r.tipo === 'funcao') Audio.chord(r.oQueSoa, { dur: 0.9, timbre: 'piano', gain: 0.36 });
+        else if (r.tipo === 'cadencia' || r.tipo === 'analise') J.tocarProgressao(r.progressaoHz);
+        else Audio.seq(r.oQueSoa.flat().map(hz => [hz, 0.4]), { timbre: 'cristal', gain: 0.36, gap: 0.05 });
+      }
+    } catch (e) {}
+  };
+
+  /* ======================================================================
+     CANVAS DE FUNDO: a voz, agora visível
+     ====================================================================== */
+
+  J.montarFundo = function () {
+    const dom = () => J.progresso.dominadas.length;
+    let gesto = 0;
+    Engine.play({
+      update(dt, t) { gesto = 0.5 + 0.5 * Math.sin(t * 0.85); },
+      draw(ctx, w, h, t) {
+        Engine.fundoGradiente(ctx, w, h, t, 212);
+        Engine.grade(ctx, w, h, 50, 0.035);
+        // A VOZ: no topo, acima do conteúdo, sempre visível
+        Voz.desenharTrilha(ctx, w, h * 0.62, {
+          fasesDominadas: dom(), tempo: t, escala: 0.62
+        });
+        // O Daniel fica no rodapé, bem apagado: presença, não decoração.
+        // Antes ele subia e brigava com os botões.
+        Voz.avatarDaniel(ctx, w * 0.5, h - 24, Math.min(0.5, w / 1200), {
+          tempo: t, gesto, alpha: 0.07
+        });
+      }
+    });
+  };
+
+  /* ======================================================================
+     TECLADO do mini-jogo livre
+     ====================================================================== */
+
+  J.montarTecladoLivre = function () {
+    const kb = $('#livre-teclado');
+    if (!kb) return;
+    const brancas = [60, 62, 64, 65, 67, 69, 71, 72];
+    const nomes = ['Dó', 'Ré', 'Mi', 'Fá', 'Sol', 'Lá', 'Si', 'Dó'];
+    kb.innerHTML = '';
+    brancas.forEach((m, i) => {
+      const t = document.createElement('button');
+      t.className = 'tecla-livre';
+      t.dataset.midi = m;
+      t.innerHTML = `<span>${nomes[i]}</span>`;
+      t.addEventListener('click', () => {
+        Audio.note(Teoria.hzDoMidi(m), { dur: 0.7, timbre: 'cristal', gain: 0.4 });
+        Livre.responder(m);
+      });
+      kb.appendChild(t);
+    });
+  };
+
+  /* ======================================================================
+     LIGAÇÕES
+     ====================================================================== */
+
+  J.ligar = function () {
+    $('#btn-voltar')?.addEventListener('click', () => {
+      Audio.tick(); Ritmo.parar();
+      if (!$('#tela-modo').hidden) { J.montarCapa(); mostrar('tela-capa'); }
+      else if (!$('#tela-jogo').hidden || !$('#tela-fim').hidden) { J.montarCapa(); mostrar('tela-capa'); }
+      else { J.montarCapa(); mostrar('tela-capa'); }
+      $('#titulo-fase').textContent = '';
+      $('#btn-voltar').hidden = true;
+      Livre.iniciar();
+    });
+
+    $('#btn-som')?.addEventListener('click', () => {
+      const m = !Audio.isMuted();
+      Audio.setMuted(m);
+      J.progresso.mudo = m; salvar();
+      $('#btn-som').textContent = m ? '🔇' : '🔊';
+      if (!m) Audio.tick();
+    });
+
+    $('#btn-repetir')?.addEventListener('click', () => {
+      const r = J.estado.rodadas[J.estado.idx];
+      if (r) J.tocarRodada(r);
+      else Livre.tocarAlvo();
+    });
+
+    $('#livre-tocar')?.addEventListener('click', () => { Audio.unlock(); Livre.tocarAlvo(); });
+
+    $('#btn-bater')?.addEventListener('click', () => Ritmo.bater());
+
+    // modos
+    $$('[data-modo]').forEach(b => {
+      b.addEventListener('click', () => {
+        const f = J.estado.fasePendente;
+        if (!f) return;
+        J.comecarFase(f.id, b.dataset.modo);
+      });
+    });
+
+    // fim de fase
+    $('#fim-repetir')?.addEventListener('click', () => {
+      Audio.tick();
+      J.comecarFase(J.estado.fase.id, J.estado.modo);
+    });
+    $('#fim-proxima')?.addEventListener('click', () => {
+      Audio.tick();
+      const dom = J.progresso.dominadas;
+      const prox = Fases.LISTA.find(f => !dom.includes(f.id));
+      if (prox) J.comecarFase(prox.id, 'praticar');
+      else { J.montarCapa(); mostrar('tela-capa'); }
+    });
+    $('#fim-menu')?.addEventListener('click', () => {
+      Audio.tick(); J.montarCapa(); mostrar('tela-capa');
+      $('#titulo-fase').textContent = ''; $('#btn-voltar').hidden = true;
+      Livre.iniciar();
+    });
+
+    // teclado físico
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (Ritmo.ativo) Ritmo.bater();
+      }
+      if (e.key === 'r' || e.key === 'R') $('#btn-repetir')?.click();
+      // números 1-5 respondem as opções: jogar pelo teclado é mais rápido
+      const n = parseInt(e.key, 10);
+      if (n >= 1 && n <= 5 && $('#tela-jogo').hidden === false) {
+        const ops = $$('#jogo-opcoes .opcao');
+        if (ops[n - 1]) ops[n - 1].click();
+      }
+    });
+  };
+
+  /* ======================================================================
+     INÍCIO
+     ====================================================================== */
+
+  J.init = function () {
+    Engine.init(document.getElementById('palco'));
+    if (J.progresso.mudo) Audio.setMuted(true);
+    $('#btn-som').textContent = Audio.isMuted() ? '🔇' : '🔊';
+    J.montarFundo();
+    J.montarCapa();
+    J.montarTecladoLivre();
+    J.ligar();
+    mostrar('tela-capa');
+    Livre.iniciar();
+    Teoria.autoteste();
+  };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => J.init());
+  else J.init();
+})();

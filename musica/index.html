@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Primeira Voz — Jogo de Teoria Musical</title>
+<meta name="description" content="Jogo de teoria musical do zero ao avançado. Aprenda ouvindo: 15 fases, do silêncio à harmonia. Sem instalar nada.">
+<meta name="theme-color" content="#12100e">
+<meta property="og:title" content="Primeira Voz — Jogo de Teoria Musical">
+<meta property="og:description" content="Ouça, responda, suba de fase. Do silêncio à harmonia.">
+<meta property="og:type" content="website">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css?v=4">
+</head>
+<body>
+
+<canvas id="palco" aria-hidden="true"></canvas>
+
+<header id="topo">
+  <button id="btn-voltar" class="btn-icone" hidden aria-label="Voltar">←</button>
+  <h1 id="titulo-fase"></h1>
+  <div class="topo-dir">
+    <button id="btn-som" class="btn-icone" aria-label="Ligar ou desligar som">🔊</button>
+  </div>
+</header>
+
+<!-- ==================== CAPA / HUB JOGÁVEL ==================== -->
+<section id="tela-capa" class="tela tela-larga" hidden>
+
+  <div class="capa-topo">
+    <p class="sobre">A PRIMEIRA VOZ</p>
+    <h2 class="marca">Primeira Voz</h2>
+    <p class="sub">Você conduz a primeira voz do mundo. Ela nasce do silêncio e vira harmonia.</p>
+  </div>
+
+  <!-- MINI-JOGO: já dá pra jogar sem clicar em nada -->
+  <div class="livre">
+    <div class="livre-topo">
+      <span class="livre-rotulo">AQUECIMENTO</span>
+      <span id="livre-placar" class="livre-placar"></span>
+    </div>
+    <p class="livre-pergunta">Que nota é essa? Ouça e toque.</p>
+
+    <div id="livre-onda" class="livre-onda">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <div class="livre-acoes">
+      <button id="livre-tocar" class="btn-ouvir">🔁 Ouvir de novo</button>
+      <span id="livre-feedback" class="livre-feedback"></span>
+    </div>
+
+    <div id="livre-teclado" class="teclado-livre"></div>
+
+    <div class="combo-barra"><span id="livre-combo"></span></div>
+    <p id="livre-recorde" class="miudo centro"></p>
+  </div>
+
+  <!-- PROGRESSO DA VOZ -->
+  <div class="estagio-box">
+    <span class="estagio-rotulo">Sua voz agora</span>
+    <b id="capa-estagio">Silêncio</b>
+    <div class="barra"><span id="capa-barra"></span></div>
+    <small><span id="capa-contagem">0 / 15</span> fases dominadas</small>
+  </div>
+
+  <!-- GRID DE FASES: clicar já entra -->
+  <div class="grid-titulo">
+    <span>ESCOLHA UMA FASE</span>
+    <small>todas liberadas · clique e jogue</small>
+  </div>
+  <div id="grid-fases" class="grid-fases"></div>
+
+  <div class="rodape">
+    <p><b>Dica:</b> errar toca a nota vizinha, nunca um alarme — quase certo é como se aprende.</p>
+    <p class="miudo">Teclas <b>1-5</b> respondem · <b>R</b> ouve de novo · <b>Espaço</b> bate o tempo. Todos os sons são gerados no seu navegador.</p>
+  </div>
+</section>
+
+<!-- ==================== ESCOLHA DE MODO ==================== -->
+<section id="tela-modo" class="tela" hidden>
+  <div class="modo-topo">
+    <span id="modo-estrelas" class="modo-estrelas"></span>
+    <span id="modo-melhor" class="miudo"></span>
+  </div>
+
+  <div class="modo-frase">
+    <p id="modo-ensina" class="destaque"></p>
+    <p id="modo-ouve" class="miudo"></p>
+  </div>
+
+  <div class="modos-grid">
+    <button class="modo mod-aprender" data-modo="aprender">
+      <b>Aquecer</b>
+      <small>Poucas rodadas, com dica na tela</small>
+    </button>
+    <button class="modo mod-praticar" data-modo="praticar">
+      <b>Jogar</b>
+      <small>O desafio normal. É aqui que se aprende</small>
+    </button>
+    <button class="modo mod-dominar" data-modo="dominar">
+      <b>Dominar</b>
+      <small>Longo, sem dica. Exige 80% pra fechar a fase</small>
+    </button>
+  </div>
+</section>
+
+<!-- ==================== JOGO ==================== -->
+<section id="tela-jogo" class="tela" hidden>
+  <div class="jogo-caixa">
+    <div class="jogo-topo">
+      <span id="jogo-contador" class="contador">1 / 8</span>
+      <button id="btn-repetir" class="btn-mini">🔁 Ouvir de novo</button>
+    </div>
+
+    <div class="combo-barra fixa"><span id="ritmo-combo"></span></div>
+
+    <p id="jogo-pergunta" class="pergunta"></p>
+    <div id="jogo-visual" class="jogo-visual"></div>
+    <div id="jogo-opcoes" class="jogo-opcoes"></div>
+    <p id="jogo-dica" class="dica"></p>
+
+    <button id="btn-bater" class="btn-bater" hidden>BATER</button>
+  </div>
+</section>
+
+<!-- ==================== FIM DE FASE ==================== -->
+<section id="tela-fim" class="tela" hidden>
+  <div class="fim-caixa">
+    <h2 id="fim-titulo">Fase dominada!</h2>
+    <div id="fim-estrelas" class="fim-estrelas"></div>
+    <p class="pct" id="fim-pct">100%</p>
+    <p id="fim-detalhe" class="miudo"></p>
+
+    <div class="estagio-box compacto">
+      <span class="estagio-rotulo">A voz agora está em</span>
+      <b id="fim-estagio">Uma linha</b>
+      <p id="fim-estagio-desc"></p>
+    </div>
+
+    <p id="fim-prox" class="prox"></p>
+
+    <div class="fim-acoes">
+      <button id="fim-repetir" class="btn-grande">Jogar de novo</button>
+      <button id="fim-proxima" class="btn-grande destaque-btn">Próxima fase</button>
+      <button id="fim-menu" class="btn-grande">Menu</button>
+    </div>
+  </div>
+</section>
+
+<script src="js/teoria.js?v=4"></script>
+<script src="js/audio.js?v=4"></script>
+<script src="js/engine.js?v=4"></script>
+<script src="js/voz.js?v=4"></script>
+<script src="js/fases.js?v=4"></script>
+<script src="js/jogo.js?v=4"></script>
+</body>
+</html>

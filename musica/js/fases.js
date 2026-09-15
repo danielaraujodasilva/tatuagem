@@ -1,0 +1,553 @@
+/* ==========================================================================
+   Primeira Voz — fases.js
+   As 15 fases: conteúdo, modos e mecânica de cada uma.
+
+   Régua de dificuldade (adaptada do ranking do Hooktheory + grade curricular):
+     1-3   iniciais   — percepção pura, nada de nome
+     4-6   básicas    — maior/menor, tônica, tom e semitom
+     7-9   intermediárias — intervalos, armaduras
+     10-12 médio      — acordes, campo harmônico, função
+     13-15 avançadas  — cadências, modos, análise real
+
+   Regra que vale para TODAS as fases: errar nunca é alarme. A resposta errada
+   soa como a vizinha de meio-tom. O ouvido corrige o que está QUASE certo.
+   ========================================================================== */
+
+const Fases = (() => {
+
+  /* ---------------------------------------------------------------------
+     Definição das 15 fases
+     id        número
+     nome      título curto
+     nivel     'inicial' | 'básico' | 'intermediário' | 'médio' | 'avançado'
+     ensina    o que a pessoa realmente aprende
+     ouve      o que o ouvido treina
+     mecanica  como se joga
+     modos     quais modos estão disponíveis
+     curio     fato curioso mostrado ao dominar
+     ref       música real que usa o conceito (o jogo SINTETIZA, não usa áudio)
+     --------------------------------------------------------------------- */
+  const LISTA = [
+    {
+      id: 1, nome: 'A Pulsação', nivel: 'inicial',
+      ensina: 'O tempo existe antes das notas. Compasso de 4 tempos, e onde cai o "1".',
+      ouve: 'Onde a música começa e recomeça.',
+      mecanica: 'O jogo pulsa. Você bate no tempo, primeiro livre, depois com um alvo.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Quase toda música ocidental é feita em grupos de 4. Seu coração também bate em pulsos, não em notas.',
+      ref: 'Qualquer marcha ou hino — o pulso é o esqueleto da música.'
+    },
+    {
+      id: 2, nome: 'Grave e Agudo', nivel: 'inicial',
+      ensina: 'A altura é uma linha: existe para cima e para baixo, e tem distância.',
+      ouve: 'Direção do movimento e tamanho do salto.',
+      mecanica: 'Uma bola luminosa sobe e desce seguindo o som. Você acompanha com o dedo.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Grave e agudo são literalmente lentidão e rapidez do ar vibrando. Dó central pulsa 261 vezes por segundo.',
+      ref: 'O começo de "Ode à Alegria" é o movimento mais simples que existe: passo vizinho.'
+    },
+    {
+      id: 3, nome: 'Altura Aproximada', nivel: 'inicial',
+      ensina: 'As notas têm lugares fixos, e a memória curta já consegue guardar um contorno.',
+      ouve: 'Contorno melódico: subiu, desceu, voltou.',
+      mecanica: 'O jogo toca 3 notas. Você desenha a forma que ouviu. Sem nome, só forma.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'A memória de altura dura poucos segundos. Repetir em voz alta é o que segura ela.',
+      ref: 'Os três primeiros segundos de qualquer jingle — você lembra da forma, não das notas.'
+    },
+    {
+      id: 4, nome: 'Maior e Menor', nivel: 'básico',
+      ensina: 'Duas escalas, dois humores. A diferença está em UMA nota.',
+      ouve: 'Alegre contra triste, antes de saber o nome disso.',
+      mecanica: 'O jogo toca uma escala. Você diz qual das duas cores é.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'A única diferença entre maior e menor é a terceira nota: meio-tom abaixo já vira tristeza.',
+      ref: 'Mesma melodia, dois humores: quase toda balada tem versão maior e menor na internet.'
+    },
+    {
+      id: 5, nome: 'Dó Maior no teclado', nivel: 'básico',
+      ensina: 'As 7 notas brancas, tônica e casa. Onde a escala mora.',
+      ouve: 'A casa de repouso (tônica) contra as notas que pedem continuação.',
+      mecanica: 'Teclado visual. O jogo mostra, depois esconde, e você acha a nota.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Dó maior é só as teclas brancas. É a escala que a humanidade inteira aprendeu primeiro.',
+      ref: 'A marcha de casamento que todo mundo conhece é Dó maior do começo ao fim.'
+    },
+    {
+      id: 6, nome: 'Tom e Semitom', nivel: 'básico',
+      ensina: 'O degrau tem dois tamanhos: o passo curto e o passo longo.',
+      ouve: 'A diferença entre o vizinho colado e o vizinho pulado.',
+      mecanica: 'Dois alvos lado a lado. Você escolhe qual distância ouviu.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Dó para Dó# é 100 cents. Dó para Ré é 200. Escala musical é uma receita de passos: 2-2-1-2-2-2-1.',
+      ref: 'A receita 2-2-1-2-2-2-1 constrói toda escala maior que existe.'
+    },
+    {
+      id: 7, nome: 'Intervalos', nivel: 'intermediário',
+      ensina: '2ª até 8ª. Cada distância tem um caráter próprio.',
+      ouve: 'O mesmo salto reconhecido de vários pontos de partida.',
+      mecanica: 'Encaixe: você arrasta a nota até a distância certa. Erra se colar demais.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'A 5ª justa parece "vazia" porque suas ondas se encontram em proporção simples: 3 para 2.',
+      ref: 'O tema de "Star Wars" e a afinação de violino usam o mesmo salto de 5ª.'
+    },
+    {
+      id: 8, nome: 'Solfejo', nivel: 'intermediário',
+      ensina: 'Dar nome às notas: 1 a 7, dó ré mi. Nome é etiqueta, não obrigação.',
+      ouve: 'O grau dentro da escala, que é o que importa de verdade.',
+      mecanica: 'O jogo toca a nota e você escolhe o nome certo no campo.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Antes de existirem nomes, monges usavam a primeira sílaba de cada verso de um hino. Daí veio dó ré mi.',
+      ref: 'O hino a São João Batista, do século XI, é a origem literal do solfejo.'
+    },
+    {
+      id: 9, nome: 'Armaduras', nivel: 'intermediário',
+      ensina: 'Sustenidos e bemóis. A escala se deforma e muda de cor.',
+      ouve: 'A tonalidade: a mesma melodia em outro lugar tem outro peso.',
+      mecanica: 'Roda da armadura. Você completa os sustenidos na ordem correta.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Os sustenidos aparecem sempre na mesma ordem: Fá Dó Sol Ré Lá Mi Si. Nunca muda.',
+      ref: 'A ordem Fá-Dó-Sol-Ré-Lá-Mi-Si é a mesma da subida de quintas: dá a volta em 12 casas.'
+    },
+    {
+      id: 10, nome: 'Acordes I–IV–V', nivel: 'médio',
+      ensina: 'Três acordes sustentam quase todo o pop. Tônica, subdominante, dominante.',
+      ouve: 'A mudança de acorde e a saudade de casa.',
+      mecanica: 'Encaixe: você empilha três vogais e a roda fecha quando o acorde está certo.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'I–IV–V existe em praticamente toda música que você ouviu hoje.',
+      ref: 'A progressão I–V–vi–IV é a mais usada do pop mundial: um milhão de músicas, três acordes.'
+    },
+    {
+      id: 11, nome: 'Círculo das Quintas', nivel: 'médio',
+      ensina: 'O mapa completo das tonalidades. Cada casa é um salto de 5ª.',
+      ouve: 'A relação de parentesco entre tons próximos.',
+      mecanica: 'Mapa circular. Você escolhe a rota mais curta entre dois tons.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Vizinhos no círculo dividem todas as notas menos uma. Por isso modular pra vizinho é suave.',
+      ref: 'O ciclo I–vi–IV–V do jazz dá quase uma volta inteira no círculo antes de voltar.'
+    },
+    {
+      id: 12, nome: 'Função', nivel: 'médio',
+      ensina: 'Tônica repousa, subdominante prepara, dominante empurra.',
+      ouve: 'A função de cada acorde, não só o nome.',
+      mecanica: 'Você rotula a progressão que ouviu: repouso, preparação ou tensão.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'O dominante é a única função que pede pra resolver. Ele cria a expectativa inteira da música.',
+      ref: 'O "V" que empurra de volta pro "I" é o motor do rock, do samba e do funk.'
+    },
+    {
+      id: 13, nome: 'Cadências', nivel: 'avançado',
+      ensina: 'Como a música termina: I–V–I, ii–V–I, plagal.',
+      ouve: 'A frase que ficou no ar e a frase que fechou.',
+      mecanica: 'Complete a frase: o jogo para em cima e você escolhe o desfecho.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'O ii–V–I é tão eficiente que virou a pontuação padrão do jazz.',
+      ref: 'A cadência plagal (IV–I) é o "amém" dos cultos — e o final de muito gospel.'
+    },
+    {
+      id: 14, nome: 'Modos', nivel: 'avançado',
+      ensina: 'A mesma escala, sete humores. Eólio, dórico, mixolídio, harmônica.',
+      ouve: 'A "cor" do modo sem precisar pensar nela.',
+      mecanica: 'Rádio de modos: você ouve e diz qual cor é.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Tocar a escala de Dó começando em Ré já é outro modo. Nada mudou além do ponto de partida.',
+      ref: 'Todo solo de guitarra em rock usa mixolídio e pentatônica menor sem saber.'
+    },
+    {
+      id: 15, nome: 'Harmonia', nivel: 'avançado',
+      ensina: 'Sétimas, modulação e tensão. Analisar música de verdade.',
+      ouve: 'A estrutura completa: onde repousa, onde tensiona, onde vira.',
+      mecanica: 'Análise real: 4 compassos, você identifica os graus e o movimento.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Você começou sem saber o que era um compasso. Agora ouve a arquitetura de uma música inteira.',
+      ref: 'A modulação pra relativa menor é a virada de página mais usada da música popular.'
+    }
+  ];
+
+  const porId = (id) => LISTA.find(f => f.id === id);
+  const total = LISTA.length;
+
+  /* ---------------------------------------------------------------------
+     Geradores de exercício. Cada fase produz uma lista de rodadas.
+     O formato é sempre o mesmo, pra main.js só desenhar:
+       { tipo, pergunta, opcoes[], correta, dica, oQueSoa }
+     --------------------------------------------------------------------- */
+
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const escolher = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const embaralhar = (a) => { const c = a.slice(); for (let i = c.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [c[i], c[j]] = [c[j], c[i]]; } return c; };
+  const unicos = (a) => [...new Set(a)];
+
+  /* --- Fase 1: pulsação --- */
+  function fase1(n = 6) {
+    const bpm = 76;
+    return {
+      tipo: 'tempo', bpm, compasso: 4, rodadas: n,
+      instrucao: 'Bata no tempo. O acento do primeiro tempo é mais forte.',
+      dica: 'Não persiga o som. Antecipe: bata junto com o pulso.'
+    };
+  }
+
+  /* --- Fase 2: grave/agudo --- */
+  function fase2(n = 8) {
+    const rodadas = [];
+    const base = 60;
+    for (let i = 0; i < n; i++) {
+      const a = Teoria.naZona(base + escolher([-7, -5, -3, 0, 2, 4, 5, 7]), 'medio');
+      const delta = escolher([1, 2, 3, 4, 5, 7, -1, -2, -3, -4, -5, -7]);
+      const b = a + delta;
+      rodadas.push({
+        tipo: 'direcao',
+        a, b, delta,
+        correta: delta > 0 ? 'sobe' : 'desce',
+        opcoes: ['sobe', 'desce'],
+        oQueSoa: [Teoria.hzDoMidi(a), Teoria.hzDoMidi(b)],
+        dica: 'Feche os olhos. O corpo sente a direção antes do nome.'
+      });
+    }
+    return { tipo: 'direcao', rodadas, instrucao: 'Ouça as duas notas. A segunda subiu ou desceu?' };
+  }
+
+  /* --- Fase 3: contorno --- */
+  function fase3(n = 6) {
+    const rodadas = [];
+    for (let i = 0; i < n; i++) {
+      let cur = Teoria.naZona(60 + escolher([-5, -2, 0, 2, 5]), 'medio');
+      const notas = [cur];
+      const passos = [];
+      for (let k = 0; k < 2; k++) {
+        const d = escolher([2, 3, 4, -2, -3, -4, 5, -5]);
+        cur += d; passos.push(Math.sign(d));
+        notas.push(cur);
+      }
+      const contorno = passos.map(Math.sign).join(',');
+      rodadas.push({
+        tipo: 'contorno',
+        notas,
+        correta: contorno,
+        opcoes: unicos(['1,1', '1,-1', '-1,-1', '-1,1', '1,0', '-1,0'].concat(contorno)).slice(0, 4),
+        oQueSoa: notas.map(Teoria.hzDoMidi),
+        dica: 'Não tente nomear. Só sinta a forma: sobe, sobe, desce...'
+      });
+      // garante que a correta está entre as opções
+      const r = rodadas[rodadas.length - 1];
+      if (!r.opcoes.includes(contorno)) r.opcoes[Math.floor(Math.random() * r.opcoes.length)] = contorno;
+      r.opcoes = embaralhar(unicos(r.opcoes));
+    }
+    return { tipo: 'contorno', rodadas, instrucao: 'Ouça três notas e escolha o desenho que elas fazem.' };
+  }
+
+  /* --- Fase 4: maior/menor --- */
+  function fase4(n = 8) {
+    const rodadas = [];
+    for (let i = 0; i < n; i++) {
+      const maior = Math.random() < 0.5;
+      const tonica = Teoria.naZona(60 + escolher([-5, -3, 0, 2, 4, 5, 7]), 'medio');
+      rodadas.push({
+        tipo: 'cor',
+        tonica, modo: maior ? 'maior' : 'menorNat',
+        correta: maior ? 'alegre' : 'triste',
+        opcoes: ['alegre', 'triste'],
+        oQueSoa: Teoria.escala(tonica, maior ? 'maior' : 'menorNat').map(Teoria.hzDoMidi),
+        dica: 'Procure a terceira nota. É ela que decide a cor.'
+      });
+    }
+    return { tipo: 'cor', rodadas, instrucao: 'Ouça a escala. Ela é alegre (maior) ou triste (menor)?' };
+  }
+
+  /* --- Fase 5: notas de Dó maior --- */
+  function fase5(n = 10) {
+    const rodadas = [];
+    const brancas = [60, 62, 64, 65, 67, 69, 71, 72];
+    for (let i = 0; i < n; i++) {
+      const m = escolher(brancas);
+      rodadas.push({
+        tipo: 'teclado',
+        midi: m,
+        correta: m,
+        opcoes: brancas,
+        oQueSoa: [Teoria.hzDoMidi(m)],
+        dica: 'Dó é a nota de repouso. Ela é a casa, não a passagem.'
+      });
+    }
+    return { tipo: 'teclado', rodadas, instrucao: 'Toque a nota que você ouviu no teclado.' };
+  }
+
+  /* --- Fase 6: tom e semitom --- */
+  function fase6(n = 10) {
+    const rodadas = [];
+    for (let i = 0; i < n; i++) {
+      const base = Teoria.naZona(60 + escolher([-4, -2, 0, 2, 4, 5]), 'medio');
+      const semitom = Math.random() < 0.5;
+      const b = base + (semitom ? 1 : 2);
+      rodadas.push({
+        tipo: 'degrau',
+        a: base, b,
+        correta: semitom ? 'curto' : 'longo',
+        opcoes: ['curto', 'longo'],
+        oQueSoa: [Teoria.hzDoMidi(base), Teoria.hzDoMidi(b)],
+        dica: 'O passo curto quase encosta. O longo tem folga.'
+      });
+    }
+    return { tipo: 'degrau', rodadas, instrucao: 'O salto é curto (meio-tom) ou longo (tom inteiro)?' };
+  }
+
+  /* --- Fase 7: intervalos --- */
+  function fase7(n = 10) {
+    const rodadas = [];
+    const alvos = [2, 3, 4, 5, 7, 9, 12];
+    for (let i = 0; i < n; i++) {
+      const base = Teoria.naZona(60, 'medio');
+      const s = escolher(alvos);
+      const interv = Teoria.INTERVALOS[s];
+      const distratores = alvos.filter(x => x !== s).map(x => Teoria.INTERVALOS[x].curto);
+      rodadas.push({
+        tipo: 'intervalo',
+        base, s,
+        correta: interv.curto,
+        opcoes: embaralhar(unicos([interv.curto, ...embaralhar(distratores).slice(0, 3)])),
+        oQueSoa: [Teoria.hzDoMidi(base), Teoria.hzDoMidi(base + s)],
+        dica: interv.cor,
+        interv
+      });
+    }
+    return { tipo: 'intervalo', rodadas, instrucao: 'Que intervalo é esse?', alvos };
+  }
+
+  /* --- Fase 8: solfejo --- */
+  function fase8(n = 10) {
+    const rodadas = [];
+    for (let i = 0; i < n; i++) {
+      const g = Math.floor(rnd(0, 7));
+      const tonica = Teoria.naZona(60, 'medio');
+      const escala = Teoria.escala(tonica, 'maior');
+      const midi = escala[g];
+      rodadas.push({
+        tipo: 'solfejo',
+        midi, grau: g + 1, tonica,
+        correta: Teoria.SOLFEJO[g],
+        opcoes: Teoria.SOLFEJO.slice(),
+        oQueSoa: [Teoria.hzDoMidi(midi)],
+        dica: `É o ${g + 1}º degrau da escala.`,
+        escala: escala.map(Teoria.hzDoMidi)
+      });
+    }
+    return { tipo: 'solfejo', rodadas, instrucao: 'Que nota da escala é essa?' };
+  }
+
+  /* --- Fase 9: armaduras ---
+     ATENÇÃO: a resposta é uma CONTAGEM de alterações (0..6) e o tipo
+     (sustenido/bemol) é um campo separado. Antes o campo `correta` carregava
+     o sinal negativo dos bemóis, o que fazia a resposta nunca existir entre
+     as opções — o jogador não tinha como acertar. */
+  function fase9(n = 8) {
+    const rodadas = [];
+    for (let i = 0; i < n; i++) {
+      const cifra = escolher(['C', 'G', 'D', 'A', 'E', 'F', 'Bb', 'Eb', 'Ab']);
+      const arm = Teoria.armadura(cifra);
+      const qtd = arm.sustenidos || arm.bemois;   // contagem pura, sem sinal
+      const tipoAlt = arm.sustenidos ? 'sustenidos' : 'bemois';
+      const opcoesQtd = ['0', '1', '2', '3', '4', '5', '6'];
+      rodadas.push({
+        tipo: 'armadura',
+        cifra,
+        correta: String(qtd),
+        qtd, tipoAlt,
+        opcoes: embaralhar(opcoesQtd).slice(0, 5).concat([String(qtd)])
+                    .filter((v, i, a) => a.indexOf(v) === i).sort(),
+        oQueSoa: Teoria.campoHarmonico(Teoria.tonicaDe(cifra), 'maior').slice(0, 3).map(a => a.hz[0]),
+        dica: arm.texto
+      });
+      const r = rodadas[i];
+      if (!r.opcoes.includes(r.correta)) r.opcoes.push(r.correta);
+      r.opcoes = r.opcoes.map(Number).sort((a, b) => a - b).map(String);
+    }
+    return { tipo: 'armadura', rodadas, instrucao: 'Quantas alterações tem essa armadura?' };
+  }
+
+  /* --- Fase 10: acordes I IV V --- */
+  function fase10(n = 8) {
+    const rodadas = [];
+    const grausAlvo = [1, 4, 5];
+    for (let i = 0; i < n; i++) {
+      const tonica = Teoria.naZona(60, 'medio');
+      const campo = Teoria.campoHarmonico(tonica, 'maior');
+      const g = escolher(grausAlvo);
+      const ac = campo[g - 1];
+      rodadas.push({
+        tipo: 'acorde',
+        acorde: ac, grau: g,
+        correta: ac.nome,
+        opcoes: embaralhar(campo.map(a => a.nome)).slice(0, 4),
+        oQueSoa: ac.hz,
+        dica: `Grau ${g} do campo de ${Teoria.doMidi(tonica).nome}.`,
+        campo: campo.map(a => ({ nome: a.nome, hz: a.hz[0], grau: a.grau }))
+      });
+      const r = rodadas[i];
+      if (!r.opcoes.includes(r.correta)) r.opcoes[Math.floor(Math.random() * r.opcoes.length)] = r.correta;
+    }
+    return { tipo: 'acorde', rodadas, instrucao: 'Que acorde é esse?', grausAlvo };
+  }
+
+  /* --- Fase 11: círculo das quintas --- */
+  function fase11(n = 8) {
+    const rodadas = [];
+    const circ = Teoria.CIRCULO_QUINTAS;
+    for (let i = 0; i < n; i++) {
+      const idx = Math.floor(rnd(0, 12));
+      const de = circ[idx];
+      const passo = escolher([1, -1, 2, -2]);
+      const para = circ[(idx + passo + 12) % 12];
+      rodadas.push({
+        tipo: 'rota',
+        de, para, passo,
+        correta: String(Math.abs(passo)),
+        opcoes: ['1', '2', '3', '4', '6'],
+        oQueSoa: [Teoria.hzDoMidi(Teoria.tonicaDe(de)), Teoria.hzDoMidi(Teoria.tonicaDe(para))],
+        dica: passo > 0 ? 'Andar para a direita no círculo é subir quintas.' : 'Andar para a esquerda é descer quintas.'
+      });
+    }
+    return { tipo: 'rota', rodadas, instrucao: 'Quantos passos no círculo separam estas duas tonalidades?', circulo: circ };
+  }
+
+  /* --- Fase 12: função --- */
+  function fase12(n = 9) {
+    const rodadas = [];
+    for (let i = 0; i < n; i++) {
+      const tonica = Teoria.naZona(60, 'medio');
+      const campo = Teoria.campoHarmonico(tonica, 'maior');
+      const g = Math.floor(rnd(0, 7)) + 1;
+      const ac = campo[g - 1];
+      rodadas.push({
+        tipo: 'funcao',
+        acorde: ac, grau: g,
+        correta: ac.funcao.toLowerCase(),
+        opcoes: ['tônica', 'subdominante', 'dominante'],
+        oQueSoa: ac.hz,
+        dica: ac.funcao === 'Tônica' ? 'Repousa, parece casa.'
+            : ac.funcao === 'Subdominante' ? 'Prepara, não resolve.'
+            : 'Empurra, pede pra voltar.',
+        campo: campo.map(a => ({ nome: a.nome, grau: a.grau, funcao: a.funcao }))
+      });
+    }
+    return { tipo: 'funcao', rodadas, instrucao: 'Qual a função desse acorde?' };
+  }
+
+  /* --- Fase 13: cadências --- */
+  const CADENCIAS = [
+    { nome: 'I–V–I',  graus: [1, 5, 1],  tipo: 'autêntica',  desc: 'A mais direta. Fecha sem discussão.' },
+    { nome: 'ii–V–I', graus: [2, 5, 1],  tipo: 'jazz',       desc: 'Prepara, tensiona, resolve. Padrão do jazz.' },
+    { nome: 'IV–I',   graus: [4, 1],     tipo: 'plagal',     desc: 'O "amém". Suave, sem tensão.' },
+    { nome: 'I–vi–ii–V', graus: [1, 6, 2, 5], tipo: 'suspensa', desc: 'Fica no ar de propósito: quase termina.' }
+  ];
+
+  function fase13(n = 8) {
+    const rodadas = [];
+    for (let i = 0; i < n; i++) {
+      const cad = escolher(CADENCIAS);
+      const tonica = Teoria.naZona(60, 'medio');
+      const acs = Teoria.progressao(cad.graus, tonica, 'maior');
+      rodadas.push({
+        tipo: 'cadencia',
+        cad, tonica,
+        correta: cad.tipo,
+        opcoes: embaralhar(unicos(CADENCIAS.map(c => c.tipo))),
+        oQueSoa: acs.flatMap(a => a.hz),
+        progressaoHz: acs.map(a => a.hz),
+        nomes: acs.map(a => a.nome),
+        dica: cad.desc
+      });
+    }
+    return { tipo: 'cadencia', rodadas, instrucao: 'Que tipo de cadência é essa?', todas: CADENCIAS };
+  }
+
+  /* --- Fase 14: modos --- */
+  const MODOS_FASE = ['menorNat', 'dorico', 'frigio', 'lidio', 'mixolidio', 'menorHarm'];
+
+  function fase14(n = 9) {
+    const rodadas = [];
+    for (let i = 0; i < n; i++) {
+      const tipo = escolher(MODOS_FASE);
+      const tonica = Teoria.naZona(60, 'medio');
+      const def = Teoria.ESCALAS[tipo];
+      rodadas.push({
+        tipo: 'modo',
+        modo: tipo, tonica,
+        correta: def.nome,
+        opcoes: embaralhar(MODOS_FASE.map(t => Teoria.ESCALAS[t].nome)),
+        oQueSoa: Teoria.escala(tonica, tipo).map(Teoria.hzDoMidi),
+        dica: def.cor
+      });
+    }
+    return { tipo: 'modo', rodadas, instrucao: 'Que cor de escala é essa?' };
+  }
+
+  /* --- Fase 15: análise real --- */
+  function fase15(n = 6) {
+    const rodadas = [];
+    const progressoes = [
+      { graus: [1, 5, 6, 4],  nome: 'I–V–vi–IV',   desc: 'A mais usada do pop mundial.' },
+      { graus: [6, 4, 1, 5],  nome: 'vi–IV–I–V',   desc: 'A mesma roda, começando do sexto.' },
+      { graus: [1, 6, 2, 5],  nome: 'I–vi–ii–V',   desc: 'Ciclo clássico, fica no ar.' },
+      { graus: [2, 5, 1, 6],  nome: 'ii–V–I–vi',   desc: 'Jazz que desemboca na relativa.' },
+      { graus: [1, 4, 5, 4],  nome: 'I–IV–V–IV',   desc: 'Roda sem repouso final.' }
+    ];
+    for (let i = 0; i < n; i++) {
+      const p = escolher(progressoes);
+      const tonica = Teoria.naZona(60, 'medio');
+      const acs = Teoria.progressao(p.graus, tonica, 'maior');
+      rodadas.push({
+        tipo: 'analise',
+        p, tonica,
+        correta: p.nome,
+        opcoes: embaralhar(unicos(progressoes.map(x => x.nome))),
+        oQueSoa: acs.flatMap(a => a.hz),
+        progressaoHz: acs.map(a => a.hz),
+        nomes: acs.map(a => a.nome),
+        dica: p.desc
+      });
+    }
+    return { tipo: 'analise', rodadas, instrucao: 'Identifique a progressão, grau por grau.' };
+  }
+
+  /* --- gerador principal --- */
+  const GERADORES = {
+    1: fase1, 2: fase2, 3: fase3, 4: fase4, 5: fase5,
+    6: fase6, 7: fase7, 8: fase8, 9: fase9, 10: fase10,
+    11: fase11, 12: fase12, 13: fase13, 14: fase14, 15: fase15
+  };
+
+  // A fase 1 tem mecânica própria (ritmo), então `rodadas` é um CONTADOR,
+  // não uma lista. Só as fases de pergunta usam a lista de rodadas.
+  function gerar(id, modo = 'aprender') {
+    const gen = GERADORES[id];
+    if (!gen) return null;
+    const base = gen();
+    const temLista = Array.isArray(base.rodadas);
+    if (!temLista) { base.modo = modo; return base; }
+
+    // 'dominar' é mais longo e sem dica visível
+    if (modo === 'dominar') {
+      base.rodadas = base.rodadas.concat(base.rodadas);
+      if (base.rodadas.length > 14) base.rodadas = base.rodadas.slice(0, 14);
+      base.semDica = true;
+    }
+    if (modo === 'aprender') {
+      base.rodadas = base.rodadas.slice(0, Math.max(3, Math.ceil(base.rodadas.length / 2)));
+      base.comDica = true;
+    }
+    base.modo = modo;
+    return base;
+  }
+
+  /** Critério de domínio: acertar o suficiente sem errar demais. */
+  function dominou(acertos, totalRodadas) {
+    if (!totalRodadas) return false;
+    return acertos / totalRodadas >= 0.8;
+  }
+
+  return { LISTA, porId, total, gerar, dominou, CADENCIAS, MODOS_FASE };
+})();
+
+window.Fases = Fases;
