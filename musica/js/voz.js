@@ -31,13 +31,20 @@ const Voz = (() => {
     { id: 13, fase: 18, nome: 'O tempo escrito', desc: 'A duração de cada nota vira figura.' },
     { id: 14, fase: 19, nome: 'A escrita',       desc: 'Você escreve a melodia que ouviu.' },
     { id: 15, fase: 20, nome: 'Ler e tocar',     desc: 'Lê uma frase nunca ouvida e sabe como ela soa.' },
+    // ---- capítulo do ritmo: o compasso ----
+    { id: 16, fase: 21, nome: 'O compasso',       desc: 'A voz aprende a caber em grupos de tempos.' },
+    { id: 17, fase: 23, nome: 'Ondulação',        desc: 'O tempo se divide em três e a música ganha balanço.' },
+    { id: 18, fase: 24, nome: 'O silêncio',       desc: 'A voz descobre que calar também é ritmo.' },
+    { id: 19, fase: 25, nome: 'O ponto',          desc: 'Uma duração e meia. A voz aprende a esperar.' },
+    { id: 20, fase: 26, nome: 'Deslocamento',     desc: 'O acento troca de lugar. A voz contraria o compasso.' },
+    { id: 21, fase: 27, nome: 'Três no lugar de dois', desc: 'A subdivisão vira tempero.' },
     // ---- capítulo da harmonia: a estrutura inteira ----
-    { id: 16, fase: 21, nome: 'A receita',       desc: 'A escala vira fórmula: sete passos que constroem qualquer tom.' },
-    { id: 17, fase: 22, nome: 'As terças',       desc: 'A voz se empilha de três em três. Nasce o acorde.' },
-    { id: 18, fase: 23, nome: 'O arpejo',        desc: 'As mesmas notas, agora em fila. A harmonia vira melodia.' },
-    { id: 19, fase: 24, nome: 'O peso',          desc: 'A mesma voz, outro chão embaixo. O baixo escolhe o peso.' },
-    { id: 20, fase: 25, nome: 'Sete partidas',   desc: 'Uma escala, sete começos. Os modos sempre estiveram aqui.' },
-    { id: 21, fase: 26, nome: 'A cor exata',     desc: 'Uma única nota movida muda o humor inteiro. Você ouve qual.' }
+    { id: 22, fase: 28, nome: 'A receita',        desc: 'A escala vira fórmula: sete passos que constroem qualquer tom.' },
+    { id: 23, fase: 29, nome: 'As terças',        desc: 'A voz se empilha de três em três. Nasce o acorde.' },
+    { id: 24, fase: 30, nome: 'O arpejo',         desc: 'As mesmas notas, agora em fila. A harmonia vira melodia.' },
+    { id: 25, fase: 31, nome: 'O peso',           desc: 'A mesma voz, outro chão embaixo. O baixo escolhe o peso.' },
+    { id: 26, fase: 32, nome: 'Sete partidas',    desc: 'Uma escala, sete começos. Os modos sempre estiveram aqui.' },
+    { id: 27, fase: 33, nome: 'A cor exata',      desc: 'Uma única nota movida muda o humor inteiro. Você ouve qual.' }
   ];
 
   function estagioDe(fasesDominadas) {

@@ -32,7 +32,35 @@ Nada de nome, nada de símbolo. Você treina o ouvido primeiro.
 | 14 | Modos |
 | 15 | Harmonia — análise real |
 
-## Capítulo 2 — O capítulo da escrita (fases 16–20)
+## Capítulo 3 — O capítulo do ritmo (fases 21–27)
+
+Segue a ordem do **Método Bona**: começa SÓ no compasso quaternário simples e só
+depois abre para os outros. É a ordem que o método usa porque funciona.
+
+| Fase | O que ensina |
+|---|---|
+| 21 | Compasso 4/4 — a fórmula e os tempos fortes |
+| 22 | Binário e Ternário — marcha (2) e valsa (3) |
+| 23 | Compassos Compostos — 6/8, 9/8, 12/8: subdivisão ternária |
+| 24 | Pausas — o silêncio também tem duração |
+| 25 | Ponto e Ligadura — o ponto soma metade |
+| 26 | Síncope — o acento deslocado |
+| 27 | Tercinas — três no lugar de dois |
+
+### O conceito que confunde todo iniciante
+
+Compasso **simples** subdivide em 2; **composto** subdivide em 3. Por isso 2/4 e 6/8
+não são irmãos, são **correspondentes**: duram o mesmo, mas subdividem diferente.
+
+| Simples | Composto |
+|---|---|
+| 2/4 (marcha) | 6/8 (baião) |
+| 3/4 (valsa) | 9/8 |
+| 4/4 | 12/8 (blues, gospel) |
+
+---
+
+## Capítulo 4 — O capítulo da escrita (fases 16–20)
 
 Aqui o símbolo aparece. Você já sabe ouvir tudo isso; agora aprende a ler e escrever.
 
@@ -44,18 +72,18 @@ Aqui o símbolo aparece. Você já sabe ouvir tudo isso; agora aprende a ler e e
 | 19 | Escrever a Melodia — você escreve o que ouviu |
 | 20 | Ler e Tocar — leia uma frase nunca ouvida |
 
-## Capítulo 3 — O capítulo da harmonia (fases 21–26)
+## Capítulo 5 — O capítulo da harmonia (fases 28–33)
 
 Escalas, acordes, arpejos e os modos gregos — construídos, não decorados.
 
 | Fase | O que ensina |
 |---|---|
-| 21 | A Escala — a receita de passos (2-2-1-2-2-2-1) |
-| 22 | Empilhar Terças — o acorde nasce da escala |
-| 23 | Arpejo — as notas do acorde em fila |
-| 24 | Inversões — o mesmo acorde, outro peso |
-| 25 | Os Sete Modos — uma escala, sete pontos de partida |
-| 26 | Modo e Humor — uma nota muda o caráter inteiro |
+| 28 | A Escala — a receita de passos (2-2-1-2-2-2-1) |
+| 29 | Empilhar Terças — o acorde nasce da escala |
+| 30 | Arpejo — as notas do acorde em fila |
+| 31 | Inversões — o mesmo acorde, outro peso |
+| 32 | Os Sete Modos — uma escala, sete pontos de partida |
+| 33 | Modo e Humor — uma nota muda o caráter inteiro |
 
 ### O conceito central dos modos
 
@@ -87,7 +115,7 @@ musica/
 │   ├── teoria.js       # matemática musical (Hz, escalas, acordes, modos, arpejos, inversões)
 │   ├── engine.js       # laço, canvas, física vetorial, utilidades de desenho
 │   ├── partitura.js    # pauta real: clave, notas, hastes, figuras de tempo
-│   ├── fases.js        # as 26 fases: dados, modos e conteúdo de cada uma
+│   ├── fases.js        # as 33 fases: dados, modos e conteúdo de cada uma
 │   ├── voz.js          # trilha visual "A Primeira Voz" + avatar do Daniel
 │   └── jogo.js         # telas, menus, progresso, cola tudo
 └── README.md
@@ -108,12 +136,13 @@ musica/
 - Afinação por FFT sobre tom sintetizado: Dó central medido em **261,626 Hz (0,00 cent de erro)**.
 - Geometria da pauta: ida e volta grau ↔ MIDI consistente em toda a faixa legível.
 - 135 checagens automatizadas passando (64 da jornada sonora + 71 do capítulo da escrita).
-- **202 checagens automatizadas** passando no total:
-  - 64 — jornada sonora (`testar.js`)
-  - 71 — capítulo da escrita (`testar-partitura.js`)
-  - 67 — capítulo da harmonia (`testar-harmonia.js`)
-- **Teoria conferida contra a música real, não contra si mesma:** os sete modos de Dó foram
-  checados um a um (partem de Dó, Ré, Mi, Fá, Sol, Lá, Si; receitas conferem com a rotação da
-  escala maior). A pentatônica maior de Dó foi comparada com a menor de Lá: mesma coleção.
-  As inversões de Dó maior foram checadas para conterem sempre as mesmas notas.
+- **295 checagens automatizadas** passando no total:
+  - 64 — jornada sonora (	estar.js)
+  - 71 — capítulo da escrita (	estar-partitura.js)
+  - 75 — capítulo do ritmo (	estar-ritmo.js)
+  - 68 — capítulo da harmonia (	estar-harmonia.js)
+  - 17 — migração de progresso (	estar-migracao.js)
+- **Teoria conferida contra a música real, não contra si mesma:** compassos (6/8 tem 2 tempos, não 6),
+  correspondentes (2/4 ↔ 6/8 com numerador triplo), tercina (3 notas somam exatamente 2),
+  ponto (soma metade), e os 7 modos de Dó um a um.
 

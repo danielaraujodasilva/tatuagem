@@ -490,9 +490,118 @@ const Teoria = (() => {
     return null;
   }
 
+  /* ---------- MÉTRICA E COMPASSO ----------
+     Segue o Bona: começa pelo quaternário simples e só depois abre para os
+     outros. O ponto que confunde todo iniciante: compasso SIMPLES subdivide
+     em 2, COMPOSTO subdivide em 3 — e por isso 2/4 e 6/8 são primos, não
+     irmãos.
+     ------------------------------------------------------------------ */
+
+  const COMPASSOS = [
+    { formula: '4/4', numerador: 4, denominador: 4, tipo: 'quaternário', subdivisao: 'simples',
+      tempos: 4, figuraTempo: 'semínima', porCompasso: 4,
+      nome: 'Quaternário simples', forte: [1], meio: [3],
+      desc: 'O mais usado de todos. Quatro semínimas. Forte no 1, semiforte no 3.' },
+    { formula: '2/4', numerador: 2, denominador: 4, tipo: 'binário', subdivisao: 'simples',
+      tempos: 2, figuraTempo: 'semínima', porCompasso: 2,
+      nome: 'Binário simples', forte: [1], meio: [],
+      desc: 'Duas semínimas. É a marcha: UM-dois, UM-dois.' },
+    { formula: '3/4', numerador: 3, denominador: 4, tipo: 'ternário', subdivisao: 'simples',
+      tempos: 3, figuraTempo: 'semínima', porCompasso: 3,
+      nome: 'Ternário simples', forte: [1], meio: [],
+      desc: 'Três semínimas. É a valsa: UM-dois-três.' },
+    { formula: '6/8', numerador: 6, denominador: 8, tipo: 'binário', subdivisao: 'composto',
+      tempos: 2, figuraTempo: 'semínima pontuada', porCompasso: 6,
+      nome: 'Binário composto', forte: [1], meio: [],
+      desc: 'Seis colcheias, mas você sente DOIS tempos de três. É o que faz a música ondular.' },
+    { formula: '9/8', numerador: 9, denominador: 8, tipo: 'ternário', subdivisao: 'composto',
+      tempos: 3, figuraTempo: 'semínima pontuada', porCompasso: 9,
+      nome: 'Ternário composto', forte: [1], meio: [],
+      desc: 'Três tempos de três colcheias. É o 3/4 que virou valsa lenta e ondulada.' },
+    { formula: '12/8', numerador: 12, denominador: 8, tipo: 'quaternário', subdivisao: 'composto',
+      tempos: 4, figuraTempo: 'semínima pontuada', porCompasso: 12,
+      nome: 'Quaternário composto', forte: [1], meio: [3],
+      desc: 'Quatro tempos de três colcheias. O 4/4 do blues e do gospel.' }
+  ];
+
+  /** Acha a fórmula pela string. */
+  function compasso(formula) {
+    return COMPASSOS.find(c => c.formula === formula) || COMPASSOS[0];
+  }
+
+  /**
+   * Compassos correspondentes: o simples e o composto que ocupam o mesmo
+   * espaço. Relação: numerador do composto = numerador do simples × 3, e o
+   * denominador também triplica. Ex.: 2/4 ↔ 6/8, 3/4 ↔ 9/8, 4/4 ↔ 12/8.
+   */
+  function correspondente(formula) {
+    const c = compasso(formula);
+    const par = c.subdivisao === 'simples'
+      ? COMPASSOS.find(x => x.tempos === c.tempos && x.subdivisao === 'composto')
+      : COMPASSOS.find(x => x.tempos === c.tempos && x.subdivisao === 'simples');
+    return par || null;
+  }
+
+  /* ---------- PAUSAS ---------- */
+
+  const PAUSAS = [
+    { nome: 'Pausa de semibreve',    figura: 'semibreve',    valor: 4,    desc: 'Um compasso 4/4 inteiro de silêncio.' },
+    { nome: 'Pausa de mínima',       figura: 'minima',       valor: 2,    desc: 'Metade do compasso em silêncio.' },
+    { nome: 'Pausa de semínima',     figura: 'seminima',     valor: 1,    desc: 'Um tempo de silêncio.' },
+    { nome: 'Pausa de colcheia',     figura: 'colcheia',     valor: 0.5,  desc: 'Meio tempo de silêncio.' },
+    { nome: 'Pausa de semicolcheia', figura: 'semicolcheia', valor: 0.25, desc: 'Um quarto de tempo.' }
+  ];
+
+  /* ---------- ANACRUSE, SÍNCOPE, CONTRATEMPO ----------
+     Alfred's agrupa esses três, e com razão: são os três jeitos de a música
+     NÃO começar ou NÃO acentuar o tempo forte.
+     ------------------------------------------------------------------ */
+
+  const RITMOS_DESLOCADOS = [
+    { tipo: 'anacruse',    nome: 'Anacruse',    desc: 'A melodia começa ANTES do primeiro tempo. Um compasso incompleto de entrada.' },
+    { tipo: 'sincope',     nome: 'Síncope',     desc: 'O som começa no tempo fraco e se prolonga NO tempo forte. O acento troca de lugar.' },
+    { tipo: 'contratempo', nome: 'Contratempo', desc: 'O som cai exatamente onde haveria pausa. Silêncio no forte, som no fraco.' }
+  ];
+
+  /**
+   * Padrão de ataques dentro de um compasso, com a marca de síncope.
+   * Síncope real: alguma nota começa fora do tempo e cruza um tempo forte.
+   */
+  function padraoSincope(padrao = [1.5, 0.5, 1, 1]) {
+    let t = 0;
+    const ataques = [];
+    padrao.forEach(d => { ataques.push({ tempo: t, duracao: d }); t += d; });
+    const cruzaForte = ataques.some(a => {
+      const fim = a.tempo + a.duracao;
+      return (a.tempo % 1 !== 0) && (fim % 1 === 0 || Math.floor(fim) > Math.floor(a.tempo));
+    });
+    return { ataques, total: t, cruzaForte };
+  }
+
+  /* ---------- SUBDIVISÕES E TERCINAS ---------- */
+
+  const SUBDIVISOES = [
+    { nome: 'Duas',      quantas: 2, desc: 'Duas no espaço de uma.' },
+    { nome: 'Tercina',   quantas: 3, desc: 'Três no espaço de duas. É subdivisão, não um tempo.' },
+    { nome: 'Quiáltera', quantas: 5, desc: 'Cinco no espaço de quatro.' },
+    { nome: 'Sextina',   quantas: 6, desc: 'Seis no espaço de quatro.' }
+  ];
+
+  /** Tercina: quantas notas cabem no lugar de quantas. */
+  function tercina(valorNormal, quantas = 3, cabendo = 2) {
+    const valorCada = (valorNormal * cabendo) / quantas;
+    return { quantas, cabendo, valorCada, valorNormal, desc: `${quantas} no espaço de ${cabendo}` };
+  }
+
+  /** Valor pontuado: o ponto soma metade. Semínima pontuada = 1,5 tempos. */
+  function pontuado(valor) {
+    return { base: valor, ponto: valor / 2, total: valor * 1.5, desc: `${valor} + ${valor / 2} = ${valor * 1.5}` };
+  }
+
   return {
     NOMES_PT, NOMES_BEMOL, SOLFEJO, CIFRA, ROMANOS, CIRCULO_QUINTAS,
     INTERVALOS, ESCALAS, ACORDES, ZONA, FUNCOES, ARMADURAS, MODOS_GREGOS,
+    COMPASSOS, PAUSAS, RITMOS_DESLOCADOS, SUBDIVISOES,
     A4, hzDoMidi, doMidi, deHz, maisProxima, nomeCurto, grauDiatonico,
     semitons, cents, intervalo, inverter,
     escala, graus, acorde, campoHarmonico, progressao,
@@ -500,7 +609,9 @@ const Teoria = (() => {
     naZona, tonicaDe, transpor, autoteste,
     // capítulo de escalas, acordes e modos
     modosDa, diferencaDeModos, arpejo, arpejoDoGrau,
-    inversao, inversoes, escalaDoModo, relativa, notasDoAcorde, pentas, grauDe, grafiaDe
+    inversao, inversoes, escalaDoModo, relativa, notasDoAcorde, pentas, grauDe, grafiaDe,
+    // capítulo de ritmo e métrica
+    compasso, correspondente, padraoSincope, tercina, pontuado
   };
 })();
 

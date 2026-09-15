@@ -215,12 +215,80 @@ const Fases = (() => {
       ref: 'Ler e ouvir viraram a mesma coisa. É o fim da jornada — e o começo de tocar qualquer coisa.'
     },
 
+/* ---------- CAPÍTULO DO RITMO E MÉTRICA ----------
+       Base: Método Bona. Começa SÓ no quaternário simples e só depois abre
+       para os outros compassos — é a ordem que o método usa porque funciona.
+       ------------------------------------------------------------------- */
+    {
+      id: 21, nome: 'Compasso 4/4', nivel: 'ritmo',
+      ensina: 'A fórmula de compasso diz quantos tempos cabem e qual figura é um tempo. Em 4/4 são quatro semínimas, com o forte no 1.',
+      ouve: 'Onde cai o tempo forte e como os outros três se organizam em volta dele.',
+      mecanica: 'O jogo marca o compasso. Você bate no forte e conta os tempos fracos.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'O 4/4 é tão comum que virou o padrão da música ocidental. O símbolo C no lugar de 4/4 vem de "tempus imperfectum", do tempo dos monges.',
+      ref: 'O Bona começa a ensinar ritmo usando SÓ o compasso quaternário simples. Todo o resto vem depois.'
+    },
+    {
+      id: 22, nome: 'Binário e Ternário', nivel: 'ritmo',
+      ensina: '2/4 e 3/4. A marcha e a valsa. O que muda não é a velocidade, é o agrupamento.',
+      ouve: 'Se os tempos andam em grupos de dois ou de três.',
+      mecanica: 'Ouça e diga se é marcha (2) ou valsa (3).',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'A valsa é ternária e a marcha é binária. Você sente isso no corpo antes de contar — é o balanço que denuncia.',
+      ref: 'Hino e marcha em 2/4; valsa em 3/4. O mesmo pulso, agrupado de jeitos diferentes.'
+    },
+    {
+      id: 23, nome: 'Compassos Compostos', nivel: 'ritmo',
+      ensina: '6/8, 9/8 e 12/8. Aqui cada tempo se divide em TRÊS, não em dois. É o que faz a música ondular.',
+      ouve: 'A subdivisão ternária: três colcheias onde caberiam duas.',
+      mecanica: 'Ouça e diga se o compasso é simples (divide em 2) ou composto (divide em 3).',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: '2/4 e 6/8 duram o mesmo, mas soam completamente diferentes. A diferença é só como o tempo se divide por dentro.',
+      ref: 'O baião e o blues usam 6/8 e 12/8. É a ondulação que dá o gingado.'
+    },
+    {
+      id: 24, nome: 'Pausas', nivel: 'ritmo',
+      ensina: 'Silêncio também tem duração. Cada figura tem uma pausa com o mesmo valor.',
+      ouve: 'O silêncio como parte do ritmo, não como ausência de música.',
+      mecanica: 'Você ouve o ritmo com faltas e escolhe a pausa que preenche o espaço.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'A pausa de semibreve é um compasso 4/4 inteiro em silêncio. Música é feita tanto do que soa quanto do que cala.',
+      ref: 'A batida do funk é feita de silêncios precisos. Sem as pausas, a levada some.'
+    },
+    {
+      id: 25, nome: 'Ponto e Ligadura', nivel: 'ritmo',
+      ensina: 'O ponto soma metade à figura. A ligadura soma uma nota à outra, atravessando a barra do compasso.',
+      ouve: 'A diferença entre um som que dura exatamente um tempo e um que dura uma vez e meia.',
+      mecanica: 'Ouça a duração e escolha a escrita: nota simples, pontuada ou ligada.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Semínima pontuada = 1,5 tempos. É exatamente o tempo dos compassos compostos — por isso 6/8 se escreve com pontuação.',
+      ref: 'A valsa escrita em 6/8 usa ponto o tempo todo. É a grafia que casa com a sensação.'
+    },
+    {
+      id: 26, nome: 'Síncope', nivel: 'ritmo',
+      ensina: 'O jeito de a música contrariar o compasso: começar no fraco e prolongar NO forte. O acento troca de lugar.',
+      ouve: 'O acento deslocado. A batida que não cai onde você esperava.',
+      mecanica: 'Você ouve o padrão e marca onde estão os ataques, não onde está o tempo.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Síncope, contratempo e anacruse são os três jeitos de a música não acentuar o tempo forte. Alfred\'s agrupa os três pela mesma razão.',
+      ref: 'Samba, funk e reggae vivem de síncope. O contratempo do reggae é o som da guitarra no "e", nunca no tempo.'
+    },
+    {
+      id: 27, nome: 'Tercinas', nivel: 'ritmo',
+      ensina: 'Três notas no espaço de duas. Não é um tempo novo: é uma subdivisão diferente dentro do mesmo tempo.',
+      ouve: 'O agrupamento de três contra o pulso de dois.',
+      mecanica: 'Você ouve e diz quantas notas cabem no espaço dado.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Tercina é 3 no espaço de 2. Quiáltera é 5 no espaço de 4. A regra geral: quantas cabem no lugar de quantas.',
+      ref: 'O blues e o jazz usam tercina sem parar. É o swing escrito.'
+    },
+
     /* ---------- CAPÍTULO DA HARMONIA ----------
        Escalas, acordes, arpejos e os modos gregos de verdade.
        O foco não é decorar nomes: é entender de onde cada coisa nasce.
        ------------------------------------------------------------------- */
     {
-      id: 21, nome: 'A Escala', nivel: 'harmonia',
+      id: 28, nome: 'A Escala', nivel: 'harmonia',
       ensina: 'A escala é uma receita de passos, não uma lista de notas. Decore a receita e você constrói qualquer escala, em qualquer tom.',
       ouve: 'A diferença entre o passo curto (meio-tom) e o longo (tom), em sequência.',
       mecanica: 'Ouça a receita e diga em que ponto ela se desvia da escala maior.',
@@ -229,7 +297,7 @@ const Fases = (() => {
       ref: 'Toda escala que você já cantou sem saber é uma receita de sete passos. Muda o começo, não a lógica.'
     },
     {
-      id: 22, nome: 'Empilhar Terças', nivel: 'harmonia',
+      id: 29, nome: 'Empilhar Terças', nivel: 'harmonia',
       ensina: 'O acorde não é um bloco misterioso: é a escala pulando de duas em duas. Tônica, terça, quinta.',
       ouve: 'A diferença entre a nota sozinha e a mesma nota com as outras duas juntas.',
       mecanica: 'Você constrói o acorde empilhando as terças a partir da nota que ouviu.',
@@ -238,7 +306,7 @@ const Fases = (() => {
       ref: 'Todo acorde de toda música é uma pilha de terças. É por isso que só existem poucos tipos de acorde e infinitas músicas.'
     },
     {
-      id: 23, nome: 'Arpejo', nivel: 'harmonia',
+      id: 30, nome: 'Arpejo', nivel: 'harmonia',
       ensina: 'As notas do acorde uma depois da outra. A ponte entre a harmonia e a melodia.',
       ouve: 'O acorde quebrado: as mesmas notas, agora em fila.',
       mecanica: 'Você ouve o arpejo e monta a ordem em que as notas subiram.',
@@ -247,7 +315,7 @@ const Fases = (() => {
       ref: 'A introdução de quase toda balada é um arpejo: o acorde se apresentando devagar antes de virar bloco.'
     },
     {
-      id: 24, nome: 'Inversões', nivel: 'harmonia',
+      id: 31, nome: 'Inversões', nivel: 'harmonia',
       ensina: 'O mesmo acorde com outra nota no baixo. Muda o peso, não o nome.',
       ouve: 'A mesma harmonia soando mais leve ou mais séria conforme o baixo.',
       mecanica: 'Você ouve o acorde e diz qual das três notas está embaixo.',
@@ -256,7 +324,7 @@ const Fases = (() => {
       ref: 'É por isso que o baixo é o instrumento mais importante depois da melodia: ele escolhe o peso de tudo.'
     },
     {
-      id: 25, nome: 'Os Sete Modos', nivel: 'harmonia',
+      id: 32, nome: 'Os Sete Modos', nivel: 'harmonia',
       ensina: 'Os modos gregos não são sete escalas. São UMA escala começando de sete pontos diferentes. Nada muda além do ponto de partida.',
       ouve: 'A mesma coleção de notas soando diferente conforme onde ela começa.',
       mecanica: 'Você ouve as notas brancas e diz de qual grau elas estão partindo.',
@@ -265,14 +333,16 @@ const Fases = (() => {
       ref: 'O flamenco é frígio. O rock é mixolídio. A trilha de sonho é lídio. Mesmas notas, pontos de partida diferentes.'
     },
     {
-      id: 26, nome: 'Modo e Humor', nivel: 'harmonia',
+      id: 33, nome: 'Modo e Humor', nivel: 'harmonia',
       ensina: 'Por que cada modo soa diferente: uma única nota muda de lugar. É ali que mora o caráter.',
       ouve: 'O que muda entre um modo e o modo vizinho.',
       mecanica: 'Você ouve dois modos e aponta em que passo eles divergem.',
       modos: ['aprender', 'praticar', 'dominar'],
       curio: 'Dórico e eólio diferem em UMA nota: a sexta. Essa única nota é a diferença entre tristeza e esperança.',
       ref: 'Trocar uma nota de um modo é o truque mais antigo da composição. É como o cinema muda o clima de uma cena.'
-    }
+    },
+
+
   ];
 
   const porId = (id) => LISTA.find(f => f.id === id);
@@ -985,14 +1055,205 @@ const Fases = (() => {
     return { tipo: 'compara_modo', rodadas, instrucao: 'Em qual passo esses dois modos divergem?' };
   }
 
+  /* ====================================================================
+     CAPÍTULO DO RITMO E MÉTRICA (27-33)
+     Segue o Bona: quaternário simples primeiro, depois os outros compassos.
+     ==================================================================== */
+
+  /* --- Fase 27: compasso 4/4 --- */
+  function fase27(n = 8) {
+    const rodadas = [];
+    // foco no 4/4, mas com a fórmula como conteúdo
+    for (let i = 0; i < n; i++) {
+      const c = Teoria.compasso('4/4');
+      const tipo = escolher(['forte', 'contagem', 'formula']);
+      if (tipo === 'forte') {
+        rodadas.push({
+          tipo: 'tempo_forte',
+          compasso: c,
+          correta: String(escolher([1, 3])),
+          opcoes: ['1', '2', '3', '4'],
+          oQueSoa: [Teoria.hzDoMidi(60), Teoria.hzDoMidi(60), Teoria.hzDoMidi(60), Teoria.hzDoMidi(60)],
+          dica: c.desc,
+          bpm: 76
+        });
+      } else if (tipo === 'contagem') {
+        rodadas.push({
+          tipo: 'contagem',
+          compasso: c,
+          correta: '4',
+          opcoes: ['2', '3', '4', '6'],
+          oQueSoa: [Teoria.hzDoMidi(60), Teoria.hzDoMidi(60), Teoria.hzDoMidi(60), Teoria.hzDoMidi(60)],
+          dica: 'Conte os tempos: UM-dois-três-quatro.',
+          bpm: 76
+        });
+      } else {
+        rodadas.push({
+          tipo: 'formula',
+          compasso: c,
+          correta: '4/4',
+          opcoes: ['2/4', '3/4', '4/4', '6/8'],
+          oQueSoa: [Teoria.hzDoMidi(60), Teoria.hzDoMidi(60), Teoria.hzDoMidi(60), Teoria.hzDoMidi(60)],
+          dica: 'Quatro tempos de semínima.',
+          bpm: 76
+        });
+      }
+    }
+    return { tipo: 'compasso', rodadas, instrucao: 'Ouça o compasso. Quantos tempos?', bpm: 76 };
+  }
+
+  /* --- Fase 28: binário (2/4) e ternário (3/4) --- */
+  function fase28(n = 8) {
+    const rodadas = [];
+    for (let i = 0; i < n; i++) {
+      const binario = Math.random() < 0.5;
+      const c = Teoria.compasso(binario ? '2/4' : '3/4');
+      rodadas.push({
+        tipo: 'agrupamento',
+        compasso: c,
+        correta: binario ? 'marcha' : 'valsa',
+        opcoes: ['marcha', 'valsa'],
+        tempos: c.tempos,
+        oQueSoa: Array(c.tempos).fill(Teoria.hzDoMidi(67)),
+        dica: binario ? 'Grupos de dois: UM-dois.' : 'Grupos de três: UM-dois-três.',
+        formula: c.formula,
+        bpm: 84
+      });
+    }
+    return { tipo: 'agrupamento', rodadas, instrucao: 'É marcha (dois) ou valsa (três)?', bpm: 84 };
+  }
+
+  /* --- Fase 29: simples x composto --- */
+  function fase29(n = 8) {
+    const rodadas = [];
+    const pares = [['2/4', '6/8'], ['3/4', '9/8'], ['4/4', '12/8']];
+    for (let i = 0; i < n; i++) {
+      const [simples, composto] = escolher(pares);
+      const ehSimples = Math.random() < 0.5;
+      const formula = ehSimples ? simples : composto;
+      const c = Teoria.compasso(formula);
+      rodadas.push({
+        tipo: 'subdivisao',
+        compasso: c,
+        par: { simples, composto },
+        correta: c.subdivisao,
+        opcoes: ['simples', 'composto'],
+        formula,
+        oQueSoa: Array(c.porCompasso).fill(Teoria.hzDoMidi(67)),
+        dica: ehSimples
+          ? 'Cada tempo se divide em DUAS partes.'
+          : 'Cada tempo se divide em TRÊS partes. É o que faz ondular.',
+        bpm: 72
+      });
+    }
+    return { tipo: 'subdivisao', rodadas, instrucao: 'O compasso é simples (divide em 2) ou composto (divide em 3)?', bpm: 72 };
+  }
+
+  /* --- Fase 30: pausas --- */
+  function fase30(n = 8) {
+    const rodadas = [];
+    for (let i = 0; i < n; i++) {
+      const p = escolher(Teoria.PAUSAS);
+      rodadas.push({
+        tipo: 'pausa',
+        pausa: p,
+        correta: p.figura,
+        opcoes: embaralhar(unicos(Teoria.PAUSAS.map(x => x.figura))),
+        oQueSoa: [Teoria.hzDoMidi(67)],
+        aberta: true,
+        dica: p.desc,
+        silencioValor: p.valor,
+        todas: Teoria.PAUSAS
+      });
+    }
+    return { tipo: 'pausa', rodadas, instrucao: 'Quanto tempo de silêncio é isso?', pausas: Teoria.PAUSAS };
+  }
+
+  /* --- Fase 31: ponto e ligadura ---
+     A pergunta é sobre DURAÇÃO: a nota dura 1, 1,5 ou 2 tempos. Então os
+     casos só podem gerar essas três respostas — misturar "mínima" aqui
+     criava uma resposta que não existia entre as opções.
+     ------------------------------------------------------------------- */
+  function fase31(n = 8) {
+    const rodadas = [];
+    const casos = [
+      { nome: 'simples',  total: 1,   desc: 'Semínima normal: um tempo exato.',            cobertura: 1 },
+      { nome: 'pontuada', total: 1.5, desc: 'Semínima pontuada: um tempo e meio. O ponto soma metade.', cobertura: 1 },
+      { nome: 'ligada',   total: 2,   desc: 'Duas semínimas ligadas: dois tempos sem interrupção.',     cobertura: 2 }
+    ];
+    for (let i = 0; i < n; i++) {
+      const c = escolher(casos);
+      rodadas.push({
+        tipo: 'duracao',
+        caso: c,
+        correta: c.nome,
+        opcoes: ['simples', 'pontuada', 'ligada'],
+        oQueSoa: [Teoria.hzDoMidi(67)],
+        duracaoSeg: c.total * 0.6,
+        dica: c.desc,
+        total: c.total,
+        formula: Teoria.pontuado(1)
+      });
+    }
+    return { tipo: 'duracao', rodadas, instrucao: 'Essa nota dura um tempo, um e meio, ou dois?' };
+  }
+
+  /* --- Fase 32: síncope, contratempo, anacruse --- */
+  function fase32(n = 8) {
+    const rodadas = [];
+    const padroes = [
+      { nome: 'sincope',     padrao: [1.5, 0.5, 1, 1],     desc: 'O som começa no fraco e se prolonga no forte.' },
+      { nome: 'sincope',     padrao: [0.5, 1, 0.5, 2],     desc: 'Acentos fora do tempo, atravessando a barra.' },
+      { nome: 'contratempo', padrao: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5], desc: 'O som cai onde deveria haver pausa.' },
+      { nome: 'anacruse',    padrao: [0.5, 1, 1, 1, 0.5],  desc: 'Começa antes do compasso: uma entrada incompleta.' },
+      { nome: 'regular',     padrao: [1, 1, 1, 1],         desc: 'Tudo no tempo, sem deslocamento.' }
+    ];
+    for (let i = 0; i < n; i++) {
+      const p = escolher(padroes);
+      rodadas.push({
+        tipo: 'deslocamento',
+        padrao: p.padrao,
+        nomePadrao: p.nome,
+        correta: p.nome,
+        opcoes: ['regular', 'sincope', 'contratempo', 'anacruse'],
+        oQueSoa: p.padrao.map(() => Teoria.hzDoMidi(67)),
+        sequencia: p.padrao.map(d => [Teoria.hzDoMidi(67), d * 0.5]),
+        dica: p.desc,
+        bpm: 80
+      });
+    }
+    return { tipo: 'deslocamento', rodadas, instrucao: 'O acento está no tempo ou deslocado?', bpm: 80 };
+  }
+
+  /* --- Fase 33: tercinas e subdivisões --- */
+  function fase33(n = 8) {
+    const rodadas = [];
+    for (let i = 0; i < n; i++) {
+      const s = escolher(Teoria.SUBDIVISOES);
+      const cabendo = s.quantas === 3 ? 2 : (s.quantas >= 5 ? 4 : 1);
+      rodadas.push({
+        tipo: 'subdivisao_qtd',
+        subdivisao: s,
+        cabendo,
+        correta: String(s.quantas),
+        opcoes: ['2', '3', '4', '5', '6'],
+        oQueSoa: Array(s.quantas).fill(Teoria.hzDoMidi(67)),
+        dica: s.desc,
+        bpm: 76,
+        todas: Teoria.SUBDIVISOES
+      });
+    }
+    return { tipo: 'subdivisao_qtd', rodadas, instrucao: 'Quantas notas cabem no espaço?', bpm: 76 };
+  }
+
   /* --- gerador principal --- */
   const GERADORES = {
-    1: fase1, 2: fase2, 3: fase3, 4: fase4, 5: fase5,
-    6: fase6, 7: fase7, 8: fase8, 9: fase9, 10: fase10,
-    11: fase11, 12: fase12, 13: fase13, 14: fase14, 15: fase15,
-    16: fase16, 17: fase17, 18: fase18, 19: fase19, 20: fase20,
-    21: fase21, 22: fase22, 23: fase23, 24: fase24, 25: fase25, 26: fase26
-  };
+    1: fase1, 2: fase2, 3: fase3, 4: fase4, 5: fase5, 6: fase6, 7: fase7,
+    8: fase8, 9: fase9, 10: fase10, 11: fase11, 12: fase12, 13: fase13, 14: fase14,
+    15: fase15, 16: fase16, 17: fase17, 18: fase18, 19: fase19, 20: fase20, 21: fase27,
+    22: fase28, 23: fase29, 24: fase30, 25: fase31, 26: fase32, 27: fase33, 28: fase21,
+    29: fase22, 30: fase23, 31: fase24, 32: fase25, 33: fase26
+  }
 
   // A fase 1 tem mecânica própria (ritmo), então `rodadas` é um CONTADOR,
   // não uma lista. Só as fases de pergunta usam a lista de rodadas.

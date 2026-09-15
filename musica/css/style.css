@@ -307,6 +307,17 @@ body { padding-bottom: env(safe-area-inset-bottom); }
 .grid-divisor.harmonia { color: var(--menta); }
 .grid-divisor.harmonia::after { background: linear-gradient(90deg, rgba(95,179,161,0.5), transparent); }
 
+/* capítulo do ritmo */
+.no.ritmo {
+  border-color: rgba(200,69,60,0.40);
+  background: linear-gradient(160deg, rgba(200,69,60,0.11), rgba(244,239,228,0.02));
+}
+.no.ritmo .no-num { color: #e9948c; }
+.no.ritmo:hover { border-color: rgba(200,69,60,0.8); }
+
+.grid-divisor.ritmo { color: #e9948c; }
+.grid-divisor.ritmo::after { background: linear-gradient(90deg, rgba(200,69,60,0.5), transparent); }
+
 /* divisor entre capítulos no grid */
 .grid-divisor {
   grid-column: 1 / -1;
@@ -762,6 +773,14 @@ body { padding-bottom: env(safe-area-inset-bottom); }
   letter-spacing: 0.6px;
   color: var(--papel-fraco);
   font-family: ui-monospace, monospace;
+}
+
+/* ---------- capítulo do ritmo ---------- */
+
+.cv-compasso {
+  display: block;
+  margin: 0 auto;
+  border-radius: 10px;
 }
 
 /* ---------- fim de fase ---------- */

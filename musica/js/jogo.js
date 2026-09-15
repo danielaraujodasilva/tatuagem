@@ -151,7 +151,18 @@
   };
 
   const J = window.Jogo;
-  const CHAVE = 'primeiravoz.v2';
+  const CHAVE = 'primeiravoz.v3';
+  const CHAVE_ANTIGA = 'primeiravoz.v2';
+
+  // Migração de progresso: quando o capítulo do ritmo entrou, os NÚMEROS das
+  // fases mudaram de significado — a antiga 21 ("A Escala") virou 28, e a 21
+  // agora é "Compasso 4/4". Sem migrar, quem já tinha estrelas veria as
+  // conquistas aparecendo na lição errada.
+  const MAPA_V2_V3 = {
+    1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10,
+    11: 11, 12: 12, 13: 13, 14: 14, 15: 15, 16: 16, 17: 17, 18: 18, 19: 19, 20: 20,
+    21: 28, 22: 29, 23: 30, 24: 31, 25: 32, 26: 33
+  };
 
   function carregar() {
     try {
@@ -166,6 +177,30 @@
           mudo: !!p.mudo,
           livreRecorde: p.livreRecorde || 0
         };
+      }
+      // sem a versão nova: tenta converter a antiga
+      const velho = localStorage.getItem(CHAVE_ANTIGA);
+      if (velho) {
+        const p = JSON.parse(velho);
+        const convLista = (l) => (l || []).map(x => MAPA_V2_V3[x]).filter(x => x !== undefined);
+        const convMapa = (o) => {
+          const out = {};
+          Object.keys(o || {}).forEach(k => {
+            const n = MAPA_V2_V3[k];
+            if (n !== undefined) out[n] = o[k];
+          });
+          return out;
+        };
+        const migrado = {
+          dominadas: convLista(p.dominadas),
+          selos: convLista(p.selos),
+          melhor: convMapa(p.melhor),
+          estrelas: convMapa(p.estrelas),
+          mudo: !!p.mudo,
+          livreRecorde: p.livreRecorde || 0
+        };
+        try { localStorage.setItem(CHAVE, JSON.stringify(migrado)); } catch (e) {}
+        return migrado;
       }
     } catch (e) {}
     return { dominadas: [], selos: [], melhor: {}, estrelas: {}, mudo: false, livreRecorde: 0 };
@@ -396,7 +431,16 @@
       arpejo: 'Qual acorde esse arpejo está desenhando?',
       inversao: 'Qual nota do acorde está embaixo?',
       modo_origem: 'De qual grau da escala essa melodia parte?',
-      compara_modo: 'Em qual passo esses dois modos divergem?'
+      compara_modo: 'Em qual passo esses dois modos divergem?',
+      tempo_forte: 'Em qual tempo cai o acento mais forte?',
+      contagem: 'Quantos tempos tem esse compasso?',
+      formula: 'Qual fórmula de compasso é essa?',
+      agrupamento: 'É marcha (dois) ou valsa (três)?',
+      subdivisao: 'O compasso é simples ou composto?',
+      pausa: 'Quanto tempo de silêncio é isso?',
+      duracao: 'Essa nota dura um tempo, um e meio, ou dois?',
+      deslocamento: 'O acento cai no tempo ou fora dele?',
+      subdivisao_qtd: 'Quantas notas cabem nesse espaço?'
     };
     return mapa[r.tipo] || 'O que você ouviu?';
   };
@@ -430,6 +474,38 @@
     } else if (r.tipo === 'empilhar' || r.tipo === 'inversao') {
       // o acorde como bloco: é o contraste com o arpejo
       Audio.chord(r.oQueSoa, { dur: 1.3, timbre: 'piano', gain: 0.4 });
+    } else if (['tempo_forte', 'contagem', 'formula', 'agrupamento', 'subdivisao'].includes(r.tipo)) {
+      // O RITMO soa como compasso de verdade: acento no forte, fraco nos
+      // outros. É a única forma de o ouvido aprender métrica.
+      J.tocarCompasso(r);
+    } else if (r.tipo === 'pausa') {
+      // O silêncio é o conteúdo. Toca uma nota longa e deixa o silêncio
+      // depois dela ser tão audível quanto o som.
+      Audio.note(r.oQueSoa[0], { dur: Math.max(0.3, r.pausa.valor * 0.42), timbre: 'piano', gain: 0.42 });
+    } else if (r.tipo === 'duracao') {
+      // a duração real: 1, 1,5 ou 2 tempos a ~90bpm
+      const segPorTempo = 0.62;
+      const total = r.total * segPorTempo;
+      if (r.correta === 'ligada') {
+        // duas notas ligadas: soa contínuo
+        Audio.note(r.oQueSoa[0], { dur: total, timbre: 'piano', gain: 0.42 });
+      } else {
+        Audio.note(r.oQueSoa[0], { dur: total, timbre: 'piano', gain: 0.42 });
+      }
+    } else if (r.tipo === 'deslocamento') {
+      // o padrão de ataques: é o deslocamento que o ouvido precisa sentir
+      Audio.seq(r.sequencia.map(x => [x[0], x[1]]), { timbre: 'piano', gain: 0.42, gap: 0.01 });
+      // junto com o pulso de fundo, para comparar ataque contra tempo
+      const pulso = 0.4;
+      for (let k = 0; k < 4; k++) {
+        Audio.metronomo(k === 0);
+      }
+    } else if (r.tipo === 'subdivisao_qtd') {
+      // as N notas no espaço, com o pulso subjacente
+      const cada = 0.5;
+      r.oQueSoa.forEach((hz, i) => {
+        Audio.note(hz, { dur: cada * 0.85, timbre: 'piano', gain: 0.4, at: Audio.now() + 0.03 + i * cada });
+      });
     } else if (r.tipo === 'escrever' || r.tipo === 'ler_tocar' || r.tipo === 'ler_pauta') {
       // melodia: toca em sequência, uma nota clara depois da outra
       Audio.seq(r.oQueSoa.map(hz => [hz, 0.5]), { timbre: 'cristal', gain: 0.42, gap: 0.1 });
@@ -443,6 +519,29 @@
       Audio.note(r.oQueSoa[0], { dur: 1.2, timbre: 'cristal', gain: 0.42 });
     } else {
       Audio.seq(r.oQueSoa.map(hz => [hz, 0.5]), { timbre: 'cristal', gain: 0.4, gap: 0.07 });
+    }
+  };
+
+  /**
+   * Toca um compasso de verdade: acento no forte, fraco nos outros tempos.
+   * É assim que o ouvido aprende métrica — não descrevendo, tocando.
+   */
+  J.tocarCompasso = function (r) {
+    const c = r.compasso || Teoria.compasso('4/4');
+    const bpm = r.bpm || 76;
+    const segPorTempo = 60 / bpm;
+    const t0 = Audio.now() + 0.06;
+    for (let i = 0; i < c.tempos; i++) {
+      const at = t0 + i * segPorTempo;
+      const forte = c.forte.includes(i + 1);
+      const meio = c.meio.includes(i + 1);
+      // no compasso composto cada tempo vale 3 subdivisões
+      const subdiv = c.subdivisao === 'composto' ? 3 : 1;
+      for (let s = 0; s < subdiv; s++) {
+        const at2 = at + s * (segPorTempo / subdiv);
+        const ganho = s === 0 ? (forte ? 0.46 : meio ? 0.34 : 0.24) : 0.16;
+        Audio.note(Teoria.hzDoMidi(67), { dur: 0.3, timbre: 'piano', gain: ganho, at: at2 });
+      }
     }
   };
 
@@ -677,6 +776,323 @@
     vis.appendChild(wrap);
   }
 
+  /* ====================================================================
+     CAPÍTULO DO RITMO (27-33)
+     O compasso precisa ser VISTO para fazer sentido: barra, tempos, acentos.
+     ==================================================================== */
+
+  /**
+   * Desenha um compasso com os tempos marcados.
+   * Mostra a barra, a fórmula e quais tempos são fortes.
+   */
+  function desenharCompasso(vis, c, opts = {}) {
+    const larg = Math.min(window.innerWidth - 90, 520);
+    const alt = 132;
+    const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+    const cv = document.createElement('canvas');
+    cv.className = 'cv-compasso';
+    cv.style.width = larg + 'px';
+    cv.style.height = alt + 'px';
+    cv.width = Math.floor(larg * dpr);
+    cv.height = Math.floor(alt * dpr);
+    vis.appendChild(cv);
+    const g2 = cv.getContext('2d');
+    g2.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const padX = 46, padY = 34;
+    const larguraUtil = larg - padX * 2;
+    const n = c.porCompasso;
+    const passo = larguraUtil / n;
+    const yLinha = alt - padY;
+
+    // fórmula de compasso grande à esquerda
+    g2.save();
+    g2.fillStyle = '#f0d18a';
+    g2.textAlign = 'center';
+    g2.textBaseline = 'middle';
+    g2.font = '700 22px "Segoe UI", system-ui, sans-serif';
+    g2.fillText(String(c.numerador), padX - 22, padY + 8);
+    g2.fillText(String(c.denominador), padX - 22, padY + 34);
+    g2.restore();
+
+    // linha do tempo
+    g2.save();
+    g2.strokeStyle = 'rgba(244,239,228,0.5)';
+    g2.lineWidth = 2;
+    g2.beginPath();
+    g2.moveTo(padX - 10, yLinha);
+    g2.lineTo(larg - padX + 10, yLinha);
+    g2.stroke();
+
+    // barra final
+    g2.lineWidth = 2.5;
+    g2.beginPath();
+    g2.moveTo(larg - padX + 10, yLinha - 22);
+    g2.lineTo(larg - padX + 10, yLinha + 8);
+    g2.stroke();
+    g2.restore();
+
+    // cada tempo: ponto, número, marca de acento
+    for (let i = 0; i < n; i++) {
+      const x = padX + passo * i + passo / 2;
+      const ehForte = c.forte.includes(i + 1);
+      const ehMeio = c.meio.includes(i + 1);
+      g2.save();
+      // ponto do tempo
+      g2.fillStyle = ehForte ? '#f0d18a' : ehMeio ? 'rgba(217,169,74,0.6)' : 'rgba(244,239,228,0.28)';
+      g2.beginPath();
+      g2.arc(x, yLinha, ehForte ? 7 : 4.5, 0, Math.PI * 2);
+      g2.fill();
+      // anel no forte
+      if (ehForte) {
+        g2.strokeStyle = 'rgba(240,209,138,0.5)';
+        g2.lineWidth = 2;
+        g2.beginPath(); g2.arc(x, yLinha, 13, 0, Math.PI * 2); g2.stroke();
+      }
+      // número do tempo
+      g2.fillStyle = ehForte ? '#f0d18a' : 'rgba(244,239,228,0.45)';
+      g2.font = (ehForte ? '700 ' : '400 ') + '12px "Segoe UI", system-ui, sans-serif';
+      g2.textAlign = 'center';
+      g2.textBaseline = 'top';
+      g2.fillText(String(i + 1), x, yLinha + 20);
+      g2.restore();
+    }
+
+    // agrupamento (mostra a subdivisão)
+    if (opts.grupos) {
+      g2.save();
+      g2.strokeStyle = 'rgba(95,179,161,0.5)';
+      g2.lineWidth = 2;
+      g2.setLineDash([4, 4]);
+      const tamGrupo = c.porCompasso / c.tempos;
+      for (let t = 1; t < c.tempos; t++) {
+        const x = padX + passo * tamGrupo * t;
+        g2.beginPath();
+        g2.moveTo(x, yLinha - 34);
+        g2.lineTo(x, yLinha + 10);
+        g2.stroke();
+      }
+      g2.restore();
+    }
+
+    return { cv, g: g2, larg, alt };
+  }
+
+  function visualCompasso(r) { desenharCompasso($('#jogo-visual'), r.compasso, { grupos: true }); }
+  function visualAgrupamento(r) { desenharCompasso($('#jogo-visual'), r.compasso, { grupos: true }); }
+  function visualSubdivisao(r) { desenharCompasso($('#jogo-visual'), r.compasso, { grupos: true }); }
+
+  /** Fase 30: a pausa desenhada na pauta, no lugar da nota. */
+  function visualPausa(r) {
+    const vis = $('#jogo-visual');
+    vis.innerHTML = '';
+    const larg = Math.min(window.innerWidth - 90, 460);
+    const alt = 120;
+    const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+    const cv = document.createElement('canvas');
+    cv.className = 'cv-pauta';
+    cv.style.width = larg + 'px';
+    cv.style.height = alt + 'px';
+    cv.width = Math.floor(larg * dpr);
+    cv.height = Math.floor(alt * dpr);
+    vis.appendChild(cv);
+    const c = cv.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const espaco = 13;
+    const y0 = (alt - espaco * 4) / 2;
+    const linhas = [];
+    c.save();
+    c.strokeStyle = 'rgba(244,239,228,0.3)';
+    c.lineWidth = 1.2;
+    for (let i = 0; i < 5; i++) {
+      linhas.push(y0 + i * espaco);
+      c.beginPath(); c.moveTo(20, y0 + i * espaco); c.lineTo(larg - 20, y0 + i * espaco); c.stroke();
+    }
+    c.restore();
+
+    // desenha o símbolo da pausa
+    const cx = larg * 0.5, cy = linhas[2];
+    c.save();
+    c.strokeStyle = '#f0d18a';
+    c.fillStyle = '#f0d18a';
+    c.lineWidth = 2.2;
+    switch (r.correta) {
+      case 'semibreve':
+        c.fillRect(cx - 16, linhas[1] - 3, 32, 6);
+        break;
+      case 'minima':
+        c.fillRect(cx - 14, linhas[2] - 3, 28, 6);
+        break;
+      case 'seminima':
+        c.beginPath();
+        c.moveTo(cx - 10, cy - 14);
+        c.lineTo(cx + 2, cy + 6);
+        c.lineTo(cx + 8, cy - 2);
+        c.lineTo(cx - 4, cy - 18);
+        c.closePath();
+        c.fill();
+        break;
+      case 'colcheia':
+        c.beginPath();
+        c.moveTo(cx - 6, cy - 12);
+        c.lineTo(cx + 2, cy + 4);
+        c.stroke();
+        c.beginPath();
+        c.arc(cx + 4, cy + 6, 4, 0, Math.PI * 2);
+        c.fill();
+        break;
+      case 'semicolcheia':
+        c.beginPath();
+        c.moveTo(cx - 6, cy - 12);
+        c.lineTo(cx + 2, cy + 4);
+        c.stroke();
+        c.beginPath(); c.arc(cx + 4, cy + 6, 4, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.arc(cx - 4, cy + 10, 4, 0, Math.PI * 2); c.fill();
+        break;
+    }
+    c.restore();
+  }
+
+  /** Fase 31: mostra a nota com ponto ou ligadura. */
+  function visualDuracao(r) {
+    const vis = $('#jogo-visual');
+    vis.innerHTML = '';
+    const larg = Math.min(window.innerWidth - 90, 420);
+    const alt = 120;
+    const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+    const cv = document.createElement('canvas');
+    cv.className = 'cv-pauta';
+    cv.style.width = larg + 'px';
+    cv.style.height = alt + 'px';
+    cv.width = Math.floor(larg * dpr);
+    cv.height = Math.floor(alt * dpr);
+    vis.appendChild(cv);
+    const c = cv.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const espaco = 13;
+    const y0 = (alt - espaco * 4) / 2;
+    const linhas = [];
+    c.save();
+    c.strokeStyle = 'rgba(244,239,228,0.3)';
+    c.lineWidth = 1.2;
+    for (let i = 0; i < 5; i++) {
+      linhas.push(y0 + i * espaco);
+      c.beginPath(); c.moveTo(20, y0 + i * espaco); c.lineTo(larg - 20, y0 + i * espaco); c.stroke();
+    }
+    c.restore();
+    const geo = { x: 20, y: y0, largura: larg - 40, espaco, linhas };
+    const meio = larg * 0.5;
+    const cheia = '#f0d18a';
+
+    if (r.correta === 'simples') {
+      Partitura.desenharNota(c, geo, { grau: 4, x: meio, cor: cheia, haste: true });
+    } else if (r.correta === 'pontuada') {
+      Partitura.desenharNota(c, geo, { grau: 4, x: meio - 10, cor: cheia, haste: true });
+      c.save();
+      c.fillStyle = cheia;
+      c.font = '700 24px "Segoe UI Symbol", serif';
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('·', meio + 14, Partitura.yDoGrau(4, linhas));
+      c.restore();
+    } else {
+      // ligada: duas notas com uma curva por cima
+      Partitura.desenharNota(c, geo, { grau: 4, x: meio - 26, cor: cheia, haste: true });
+      Partitura.desenharNota(c, geo, { grau: 4, x: meio + 16, cor: cheia, haste: true });
+      const y = Partitura.yDoGrau(4, linhas);
+      c.save();
+      c.strokeStyle = cheia;
+      c.lineWidth = 2.4;
+      c.beginPath();
+      c.moveTo(meio - 18, y + 16);
+      c.quadraticCurveTo(meio - 5, y + 26, meio + 8, y + 16);
+      c.stroke();
+      c.restore();
+    }
+  }
+
+  /** Fase 32: os ataques desenhados sobre a régua do compasso. */
+  function visualDeslocamento(r) {
+    const vis = $('#jogo-visual');
+    vis.innerHTML = '';
+    const larg = Math.min(window.innerWidth - 90, 520);
+    const alt = 118;
+    const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+    const cv = document.createElement('canvas');
+    cv.className = 'cv-compasso';
+    cv.style.width = larg + 'px';
+    cv.style.height = alt + 'px';
+    cv.width = Math.floor(larg * dpr);
+    cv.height = Math.floor(alt * dpr);
+    vis.appendChild(cv);
+    const c = cv.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const padX = 40, y = alt - 44;
+    const larguraUtil = larg - padX * 2;
+    const total = r.padrao.reduce((a, b) => a + b, 0);
+    const porTempo = larguraUtil / total;
+
+    // régua com os tempos marcados
+    c.save();
+    c.strokeStyle = 'rgba(244,239,228,0.45)';
+    c.lineWidth = 2;
+    c.beginPath(); c.moveTo(padX, y); c.lineTo(larg - padX, y); c.stroke();
+    for (let t = 0; t <= total; t++) {
+      const x = padX + porTempo * t;
+      c.strokeStyle = t % 1 === 0 ? 'rgba(244,239,228,0.5)' : 'rgba(244,239,228,0.16)';
+      c.beginPath(); c.moveTo(x, y - 6); c.lineTo(x, y + 6); c.stroke();
+      if (t < total) {
+        c.fillStyle = 'rgba(244,239,228,0.4)';
+        c.font = '11px "Segoe UI", system-ui, sans-serif';
+        c.textAlign = 'center'; c.textBaseline = 'top';
+        c.fillText(String(t + 1), x + porTempo / 2, y + 12);
+      }
+    }
+    c.restore();
+
+    // barra do ataque: onde o som COMEÇA
+    let t = 0;
+    c.save();
+    r.padrao.forEach((dur, i) => {
+      const x0 = padX + porTempo * t;
+      const x1 = padX + porTempo * (t + dur);
+      const noTempo = Math.abs(t % 1) < 0.01;
+      c.fillStyle = noTempo ? 'rgba(240,209,138,0.85)' : 'rgba(200,69,60,0.85)';
+      c.fillRect(x0 + 2, y - 34, Math.max(4, x1 - x0 - 4), 16);
+      // marca onde cai
+      c.fillStyle = noTempo ? '#f0d18a' : '#e9948c';
+      c.beginPath(); c.arc(x0 + 4, y - 38, 4, 0, Math.PI * 2); c.fill();
+      t += dur;
+    });
+    c.restore();
+
+    const el = document.createElement('div');
+    el.className = 'receita-tag';
+    el.textContent = 'dourado = cai no tempo · vermelho = fora do tempo';
+    vis.appendChild(el);
+  }
+
+  /** Fase 33: as notas da subdivisão, com o espaço marcado. */
+  function visualSubdivisaoQtd(r) {
+    const vis = $('#jogo-visual');
+    vis.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.className = 'arpejo-fila';
+    for (let i = 0; i < r.subdivisao.quantas; i++) {
+      const b = document.createElement('span');
+      b.className = 'arpejo-nota';
+      b.textContent = '♪';
+      b.style.setProperty('--i', i);
+      wrap.appendChild(b);
+    }
+    vis.appendChild(wrap);
+    const el = document.createElement('div');
+    el.className = 'receita-tag';
+    el.textContent = r.subdivisao.desc;
+    vis.appendChild(el);
+  }
+
   J.montarVisual = function (r) {
     const vis = $('#jogo-visual');
     if (r.tipo === 'teclado') {
@@ -762,6 +1178,15 @@
     if (r.tipo === 'inversao')      { visualInversao(r);      return; }
     if (r.tipo === 'modo_origem')   { visualModoOrigem(r);    return; }
     if (r.tipo === 'compara_modo')  { visualComparaModo(r);   return; }
+
+    // ---- capítulo do ritmo ----
+    if (r.tipo === 'tempo_forte' || r.tipo === 'contagem' || r.tipo === 'formula') { visualCompasso(r); return; }
+    if (r.tipo === 'agrupamento')     { visualAgrupamento(r);      return; }
+    if (r.tipo === 'subdivisao')      { visualSubdivisao(r);      return; }
+    if (r.tipo === 'pausa')           { visualPausa(r);           return; }
+    if (r.tipo === 'duracao')         { visualDuracao(r);         return; }
+    if (r.tipo === 'deslocamento')    { visualDeslocamento(r);    return; }
+    if (r.tipo === 'subdivisao_qtd')  { visualSubdivisaoQtd(r);   return; }
     // ícone de onda para tipos baseados em escuta
     const el = document.createElement('div');
     el.className = 'onda-ouvir';
@@ -1055,7 +1480,19 @@
         colcheia: 'Colcheia · meio tempo'
       },
       inversao: { 'a raiz': 'a raiz (posição fundamental)', 'a terça': 'a terça (1ª inversão)', 'a quinta': 'a quinta (2ª inversão)' },
-      modo_origem: { '1': '1º grau · Jônio', '2': '2º grau · Dórico', '3': '3º grau · Frígio', '4': '4º grau · Lídio', '5': '5º grau · Mixolídio', '6': '6º grau · Eólio', '7': '7º grau · Lócrio' }
+      modo_origem: { '1': '1º grau · Jônio', '2': '2º grau · Dórico', '3': '3º grau · Frígio', '4': '4º grau · Lídio', '5': '5º grau · Mixolídio', '6': '6º grau · Eólio', '7': '7º grau · Lócrio' },
+      agrupamento: { marcha: 'Marcha · grupos de 2', valsa: 'Valsa · grupos de 3' },
+      subdivisao: { simples: 'Simples · divide em 2', composto: 'Composto · divide em 3' },
+      pausa: {
+        semibreve: 'Semibreve · 4 tempos', minima: 'Mínima · 2 tempos',
+        seminima: 'Semínima · 1 tempo', colcheia: 'Colcheia · meio tempo',
+        semicolcheia: 'Semicolcheia · 1/4 de tempo'
+      },
+      duracao: { simples: 'Um tempo', pontuada: 'Um e meio (pontuada)', ligada: 'Dois tempos (ligada)' },
+      deslocamento: {
+        regular: 'No tempo, certinho', sincope: 'Síncope · atravessa o forte',
+        contratempo: 'Contratempo · cai na pausa', anacruse: 'Anacruse · começa antes'
+      }
     };
     const sufixo = (r.tipo === 'armadura' && r.tipoAlt)
       ? (r.tipoAlt === 'sustenidos' ? ' ♯' : ' ♭') : '';
@@ -1335,6 +1772,7 @@
 
     // Cada capítulo começa com um divisor. O mapa dos capítulos:
     const CAPITULOS = {
+      ritmo:    { cls: 'ritmo',    rotulo: '♩ CAPÍTULO DO RITMO · COMPASSO E MÉTRICA' },
       escrita:  { cls: 'escrita',  rotulo: '✎ CAPÍTULO DA ESCRITA · PARTITURA' },
       harmonia: { cls: 'harmonia', rotulo: '♪ CAPÍTULO DA HARMONIA · ESCALAS, ACORDES E MODOS' }
     };
