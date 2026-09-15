@@ -295,6 +295,18 @@ body { padding-bottom: env(safe-area-inset-bottom); }
 .no.escrita .no-num { color: #cbb4e8; }
 .no.escrita:hover { border-color: rgba(139,107,184,0.8); }
 
+/* capítulo da harmonia: escalas, acordes, arpejos e modos */
+.no.harmonia {
+  border-color: rgba(95,179,161,0.42);
+  background: linear-gradient(160deg, rgba(95,179,161,0.12), rgba(244,239,228,0.02));
+}
+.no.harmonia .no-num { color: #8fd6c6; }
+.no.harmonia:hover { border-color: rgba(95,179,161,0.85); }
+
+/* variante do divisor para o capítulo da harmonia */
+.grid-divisor.harmonia { color: var(--menta); }
+.grid-divisor.harmonia::after { background: linear-gradient(90deg, rgba(95,179,161,0.5), transparent); }
+
 /* divisor entre capítulos no grid */
 .grid-divisor {
   grid-column: 1 / -1;
@@ -618,6 +630,139 @@ body { padding-bottom: env(safe-area-inset-bottom); }
 }
 .nota-escrita.certa { border-color: var(--menta); color: #a8e4d6; background: rgba(95,179,161,0.14); }
 .nota-escrita.errada { border-color: var(--vermelho); color: #e9948c; background: rgba(200,69,60,0.14); }
+
+/* ---------- capítulo da harmonia ---------- */
+
+.receita-tag {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  color: var(--ouro-claro);
+}
+
+/* pilha de terças do acorde */
+.pilha-tercas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.terca-pilha {
+  display: block;
+  text-align: center;
+  padding: 7px 0;
+  border-radius: 9px;
+  border: 1px solid var(--borda-forte);
+  background: linear-gradient(160deg, rgba(217,169,74,0.18), rgba(217,169,74,0.06));
+  color: var(--ouro-claro);
+  font-weight: 700;
+  font-size: 15px;
+  animation: empilha .45s cubic-bezier(.22,1,.36,1) both;
+  animation-delay: calc(var(--i) * 0.09s);
+}
+@keyframes empilha {
+  from { opacity: 0; transform: translateY(-14px) scale(0.9); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* arpejo em fila */
+.arpejo-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.arpejo-nota {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  padding: 9px 12px;
+  border-radius: 11px;
+  border: 1px solid var(--borda);
+  background: rgba(244,239,228,0.05);
+  color: var(--papel);
+  font-weight: 700;
+  font-size: 14px;
+  animation: arpeja .4s ease both;
+  animation-delay: calc(var(--i) * 0.07s);
+}
+.arpejo-nota:first-child,
+.arpejo-nota:last-child {
+  border-color: var(--borda-forte);
+  color: var(--ouro-claro);
+}
+@keyframes arpeja {
+  from { opacity: 0; transform: translateX(-10px) scale(0.9); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* inversão */
+.inversao-box {
+  text-align: center;
+  padding: 14px 22px;
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio);
+  background: rgba(217,169,74,0.07);
+}
+.inversao-box .ac-nome { font-size: 26px; }
+.inv-notas {
+  display: flex;
+  gap: 7px;
+  justify-content: center;
+  margin: 11px 0 6px;
+}
+.inv-nota {
+  padding: 7px 13px;
+  border-radius: 9px;
+  border: 1px solid var(--borda);
+  background: rgba(244,239,228,0.05);
+  color: var(--papel-suave);
+  font-weight: 700;
+  font-size: 14px;
+}
+.inv-nota.baixo {
+  border-color: var(--menta);
+  background: rgba(95,179,161,0.2);
+  color: #a8e4d6;
+  box-shadow: 0 0 14px rgba(95,179,161,0.35);
+}
+
+/* dois modos lado a lado */
+.modos-lado {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 11px;
+  width: 100%;
+  max-width: 420px;
+}
+.modo-box {
+  text-align: center;
+  padding: 12px 10px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: rgba(244,239,228,0.045);
+}
+.modo-box b {
+  display: inline-grid;
+  place-items: center;
+  width: 22px; height: 22px;
+  border-radius: 7px;
+  background: rgba(217,169,74,0.22);
+  color: var(--ouro-claro);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.modo-box small { display: block; color: var(--papel-suave); font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+.receita-mini {
+  display: block;
+  font-size: 11.5px;
+  letter-spacing: 0.6px;
+  color: var(--papel-fraco);
+  font-family: ui-monospace, monospace;
+}
 
 /* ---------- fim de fase ---------- */
 

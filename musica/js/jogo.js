@@ -390,7 +390,13 @@
       ouvir_pauta: 'Que som está escrito aqui?',
       figura: 'Qual figura dura isso?',
       escrever: 'Escreva a melodia que você ouviu.',
-      ler_tocar: 'Leia a frase escrita. O que ela toca?'
+      ler_tocar: 'Leia a frase escrita. O que ela toca?',
+      receita: 'Que receita de passos é essa escala?',
+      empilhar: 'Que acorde essas terças empilhadas formam?',
+      arpejo: 'Qual acorde esse arpejo está desenhando?',
+      inversao: 'Qual nota do acorde está embaixo?',
+      modo_origem: 'De qual grau da escala essa melodia parte?',
+      compara_modo: 'Em qual passo esses dois modos divergem?'
     };
     return mapa[r.tipo] || 'O que você ouviu?';
   };
@@ -407,6 +413,23 @@
     } else if (r.tipo === 'figura') {
       // o ritmo soa com durações reais: é o que a figura escreve
       Audio.seq(r.sequencia.map(x => [x[0], x[1]]), { timbre: 'piano', gain: 0.42, gap: 0.02 });
+    } else if (r.tipo === 'arpejo') {
+      // as notas do acorde uma depois da outra, com a duração do arpejo real
+      const seq = r.arpejoHz.map(hz => [hz, 0.26]);
+      Audio.seq(seq, { timbre: 'piano', gain: 0.42, gap: 0.015 });
+    } else if (r.tipo === 'receita' || r.tipo === 'modo_origem') {
+      // escala completa, nota por nota, para o ouvido seguir a receita
+      Audio.seq(r.oQueSoa.map(hz => [hz, 0.34]), { timbre: 'cristal', gain: 0.4, gap: 0.02 });
+    } else if (r.tipo === 'compara_modo') {
+      // modo A, pequena pausa, modo B: a comparação é o exercício
+      const a = (r.hzA || []).map(hz => [hz, 0.3]);
+      const b = (r.hzB || []).map(hz => [hz, 0.3]);
+      Audio.seq(a, { timbre: 'cristal', gain: 0.38, gap: 0.02 });
+      const esperaA = a.reduce((s, x) => s + x[1] + 0.02, 0) + 0.35;
+      setTimeout(() => Audio.seq(b, { timbre: 'cristal', gain: 0.38, gap: 0.02 }), esperaA * 1000);
+    } else if (r.tipo === 'empilhar' || r.tipo === 'inversao') {
+      // o acorde como bloco: é o contraste com o arpejo
+      Audio.chord(r.oQueSoa, { dur: 1.3, timbre: 'piano', gain: 0.4 });
     } else if (r.tipo === 'escrever' || r.tipo === 'ler_tocar' || r.tipo === 'ler_pauta') {
       // melodia: toca em sequência, uma nota clara depois da outra
       Audio.seq(r.oQueSoa.map(hz => [hz, 0.5]), { timbre: 'cristal', gain: 0.42, gap: 0.1 });
@@ -431,6 +454,228 @@
       Audio.chord(hz, { dur: 0.7, timbre: 'piano', gain: 0.34, at: t + i * 0.78 });
     });
   };
+
+  /* ====================================================================
+     CAPÍTULO DA HARMONIA (21-26)
+     Escalas, acordes, arpejos e modos — desenhados, não apenas nomeados.
+     ==================================================================== */
+
+  /** Desenha uma sequência de notas como degraus: vê-se o salto de cada passo. */
+  function desenharDegraus(vis, hzs, opts = {}) {
+    const larg = Math.min(window.innerWidth - 90, 520);
+    const alt = 150;
+    const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+    const cv = document.createElement('canvas');
+    cv.className = 'cv-pauta';
+    cv.style.width = larg + 'px';
+    cv.style.height = alt + 'px';
+    cv.width = Math.floor(larg * dpr);
+    cv.height = Math.floor(alt * dpr);
+    vis.appendChild(cv);
+    const c = cv.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // converte Hz em altura relativa (log, como o ouvido percebe)
+    const hz = hzs.filter(h => h && isFinite(h));
+    if (!hz.length) return;
+    const log = hz.map(h => Math.log2(h));
+    const lo = Math.min(...log), hi = Math.max(...log);
+    const faixa = Math.max(0.05, hi - lo);
+    const padX = 34, padY = 24;
+    const passoX = (larg - padX * 2) / Math.max(1, hz.length - 1);
+    const y = (l) => alt - padY - ((l - lo) / faixa) * (alt - padY * 2);
+
+    // linha de base tracejada
+    c.save();
+    c.strokeStyle = 'rgba(244,239,228,0.12)';
+    c.setLineDash([4, 6]);
+    c.beginPath();
+    c.moveTo(padX, alt - padY + 6);
+    c.lineTo(larg - padX, alt - padY + 6);
+    c.stroke();
+    c.restore();
+
+    // degraus
+    const cor = opts.cor || '#f0d18a';
+    c.save();
+    c.strokeStyle = cor;
+    c.lineWidth = 2.4;
+    c.lineCap = 'round';
+    c.beginPath();
+    hz.forEach((_, i) => {
+      const px = padX + passoX * i;
+      const py = y(log[i]);
+      i === 0 ? c.moveTo(px, py) : c.lineTo(px, py);
+    });
+    c.stroke();
+    c.restore();
+
+    // marcadores + nome do intervalo entre cada par (se pedido)
+    c.save();
+    c.font = '600 11px "Segoe UI", system-ui, sans-serif';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    hz.forEach((h, i) => {
+      const px = padX + passoX * i;
+      const py = y(log[i]);
+      c.fillStyle = cor;
+      c.beginPath(); c.arc(px, py, 4.5, 0, Math.PI * 2); c.fill();
+      // etiqueta do passo até a próxima nota
+      if (i < hz.length - 1 && opts.nomesPassos) {
+        const meio = (px + padX + passoX * (i + 1)) / 2;
+        const diff = opts.nomesPassos[i];
+        if (diff) {
+          c.fillStyle = diff === 1 ? 'rgba(95,179,161,0.95)' : 'rgba(217,169,74,0.95)';
+          c.fillText(diff === 1 ? '½' : '1', meio, alt - padY + 22);
+        }
+      }
+    });
+    c.restore();
+  }
+
+  /** Fase 21: a receita de passos, desenhada como escada. */
+  function visualReceita(r) {
+    const vis = $('#jogo-visual');
+    vis.innerHTML = '';
+    desenharDegraus(vis, r.hz, { nomesPassos: r.receita });
+    const el = document.createElement('div');
+    el.className = 'receita-tag';
+    el.textContent = r.receita.join(' – ');
+    vis.appendChild(el);
+  }
+
+  /** Fase 22: as terças empilhadas, mostrando o que forma o acorde. */
+  function visualEmpilhar(r) {
+    const vis = $('#jogo-visual');
+    vis.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.className = 'pilha-tercas';
+    const notas = r.notasNomes || [];
+    notas.slice().reverse().forEach((n, i) => {
+      const b = document.createElement('span');
+      b.className = 'terca-pilha';
+      b.textContent = n;
+      b.style.setProperty('--i', i);
+      b.style.width = (60 + i * 22) + 'px';
+      wrap.appendChild(b);
+    });
+    vis.appendChild(wrap);
+    const el = document.createElement('div');
+    el.className = 'receita-tag';
+    el.textContent = notas.join(' + ');
+    vis.appendChild(el);
+  }
+
+  /** Fase 23: o arpejo em fila, com a ordem visível. */
+  function visualArpejo(r) {
+    const vis = $('#jogo-visual');
+    vis.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.className = 'arpejo-fila';
+    (r.notasNomes || []).forEach((n, i) => {
+      const b = document.createElement('span');
+      b.className = 'arpejo-nota';
+      b.textContent = n;
+      b.style.setProperty('--i', i);
+      wrap.appendChild(b);
+    });
+    vis.appendChild(wrap);
+  }
+
+  /** Fase 24: as três inversões do acorde, lado a lado, com o baixo marcado. */
+  function visualInversao(r) {
+    const vis = $('#jogo-visual');
+    vis.innerHTML = '';
+    const inv = r.inversao;
+    const wrap = document.createElement('div');
+    wrap.className = 'inversao-box';
+    wrap.innerHTML = `
+      <span class="ac-nome">${inv.nome}</span>
+      <small>${inv.cifraBaixo}</small>
+      <div class="inv-notas">${inv.notas.map((m, i) =>
+        `<span class="inv-nota${i === 0 ? ' baixo' : ''}">${Teoria.grafiaDe(((m % 12) + 12) % 12)}</span>`
+      ).join('')}</div>
+      <small class="miudo">a nota destacada é a que está embaixo</small>
+    `;
+    vis.appendChild(wrap);
+  }
+
+  /** Fase 25: a escala maior marcada, com o ponto de partida destacado. */
+  function visualModoOrigem(r) {
+    const vis = $('#jogo-visual');
+    vis.innerHTML = '';
+    const larg = Math.min(window.innerWidth - 90, 520);
+    const alt = 130;
+    const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+    const cv = document.createElement('canvas');
+    cv.className = 'cv-pauta';
+    cv.style.width = larg + 'px';
+    cv.style.height = alt + 'px';
+    cv.width = Math.floor(larg * dpr);
+    cv.height = Math.floor(alt * dpr);
+    vis.appendChild(cv);
+    const c = cv.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // desenha as 7 notas brancas como degraus, com o início destacado
+    const base = r.todasNotas || [];
+    const hz = base.map(h => h);
+    if (!hz.length) return;
+    const log = hz.map(h => Math.log2(h));
+    const lo = Math.min(...log), hi = Math.max(...log);
+    const faixa = Math.max(0.05, hi - lo);
+    const padX = 30, padY = 22;
+    const passoX = (larg - padX * 2) / Math.max(1, hz.length - 1);
+    const y = (l) => alt - padY - ((l - lo) / faixa) * (alt - padY * 2);
+
+    c.save();
+    c.strokeStyle = 'rgba(244,239,228,0.22)';
+    c.lineWidth = 2;
+    c.beginPath();
+    hz.forEach((_, i) => {
+      const px = padX + passoX * i, py = y(log[i]);
+      i === 0 ? c.moveTo(px, py) : c.lineTo(px, py);
+    });
+    c.stroke();
+
+    // marcadores: o inicial em dourado e maior
+    hz.forEach((_, i) => {
+      const px = padX + passoX * i, py = y(log[i]);
+      const inicial = i === 0;
+      c.fillStyle = inicial ? '#f0d18a' : 'rgba(244,239,228,0.30)';
+      c.beginPath(); c.arc(px, py, inicial ? 7 : 4, 0, Math.PI * 2); c.fill();
+      if (inicial) {
+        c.strokeStyle = 'rgba(240,209,138,0.5)';
+        c.lineWidth = 2;
+        c.beginPath(); c.arc(px, py, 12, 0, Math.PI * 2); c.stroke();
+      }
+    });
+    c.restore();
+
+    const el = document.createElement('div');
+    el.className = 'receita-tag';
+    el.textContent = 'de onde a escala começa?';
+    vis.appendChild(el);
+  }
+
+  /** Fase 26: dois modos lado a lado, com os passos visíveis para comparar. */
+  function visualComparaModo(r) {
+    const vis = $('#jogo-visual');
+    vis.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.className = 'modos-lado';
+    [[r.modoA, r.receitaA, 'A'], [r.modoB, r.receitaB, 'B']].forEach(([m, rec, tag]) => {
+      const box = document.createElement('div');
+      box.className = 'modo-box';
+      box.innerHTML = `
+        <b>${tag}</b>
+        <small>${m.nome}</small>
+        <span class="receita-mini">${rec.join('-')}</span>
+      `;
+      wrap.appendChild(box);
+    });
+    vis.appendChild(wrap);
+  }
 
   J.montarVisual = function (r) {
     const vis = $('#jogo-visual');
@@ -509,6 +754,14 @@
     if (r.tipo === 'figura')      { visualFigura(r);      return; }
     if (r.tipo === 'escrever')    { visualEscrever(r);    return; }
     if (r.tipo === 'ler_tocar')   { visualLerTocar(r);    return; }
+
+    // ---- capítulo da harmonia ----
+    if (r.tipo === 'receita')       { visualReceita(r);       return; }
+    if (r.tipo === 'empilhar')      { visualEmpilhar(r);      return; }
+    if (r.tipo === 'arpejo')        { visualArpejo(r);        return; }
+    if (r.tipo === 'inversao')      { visualInversao(r);      return; }
+    if (r.tipo === 'modo_origem')   { visualModoOrigem(r);    return; }
+    if (r.tipo === 'compara_modo')  { visualComparaModo(r);   return; }
     // ícone de onda para tipos baseados em escuta
     const el = document.createElement('div');
     el.className = 'onda-ouvir';
@@ -800,7 +1053,9 @@
         minima: 'Mínima · metade',
         seminima: 'Semínima · um tempo',
         colcheia: 'Colcheia · meio tempo'
-      }
+      },
+      inversao: { 'a raiz': 'a raiz (posição fundamental)', 'a terça': 'a terça (1ª inversão)', 'a quinta': 'a quinta (2ª inversão)' },
+      modo_origem: { '1': '1º grau · Jônio', '2': '2º grau · Dórico', '3': '3º grau · Frígio', '4': '4º grau · Lídio', '5': '5º grau · Mixolídio', '6': '6º grau · Eólio', '7': '7º grau · Lócrio' }
     };
     const sufixo = (r.tipo === 'armadura' && r.tipoAlt)
       ? (r.tipoAlt === 'sustenidos' ? ' ♯' : ' ♭') : '';
@@ -1077,21 +1332,27 @@
     const grid = $('#grid-fases');
     if (!grid) return;
     grid.innerHTML = '';
-    let divisorPosto = false;
+
+    // Cada capítulo começa com um divisor. O mapa dos capítulos:
+    const CAPITULOS = {
+      escrita:  { cls: 'escrita',  rotulo: '✎ CAPÍTULO DA ESCRITA · PARTITURA' },
+      harmonia: { cls: 'harmonia', rotulo: '♪ CAPÍTULO DA HARMONIA · ESCALAS, ACORDES E MODOS' }
+    };
+    const jaPosto = {};
+
     Fases.LISTA.forEach(f => {
-      const daEscrita = f.nivel === 'escrita';
-      // divisor entre a jornada sonora e o capítulo da escrita
-      if (daEscrita && !divisorPosto) {
-        divisorPosto = true;
+      const cap = CAPITULOS[f.nivel];
+      if (cap && !jaPosto[f.nivel]) {
+        jaPosto[f.nivel] = true;
         const d = document.createElement('div');
-        d.className = 'grid-divisor';
-        d.innerHTML = '<span>✎ CAPÍTULO DA ESCRITA · PARTITURA</span>';
+        d.className = 'grid-divisor ' + cap.cls;
+        d.innerHTML = `<span>${cap.rotulo}</span>`;
         grid.appendChild(d);
       }
       const est = J.progresso.estrelas[f.id] || 0;
       const feita = J.progresso.dominadas.includes(f.id);
       const b = document.createElement('button');
-      b.className = 'no' + (feita ? ' feita' : '') + (daEscrita ? ' escrita' : '');
+      b.className = 'no' + (feita ? ' feita' : '') + (cap ? ' ' + cap.cls : '');
       b.dataset.fase = f.id;
       b.title = f.nome;
       b.innerHTML = `

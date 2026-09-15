@@ -30,7 +30,14 @@ const Voz = (() => {
     { id: 12, fase: 17, nome: 'O símbolo',       desc: 'Ver um ponto e já ouvir o som dele.' },
     { id: 13, fase: 18, nome: 'O tempo escrito', desc: 'A duração de cada nota vira figura.' },
     { id: 14, fase: 19, nome: 'A escrita',       desc: 'Você escreve a melodia que ouviu.' },
-    { id: 15, fase: 20, nome: 'Ler e tocar',     desc: 'Lê uma frase nunca ouvida e sabe como ela soa. Fim da jornada.' }
+    { id: 15, fase: 20, nome: 'Ler e tocar',     desc: 'Lê uma frase nunca ouvida e sabe como ela soa.' },
+    // ---- capítulo da harmonia: a estrutura inteira ----
+    { id: 16, fase: 21, nome: 'A receita',       desc: 'A escala vira fórmula: sete passos que constroem qualquer tom.' },
+    { id: 17, fase: 22, nome: 'As terças',       desc: 'A voz se empilha de três em três. Nasce o acorde.' },
+    { id: 18, fase: 23, nome: 'O arpejo',        desc: 'As mesmas notas, agora em fila. A harmonia vira melodia.' },
+    { id: 19, fase: 24, nome: 'O peso',          desc: 'A mesma voz, outro chão embaixo. O baixo escolhe o peso.' },
+    { id: 20, fase: 25, nome: 'Sete partidas',   desc: 'Uma escala, sete começos. Os modos sempre estiveram aqui.' },
+    { id: 21, fase: 26, nome: 'A cor exata',     desc: 'Uma única nota movida muda o humor inteiro. Você ouve qual.' }
   ];
 
   function estagioDe(fasesDominadas) {

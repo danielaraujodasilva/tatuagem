@@ -213,6 +213,65 @@ const Fases = (() => {
       modos: ['aprender', 'praticar', 'dominar'],
       curio: 'Você começou sem saber o que era um compasso. Agora lê uma partitura e ouve ela na cabeça antes de tocar.',
       ref: 'Ler e ouvir viraram a mesma coisa. É o fim da jornada — e o começo de tocar qualquer coisa.'
+    },
+
+    /* ---------- CAPÍTULO DA HARMONIA ----------
+       Escalas, acordes, arpejos e os modos gregos de verdade.
+       O foco não é decorar nomes: é entender de onde cada coisa nasce.
+       ------------------------------------------------------------------- */
+    {
+      id: 21, nome: 'A Escala', nivel: 'harmonia',
+      ensina: 'A escala é uma receita de passos, não uma lista de notas. Decore a receita e você constrói qualquer escala, em qualquer tom.',
+      ouve: 'A diferença entre o passo curto (meio-tom) e o longo (tom), em sequência.',
+      mecanica: 'Ouça a receita e diga em que ponto ela se desvia da escala maior.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Escala maior = 2-2-1-2-2-2-1. Essa sequência de tons e semitons constrói toda escala maior que existe, do Dó ao Fá#.',
+      ref: 'Toda escala que você já cantou sem saber é uma receita de sete passos. Muda o começo, não a lógica.'
+    },
+    {
+      id: 22, nome: 'Empilhar Terças', nivel: 'harmonia',
+      ensina: 'O acorde não é um bloco misterioso: é a escala pulando de duas em duas. Tônica, terça, quinta.',
+      ouve: 'A diferença entre a nota sozinha e a mesma nota com as outras duas juntas.',
+      mecanica: 'Você constrói o acorde empilhando as terças a partir da nota que ouviu.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Pegue 1, 3 e 5 graus da escala e você tem um acorde. Use a 3ª da escala maior e ele é maior; a da menor e ele é menor.',
+      ref: 'Todo acorde de toda música é uma pilha de terças. É por isso que só existem poucos tipos de acorde e infinitas músicas.'
+    },
+    {
+      id: 23, nome: 'Arpejo', nivel: 'harmonia',
+      ensina: 'As notas do acorde uma depois da outra. A ponte entre a harmonia e a melodia.',
+      ouve: 'O acorde quebrado: as mesmas notas, agora em fila.',
+      mecanica: 'Você ouve o arpejo e monta a ordem em que as notas subiram.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Todo solo de guitarra é arpejo disfarçado. O guitarrista está tocando o acorde, só que em sequência.',
+      ref: 'A introdução de quase toda balada é um arpejo: o acorde se apresentando devagar antes de virar bloco.'
+    },
+    {
+      id: 24, nome: 'Inversões', nivel: 'harmonia',
+      ensina: 'O mesmo acorde com outra nota no baixo. Muda o peso, não o nome.',
+      ouve: 'A mesma harmonia soando mais leve ou mais séria conforme o baixo.',
+      mecanica: 'Você ouve o acorde e diz qual das três notas está embaixo.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'C, C/Mi e C/Sol são o mesmo acorde. A nota que fica embaixo é que decide se ele soa pesado ou suspenso.',
+      ref: 'É por isso que o baixo é o instrumento mais importante depois da melodia: ele escolhe o peso de tudo.'
+    },
+    {
+      id: 25, nome: 'Os Sete Modos', nivel: 'harmonia',
+      ensina: 'Os modos gregos não são sete escalas. São UMA escala começando de sete pontos diferentes. Nada muda além do ponto de partida.',
+      ouve: 'A mesma coleção de notas soando diferente conforme onde ela começa.',
+      mecanica: 'Você ouve as notas brancas e diz de qual grau elas estão partindo.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Dórico, frígio, lídio, mixolídio: toque todas as teclas brancas começando de Ré, Mi, Fá e Sol. É só isso. Nenhuma nota foi adicionada.',
+      ref: 'O flamenco é frígio. O rock é mixolídio. A trilha de sonho é lídio. Mesmas notas, pontos de partida diferentes.'
+    },
+    {
+      id: 26, nome: 'Modo e Humor', nivel: 'harmonia',
+      ensina: 'Por que cada modo soa diferente: uma única nota muda de lugar. É ali que mora o caráter.',
+      ouve: 'O que muda entre um modo e o modo vizinho.',
+      mecanica: 'Você ouve dois modos e aponta em que passo eles divergem.',
+      modos: ['aprender', 'praticar', 'dominar'],
+      curio: 'Dórico e eólio diferem em UMA nota: a sexta. Essa única nota é a diferença entre tristeza e esperança.',
+      ref: 'Trocar uma nota de um modo é o truque mais antigo da composição. É como o cinema muda o clima de uma cena.'
     }
   ];
 
@@ -731,12 +790,208 @@ const Fases = (() => {
     return { tipo: 'ler_tocar', rodadas, instrucao: 'Leia a frase escrita. O que ela toca?', frases };
   }
 
+  /* ====================================================================
+     CAPÍTULO DA HARMONIA (21-26)
+     Escalas, acordes, arpejos e modos gregos — construídos, não decorados.
+     ==================================================================== */
+
+  /* --- Fase 21: a escala como receita de passos --- */
+  const RECEITAS = [
+    { nome: 'Maior',            passos: [2,2,1,2,2,2,1], escala: 'maior',     desc: 'A receita mãe. Toda escala maior usa esta.' },
+    { nome: 'Menor natural',    passos: [2,1,2,2,1,2,2], escala: 'menorNat',  desc: 'A 3ª, a 6ª e a 7ª descem. É o que entristece.' },
+    { nome: 'Menor harmônica',  passos: [2,1,2,2,1,3,1], escala: 'menorHarm', desc: 'A 7ª sobe um tom e meio. O salto que dá drama.' },
+    { nome: 'Dórico',           passos: [2,1,2,2,2,1,2], escala: 'dorico',    desc: 'Menor, mas com a 6ª maior. Daí a esperança.' },
+    { nome: 'Mixolídio',        passos: [2,2,1,2,2,1,2], escala: 'mixolidio', desc: 'Maior, mas com a 7ª menor. Daí o blues.' },
+    { nome: 'Pentatônica maior', passos: [2,2,3,2,3],     escala: 'pentMaior', desc: 'A escala maior sem a 4ª e a 7ª. Não tem nota feia.' }
+  ];
+
+  function fase21(n = 8) {
+    const rodadas = [];
+    for (let i = 0; i < n; i++) {
+      const r = escolher(RECEITAS);
+      const tonica = Teoria.naZona(60, 'medio');
+      const notas = Teoria.escala(tonica, r.escala);
+      rodadas.push({
+        tipo: 'receita',
+        receita: r.passos,
+        nomeReceita: r.nome,
+        tonica, escala: r.escala,
+        notas, hz: notas.map(Teoria.hzDoMidi),
+        correta: r.nome,
+        opcoes: embaralhar(unicos(RECEITAS.map(x => x.nome))),
+        oQueSoa: notas.map(Teoria.hzDoMidi),
+        dica: r.desc,
+        todas: RECEITAS
+      });
+    }
+    return { tipo: 'receita', rodadas, instrucao: 'Qual receita de passos é essa escala?' };
+  }
+
+  /* --- Fase 22: empilhar terças para formar o acorde --- */
+  function fase22(n = 8) {
+    const rodadas = [];
+    const tipos = [
+      { tipo: 'maior', nome: 'Maior',        regra: 'raiz + 3ª maior + 5ª justa' },
+      { tipo: 'menor', nome: 'Menor',        regra: 'raiz + 3ª menor + 5ª justa' },
+      { tipo: 'dim',   nome: 'Diminuto',     regra: 'raiz + 3ª menor + 5ª diminuta' },
+      { tipo: 'dom7',  nome: 'Sétima (dominante)', regra: 'raiz + 3ª maior + 5ª justa + 7ª menor' }
+    ];
+    for (let i = 0; i < n; i++) {
+      const def = escolher(tipos);
+      const raiz = Teoria.naZona(60 + escolher([0, 2, 4, 5, 7]), 'medio');
+      const ac = Teoria.acorde(raiz, def.tipo);
+      rodadas.push({
+        tipo: 'empilhar',
+        raiz, acorde: ac, tipoAcorde: def.tipo,
+        correta: def.nome,
+        opcoes: embaralhar(unicos(tipos.map(t => t.nome))),
+        oQueSoa: ac.hz,
+        notasNomes: ac.notas.map(m => Teoria.grafiaDe(((m % 12) + 12) % 12)),
+        dica: def.regra,
+        todosTipos: tipos
+      });
+    }
+    return { tipo: 'empilhar', rodadas, instrucao: 'Que acorde essas terças empilhadas formam?' };
+  }
+
+  /* --- Fase 23: arpejo, as notas do acorde em fila --- */
+  function fase23(n = 8) {
+    const rodadas = [];
+    const tipos = ['maior', 'menor', 'dom7', 'm7', 'sus4'];
+    for (let i = 0; i < n; i++) {
+      const tipo = escolher(tipos);
+      const raiz = Teoria.naZona(60 + escolher([0, 2, 4, 5, 7, 9]), 'medio');
+      const arp = Teoria.arpejo(raiz, tipo);
+      const ac = arp.acorde;
+      // a pergunta: qual acorde esse arpejo está tocando?
+      rodadas.push({
+        tipo: 'arpejo',
+        acorde: ac, tipoAcorde: tipo,
+        arpejo: arp,
+        correta: ac.nome,
+        opcoes: embaralhar(unicos(tipos.map(t => Teoria.acorde(raiz, t).nome))),
+        oQueSoa: arp.hz,
+        notasNomes: arp.nomes,
+        dica: 'São as notas do acorde, uma depois da outra. Subiu e voltou.',
+        arpejoHz: arp.hz
+      });
+      const r = rodadas[i];
+      if (!r.opcoes.map(String).includes(String(r.correta))) {
+        r.opcoes[Math.floor(Math.random() * r.opcoes.length)] = r.correta;
+      }
+    }
+    return { tipo: 'arpejo', rodadas, instrucao: 'Qual acorde esse arpejo está desenhando?' };
+  }
+
+  /* --- Fase 24: inversões, quem está no baixo --- */
+  function fase24(n = 8) {
+    const rodadas = [];
+    const tipos = ['maior', 'menor'];
+    for (let i = 0; i < n; i++) {
+      const tipo = escolher(tipos);
+      const raiz = Teoria.naZona(60 + escolher([0, 2, 4, 5, 7, 9]), 'medio');
+      const qual = Math.floor(rnd(0, 3));
+      const inv = Teoria.inversao(raiz, tipo, qual);
+      const funcoes = ['a raiz', 'a terça', 'a quinta'];
+      rodadas.push({
+        tipo: 'inversao',
+        inversao: inv, qual, tipoAcorde: tipo,
+        correta: funcoes[qual],
+        opcoes: ['a raiz', 'a terça', 'a quinta'],
+        oQueSoa: inv.hz,
+        nomeBaixo: inv.nomeBaixo,
+        cifraBaixo: inv.cifraBaixo,
+        dica: inv.desc,
+        acorde: inv.nome
+      });
+    }
+    return { tipo: 'inversao', rodadas, instrucao: 'Qual nota do acorde está embaixo?' };
+  }
+
+  /* --- Fase 25: os modos são a mesma escala de pontos diferentes --- */
+  function fase25(n = 8) {
+    const rodadas = [];
+    for (let i = 0; i < n; i++) {
+      const tonica = Teoria.naZona(60 + escolher([0, 2, 5, 7]), 'medio');
+      const modos = Teoria.modosDa(tonica);
+      const idx = Math.floor(rnd(0, 7));
+      const m = modos[idx];
+      rodadas.push({
+        tipo: 'modo_origem',
+        modos, modo: m, idx, tonica,
+        correta: String(m.grauInicio),
+        opcoes: ['1', '2', '3', '4', '5', '6', '7'],
+        oQueSoa: m.hz,
+        hz: m.hz,
+        dica: 'São as mesmas notas de sempre. A única coisa que muda é onde a escala começa.',
+        nomeModo: m.nome,
+        nomeTonica: m.nomeTonica,
+        grauInicio: m.grauInicio,
+        receita: m.receita,
+        todasNotas: modos[0].notas.map(x => Teoria.hzDoMidi(x))
+      });
+    }
+    return { tipo: 'modo_origem', rodadas, instrucao: 'De qual grau da escala maior essa melodia está partindo?' };
+  }
+
+  /* --- Fase 26: o que muda entre um modo e o vizinho --- */
+  function fase26(n = 8) {
+    const rodadas = [];
+    for (let i = 0; i < n; i++) {
+      const tonica = Teoria.naZona(60 + escolher([0, 2, 5, 7]), 'medio');
+      const modos = Teoria.modosDa(tonica);
+
+      // Escolhe pares que diferem em POUCOS passos. Dois modos que divergem em
+      // 4 lugares não ensinam nada; dois que divergem em 1 mostram o poder de
+      // uma nota só — que é exatamente o que a fase quer ensinar.
+      const pares = [];
+      for (let x = 0; x < 7; x++) {
+        for (let y = x + 1; y < 7; y++) {
+          const d = Teoria.diferencaDeModos(modos[x], modos[y]);
+          if (d.length) pares.push({ x, y, dif: d, peso: d.length });
+        }
+      }
+      pares.sort((p, q) => p.peso - q.peso);
+      const menorPeso = pares[0].peso;
+      const escolhido = escolher(pares.filter(p => p.peso === menorPeso));
+
+      const a = escolhido.x, b = escolhido.y;
+      const mA = modos[a], mB = modos[b];
+      const dif = escolhido.dif;
+      rodadas.push({
+        tipo: 'compara_modo',
+        modoA: mA, modoB: mB, idxA: a, idxB: b,
+        correta: String(dif[0] || 1),
+        opcoes: ['1', '2', '3', '4', '5', '6', '7'],
+        oQueSoa: mA.hz.concat([null]).concat(mB.hz).filter(x => x !== null),
+        hzA: mA.hz, hzB: mB.hz,
+        // A dica aponta ONDE OLHAR, não a resposta. Antes ela listava todos os
+        // passos divergentes e entregava o gabarito.
+        dica: 'Compare as duas receitas passo a passo, do começo. O primeiro lugar onde elas se separam é a resposta.',
+        diferencas: dif,
+        quantasDiferencas: dif.length,
+        nomesA: mA.nome, nomesB: mB.nome,
+        receitaA: mA.receita, receitaB: mB.receita
+      });
+      const r = rodadas[i];
+      if (dif.length) {
+        // a resposta é o primeiro passo onde divergem; garante que está nas opções
+        if (!r.opcoes.map(String).includes(String(r.correta))) r.correta = String(dif[0]);
+      } else {
+        // modos idênticos não deveriam acontecer; usa o primeiro passo como fallback
+        r.correta = '1';
+      }
+    }
+    return { tipo: 'compara_modo', rodadas, instrucao: 'Em qual passo esses dois modos divergem?' };
+  }
+
   /* --- gerador principal --- */
   const GERADORES = {
     1: fase1, 2: fase2, 3: fase3, 4: fase4, 5: fase5,
     6: fase6, 7: fase7, 8: fase8, 9: fase9, 10: fase10,
     11: fase11, 12: fase12, 13: fase13, 14: fase14, 15: fase15,
-    16: fase16, 17: fase17, 18: fase18, 19: fase19, 20: fase20
+    16: fase16, 17: fase17, 18: fase18, 19: fase19, 20: fase20,
+    21: fase21, 22: fase22, 23: fase23, 24: fase24, 25: fase25, 26: fase26
   };
 
   // A fase 1 tem mecânica própria (ritmo), então `rodadas` é um CONTADOR,
