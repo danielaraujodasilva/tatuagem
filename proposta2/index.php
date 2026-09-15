@@ -81,6 +81,7 @@ function e(?string $v): string { return htmlspecialchars((string)$v, ENT_QUOTES,
         <li class="nav-item"><a class="nav-link" href="#judicializados">Judicializados</a></li>
         <li class="nav-item"><a class="nav-link" href="#trabalhista">Trabalhista</a></li>
         <li class="nav-item"><a class="nav-link" href="#resumo">Resumo</a></li>
+        <li class="nav-item"><a class="nav-link" href="#contato">Contato</a></li>
       </ul>
       <div class="ms-lg-3 d-flex gap-2">
         <a class="btn btn-light btn-sm" href="#resumo"><i class="bi bi-cash-coin me-1" aria-hidden="true"></i> Ver valores</a>
@@ -344,6 +345,31 @@ function e(?string $v): string { return htmlspecialchars((string)$v, ENT_QUOTES,
               <i class="bi bi-info-circle-fill me-3 fs-4" aria-hidden="true"></i>
               <div class="small">A atuação será realizada em parceria com o <strong>Dr. Eric</strong> e seu escritório, com divisão das atribuições conforme a natureza de cada procedimento.</div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Contato -->
+<section id="contato" class="py-5 bg-light">
+  <div class="container">
+    <div class="row mb-4">
+      <div class="col-lg-8">
+        <h2 class="h3 text-cnjp"><i class="bi bi-envelope-paper me-2" aria-hidden="true"></i>Contato</h2>
+        <p class="text-muted mb-0">Fale conosco para tratar desta proposta.</p>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-lg-12">
+        <div class="card shadow-soft border-0">
+          <div class="card-body p-4">
+            <h6 class="text-cnjp mb-3">Informações</h6>
+            <ul class="list-unstyled mb-0">
+              <li class="mb-2"><i class="bi bi-person-badge me-2 text-cnjp" aria-hidden="true"></i>Responsável: <strong>Camila Alejandra</strong></li>
+              <li class="mb-2"><i class="bi bi-telephone me-2 text-cnjp" aria-hidden="true"></i>Telefone/WhatsApp: <a href="https://wa.me/5511932303870" target="_blank" rel="noopener">(11) 93230-3870</a></li>
+            </ul>
           </div>
         </div>
       </div>
