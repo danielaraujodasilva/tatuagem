@@ -71,12 +71,13 @@ $phases = [
             ],
             [
                 'id' => 'lgpd', 'title' => 'Política de Privacidade e Termos de Uso', 'owner' => 'Assistente redige, Daniel revisa',
-                'prio' => 'P0', 'effort' => '2 h', 'done' => false,
+                'prio' => 'P0', 'effort' => 'concluído (minuta)', 'done' => true,
                 'why' => 'O site coleta nome, telefone e relato do caso, e guarda documentos (PDF/JPG) com retenção de 365 dias. Isso é dado pessoal sob a LGPD. Formulário de lead no Meta exige link de política de privacidade.',
                 'how' => [
-                    'Eu redijo os dois textos em linguagem simples e você revisa.',
-                    'Publicar em /cartorio/politica-de-privacidade e /cartorio/termos.',
-                    'Linkar no rodapé e junto ao formulário de envio.',
+                    'Minuta redigida com base no que o sistema realmente coleta, usa e retém.',
+                    'Publicadas em /cartorio/politica-de-privacidade.php e /cartorio/termos-de-uso.php.',
+                    'Linkadas no rodapé do site e na FAQ (bloco de segurança dos documentos).',
+                    'Falta só preencher os campos de identidade [CNPJ, razão social, endereço, e-mail e WhatsApp] — dependem de você (item identidade).',
                 ],
             ],
             [
@@ -202,9 +203,13 @@ $phases = [
             ],
             [
                 'id' => 'consent', 'title' => 'Aviso de cookies e consentimento (LGPD)', 'owner' => 'Assistente',
-                'prio' => 'P2', 'effort' => '2 h', 'done' => false,
+                'prio' => 'P2', 'effort' => 'concluído', 'done' => true,
                 'why' => 'Ao instalar pixel e GA4, o site passa a rastrear navegação. Um aviso simples de cookies mantém a operação alinhada à LGPD.',
-                'how' => ['Banner discreto com aceite e link para a política de privacidade.'],
+                'how' => [
+                    'Banner discreto com aceite, recusa da medição e link para a política de privacidade.',
+                    'Funciona dormente: só aparece quando houver um ID de rastreamento preenchido no site.',
+                    'A escolha do visitante fica guardada e os scripts de medição escutam o evento de consentimento.',
+                ],
             ],
         ],
     ],
