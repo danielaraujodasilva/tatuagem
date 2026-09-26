@@ -213,7 +213,29 @@ $diaInicialRotulo = $diaParam === 'hoje' ? 'hoje' : ($diaParam === 'amanha' ? 'a
     padding:30px 18px;text-align:center;color:var(--mut);font-size:14px
   }
 
-  footer{margin-top:26px;text-align:center;color:var(--mut);font-size:11.5px;line-height:1.7}
+  /* ---------- cartao do desenvolvedor ---------- */
+  .dev{
+    margin-top:26px;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--r);padding:18px 16px;box-shadow:var(--shadow);text-align:center
+  }
+  .dev .quem{font-size:15.5px;font-weight:700;letter-spacing:-.2px}
+  .dev .quem span{color:var(--mut);font-weight:500}
+  .dev .frase{font-size:13.5px;color:var(--mut);margin:6px 0 14px;line-height:1.5}
+  .dev .acoes{display:flex;flex-direction:column;gap:9px}
+  .dev a{
+    display:flex;align-items:center;justify-content:center;gap:9px;
+    text-decoration:none;font-size:15px;font-weight:600;border-radius:12px;
+    padding:13px 16px;min-height:48px;transition:opacity .15s
+  }
+  .dev a:active{opacity:.75}
+  .dev a.zap{background:var(--ok);color:#fff}
+  .dev a.site{background:var(--card);color:var(--txt);border:1px solid var(--line)}
+  @media (min-width:520px){
+    .dev .acoes{flex-direction:row}
+    .dev .acoes a{flex:1}
+  }
+
+  footer{margin-top:22px;text-align:center;color:var(--mut);font-size:11.5px;line-height:1.7}
 
   /* ---------- desktop: so centraliza e abre um pouco ---------- */
   @media (min-width:700px){
@@ -264,6 +286,21 @@ $diaInicialRotulo = $diaParam === 'hoje' ? 'hoje' : ($diaParam === 'amanha' ? 'a
 
   <div id="lista" aria-live="polite"></div>
   <div class="vazio" id="vazio" hidden>Nada encontrado com esse filtro.<br>Tente outro termo ou limpe a busca.</div>
+
+  <div class="dev">
+    <div class="quem">Feito por Daniel <span>· Tatuador e Programador</span></div>
+    <div class="frase">Precisa de uma página, sistema ou automação assim? Fala comigo no WhatsApp.</div>
+    <div class="acoes">
+      <a class="zap" href="https://wa.me/5511947573311?text=Oi%20Daniel!%20Vi%20a%20p%C3%A1gina%20da%20academia%20e%20quero%20saber%20mais."
+         target="_blank" rel="noopener">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2Zm0 18.13h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.21 8.21 0 0 1-1.26-4.36c0-4.54 3.7-8.24 8.25-8.24a8.2 8.2 0 0 1 8.24 8.25c0 4.54-3.7 8.21-8.24 8.21Zm4.52-6.16c-.25-.12-1.47-.72-1.69-.8-.23-.09-.39-.13-.56.12-.16.25-.64.8-.78.97-.14.16-.29.18-.54.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.38-1.72-.14-.25-.02-.39.11-.51.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43h-.48c-.16 0-.43.06-.66.31-.23.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.16 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.11-.22-.17-.47-.29Z"/>
+        </svg>
+        WhatsApp (11) 94757-3311
+      </a>
+      <a class="site" href="/">Ver o site completo</a>
+    </div>
+  </div>
 
   <footer>Fonte: grade impressa da academia.<br>Horários sujeitos a alteração — confirme na recepção.</footer>
 </div>
