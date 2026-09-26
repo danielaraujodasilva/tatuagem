@@ -4,14 +4,16 @@ declare(strict_types=1);
 /**
  * Grade de horarios da academia - unidade Artur Alvim.
  *
+ * Mobile-first, clean/minimalista (tema claro).
+ *
  * Fonte unica de verdade: dados/grade.json (mesma pasta).
  * A pagina e somente-leitura: filtra por dia, horario, modalidade e busca livre.
  *
- * Como responder perguntas do tipo "hoje que horas tem hidro?":
- *   - "aulas" = grid (Natação, Ginástica, Hidro): modalidade/tipo/hora/fim/dias
+ * Como responder perguntas do tipo "amanha tem natacao que horario?":
+ *   - "aulas" = grid (Natacao, Ginastica, Hidro): modalidade/tipo/hora/fim/dias
  *     dias: 2=seg, 3=ter, 4=qua, 5=qui, 6=sex, 7=sab
- *   - "modalidades_extra" = fora do grid (Taekwondo, Muay Thai, Karaté, Funcional Kids)
- *   - "livre" = Musculação (horário livre)
+ *   - "modalidades_extra" = fora do grid (Taekwondo, Muay Thai, Karate, Funcional Kids)
+ *   - "livre" = Musculacao (horario livre)
  *   - a pagina aceita ?dia=hoje|amanha|2..7&grupo=natacao|ginastica|hidro&q=texto
  */
 
@@ -42,528 +44,457 @@ if ($diaParam === 'hoje') {
     $diaInicial = (int)$diaParam;
 }
 
-$gruposPorModalidade = [];
-foreach ($grade['modalidades'] as $m) {
-    $gruposPorModalidade[$m['id']] = $m;
+/**
+ * JSON seguro para dentro de <script>.
+ * Sem isso um horario como "09:30" pode virar a sequencia </script> (o "</" +
+ * "script" aparece em "...09:30","fim...") e corta o script no meio: a tabela
+ * some e sobra so o cabecalho. Escapa <, >, & e as barras unicode.
+ */
+function json_para_script($valor): string
+{
+    return str_replace(
+        ['<', '>', '&', "\u{2028}", "\u{2029}"],
+        ['\\u003C', '\\u003E', '\\u0026', '\\u2028', '\\u2029'],
+        (string)json_encode($valor, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+    );
 }
+
+// Rotulos amigaveis para os tipos de aula (mostrados no card)
+$diaInicialRotulo = $diaParam === 'hoje' ? 'hoje' : ($diaParam === 'amanha' ? 'amanha' : (string)$diaInicial);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Grade de Horários - Artur Alvim</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Academia">
+<title>Grade de Horários — Artur Alvim</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏊</text></svg>">
 <style>
   :root{
-    --bg:#0e1016; --card:#171a23; --card2:#1e2230; --line:#2b3144;
-    --txt:#eef1f8; --mut:#98a0b5; --acc:#ff4d6d; --acc2:#ffb03a;
-    --hi:#3ddc97; --blue:#5b8cff; --violet:#a06bff; --water:#38bdf8;
-    --r:16px; --sh:0 10px 30px rgba(0,0,0,.35);
+    --bg:#f7f8fa;
+    --card:#ffffff;
+    --txt:#12141a;
+    --mut:#6b7280;
+    --line:#e6e8ec;
+    --line2:#eef0f4;
+    --nat:#2563eb;   --nat-bg:#eff4ff;
+    --gin:#7c3aed;   --gin-bg:#f5f0ff;
+    --hid:#0891b2;   --hid-bg:#ecfbff;
+    --acc:#12141a;
+    --ok:#059669;    --ok-bg:#ecfdf5;
+    --r:14px;
+    --r-sm:10px;
+    --shadow:0 1px 2px rgba(16,20,30,.06), 0 6px 20px -12px rgba(16,20,30,.18);
+    --safe-b:env(safe-area-inset-bottom, 0px);
+    --safe-t:env(safe-area-inset-top, 0px);
   }
-  *{box-sizing:border-box}
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f1116; --card:#171a21; --txt:#eef1f6; --mut:#9aa2b1;
+      --line:#262b36; --line2:#1e232c;
+      --nat:#7ea6ff; --nat-bg:#161f33;
+      --gin:#b79dff; --gin-bg:#1d1830;
+      --hid:#5fd0ec; --hid-bg:#10242b;
+      --acc:#eef1f6;
+      --ok:#4ade80; --ok-bg:#12241c;
+      --shadow:0 1px 2px rgba(0,0,0,.4);
+    }
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
   body{
-    background:
-      radial-gradient(1100px 500px at 12% -8%, rgba(255,77,109,.18), transparent 60%),
-      radial-gradient(900px 480px at 92% 0%, rgba(91,140,255,.16), transparent 60%),
-      var(--bg);
-    color:var(--txt);
-    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-    min-height:100vh;
-    padding:22px 14px calc(40px + env(safe-area-inset-bottom));
+    background:var(--bg);color:var(--txt);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:calc(14px + var(--safe-t)) 14px calc(96px + var(--safe-b));
   }
-  .wrap{max-width:1120px;margin:0 auto}
+  .wrap{max-width:680px;margin:0 auto}
 
-  header.top{
-    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
-    margin-bottom:6px
-  }
-  .brand{
-    width:52px;height:52px;border-radius:14px;flex:0 0 auto;
-    background:linear-gradient(135deg,var(--acc),var(--acc2));
-    display:grid;place-items:center;font-size:26px;box-shadow:var(--sh)
-  }
-  h1{margin:0;font-size:25px;letter-spacing:-.4px}
-  .sub{color:var(--mut);font-size:13.5px;margin-top:2px}
+  /* ---------- cabecalho ---------- */
+  .top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+  .ttl{font-size:19px;font-weight:700;letter-spacing:-.3px;margin:0}
+  .ttl span{display:block;font-size:12.5px;font-weight:500;color:var(--mut);letter-spacing:0;margin-top:1px}
 
-  .hero{
-    margin:18px 0 14px;padding:16px 18px;border-radius:var(--r);
-    background:linear-gradient(135deg,rgba(255,77,109,.14),rgba(91,140,255,.12));
-    border:1px solid var(--line);
-  }
-  .hero .q{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.9px;font-weight:700}
-  .hero .a{font-size:19px;margin-top:6px;font-weight:600;line-height:1.45}
-  .hero .a b{color:var(--acc2)}
-
-  .controles{
-    background:var(--card);border:1px solid var(--line);border-radius:var(--r);
-    padding:14px;box-shadow:var(--sh);margin-bottom:16px
-  }
-  .linha{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .linha + .linha{margin-top:12px}
-  .rotulo{font-size:11.5px;color:var(--mut);font-weight:700;letter-spacing:.8px;text-transform:uppercase;min-width:78px}
-
-  .chip{
-    border:1px solid var(--line);background:var(--card2);color:var(--txt);
-    padding:8px 13px;border-radius:999px;cursor:pointer;font-size:13.5px;
-    font-weight:600;transition:.15s;user-select:none;white-space:nowrap
-  }
-  .chip:hover{border-color:var(--acc);transform:translateY(-1px)}
-  .chip.on{background:linear-gradient(135deg,var(--acc),var(--acc2));border-color:transparent;color:#14161d}
-
-  input[type=search]{
-    flex:1;min-width:210px;background:var(--card2);border:1px solid var(--line);
-    color:var(--txt);border-radius:11px;padding:11px 14px;font-size:14.5px;outline:none
-  }
-  input[type=search]:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(255,77,109,.16)}
-  input[type=time]{
-    background:var(--card2);border:1px solid var(--line);color:var(--txt);
-    border-radius:11px;padding:10px 12px;font-size:14px
-  }
-  .limpar{
-    background:transparent;border:1px solid var(--line);color:var(--mut);
-    border-radius:999px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:600
-  }
-  .limpar:hover{color:var(--txt);border-color:var(--acc)}
-
+  /* ---------- cartao "agora" ---------- */
   .agora{
-    display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--mut);
-    background:rgba(61,220,151,.09);border:1px solid rgba(61,220,151,.28);
-    padding:7px 12px;border-radius:999px;margin-bottom:14px
-  }
-  .pulse{width:8px;height:8px;border-radius:50%;background:var(--hi);box-shadow:0 0 0 0 rgba(61,220,151,.7);animation:p 1.9s infinite}
-  @keyframes p{0%{box-shadow:0 0 0 0 rgba(61,220,151,.65)}70%{box-shadow:0 0 0 11px rgba(61,220,151,0)}100%{box-shadow:0 0 0 0 rgba(61,220,151,0)}}
-
-  .tabela-box{
     background:var(--card);border:1px solid var(--line);border-radius:var(--r);
-    box-shadow:var(--sh);overflow:hidden;margin-bottom:18px
+    padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow);
+    display:flex;gap:11px;align-items:flex-start
   }
-  .tabela-cab{
-    display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
-    padding:14px 16px;border-bottom:1px solid var(--line)
-  }
-  .tabela-cab h2{margin:0;font-size:16.5px}
-  .conta{font-size:12.5px;color:var(--mut)}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);flex:0 0 auto;margin-top:6px;
+    box-shadow:0 0 0 0 rgba(5,150,105,.5);animation:pulse 2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(5,150,105,.45)}70%{box-shadow:0 0 0 9px rgba(5,150,105,0)}100%{box-shadow:0 0 0 0 rgba(5,150,105,0)}}
+  .agora .lbl{font-size:11px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--mut)}
+  .agora .val{font-size:15px;font-weight:600;margin-top:2px;line-height:1.4}
+  .agora .val b{font-weight:700}
+  .agora .hora{font-variant-numeric:tabular-nums}
 
-  .rolagem{overflow-x:auto}
-  table{border-collapse:separate;border-spacing:0;width:100%;min-width:820px}
-  th,td{padding:0;font-size:13.5px}
-  thead th{
-    position:sticky;top:0;z-index:2;background:var(--card2);
-    padding:11px 8px;font-size:12.5px;letter-spacing:.4px;text-transform:uppercase;
-    color:var(--mut);border-bottom:1px solid var(--line);text-align:center
+  /* ---------- filtro de dias (segmented, rola no dedo) ---------- */
+  .dias{
+    display:flex;gap:6px;overflow-x:auto;padding:4px;margin:0 -4px 12px;
+    scrollbar-width:none;-webkit-overflow-scrolling:touch
   }
-  thead th.hora{text-align:left;padding-left:16px;min-width:112px}
-  thead th.hoje{color:var(--acc2);background:rgba(255,176,58,.10)}
-  tbody td.hora{
-    padding:9px 8px 9px 16px;color:var(--mut);font-variant-numeric:tabular-nums;
-    border-bottom:1px solid var(--line);white-space:nowrap;font-size:12.5px;font-weight:600
+  .dias::-webkit-scrollbar{display:none}
+  .dchip{
+    flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--mut);
+    border-radius:999px;padding:9px 15px;font-size:14px;font-weight:600;cursor:pointer;
+    transition:background .15s,color .15s,border-color .15s;min-height:40px;
+    display:inline-flex;align-items:center;gap:5px
   }
-  tbody td.cel{border-bottom:1px solid var(--line);padding:5px;vertical-align:top;text-align:center}
-  tbody td.col-hoje{background:rgba(255,176,58,.045)}
-  tr.linha-oculta{display:none}
+  .dchip.on{background:var(--acc);border-color:var(--acc);color:var(--card)}
+  .dchip small{font-size:11px;opacity:.7;font-weight:500}
+  .dchip.on small{opacity:.85}
 
-  .aula{
-    display:inline-block;border-radius:10px;padding:6px 9px;margin:1px;
-    font-size:12.5px;font-weight:600;line-height:1.25;cursor:default;
-    border:1px solid transparent;white-space:nowrap
+  /* ---------- busca + atividade ---------- */
+  .campo{position:relative;margin-bottom:10px}
+  .campo svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);opacity:.4;pointer-events:none}
+  input[type=search]{
+    width:100%;background:var(--card);border:1px solid var(--line);color:var(--txt);
+    border-radius:12px;padding:13px 14px 13px 40px;font-size:16px;outline:none;
+    font-family:inherit;min-height:48px
   }
-  .aula small{display:block;font-weight:500;font-size:11px;opacity:.85}
-  .m-natacao{background:rgba(91,140,255,.18);border-color:rgba(91,140,255,.42);color:#cfe0ff}
-  .m-ginastica{background:rgba(160,107,255,.17);border-color:rgba(160,107,255,.42);color:#e2d6ff}
-  .m-hidro{background:rgba(56,189,248,.17);border-color:rgba(56,189,248,.45);color:#cdefff}
-  .aula.destaque{outline:2px solid var(--acc2);outline-offset:1px;box-shadow:0 0 16px rgba(255,176,58,.35)}
+  input[type=search]::placeholder{color:var(--mut)}
+  input[type=search]:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(18,20,26,.07)}
 
-  .extras{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:12px}
-  .extra{
-    background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px
+  .grupos{display:flex;gap:7px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .grupos::-webkit-scrollbar{display:none}
+  .gchip{
+    flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--mut);
+    border-radius:999px;padding:8px 14px;font-size:13.5px;font-weight:600;cursor:pointer;
+    min-height:38px;display:inline-flex;align-items:center;gap:6px;
+    transition:background .15s,color .15s,border-color .15s
   }
-  .extra h3{margin:0 0 8px;font-size:15px;display:flex;align-items:center;gap:8px}
-  .extra .faixa{
-    display:flex;justify-content:space-between;gap:10px;font-size:13px;
-    padding:6px 0;border-top:1px dashed var(--line);color:var(--mut)
-  }
-  .extra .faixa:first-of-type{border-top:0}
-  .extra .faixa b{color:var(--txt);font-weight:600}
-  .extra.destacada{border-color:var(--acc2);box-shadow:0 0 18px rgba(255,176,58,.22)}
+  .gchip.on{color:var(--txt);border-color:currentColor;background:var(--card)}
+  .gchip.on[data-grupo=natacao]{color:var(--nat);background:var(--nat-bg)}
+  .gchip.on[data-grupo=ginastica]{color:var(--gin);background:var(--gin-bg)}
+  .gchip.on[data-grupo=hidro]{color:var(--hid);background:var(--hid-bg)}
+  .gchip.on[data-grupo=todos]{background:var(--acc);color:var(--card);border-color:var(--acc)}
 
-  .secao-titulo{
-    margin:22px 0 10px;font-size:12.5px;color:var(--mut);text-transform:uppercase;
-    letter-spacing:1px;font-weight:700
+  /* ---------- lista de aulas (o coracao no celular) ---------- */
+  .cabeca-lista{display:flex;align-items:baseline;justify-content:space-between;margin:6px 2px 8px}
+  .cabeca-lista h2{font-size:14px;font-weight:700;margin:0;letter-spacing:-.1px}
+  .cabeca-lista .conta{font-size:12.5px;color:var(--mut)}
+  #lista{display:flex;flex-direction:column;gap:8px}
+
+  .item{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+    padding:12px 14px;display:flex;gap:12px;align-items:center;box-shadow:var(--shadow)
+  }
+  .item.hj{border-color:var(--ok);background:var(--ok-bg)}
+  .hora{
+    flex:0 0 auto;font-variant-numeric:tabular-nums;font-weight:700;font-size:15px;
+    letter-spacing:-.2px;min-width:96px;display:flex;flex-direction:column;line-height:1.25
+  }
+  .hora small{font-size:11.5px;font-weight:500;color:var(--mut);letter-spacing:0}
+  .info{flex:1;min-width:0}
+  .info .nome{font-weight:700;font-size:15.5px;letter-spacing:-.2px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .info .meta{font-size:12.5px;color:var(--mut);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .tag{
+    font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;
+    background:var(--line2);color:var(--mut);letter-spacing:.2px
+  }
+  .marcador{
+    display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;
+    color:var(--ok);background:var(--ok-bg);border-radius:999px;padding:3px 9px
+  }
+  .sitio{flex:0 0 auto}
+
+  .grupo-bloco{margin-bottom:6px}
+  .grupo-bloco > h3{
+    font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+    color:var(--mut);margin:16px 2px 8px
   }
   .vazio{
-    padding:38px 16px;text-align:center;color:var(--mut);font-size:14px
+    background:var(--card);border:1px dashed var(--line);border-radius:var(--r);
+    padding:30px 18px;text-align:center;color:var(--mut);font-size:14px
   }
-  footer{margin-top:26px;text-align:center;color:#6b7488;font-size:12px;line-height:1.7}
-  @media (max-width:520px){
-    h1{font-size:21px}
-    .hero .a{font-size:16.5px}
-    .rotulo{min-width:100%}
+
+  footer{margin-top:26px;text-align:center;color:var(--mut);font-size:11.5px;line-height:1.7}
+
+  /* ---------- desktop: so centraliza e abre um pouco ---------- */
+  @media (min-width:700px){
+    body{padding-top:28px}
+    .ttl{font-size:22px}
+    .wrap{max-width:760px}
+    #lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:9px}
+    .dias,.grupos{overflow:visible;flex-wrap:wrap}
+    .cabeca-lista h2{font-size:15px}
   }
+  @media (prefers-reduced-motion:reduce){ .dot{animation:none} }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <header class="top">
-    <div class="brand">🏊</div>
+  <div class="top">
+    <h1 class="ttl">Grade de Horários
+      <span>Unidade Artur Alvim</span>
+    </h1>
+  </div>
+
+  <div class="agora" id="caixaAgora" hidden>
+    <div class="dot"></div>
     <div>
-      <h1>Grade de Horários</h1>
-      <div class="sub">Unidade <b>Artur Alvim</b> · atualizado em <?= htmlspecialchars((string)($grade['atualizado_em'] ?? '')) ?></div>
-    </div>
-  </header>
-
-  <div class="agora">
-    <span class="pulse"></span>
-    <span id="agoraTxt">Agora: carregando…</span>
-  </div>
-
-  <div class="hero">
-    <div class="q">Hoje (<?= htmlspecialchars($diasPorId[$hojeId]['longo'] ?? '') ?>)</div>
-    <div class="a" id="resumoHoje">…</div>
-  </div>
-
-  <div class="controles">
-    <div class="linha">
-      <span class="rotulo">Dia</span>
-      <button class="chip" data-dia="hoje">Hoje</button>
-      <button class="chip" data-dia="amanha">Amanhã</button>
-      <?php foreach ($grade['dias'] as $d): ?>
-        <button class="chip" data-dia="<?= (int)$d['id'] ?>"><?= htmlspecialchars($d['curto']) ?></button>
-      <?php endforeach; ?>
-      <button class="chip on" data-dia="todos">Todos</button>
-    </div>
-    <div class="linha">
-      <span class="rotulo">Atividade</span>
-      <button class="chip on" data-grupo="todos">Todas</button>
-      <?php foreach ($grade['modalidades'] as $m): ?>
-        <button class="chip" data-grupo="<?= htmlspecialchars($m['id']) ?>"><?= $m['emoji'] ?> <?= htmlspecialchars($m['nome']) ?></button>
-      <?php endforeach; ?>
-      <?php foreach ($grade['modalidades_extra'] as $m): ?>
-        <button class="chip" data-grupo="<?= htmlspecialchars($m['id']) ?>"><?= $m['emoji'] ?> <?= htmlspecialchars($m['nome']) ?></button>
-      <?php endforeach; ?>
-    </div>
-    <div class="linha">
-      <span class="rotulo">Buscar</span>
-      <input type="search" id="busca" placeholder='Ex.: hidro, natação infantil, pilates, bike, karatê…' value="<?= htmlspecialchars($qParam) ?>">
-      <input type="time" id="horaDe" title="A partir de que horário">
-      <button class="limpar" id="btnLimpar">Limpar</button>
+      <div class="lbl">Agora</div>
+      <div class="val" id="txtAgora"></div>
     </div>
   </div>
 
-  <div class="tabela-box">
-    <div class="tabela-cab">
-      <h2 id="tituloTabela">Grade da semana</h2>
-      <span class="conta" id="conta">—</span>
-    </div>
-    <div class="rolagem">
-      <table id="tabela">
-        <thead>
-          <tr>
-            <th class="hora">Horário</th>
-            <?php foreach ($grade['dias'] as $d): ?>
-              <th class="<?= ((int)$d['id'] === $hojeId) ? 'hoje' : '' ?>"><?= htmlspecialchars($d['curto']) ?></th>
-            <?php endforeach; ?>
-          </tr>
-        </thead>
-        <tbody id="corpo"></tbody>
-      </table>
-    </div>
-    <div class="vazio" id="vazio" style="display:none">Nada encontrado com esse filtro. Tente outro termo ou limpe os filtros.</div>
+  <div class="dias" id="chipsDia" role="tablist" aria-label="Filtrar por dia"></div>
+
+  <div class="campo">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+      <circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/>
+    </svg>
+    <input type="search" id="busca" inputmode="search" autocomplete="off"
+           placeholder="Buscar: hidro, natacao infantil, pilates…"
+           value="<?= htmlspecialchars($qParam) ?>">
   </div>
 
-  <div class="secao-titulo">Modalidades fora do grid</div>
-  <div class="extras" id="extras"></div>
+  <div class="grupos" id="chipsGrupo" aria-label="Filtrar por atividade"></div>
 
-  <div class="secao-titulo">Sem aula marcada</div>
-  <div class="extras" id="livre"></div>
+  <div class="cabeca-lista">
+    <h2 id="tituloLista">Hoje</h2>
+    <span class="conta" id="conta">—</span>
+  </div>
 
-  <footer>
-    Fonte: foto da grade impressa (<?= htmlspecialchars((string)($grade['origem'] ?? '')) ?>).<br>
-    Dados em <code>dados/grade.json</code> — edite lá para corrigir qualquer horário.
-  </footer>
+  <div id="lista" aria-live="polite"></div>
+  <div class="vazio" id="vazio" hidden>Nada encontrado com esse filtro.<br>Tente outro termo ou limpe a busca.</div>
+
+  <footer>Fonte: grade impressa da academia.<br>Horários sujeitos a alteração — confirme na recepção.</footer>
 </div>
 
 <script>
-const GRADE = <?= json_encode($grade, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+const GRADE = <?= json_para_script($grade) ?>;
 const HOJE = <?= (int)$hojeId ?>;
-const PERIODO_ROMANO = {1:'Domingo'};
+const DIA_PARAM = <?= json_para_script($diaInicialRotulo) ?>;
+const GRUPO_PARAM = <?= json_para_script($grupoParam) ?>;
 
-const el = (id) => document.getElementById(id);
-const dias = GRADE.dias;
 const diaPorId = {};
-dias.forEach(d => diaPorId[d.id] = d);
+GRADE.dias.forEach(d => diaPorId[d.id] = d);
 
-// Monta a matriz horarios x dias a partir do JSON
-function montarMatriz(){
-  const porHora = new Map();
-  GRADE.aulas.forEach(a => {
-    const k = a.hora + '-' + a.fim;
-    if (!porHora.has(k)) porHora.set(k, { hora: a.hora, fim: a.fim, celulas: {} });
-    const linha = porHora.get(k);
-    a.dias.forEach(d => {
-      if (!linha.celulas[d]) linha.celulas[d] = [];
-      linha.celulas[d].push({ modalidade: a.modalidade, tipo: a.tipo });
-    });
-  });
-  return Array.from(porHora.values()).sort((a,b) => a.hora.localeCompare(b.hora));
-}
-
-const MATRIZ = montarMatriz();
 const modalidadePorId = {};
 GRADE.modalidades.forEach(m => modalidadePorId[m.id] = m);
 
-let filtroDia = 'todos';
-let filtroGrupo = 'todos';
-let filtroTexto = <?= json_encode(mb_strtolower($qParam)) ?>;
-let filtroHora = '';
+function nomeModalidade(id){
+  if (id === 'musculacao') return GRADE.livre.nome;
+  if (modalidadePorId[id]) return modalidadePorId[id].nome;
+  const ex = GRADE.modalidades_extra.find(m => m.id === id);
+  return ex ? ex.nome : id;
+}
 
-// Normaliza texto: sem acento, sem caixa — "natacao" casa com "Natação"
+// Classe de cor por modalidade (para o ponto de cor no card)
+function classeCor(id){
+  if (id === 'natacao') return 'nat';
+  if (id === 'ginastica') return 'gin';
+  if (id === 'hidro') return 'hid';
+  return '';
+}
+
 function normalizar(s){
   return (s||'').toString().toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
 }
-
-function nomeModalidade(id){
-  if (modalidadePorId[id]) return modalidadePorId[id].nome;
-  const ex = GRADE.modalidades_extra.find(m => m.id === id);
-  if (ex) return ex.nome;
-  if (GRADE.livre && GRADE.livre.nome) return GRADE.livre.nome;
-  return id;
+function paraMin(hhmm){ const p = hhmm.split(':'); return +p[0]*60 + +p[1]; }
+function agoraMin(){ const d = new Date(); return d.getHours()*60 + d.getMinutes(); }
+function hhmm(){
+  const d = new Date();
+  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
 }
 
-function aulaCasa(item, idModalidade){
-  if (filtroGrupo !== 'todos'){
-    if (idModalidade !== filtroGrupo) return false;
-    // Hidro nao tem "tipo"; demais ids de extra/livre tambem nao entram no grid
+// ---- estado dos filtros -------------------------------------------------
+let fDia = DIA_PARAM;      // 'hoje' | 'amanha' | 'todos' | '2'..'7'
+let fGrupo = GRUPO_PARAM || 'todos';
+let fTexto = normalizar(<?= json_para_script($qParam) ?>);
+
+function idDiaResolvido(){
+  if (fDia === 'hoje') return HOJE;
+  if (fDia === 'amanha') return HOJE >= 7 ? 2 : HOJE + 1;
+  if (fDia === 'todos') return null;
+  return parseInt(fDia, 10);
+}
+
+// ---- monta a lista de aulas para o dia escolhido ------------------------
+function aulasDoDia(idDia){
+  const out = [];
+
+  if (idDia === null){
+    // "Todos": uma entrada por aula/dia, agrupada no render
+    GRADE.aulas.forEach(a => a.dias.forEach(d => out.push({
+      hora:a.hora, fim:a.fim, mod:a.modalidade, tipo:a.tipo, dia:d
+    })));
+    GRADE.modalidades_extra.forEach(m => m.faixas.forEach(f => f.dias.forEach(d => out.push({
+      hora:f.hora, fim:f.fim, mod:m.id, tipo:f.tipo, dia:d
+    }))));
+    return out;
   }
-  if (filtroTexto !== ''){
-    const alvo = normalizar([nomeModalidade(idModalidade), item.tipo, item.modalidade, 'aula'].join(' '));
-    if (alvo.indexOf(filtroTexto) === -1) return false;
+
+  GRADE.aulas.forEach(a => {
+    if (a.dias.includes(idDia)) out.push({ hora:a.hora, fim:a.fim, mod:a.modalidade, tipo:a.tipo, dia:idDia });
+  });
+  GRADE.modalidades_extra.forEach(m => m.faixas.forEach(f => {
+    if (f.dias.includes(idDia)) out.push({ hora:f.hora, fim:f.fim, mod:m.id, tipo:f.tipo, dia:idDia });
+  }));
+  return out;
+}
+
+function passaFiltros(a){
+  if (fGrupo !== 'todos' && a.mod !== fGrupo) return false;
+  if (fTexto !== ''){
+    const alvo = normalizar(nomeModalidade(a.mod) + ' ' + a.tipo + ' ' + a.mod);
+    if (alvo.indexOf(fTexto) === -1) return false;
   }
   return true;
 }
 
-function linhaVisivel(linha){
-  if (filtroHora && linha.fim <= filtroHora) return false;
-  if (filtroDia !== 'todos' && filtroDia !== 'hoje' && filtroDia !== 'amanha'){
-    const d = parseInt(filtroDia, 10);
-    const lista = linha.celulas[d] || [];
-    if (!lista.length) return false;
-    if (filtroGrupo !== 'todos' && !lista.some(c => c.modalidade === filtroGrupo)) return false;
-    if (filtroTexto !== '' && !lista.some(c => aulaCasa(c, c.modalidade))) return false;
-    return true;
-  }
-  return true;
-}
-
+// ---- render -------------------------------------------------------------
 function render(){
-  const corpo = el('corpo');
-  corpo.innerHTML = '';
-  let totalAulas = 0;
+  const lista = document.getElementById('lista');
+  const idDia = idDiaResolvido();
+  const agora = agoraMin();
+  const emHoje = (idDia === HOJE);
 
-  MATRIZ.forEach(linha => {
-    const tr = document.createElement('tr');
-    if (!linhaVisivel(linha)){ tr.className = 'linha-oculta'; }
+  let aulas = aulasDoDia(idDia).filter(passaFiltros);
+  aulas.sort((x,y) => x.hora.localeCompare(y.hora));
 
-    const tdHora = document.createElement('td');
-    tdHora.className = 'hora';
-    tdHora.textContent = linha.hora + ' – ' + linha.fim;
-    tr.appendChild(tdHora);
+  lista.innerHTML = '';
 
-    dias.forEach(d => {
-      const td = document.createElement('td');
-      td.className = 'cel' + (d.id === HOJE ? ' col-hoje' : '');
-      (linha.celulas[d.id] || []).forEach(c => {
-        if (filtroDia !== 'todos' && filtroDia !== 'hoje' && filtroDia !== 'amanha'
-            && parseInt(filtroDia,10) !== d.id) return;
-        if (filtroDia === 'hoje' && d.id !== HOJE) return;
-        if (!aulaCasa(c, c.modalidade)) return;
-        totalAulas++;
-        const b = document.createElement('span');
-        b.className = 'aula m-' + c.modalidade;
-        b.innerHTML = '<span>' + nomeModalidade(c.modalidade) + '</span><small>' + c.tipo + '</small>';
-        const agora = agoraNaFaixa(linha.hora, linha.fim) && d.id === HOJE;
-        if (agora) b.className += ' destaque';
-        td.appendChild(b);
-      });
-      tr.appendChild(td);
-    });
-    corpo.appendChild(tr);
-  });
+  // Musculacao (horario livre) entra como um card quando o filtro permite
+  const mostraLivre = (fGrupo === 'todos' || fGrupo === 'musculacao')
+    && (fTexto === '' || normalizar(GRADE.livre.nome + ' ' + GRADE.livre.descricao).indexOf(fTexto) !== -1);
 
-  el('conta').textContent = totalAulas + (totalAulas === 1 ? ' aula listada' : ' aulas listadas');
-  const tabela = el('tabela');
-  const linhasVazias = Array.from(corpo.querySelectorAll('tr'))
-    .every(tr => tr.className === 'linha-oculta');
-  tabela.style.display = linhasVazias ? 'none' : '';
-  el('vazio').style.display = linhasVazias ? '' : 'none';
-  atualizarTitulo();
-  renderResumoHoje();
-}
-
-function atualizarTitulo(){
-  if (filtroDia === 'hoje' || filtroDia === 'amanha'){
-    const id = filtroDia === 'hoje' ? HOJE : (HOJE >= 7 ? 2 : HOJE + 1);
-    const d = diaPorId[id];
-    el('tituloTabela').textContent = (filtroDia === 'hoje' ? 'Hoje' : 'Amanhã') + ' — ' + (d ? d.longo : '');
-  } else if (filtroDia !== 'todos'){
-    const d = diaPorId[parseInt(filtroDia,10)];
-    el('tituloTabela').textContent = (d ? d.longo : 'Grade') + ' — grade do dia';
-  } else {
-    el('tituloTabela').textContent = 'Grade da semana';
+  if (!aulas.length && !mostraLivre || (idDia === 7 && !aulas.length && !mostraLivre)){
+    document.getElementById('vazio').hidden = false;
+    document.getElementById('conta').textContent = '0 aulas';
+    document.getElementById('tituloLista').textContent = titulo();
+    return;
   }
-}
+  document.getElementById('vazio').hidden = true;
 
-function paraMinutos(hhmm){
-  const p = hhmm.split(':');
-  return parseInt(p[0],10)*60 + parseInt(p[1],10);
-}
-function agoraNaFaixa(ini, fim){
-  const agora = new Date();
-  const h = agora.getHours()*60 + agora.getMinutes();
-  return h >= paraMinutos(ini) && h < paraMinutos(fim);
-}
+  const desenha = (arr, diaDeCada) => {
+    arr.forEach(a => {
+      const el = document.createElement('div');
+      el.className = 'item' + ((emHoje && agora >= paraMin(a.hora) && agora < paraMin(a.fim)) ? ' hj' : '');
 
-// Resumo do dia de hoje: o que tem na hora atual + a lista do resto do dia
-function renderResumoHoje(){
-  const agora = new Date();
-  const hAgora = agora.getHours()*60 + agora.getMinutes();
-  const nomeDia = diaPorId[HOJE] ? diaPorId[HOJE].longo : '';
+      const cor = classeCor(a.mod);
+      const rodando = emHoje && agora >= paraMin(a.hora) && agora < paraMin(a.fim);
 
-  const itens = [];
-  GRADE.aulas.forEach(a => {
-    if (!a.dias.includes(HOJE)) return;
-    itens.push({ hora:a.hora, fim:a.fim, modalidade:a.modalidade, tipo:a.tipo });
-  });
-  GRADE.modalidades_extra.forEach(m => {
-    m.faixas.forEach(f => {
-      if (!f.dias.includes(HOJE)) return;
-      itens.push({ hora:f.hora, fim:f.fim, modalidade:m.id, tipo:f.tipo });
+      el.innerHTML =
+        '<div class="hora">' + a.hora + '<small>até ' + a.fim + '</small></div>' +
+        '<div class="info">' +
+          '<div class="nome">' +
+            (cor ? '<span style="width:8px;height:8px;border-radius:50%;background:var(--'+cor+');display:inline-block"></span>' : '') +
+            nomeModalidade(a.mod) +
+          '</div>' +
+          '<div class="meta">' +
+            '<span>' + a.tipo + '</span>' +
+            (diaDeCada ? '<span class="tag">' + (diaPorId[a.dia] ? diaPorId[a.dia].curto : '') + '</span>' : '') +
+          '</div>' +
+        '</div>' +
+        (rodando ? '<div class="sitio"><span class="marcador">● agora</span></div>' : '');
+      lista.appendChild(el);
     });
-  });
-  itens.sort((a,b) => a.hora.localeCompare(b.hora));
+  };
 
-  const agoraAgora = itens.filter(i => hAgora >= paraMinutos(i.hora) && hAgora < paraMinutos(i.fim));
-  const proximas = itens.filter(i => paraMinutos(i.hora) > hAgora).slice(0, 4);
+  desenha(aulas, idDia === null);
 
-  let txt = '';
-  if (agoraAgora.length){
-    txt = 'Acontecendo agora: ' + agoraAgora.map(i =>
-      '<b>' + nomeModalidade(i.modalidade) + '</b> (' + i.tipo + ') até ' + i.fim).join(' · ');
-  } else if (proximas.length){
-    txt = 'A seguir: ' + proximas.map(i =>
-      '<b>' + i.hora + '</b> ' + nomeModalidade(i.modalidade) + ' (' + i.tipo + ')').join(' · ');
-  } else {
-    txt = 'Nenhuma aula no grid agora — musculação segue em horário livre.';
+  if (mostraLivre && idDia !== null){
+    const el = document.createElement('div');
+    el.className = 'item';
+    el.innerHTML =
+      '<div class="hora">Livre<small>o dia todo</small></div>' +
+      '<div class="info"><div class="nome">🏋️ ' + GRADE.livre.nome + '</div>' +
+      '<div class="meta"><span>Sem aula marcada — entra quando quiser</span></div></div>';
+    lista.appendChild(el);
   }
-  el('resumoHoje').innerHTML = txt + '<br><span style="color:var(--mut);font-size:13px">' +
-    itens.length + ' aulas hoje (' + nomeDia + ')</span>';
+
+  document.getElementById('conta').textContent = aulas.length + (aulas.length === 1 ? ' aula' : ' aulas');
+  document.getElementById('tituloLista').textContent = titulo();
 }
 
-// Card "agora": o que esta rolando neste minuto em qualquer modalidade
+function titulo(){
+  if (fDia === 'hoje') return 'Hoje — ' + (diaPorId[HOJE] ? diaPorId[HOJE].longo : '');
+  if (fDia === 'amanha'){
+    const id = HOJE >= 7 ? 2 : HOJE + 1;
+    return 'Amanhã — ' + (diaPorId[id] ? diaPorId[id].longo : '');
+  }
+  if (fDia === 'todos') return 'Semana completa';
+  const d = diaPorId[parseInt(fDia,10)];
+  return d ? d.longo : 'Grade';
+}
+
+// ---- chips --------------------------------------------------------------
+function montarChips(){
+  const cd = document.getElementById('chipsDia');
+  const hoje = diaPorId[HOJE];
+  const amanhaId = HOJE >= 7 ? 2 : HOJE + 1;
+  const amanha = diaPorId[amanhaId];
+
+  const opcoes = [
+    { v:'hoje', rot:'Hoje', sub:hoje ? hoje.curto : '' },
+    { v:'amanha', rot:'Amanhã', sub:amanha ? amanha.curto : '' }
+  ];
+  GRADE.dias.forEach(d => opcoes.push({ v:String(d.id), rot:d.curto, sub:'' }));
+  opcoes.push({ v:'todos', rot:'Semana', sub:'' });
+
+  cd.innerHTML = '';
+  opcoes.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'dchip' + (String(fDia) === String(o.v) ? ' on' : '');
+    b.type = 'button';
+    b.innerHTML = o.rot + (o.sub ? ' <small>' + o.sub + '</small>' : '');
+    b.addEventListener('click', () => {
+      fDia = o.v;
+      if (o.v === 'hoje' || o.v === 'amanha' || o.v === String(HOJE)) fGrupo = fGrupo; // mantem atividade
+      montarChips(); render();
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+    cd.appendChild(b);
+  });
+
+  const cg = document.getElementById('chipsGrupo');
+  const grupos = [{id:'todos', nome:'Todas', emoji:'✦'}]
+    .concat(GRADE.modalidades.map(m => ({id:m.id, nome:m.nome, emoji:m.emoji})))
+    .concat(GRADE.modalidades_extra.map(m => ({id:m.id, nome:m.nome, emoji:m.emoji})))
+    .concat([{id:'musculacao', nome:GRADE.livre.nome, emoji:GRADE.livre.emoji}]);
+
+  cg.innerHTML = '';
+  grupos.forEach(g => {
+    const b = document.createElement('button');
+    b.className = 'gchip' + (fGrupo === g.id ? ' on' : '');
+    b.type = 'button';
+    b.dataset.grupo = g.id;
+    b.textContent = g.emoji + ' ' + g.nome;
+    b.addEventListener('click', () => { fGrupo = g.id; montarChips(); render(); });
+    cg.appendChild(b);
+  });
+}
+
+// ---- faixa "agora" ------------------------------------------------------
 function renderAgora(){
-  const agora = new Date();
-  const h = agora.getHours()*60 + agora.getMinutes();
-  const ativos = [];
-  GRADE.aulas.forEach(a => {
-    if (!a.dias.includes(HOJE)) return;
-    if (h >= paraMinutos(a.hora) && h < paraMinutos(a.fim)) ativos.push(a.modalidade + ':' + a.tipo);
-  });
-  GRADE.modalidades_extra.forEach(m => {
-    m.faixas.forEach(f => {
-      if (!f.dias.includes(HOJE)) return;
-      if (h >= paraMinutos(f.hora) && h < paraMinutos(f.fim)) ativos.push(m.id + ':' + f.tipo);
-    });
-  });
-  const unicos = Array.from(new Set(ativos));
-  const hhmm = String(agora.getHours()).padStart(2,'0') + ':' + String(agora.getMinutes()).padStart(2,'0');
-  el('agoraTxt').textContent = unicos.length
-    ? hhmm + ' · rolando: ' + unicos.map(u => nomeModalidade(u.split(':')[0]) + ' (' + u.split(':')[1] + ')').join(', ')
-    : hhmm + ' · nenhuma aula em andamento';
+  const h = agoraMin();
+  const agora = aulasDoDia(HOJE).filter(a => h >= paraMin(a.hora) && h < paraMin(a.fim));
+  const box = document.getElementById('caixaAgora');
+  if (!agora.length){ box.hidden = true; return; }
+  box.hidden = false;
+  document.getElementById('txtAgora').innerHTML =
+    '<span class="hora">' + hhmm() + '</span> · ' +
+    agora.map(a => '<b>' + nomeModalidade(a.mod) + '</b> (' + a.tipo + ') até ' + a.fim).join(' · ');
 }
 
-// Extras (Taekwondo, Muay Thai, Karate, Funcional Kids) com o mesmo filtro
-function renderExtras(){
-  const box = el('extras');
-  box.innerHTML = '';
-  GRADE.modalidades_extra.forEach(m => {
-    if (filtroGrupo !== 'todos' && filtroGrupo !== m.id) return;
-    if (filtroTexto !== ''){
-      const alvo = normalizar(m.nome + ' ' + m.faixas.map(f => f.tipo).join(' '));
-      if (alvo.indexOf(filtroTexto) === -1) return;
-    }
-    const div = document.createElement('div');
-    div.className = 'extra';
-    if (filtroGrupo === m.id) div.className += ' destacada';
-    let html = '<h3>' + m.emoji + ' ' + m.nome + '</h3>';
-    m.faixas.forEach(f => {
-      const nomes = f.dias.map(d => diaPorId[d] ? diaPorId[d].curto : d).join(' e ');
-      html += '<div class="faixa"><span>' + nomes + ' · ' + f.tipo + '</span><b>' + f.hora + '–' + f.fim + '</b></div>';
-    });
-    div.innerHTML = html;
-    box.appendChild(div);
-  });
-  if (!box.children.length){
-    box.innerHTML = '<div class="vazio" style="grid-column:1/-1">Nenhuma modalidade extra com esse filtro.</div>';
-  }
-}
-
-function renderLivre(){
-  const box = el('livre');
-  const l = GRADE.livre;
-  if (filtroGrupo !== 'todos' && filtroGrupo !== 'musculacao'){ box.innerHTML = ''; return; }
-  if (filtroTexto !== '' && normalizar(l.nome + ' ' + l.descricao).indexOf(filtroTexto) === -1){ box.innerHTML = ''; return; }
-  box.innerHTML = '<div class="extra"><h3>' + l.emoji + ' ' + l.nome + '</h3>' +
-    '<div class="faixa"><span>' + l.descricao + '</span></div></div>';
-}
-
-// Eventos dos chips
-document.querySelectorAll('.chip[data-dia]').forEach(b => {
-  b.addEventListener('click', () => {
-    document.querySelectorAll('.chip[data-dia]').forEach(x => x.classList.remove('on'));
-    b.classList.add('on');
-    filtroDia = b.dataset.dia;
-    render(); renderExtras(); renderLivre();
-  });
-});
-document.querySelectorAll('.chip[data-grupo]').forEach(b => {
-  b.addEventListener('click', () => {
-    document.querySelectorAll('.chip[data-grupo]').forEach(x => x.classList.remove('on'));
-    b.classList.add('on');
-    filtroGrupo = b.dataset.grupo;
-    render(); renderExtras(); renderLivre();
-  });
-});
-el('busca').addEventListener('input', (e) => {
-  filtroTexto = normalizar(e.target.value);
-  render(); renderExtras(); renderLivre();
-});
-el('horaDe').addEventListener('change', (e) => {
-  filtroHora = e.target.value || '';
+// ---- eventos ------------------------------------------------------------
+document.getElementById('busca').addEventListener('input', (e) => {
+  fTexto = normalizar(e.target.value);
   render();
 });
-el('btnLimpar').addEventListener('click', () => {
-  filtroDia = 'todos'; filtroGrupo = 'todos'; filtroTexto = ''; filtroHora = '';
-  el('busca').value = ''; el('horaDe').value = '';
-  document.querySelectorAll('.chip[data-dia]').forEach(x => x.classList.toggle('on', x.dataset.dia === 'todos'));
-  document.querySelectorAll('.chip[data-grupo]').forEach(x => x.classList.toggle('on', x.dataset.grupo === 'todos'));
-  render(); renderExtras(); renderLivre();
-});
 
-// Recorte inicial vindo da URL (?dia=&grupo=&q=)
-(function aplicarUrl(){
-  if (filtroGrupo !== 'todos'){ filtroTexto = filtroTexto; }
-})();
-
-// Primeiro desenho
-document.querySelectorAll('.chip[data-grupo]').forEach(x => {
-  x.classList.toggle('on', x.dataset.grupo === (<?= json_encode($grupoParam !== '' ? $grupoParam : 'todos') ?>));
-});
-filtroGrupo = <?= json_encode($grupoParam !== '' ? $grupoParam : 'todos') ?>;
-filtroDia = <?= json_encode($diaInicial === $hojeId && $diaParam === '' ? 'todos' : ($diaParam === 'hoje' ? 'hoje' : ($diaParam === 'amanha' ? 'amanha' : (string)$diaInicial))) ?>;
-document.querySelectorAll('.chip[data-dia]').forEach(x => x.classList.toggle('on', x.dataset.dia === filtroDia));
-render(); renderExtras(); renderLivre(); renderAgora();
+montarChips();
+render();
+renderAgora();
 setInterval(renderAgora, 30000);
 </script>
 </body>
