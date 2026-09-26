@@ -1,0 +1,108 @@
+{
+  "unidade": "Artur Alvim",
+  "atualizado_em": "2026-09-25",
+  "origem": "Foto da grade de horários impressa (25/09/2026)",
+  "dias": [
+    { "id": 2, "nome": "Segunda", "curto": "2ª", "longo": "2ª feira" },
+    { "id": 3, "nome": "Terça", "curto": "3ª", "longo": "3ª feira" },
+    { "id": 4, "nome": "Quarta", "curto": "4ª", "longo": "4ª feira" },
+    { "id": 5, "nome": "Quinta", "curto": "5ª", "longo": "5ª feira" },
+    { "id": 6, "nome": "Sexta", "curto": "6ª", "longo": "6ª feira" },
+    { "id": 7, "nome": "Sábado", "curto": "Sáb", "longo": "Sábado" }
+  ],
+  "modalidades": [
+    { "id": "natacao", "nome": "Natação", "grupo": "Natação", "emoji": "🏊" },
+    { "id": "ginastica", "nome": "Ginástica", "grupo": "Ginástica", "emoji": "🤸" },
+    { "id": "hidro", "nome": "Hidro", "grupo": "Hidro", "emoji": "💧" }
+  ],
+  "aulas": [
+    { "id": "nat-0630", "modalidade": "natacao", "tipo": "Adulto", "hora": "06:30", "fim": "07:15", "dias": [2,3,4,5,6] },
+    { "id": "nat-0715", "modalidade": "natacao", "tipo": "Adulto", "hora": "07:15", "fim": "08:00", "dias": [2,3,4,5,6] },
+    { "id": "nat-0800", "modalidade": "natacao", "tipo": "Adulto", "hora": "08:00", "fim": "08:45", "dias": [2,3,4,5,6,7] },
+    { "id": "nat-0845-adulto", "modalidade": "natacao", "tipo": "Adulto", "hora": "08:45", "fim": "09:30", "dias": [2,3,4,5,6] },
+    { "id": "nat-0845-infantil", "modalidade": "natacao", "tipo": "Infantil", "hora": "08:45", "fim": "09:30", "dias": [7] },
+    { "id": "nat-0930", "modalidade": "natacao", "tipo": "Infantil", "hora": "09:30", "fim": "10:15", "dias": [2,3,4,5,6,7] },
+    { "id": "nat-1015-infantil", "modalidade": "natacao", "tipo": "Infantil", "hora": "10:15", "fim": "11:00", "dias": [2,3,4,5,6] },
+    { "id": "nat-1015-adulto", "modalidade": "natacao", "tipo": "Adulto", "hora": "10:15", "fim": "11:00", "dias": [7] },
+    { "id": "nat-1100", "modalidade": "natacao", "tipo": "Adulto", "hora": "11:00", "fim": "11:45", "dias": [7] },
+    { "id": "nat-1500", "modalidade": "natacao", "tipo": "Infantil", "hora": "15:00", "fim": "15:45", "dias": [2,3,4,5,6] },
+    { "id": "nat-1545-infantil", "modalidade": "natacao", "tipo": "Infantil", "hora": "15:45", "fim": "16:30", "dias": [2,4,6] },
+    { "id": "nat-1545-adulto", "modalidade": "natacao", "tipo": "Adulto", "hora": "15:45", "fim": "16:30", "dias": [3,5] },
+    { "id": "nat-1630", "modalidade": "natacao", "tipo": "Adulto", "hora": "16:30", "fim": "17:15", "dias": [2,3,4,5,6] },
+    { "id": "nat-1715-adulto", "modalidade": "natacao", "tipo": "Adulto", "hora": "17:15", "fim": "18:00", "dias": [2,4,6] },
+    { "id": "nat-1715-infantil", "modalidade": "natacao", "tipo": "Infantil", "hora": "17:15", "fim": "18:00", "dias": [3,5] },
+    { "id": "nat-1800", "modalidade": "natacao", "tipo": "Infantil", "hora": "18:00", "fim": "18:45", "dias": [2,3,4,5,6] },
+    { "id": "nat-1845", "modalidade": "natacao", "tipo": "Infantil", "hora": "18:45", "fim": "19:30", "dias": [2,3,4,5,6] },
+    { "id": "nat-1930", "modalidade": "natacao", "tipo": "Adulto", "hora": "19:30", "fim": "20:15", "dias": [2,3,4,5,6] },
+    { "id": "nat-2015", "modalidade": "natacao", "tipo": "Adulto", "hora": "20:15", "fim": "21:00", "dias": [2,3,4,5,6] },
+
+    { "id": "gin-0715", "modalidade": "ginastica", "tipo": "Bike", "hora": "07:15", "fim": "08:00", "dias": [2,4] },
+    { "id": "gin-0715-pilates", "modalidade": "ginastica", "tipo": "Pilates", "hora": "07:15", "fim": "08:00", "dias": [3,5] },
+    { "id": "gin-0715-funcional", "modalidade": "ginastica", "tipo": "Funcional", "hora": "07:15", "fim": "08:00", "dias": [6] },
+    { "id": "gin-0800-pilates", "modalidade": "ginastica", "tipo": "Pilates", "hora": "08:00", "fim": "08:45", "dias": [2] },
+    { "id": "gin-0800-absalong", "modalidade": "ginastica", "tipo": "ABS/Along", "hora": "08:00", "fim": "08:45", "dias": [3] },
+    { "id": "gin-0800-gap", "modalidade": "ginastica", "tipo": "GAP", "hora": "08:00", "fim": "08:45", "dias": [4] },
+    { "id": "gin-0800-infinity", "modalidade": "ginastica", "tipo": "Infinitybands", "hora": "08:00", "fim": "08:45", "dias": [5] },
+    { "id": "gin-0930", "modalidade": "ginastica", "tipo": "Bike", "hora": "09:30", "fim": "10:00", "dias": [7] },
+    { "id": "gin-1000", "modalidade": "ginastica", "tipo": "Bike", "hora": "10:00", "fim": "10:30", "dias": [7] },
+    { "id": "gin-1030", "modalidade": "ginastica", "tipo": "ABS", "hora": "10:30", "fim": "11:00", "dias": [7] },
+    { "id": "gin-1100", "modalidade": "ginastica", "tipo": "Along", "hora": "11:00", "fim": "11:30", "dias": [7] },
+    { "id": "gin-1500-zumba", "modalidade": "ginastica", "tipo": "Zumba", "hora": "15:00", "fim": "15:45", "dias": [2,4] },
+    { "id": "gin-1500-bike", "modalidade": "ginastica", "tipo": "Bike", "hora": "15:00", "fim": "15:45", "dias": [3,5] },
+    { "id": "gin-1545", "modalidade": "ginastica", "tipo": "Along", "hora": "15:45", "fim": "16:30", "dias": [2,4] },
+    { "id": "gin-1845-abdomen", "modalidade": "ginastica", "tipo": "Abdomen", "hora": "18:45", "fim": "19:15", "dias": [2,4] },
+    { "id": "gin-1845-infinity", "modalidade": "ginastica", "tipo": "Infinitybands", "hora": "18:45", "fim": "19:15", "dias": [3] },
+    { "id": "gin-1900", "modalidade": "ginastica", "tipo": "Dança Salão", "hora": "19:00", "fim": "19:45", "dias": [5] },
+    { "id": "gin-1915-bike", "modalidade": "ginastica", "tipo": "Bike", "hora": "19:15", "fim": "20:00", "dias": [2,5] },
+    { "id": "gin-1915-pilates", "modalidade": "ginastica", "tipo": "Pilates", "hora": "19:15", "fim": "20:00", "dias": [3,6] },
+    { "id": "gin-1915-gap", "modalidade": "ginastica", "tipo": "GAP", "hora": "19:15", "fim": "20:00", "dias": [4] },
+    { "id": "gin-2000-zumbabike", "modalidade": "ginastica", "tipo": "Zumba/Bike", "hora": "20:00", "fim": "20:45", "dias": [2,4] },
+    { "id": "gin-2000-bike", "modalidade": "ginastica", "tipo": "Bike", "hora": "20:00", "fim": "20:45", "dias": [3] },
+    { "id": "gin-2000-infinity", "modalidade": "ginastica", "tipo": "Infinitybands", "hora": "20:00", "fim": "20:45", "dias": [5] },
+    { "id": "gin-2000-along", "modalidade": "ginastica", "tipo": "Alongamento", "hora": "20:00", "fim": "20:45", "dias": [6] },
+
+    { "id": "hid-0800", "modalidade": "hidro", "tipo": "Hidro", "hora": "08:00", "fim": "08:45", "dias": [2,3,4,5,6] },
+    { "id": "hid-1545", "modalidade": "hidro", "tipo": "Hidro", "hora": "15:45", "fim": "16:30", "dias": [2,3,4,5,6] },
+    { "id": "hid-1930", "modalidade": "hidro", "tipo": "Hidro", "hora": "19:30", "fim": "20:15", "dias": [2,3,4,5,6] }
+  ],
+  "modalidades_extra": [
+    {
+      "id": "taekwondo",
+      "nome": "Taekwondo",
+      "emoji": "🥋",
+      "faixas": [
+        { "hora": "19:00", "fim": "20:00", "tipo": "4 a 8 anos", "dias": [3,5] },
+        { "hora": "20:00", "fim": "21:00", "tipo": "9 a 15 anos", "dias": [3,5] }
+      ]
+    },
+    {
+      "id": "muaythai",
+      "nome": "Muay Thai",
+      "emoji": "🥊",
+      "faixas": [
+        { "hora": "19:15", "fim": "20:15", "tipo": "Muay Thai", "dias": [2,4] }
+      ]
+    },
+    {
+      "id": "karate",
+      "nome": "Karatê",
+      "emoji": "🥋",
+      "faixas": [
+        { "hora": "10:30", "fim": "12:00", "tipo": "a partir de 13 anos", "dias": [7] }
+      ]
+    },
+    {
+      "id": "funcionalkids",
+      "nome": "Funcional Kids",
+      "emoji": "🧒",
+      "faixas": [
+        { "hora": "16:00", "fim": "16:45", "tipo": "Funcional Kids", "dias": [3,5] }
+      ]
+    }
+  ],
+  "livre": {
+    "nome": "Musculação",
+    "emoji": "🏋️",
+    "descricao": "Horário livre — sem aula marcada, entra quando quiser no horário de funcionamento."
+  }
+}
