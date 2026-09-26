@@ -289,7 +289,7 @@ $diaInicialRotulo = $diaParam === 'hoje' ? 'hoje' : ($diaParam === 'amanha' ? 'a
 
   <div class="dev">
     <div class="quem">Feito por Daniel <span>· Tatuador e Programador</span></div>
-    <div class="frase">Precisa de uma página, sistema ou automação assim? Fala comigo no WhatsApp.</div>
+    <div class="frase">Precisa de uma página, sistema, automação ou tatuagem? Fala comigo no WhatsApp.</div>
     <div class="acoes">
       <a class="zap" href="https://wa.me/5511947573311?text=Oi%20Daniel!%20Vi%20a%20p%C3%A1gina%20da%20academia%20e%20quero%20saber%20mais."
          target="_blank" rel="noopener">
