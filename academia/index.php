@@ -71,7 +71,7 @@ $diaInicialRotulo = $diaParam === 'hoje' ? 'hoje' : ($diaParam === 'amanha' ? 'a
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Academia">
-<title>Grade de Horários — Artur Alvim</title>
+<title>Grade de Horário da Academia Dandy — Artur Alvim</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏊</text></svg>">
 <style>
   :root{
@@ -253,7 +253,7 @@ $diaInicialRotulo = $diaParam === 'hoje' ? 'hoje' : ($diaParam === 'amanha' ? 'a
 <div class="wrap">
 
   <div class="top">
-    <h1 class="ttl">Grade de Horários
+    <h1 class="ttl">Grade de Horário da Academia Dandy
       <span>Unidade Artur Alvim</span>
     </h1>
   </div>
