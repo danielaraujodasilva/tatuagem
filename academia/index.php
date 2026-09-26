@@ -94,14 +94,14 @@ $diaInicialRotulo = $diaParam === 'hoje' ? 'hoje' : ($diaParam === 'amanha' ? 'a
   }
   @media (prefers-color-scheme: dark){
     :root{
-      --bg:#0f1116; --card:#171a21; --txt:#eef1f6; --mut:#9aa2b1;
-      --line:#262b36; --line2:#1e232c;
-      --nat:#7ea6ff; --nat-bg:#161f33;
-      --gin:#b79dff; --gin-bg:#1d1830;
-      --hid:#5fd0ec; --hid-bg:#10242b;
-      --acc:#eef1f6;
-      --ok:#4ade80; --ok-bg:#12241c;
-      --shadow:0 1px 2px rgba(0,0,0,.4);
+      --bg:#f7f8fa; --card:#ffffff; --txt:#12141a; --mut:#6b7280;
+      --line:#e6e8ec; --line2:#eef0f4;
+      --nat:#2563eb; --nat-bg:#eff4ff;
+      --gin:#7c3aed; --gin-bg:#f5f0ff;
+      --hid:#0891b2; --hid-bg:#ecfbff;
+      --acc:#12141a;
+      --ok:#059669; --ok-bg:#ecfdf5;
+      --shadow:0 1px 2px rgba(16,20,30,.06), 0 6px 20px -12px rgba(16,20,30,.18);
     }
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
