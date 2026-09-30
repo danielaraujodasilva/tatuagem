@@ -38,20 +38,11 @@ function crm_config(): array
     return $config;
 }
 
-function crm_db(): PDO
+function crm_database_candidates(): array
 {
-    static $pdo = null;
-    if ($pdo instanceof PDO) {
-        return $pdo;
-    }
-
     $config = crm_config();
-    $host = (string)($config['host'] ?? 'localhost');
-    $port = (int)($config['port'] ?? 3306);
-    $user = (string)($config['username'] ?? 'root');
-    $pass = (string)($config['password'] ?? '');
-
     $candidates = [];
+
     if (!empty($config['database'])) {
         $candidates[] = (string)$config['database'];
     }
@@ -61,29 +52,30 @@ function crm_db(): PDO
         }
     }
 
-    $erro = null;
-    foreach ($candidates as $database) {
-        try {
-            $candidate = new PDO(
-                "mysql:host={$host};port={$port};dbname={$database};charset=utf8mb4",
-                $user,
-                $pass,
-                [
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES => false,
-                ]
-            );
-            $candidate->query('SELECT 1 FROM whatsapp_conversations LIMIT 1');
-            $pdo = $candidate;
+    return $candidates;
+}
 
-            return $pdo;
-        } catch (Throwable $e) {
-            $erro = $e;
-        }
-    }
+function crm_connect(string $database): PDO
+{
+    $config = crm_config();
+    $host = (string)($config['host'] ?? 'localhost');
+    $port = (int)($config['port'] ?? 3306);
+    $user = (string)($config['username'] ?? 'root');
+    $pass = (string)($config['password'] ?? '');
 
-    throw new RuntimeException('Nao foi possivel conectar ao banco do CRM: ' . ($erro ? $erro->getMessage() : 'configuracao ausente'));
+    $pdo = new PDO(
+        "mysql:host={$host};port={$port};dbname={$database};charset=utf8mb4",
+        $user,
+        $pass,
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+        ]
+    );
+    $pdo->query('SELECT 1 FROM whatsapp_conversations LIMIT 1');
+
+    return $pdo;
 }
 
 function crm_nome_exibicao(?string $nome, string $fone): string
@@ -121,37 +113,53 @@ function crm_oportunidades(): array
               FROM whatsapp_conversations c
              WHERE c.id IN ({$placeholders})";
 
-    $stmt = crm_db()->prepare($sql);
-    $stmt->execute($ids);
-    $conversas = $stmt->fetchAll();
-
-    $linhas = [];
-    foreach ($conversas as $conversa) {
-        $id = (int)$conversa['id'];
-        if (!isset($analise[$id])) {
+    $erro = null;
+    foreach (crm_database_candidates() as $database) {
+        try {
+            $stmt = crm_connect($database)->prepare($sql);
+            $stmt->execute($ids);
+            $conversas = $stmt->fetchAll();
+        } catch (Throwable $e) {
+            $erro = $e;
             continue;
         }
 
-        [$nota, $situacao, $origem, $resumo] = array_pad($analise[$id], 4, '');
-        $fone = preg_replace('/\D/', '', (string)$conversa['phone']) ?? '';
-        if ($fone === '') {
-            continue;
+        $linhas = [];
+        foreach ($conversas as $conversa) {
+            $id = (int)$conversa['id'];
+            if (!isset($analise[$id])) {
+                continue;
+            }
+
+            [$nota, $situacao, $origem, $resumo] = array_pad($analise[$id], 4, '');
+            $fone = preg_replace('/\D/', '', (string)$conversa['phone']) ?? '';
+            if ($fone === '') {
+                continue;
+            }
+
+            $ultimo = $conversa['ultimo_contato'];
+            $linhas[] = [
+                'id' => $id,
+                'n' => crm_nome_exibicao($conversa['name'] ?? null, $fone),
+                'f' => $fone,
+                's' => (int)$nota,
+                'st' => (string)$situacao,
+                'o' => (string)$origem,
+                'd' => $ultimo ? date('d/m', strtotime((string)$ultimo)) : '',
+                'r' => (string)$resumo,
+            ];
         }
 
-        $ultimo = $conversa['ultimo_contato'];
-        $linhas[] = [
-            'id' => $id,
-            'n' => crm_nome_exibicao($conversa['name'] ?? null, $fone),
-            'f' => $fone,
-            's' => (int)$nota,
-            'st' => (string)$situacao,
-            'o' => (string)$origem,
-            'd' => $ultimo ? date('d/m', strtotime((string)$ultimo)) : '',
-            'r' => (string)$resumo,
-        ];
+        if ($linhas !== []) {
+            usort($linhas, static fn(array $a, array $b): int => $b['s'] <=> $a['s']);
+
+            return $linhas;
+        }
     }
 
-    usort($linhas, static fn(array $a, array $b): int => $b['s'] <=> $a['s']);
+    if ($erro !== null) {
+        throw new RuntimeException('Nao foi possivel ler as conversas no banco do CRM: ' . $erro->getMessage());
+    }
 
-    return $linhas;
+    return [];
 }
