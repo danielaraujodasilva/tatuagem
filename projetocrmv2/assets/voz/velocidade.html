@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Velocidade da Irene · escolha o ritmo</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--ink:#12161f;--muted:#69707d;--line:#e7e9ee;--brand:#e11d28;--brand-soft:#fdeeee;--soft:#f2f3f6;--green:#15a34a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);line-height:1.5;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.shell{width:min(760px,calc(100vw - 24px));margin:0 auto;padding:22px 0 60px}
+.top{display:flex;align-items:center;gap:13px;margin-bottom:18px}
+.logo{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;font-weight:800;color:#fff;background:linear-gradient(160deg,#ff5a5f,#e11d28);box-shadow:0 8px 20px rgba(225,29,40,.28)}
+h1{margin:0;font-size:1.1rem;font-weight:800}
+.top p{margin:1px 0 0;color:var(--muted);font-size:.78rem}
+.kick{font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--brand);margin-bottom:6px}
+h2{margin:0 0 6px;font-size:clamp(1.25rem,4vw,1.6rem);font-weight:800;letter-spacing:-.02em}
+.lead{margin:0 0 18px;color:var(--muted);font-size:.9rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 1px 2px rgba(16,24,40,.05),0 10px 28px rgba(16,24,40,.06);padding:16px;margin-bottom:14px}
+.frase{font-size:.92rem;font-weight:600;margin:0 0 12px}
+.picks{display:flex;gap:8px;flex-wrap:wrap}
+.pick{border:1px solid var(--line);background:var(--soft);color:var(--muted);font:inherit;font-weight:700;font-size:.8rem;padding:10px 14px;border-radius:12px;cursor:pointer;display:flex;flex-direction:column;gap:2px;align-items:flex-start;min-width:104px}
+.pick.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.pick small{font-weight:600;font-size:.68rem;opacity:.75}
+.ondas{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+.onw{flex:1 1 200px;background:var(--soft);border-radius:13px;padding:12px}
+.onw b{display:block;font-size:.86rem}
+.onw span{color:var(--muted);font-size:.75rem}
+.onw .choose{margin-top:8px;border:0;background:var(--brand);color:#fff;font:inherit;font-weight:700;font-size:.76rem;padding:8px 12px;border-radius:10px;cursor:pointer;width:100%}
+.escolhido{margin-top:14px;background:var(--green);color:#fff;border-radius:14px;padding:14px;font-weight:700;font-size:.86rem}
+.escolhido span{font-weight:600;font-size:.78rem;display:block;opacity:.9;margin-top:3px}
+.note{background:var(--soft);color:var(--muted);border-radius:13px;padding:12px 14px;font-size:.8rem}
+.rodape{text-align:center;color:var(--muted);font-size:.75rem;margin-top:22px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top">
+    <div class="logo">IR</div>
+    <div><h1>Irene &middot; voz do est&uacute;dio</h1><p>projetocrmv2 &middot; ajuste do ritmo</p></div>
+  </div>
+
+  <div class="kick">ouvir e escolher</div>
+  <h2>Qual velocidade fica com a cara do est&uacute;dio?</h2>
+  <p class="lead">Mesmas frases que a gente j&aacute; manda no WhatsApp, na voz que vai responder. Toca nas tr&ecirc;s e escolhe a que soa natural pra voc&ecirc;.</p>
+
+  <div class="card">
+    <p class="frase">&ldquo;Show! A sess&atilde;o pra esse trampo fica 699. Se preferir com a pomada anest&eacute;sica, fica 1100. Como voc&ecirc; prefere?&rdquo;</p>
+    <div class="picks" data-frase="preco">
+      <button class="pick" data-src="amostras/vel-preco-p14.mp3">Normal<small>+14% &middot; a que voc&ecirc; ouviu</small></button>
+      <button class="pick" data-src="amostras/vel-preco-p24.mp3">Mais r&aacute;pida<small>+24% &middot; a que est&aacute; no sistema</small></button>
+      <button class="pick" data-src="amostras/vel-preco-p30.mp3">Bem r&aacute;pida<small>+30%</small></button>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="frase">&ldquo;Boa noite! Aqui no Est&uacute;dio Daniel Araujo a gente transforma sua ideia em tatuagem. Como posso te ajudar hoje?&rdquo;</p>
+    <div class="picks" data-frase="abertura">
+      <button class="pick" data-src="amostras/vel-abertura-p14.mp3">Normal<small>+14%</small></button>
+      <button class="pick" data-src="amostras/vel-abertura-p24.mp3">Mais r&aacute;pida<small>+24%</small></button>
+      <button class="pick" data-src="amostras/vel-abertura-p30.mp3">Bem r&aacute;pida<small>+30%</small></button>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="frase">&ldquo;Oi? Bora retomar o agendamento da sua tatuagem? Tenho vaga pra domingo, quer aproveitar?&rdquo;</p>
+    <div class="picks" data-frase="followup">
+      <button class="pick" data-src="amostras/vel-followup-p14.mp3">Normal<small>+14%</small></button>
+      <button class="pick" data-src="amostras/vel-followup-p24.mp3">Mais r&aacute;pida<small>+24%</small></button>
+      <button class="pick" data-src="amostras/vel-followup-p30.mp3">Bem r&aacute;pida<small>+30%</small></button>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="frase" style="margin-bottom:6px">Fechou a escolha?</p>
+    <div class="ondas">
+      <div class="onw"><b>+14%</b><span>calma, parecida com a atual</span><button class="choose" data-r="+14%">escolher +14%</button></div>
+      <div class="onw"><b>+24%</b><span>r&aacute;pida e ainda com calor (padr&atilde;o hoje)</span><button class="choose" data-r="+24%">escolher +24%</button></div>
+      <div class="onw"><b>+30%</b><span>a mais acelerada que ainda soa natural</span><button class="choose" data-r="+30%">escolher +30%</button></div>
+    </div>
+    <div id="saida" style="display:none" class="escolhido"></div>
+  </div>
+
+  <div class="note">A voz &eacute; a mesma em todas: s&oacute; muda o ritmo. Nada disso fala com cliente ainda &mdash; &eacute; s&oacute; para voc&ecirc; escolher. Depois de escolher, &eacute; s&oacute; me dizer por aqui.</div>
+  <p class="rodape">projetocrmv2 &middot; amostras geradas no est&uacute;dio</p>
+</div>
+<script>
+var audio = new Audio();
+document.addEventListener('click', function (ev) {
+  var b = ev.target.closest ? ev.target.closest('.pick, .choose') : null;
+  if (!b) { return; }
+  if (b.classList.contains('pick')) {
+    var irmaos = b.parentNode.querySelectorAll('.pick');
+    for (var i = 0; i < irmaos.length; i++) { irmaos[i].classList.remove('on'); }
+    b.classList.add('on');
+    audio.pause();
+    audio.src = b.getAttribute('data-src');
+    audio.play().catch(function(){});
+    return;
+  }
+  var r = b.getAttribute('data-r');
+  var saida = document.getElementById('saida');
+  saida.style.display = 'block';
+  saida.innerHTML = 'Escolhido: <b>' + r + '</b><span>me diz por aqui &ldquo;quero ' + r + '&rdquo; que eu fixo no sistema todo.</span>';
+  var todos = document.querySelectorAll('.choose');
+  for (var j = 0; j < todos.length; j++) { todos[j].style.opacity = '0.6'; }
+  b.style.opacity = '1';
+});
+</script>
+</body>
+</html>
