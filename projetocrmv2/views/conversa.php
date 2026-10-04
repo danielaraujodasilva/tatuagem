@@ -221,8 +221,8 @@ v2_layout_top('conversa', 'WhatsApp');
           <span class="fsep" style="margin-left:auto"></span>
           <label class="fsep" for="ireneTom">tom</label>
           <select class="fsel" id="ireneTom">
-            <option value="calor_rapido" selected>com calor (mais rápido)</option>
-            <option value="calor">com calor (original)</option>
+            <option value="calor_rapido" selected>com calor · ritmo do estúdio (escolhido)</option>
+            <option value="calor">com calor (mais devagar)</option>
             <option value="animada">animada</option>
             <option value="serena">serena</option>
             <option value="">padrão</option>

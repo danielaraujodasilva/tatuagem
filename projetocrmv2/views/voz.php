@@ -9,7 +9,7 @@ $engines = [
     'windows' => ['nome' => 'Voz do Windows (nativa)', 'desc' => 'Já instalada, zero setup, qualidade média.', 'tags' => [['offline', 'ok'], ['grátis', 'ok'], ['instantânea', 'ok']], 'demo' => 'irene-windows-calor'],
 ];
 
-$rotulos = ['natural' => 'como está hoje', 'calor' => 'com calor', 'animada' => 'animada', 'serena' => 'serena'];
+$rotulos = ['natural' => 'como está hoje', 'calor' => 'com calor', 'calor_rapido' => 'com calor (ritmo do estúdio)', 'animada' => 'animada', 'serena' => 'serena'];
 $frase = 'Oi, Ricardo! Que bom que você gostou do leão. O fechamento de costas a gente faz numa sessão só, e eu já separei um domingo pra você. Me manda seu nome completo que eu reservo.';
 
 $link = static function (string $engine, string $variacao, string $frase): string {
@@ -54,7 +54,7 @@ v2_layout_top('voz', 'Voz');
       <audio class="audio" controls preload="none" src="assets/voz/voz-edge-natural.mp3"></audio>
     </div>
     <div class="vcard" style="border-color:var(--brand)">
-      <div class="vt"><div class="ic">✨</div><div><h4>Com calor</h4><p>9% mais devagar, tom 3Hz mais baixo. É a que eu usaria com cliente.</p></div></div>
+      <div class="vt"><div class="ic">✨</div><div><h4>Com calor</h4><p>Tom 3Hz mais baixo, no ritmo do estúdio (+30%). É a voz que responde em áudio.</p></div></div>
       <div class="tags"><span class="tag best">recomendada</span><span class="tag ok">-9% ritmo</span><span class="tag ok">-3Hz tom</span></div>
       <audio class="audio" controls preload="none" src="assets/voz/voz-edge-calor.mp3"></audio>
     </div>

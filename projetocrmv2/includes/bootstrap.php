@@ -155,6 +155,7 @@ function v2_paginas(): array
         'aprendizado' => ['label' => 'Aprendizado', 'icon' => '📚'],
         'rotina' => ['label' => 'Rotina', 'icon' => '🔁'],
         'voz' => ['label' => 'Voz', 'icon' => '🎤'],
+        'simulador' => ['label' => 'Simulador', 'icon' => '🎭'],
     ];
 }
 
@@ -509,7 +510,7 @@ function v2_tts_presets(): array
             'padrao' => ['rate' => '+4%', 'pitch' => '+2Hz', 'volume' => '+0%'],
             'variacoes' => [
                 'calor' => ['rate' => '+14%', 'pitch' => '-3Hz'],
-                'calor_rapido' => ['rate' => '+24%', 'pitch' => '-3Hz'],
+                'calor_rapido' => ['rate' => '+30%', 'pitch' => '-3Hz'],
                 'animada' => ['rate' => '+24%', 'pitch' => '+9Hz'],
                 'serena' => ['rate' => '-6%', 'pitch' => '-6Hz'],
             ],
@@ -518,7 +519,7 @@ function v2_tts_presets(): array
             'padrao' => ['length_scale' => 0.98, 'sentence_silence' => 0.32, 'noise_scale' => 0.667, 'noise_w' => 0.8],
             'variacoes' => [
                 'calor' => ['length_scale' => 1.06, 'sentence_silence' => 0.48],
-                'calor_rapido' => ['length_scale' => 0.92, 'sentence_silence' => 0.30],
+                'calor_rapido' => ['length_scale' => 0.88, 'sentence_silence' => 0.26],
                 'animada' => ['length_scale' => 0.90, 'sentence_silence' => 0.16],
                 'serena' => ['length_scale' => 1.22, 'sentence_silence' => 0.55],
             ],
@@ -527,7 +528,7 @@ function v2_tts_presets(): array
             'padrao' => ['speed' => 1.02, 'pausa_ms' => 220],
             'variacoes' => [
                 'calor' => ['speed' => 0.96, 'pausa_ms' => 300],
-                'calor_rapido' => ['speed' => 1.08, 'pausa_ms' => 220],
+                'calor_rapido' => ['speed' => 1.14, 'pausa_ms' => 190],
                 'animada' => ['speed' => 1.12, 'pausa_ms' => 120],
                 'serena' => ['speed' => 0.90, 'pausa_ms' => 400],
             ],
@@ -536,7 +537,7 @@ function v2_tts_presets(): array
             'padrao' => ['rate' => 0],
             'variacoes' => [
                 'calor' => ['rate' => -2],
-                'calor_rapido' => ['rate' => 1],
+                'calor_rapido' => ['rate' => 3],
                 'animada' => ['rate' => 2],
             ],
         ],
@@ -614,4 +615,15 @@ function v2_desde(?string $data): string
         return 'há ' . $dias . ' dia' . ($dias > 1 ? 's' : '');
     }
     return date('d/m/Y', (int)strtotime($data));
+}
+
+/** Modelos locais (Ollama) que o simulador pode usar. */
+function v2_irene_modelos(): array
+{
+    return [
+        'llama3:8b' => 'llama3:8b · padrão (o mesmo do CRM)',
+        'qwen2.5:7b' => 'qwen2.5:7b · mais caprichosa',
+        'llama3.1:8b' => 'llama3.1:8b · alternativa',
+        'llama3.2:3b' => 'llama3.2:3b · mais rápida e mais simples',
+    ];
 }
