@@ -243,7 +243,7 @@ v2_layout_top('conversa', 'WhatsApp');
 </div>
 
 <script>
-var TTS_ENGINE = <?= json_encode((string)(v2_config()['tts_engine'] ?? 'windows')) ?>;
+var VOZ = <?= json_encode(v2_voz_atual(), JSON_UNESCAPED_UNICODE) ?>;
 var IRENE_ID = <?= json_encode($id) ?>;
 var IRENE_SUGESTAO = <?= json_encode((string)($sugestao['texto'] ?? '')) ?>;
 (function () {
@@ -264,8 +264,11 @@ var IRENE_SUGESTAO = <?= json_encode((string)($sugestao['texto'] ?? '')) ?>;
     if (!t) { av.textContent = 'escreva algo antes de ouvir'; return; }
     audio.style.display = 'block';
     av.textContent = 'gerando áudio...';
-    audio.src = 'api/tts.php?engine=' + encodeURIComponent(TTS_ENGINE)
-      + '&v=' + encodeURIComponent(tom ? tom.value : '')
+    audio.src = 'api/tts.php?engine=' + encodeURIComponent(VOZ.engine)
+      + '&voice=' + encodeURIComponent(VOZ.voz)
+      + '&v=' + encodeURIComponent(tom && tom.value ? tom.value : VOZ.variacao)
+      + '&vel=' + encodeURIComponent(VOZ.vel)
+      + '&tom=' + encodeURIComponent(VOZ.tom)
       + '&text=' + encodeURIComponent(t) + '&t=' + Date.now();
     audio.onerror = function () { av.textContent = 'não consegui gerar o áudio agora'; };
     audio.onloadeddata = function () { av.textContent = 'áudio pronto · nada foi enviado'; };

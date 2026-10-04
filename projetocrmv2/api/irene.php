@@ -197,11 +197,19 @@ if ($resposta === '') {
     $motor = 'playbook do estúdio (IA local indisponível)';
 }
 
+$vozSistema = v2_voz_atual();
+
 echo json_encode([
     'ok' => true,
     'resposta' => $resposta,
     'motor' => $motor,
     'aviso' => $aviso,
-    'audio' => 'api/tts.php?engine=' . rawurlencode((string)(v2_config()['tts_engine'] ?? 'windows'))
-        . '&v=calor_rapido&text=' . rawurlencode($resposta),
+    'audio' => 'api/tts.php?' . http_build_query([
+        'engine' => $vozSistema['engine'],
+        'voice' => $vozSistema['voz'],
+        'v' => $vozSistema['variacao'],
+        'vel' => (string)$vozSistema['vel'],
+        'tom' => (string)$vozSistema['tom'],
+        'text' => $resposta,
+    ], '', '&', PHP_QUERY_RFC3986),
 ], JSON_UNESCAPED_UNICODE);

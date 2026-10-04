@@ -77,9 +77,20 @@ $exemplos = [
     'retomada' => ['Oi? Bora retomar o agendamento da sua tatuagem?', 'Opa, e ae, bora retomar?', 'tenho vaga pra domingo, quer aproveitar?'],
 ];
 
-$vozAtual = (string)(v2_config()['tts_engine'] ?? 'windows');
+$vozAtual = v2_voz_atual();
 $demoVoz = is_file(__DIR__ . '/../assets/voz/voz-edge-calor.mp3') ? 'assets/voz/voz-edge-calor.mp3' : '';
-$podeOuvir = $demoVoz !== '' || v2_tts_available($vozAtual);
+$podeOuvir = v2_tts_available($vozAtual['engine']) || $demoVoz !== '';
+$fraseAmostra = 'Oi, Ricardo! Aqui é a Irene, do estúdio do Daniel. Vi que você gostou do leão, bora retomar o agendamento? Eu tenho vaga pra domingo 🔥';
+$linkVoz = v2_tts_available($vozAtual['engine'])
+    ? 'api/tts.php?' . http_build_query([
+        'engine' => $vozAtual['engine'],
+        'voice' => $vozAtual['voz'],
+        'v' => $vozAtual['variacao'],
+        'vel' => (string)$vozAtual['vel'],
+        'tom' => (string)$vozAtual['tom'],
+        'text' => $fraseAmostra,
+    ], '', '&', PHP_QUERY_RFC3986)
+    : $demoVoz;
 
 v2_layout_top('aprendizado', 'Aprendizado');
 ?>
@@ -160,7 +171,7 @@ v2_layout_top('aprendizado', 'Aprendizado');
     <p class="sect">🎧 Ouça eu falando do jeito deles</p>
     <?php if ($podeOuvir): ?>
       <p style="color:var(--muted);font-size:.83rem;margin:0 0 10px">Frase montada 100% com o vocabulário real do histórico:</p>
-      <audio class="audio" controls preload="none" src="<?= v2_h($demoVoz !== '' ? $demoVoz : 'api/tts.php?engine=' . urlencode($vozAtual) . '&v=calor&text=' . urlencode('Oi, Ricardo! Aqui é a Ellen, do estúdio do Daniel. Vi que você gostou do leão, bora retomar o agendamento? Eu tenho vaga pra domingo 🔥')) ?>"></audio>
+      <audio class="audio" controls preload="none" src="<?= v2_h($linkVoz) ?>"></audio>
       <div class="note n-green" style="margin-top:10px">Mesma fala, motores diferentes: compare na aba <a href="index.php?page=voz">Voz</a>.</div>
     <?php else: ?>
       <div class="note n-amber">Nenhum motor de voz configurado neste ambiente.</div>

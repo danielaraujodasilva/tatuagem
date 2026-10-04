@@ -562,6 +562,159 @@ function v2_tts_prosodia(string $engine, string $variant): array
     return $p;
 }
 
+/* ---------- A voz escolhida na tela Voz (salva e usada pelo sistema) ---------- */
+
+/** Voz = numero inteiro com sinal, no formato que o edge-tts aceita. */
+function v2_voz_pct(int $n): string
+{
+    return ($n >= 0 ? '+' : '') . $n . '%';
+}
+
+function v2_voz_hz(int $n): string
+{
+    return ($n >= 0 ? '+' : '') . $n . 'Hz';
+}
+
+/** Nomes de voz disponiveis em cada motor (o valor e o que o motor aceita). */
+function v2_voz_opcoes(): array
+{
+    return [
+        'edge' => [
+            'pt-BR-FranciscaNeural' => 'Francisca · feminina, a mais natural',
+            'pt-BR-ThalitaNeural' => 'Thalita · feminina, jovem',
+            'pt-BR-YaraNeural' => 'Yara · feminina, leve',
+            'pt-BR-GiovannaNeural' => 'Giovanna · feminina',
+            'pt-BR-ManuelaNeural' => 'Manuela · feminina',
+            'pt-BR-BrendaNeural' => 'Brenda · feminina',
+            'pt-BR-ElzaNeural' => 'Elza · feminina, madura',
+            'pt-BR-LeilaNeural' => 'Leila · feminina, madura',
+            'pt-BR-LeticiaNeural' => 'Leticia · feminina',
+            'pt-BR-AntonioNeural' => 'Antonio · masculina',
+            'pt-BR-DonatoNeural' => 'Donato · masculina',
+            'pt-BR-FabioNeural' => 'Fabio · masculina',
+            'pt-BR-HumbertoNeural' => 'Humberto · masculina',
+            'pt-BR-JulioNeural' => 'Julio · masculina',
+            'pt-BR-NicolauNeural' => 'Nicolau · masculina',
+        ],
+        'kokoro' => [
+            'pf_dora' => 'Dora · feminina',
+            'pm_alex' => 'Alex · masculina',
+            'pm_santa' => 'Santa · masculina',
+        ],
+        'windows' => [
+            'Microsoft Maria' => 'Maria · feminina',
+            'Microsoft Maria Desktop' => 'Maria Desktop · feminina',
+            'Microsoft Daniel' => 'Daniel · masculina',
+        ],
+        'piper' => [],
+    ];
+}
+
+/** Campo do config.local.php que guarda a voz de cada motor. */
+function v2_voz_campo(string $engine): string
+{
+    return $engine === 'piper' ? 'piper_voice' : $engine . '_voice';
+}
+
+/** Voz do config.local.php quando nada foi escolhido na tela. */
+function v2_voz_padrao(string $engine): string
+{
+    $cfg = v2_config();
+    $valor = trim((string)($cfg[v2_voz_campo($engine)] ?? ''));
+    if ($valor !== '') {
+        return $valor;
+    }
+    $opcoes = v2_voz_opcoes()[$engine] ?? [];
+    return (string)(array_key_first($opcoes) ?? '');
+}
+
+function v2_voz_arquivo(): string
+{
+    return __DIR__ . '/../data/voz.json';
+}
+
+/** Voz salva na tela (vazio = ainda nao escolheu). */
+function v2_voz_salva(): array
+{
+    static $dados = null;
+    if ($dados !== null) {
+        return $dados;
+    }
+    $dados = [];
+    $bruto = @file_get_contents(v2_voz_arquivo());
+    if ($bruto !== false) {
+        $json = json_decode((string)$bruto, true);
+        if (is_array($json)) {
+            $dados = $json;
+        }
+    }
+    return $dados;
+}
+
+/** Ajustes em uso agora: o que foi salvo na tela, senao o config.local.php. */
+function v2_voz_atual(): array
+{
+    $salva = v2_voz_salva();
+    $engine = (string)($salva['engine'] ?? '');
+    if ($engine === '' || !isset(v2_tts_presets()[$engine])) {
+        $engine = (string)(v2_config()['tts_engine'] ?? 'windows');
+    }
+    if (!isset(v2_tts_presets()[$engine])) {
+        $engine = 'windows';
+    }
+    $voz = trim((string)($salva['voz'] ?? ''));
+    $variacao = preg_replace('/[^a-z_]/', '', strtolower((string)($salva['variacao'] ?? ''))) ?? '';
+    $permitidas = array_merge(['natural'], v2_tts_variacoes($engine));
+    if ($variacao === '') {
+        /* Nada escolhido ainda: vale o ritmo do estudio (calor +30%). */
+        $variacao = in_array('calor_rapido', $permitidas, true) ? 'calor_rapido' : 'natural';
+    } elseif (!in_array($variacao, $permitidas, true)) {
+        $variacao = 'natural';
+    }
+    return [
+        'engine' => $engine,
+        'voz' => $voz !== '' ? $voz : v2_voz_padrao($engine),
+        'variacao' => $variacao,
+        'vel' => (int)($salva['vel'] ?? 0),
+        'tom' => (int)($salva['tom'] ?? 0),
+        'salva' => $salva !== [],
+    ];
+}
+
+function v2_voz_gravar(array $dados): bool
+{
+    $dir = dirname(v2_voz_arquivo());
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+    }
+    $json = json_encode($dados, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    return $json !== false && @file_put_contents(v2_voz_arquivo(), $json, LOCK_EX) !== false;
+}
+
+/** Aplica velocidade (%) e tom (Hz) por cima da variacao escolhida. */
+function v2_voz_ajustar(string $engine, array $p, int $vel, int $tom): array
+{
+    $vel = max(-40, min(80, $vel));
+    $tom = max(-20, min(20, $tom));
+    $fator = 1 + $vel / 100;
+    switch ($engine) {
+        case 'edge':
+            $p['rate'] = v2_voz_pct((int)($p['rate'] ?? 0) + $vel);
+            $p['pitch'] = v2_voz_hz((int)($p['pitch'] ?? 0) + $tom);
+            break;
+        case 'windows':
+            $p['rate'] = max(-10, min(10, (int)($p['rate'] ?? 0) + (int)round($vel / 10)));
+            break;
+        case 'piper':
+            $p['length_scale'] = round(max(0.4, (float)($p['length_scale'] ?? 1.0)) / $fator, 3);
+            break;
+        case 'kokoro':
+            $p['speed'] = round(max(0.4, (float)($p['speed'] ?? 1.0)) * $fator, 3);
+            break;
+    }
+    return $p;
+}
+
 /* ---------- Mensagens do WhatsApp: rotulo e resumo ---------- */
 
 /** Rotulo curto para cada tipo de mensagem (icone + nome). */

@@ -50,6 +50,7 @@ projetocrmv2/
   assets/app.css           tema claro
   views/                   telas
   api/tts.php              geracao de audio (kokoro / piper / edge / windows)
+  api/voz.php              salva a voz escolhida na tela Voz (data/voz.json)
   api/kokoro_tts.py        sintese offline com pausa entre frases
   data/tts/                cache de audio (ignorado pelo Git)
 ```
@@ -73,6 +74,11 @@ continuam intactas - as telas as leem em modo somente leitura.
 
 Cada motor tem um ajuste padrao e variacoes nomeadas (`calor`, `calor_rapido`, `animada`, `serena`),
 ouviveis em `?page=voz` e aplicaveis via `api/tts.php?engine=edge&v=calor&text=...`.
+
+A tela `?page=voz` tem um player so: escolhe motor, voz, sentimento, ritmo e tom e salva.
+O que fica salvo em `data/voz.json` e o que o sistema usa - conversa, simulador e o audio
+automatico da Irene (`api/tts.php` sem parametros ja pega o que esta salvo).
+Pela URL tambem da para passar tudo: `?engine=`, `?voice=`, `?v=`, `?vel=` e `?tom=`.
 
 | motor | offline | observacao |
 |---|---|---|
