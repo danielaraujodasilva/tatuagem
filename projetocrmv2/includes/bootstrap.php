@@ -833,6 +833,29 @@ function v2_lmstudio_modelo_preferido(): string
     return $modelos[0] ?? '';
 }
 
+/* ---------- O "cerebro" da Irene: o mesmo modelo que roda o Codex ---------- */
+
+/**
+ * Modelo/provider que o Codex usa nesta maquina. A chave vem do ambiente
+ * (GET do Apache) e nunca e escrita em arquivo, log ou tela.
+ */
+function v2_cerebro(): array
+{
+    $cfg = v2_config();
+    $chave = trim((string)($cfg['cerebro_key'] ?? ''));
+    if ($chave === '') {
+        $chave = trim((string)(getenv('DEEPSEEK_CODEX_KEY') ?: ''));
+    }
+    $url = trim((string)($cfg['cerebro_url'] ?? ''));
+    $modelo = trim((string)($cfg['cerebro_model'] ?? ''));
+    return [
+        'url' => rtrim($url !== '' ? $url : 'https://api.deepseek.com/v1', '/'),
+        'key' => $chave,
+        'modelo' => $modelo !== '' ? $modelo : 'deepseek-chat',
+        'ligado' => $chave !== '',
+    ];
+}
+
 /** Catalogo para o seletor da tela: cada item e "backend|modelo". */
 function v2_irene_modelos(): array
 {
@@ -840,6 +863,10 @@ function v2_irene_modelos(): array
     $preferido = v2_lmstudio_modelo_preferido();
     foreach (v2_lmstudio_modelos() as $m) {
         $lista['lmstudio|' . $m] = 'LM Studio · ' . $m . ($m === $preferido ? ' · padrão' : '');
+    }
+    $cerebro = v2_cerebro();
+    if ($cerebro['ligado']) {
+        $lista['cerebro|' . $cerebro['modelo']] = 'Meu cérebro (Codex) · ' . $cerebro['modelo'];
     }
     if (!$lista) {
         $lista['lmstudio|qwen/qwen3-8b'] = 'LM Studio · qwen/qwen3-8b (carregue um modelo no LM Studio)';

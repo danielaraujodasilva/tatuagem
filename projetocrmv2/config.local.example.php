@@ -19,4 +19,9 @@ return [
     // O LM Studio precisa do servidor local ligado (Developer > Start Server).
     'lmstudio_url' => 'http://127.0.0.1:1234/v1',   // API compativel com OpenAI
     'lmstudio_model' => '',                          // vazio = primeiro modelo carregado
+
+    // "Meu cerebro" no simulador: o mesmo modelo que roda o Codex.
+    // A chave sai do ambiente (DEEPSEEK_CODEX_KEY) - nao precisa por aqui.
+    // 'cerebro_url' => 'https://api.deepseek.com/v1',
+    // 'cerebro_model' => 'deepseek-chat',
 ];

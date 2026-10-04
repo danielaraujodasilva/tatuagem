@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Simulador de atendimento: recebe a conversa e devolve uma resposta da Irene.
  * NUNCA envia nada a cliente: responde so na tela, para o estudio validar a voz.
  *
- * Motor: LM Studio (API local compativel com OpenAI).
+ * Motores: LM Studio (local) ou "meu cerebro" - o mesmo modelo que roda o Codex.
  * Ultimo recurso: o playbook aprendido das conversas.
  */
 require_once __DIR__ . '/../includes/bootstrap.php';
@@ -133,6 +133,52 @@ function irene_lmstudio(string $modelo, array $mensagens): array
     return $texto !== '' ? ['ok' => true, 'texto' => $texto] : ['ok' => false, 'erro' => 'LM Studio devolveu resposta vazia'];
 }
 
+/**
+ * "Meu cerebro": o mesmo modelo que o Codex usa nesta maquina (DeepSeek).
+ * A chave vive so no ambiente do servidor - nunca entra em arquivo nem em log.
+ */
+function irene_cerebro(string $modelo, array $mensagens): array
+{
+    $cfg = v2_cerebro();
+    if (!$cfg['ligado']) {
+        return ['ok' => false, 'erro' => 'chave do Codex nao esta no ambiente do servidor'];
+    }
+    if (!function_exists('curl_init')) {
+        return ['ok' => false, 'erro' => 'cURL indisponivel no PHP'];
+    }
+    $payload = [
+        'model' => $modelo,
+        'stream' => false,
+        'temperature' => 0.7,
+        'max_tokens' => 320,
+        'messages' => array_merge([['role' => 'system', 'content' => irene_system()]], $mensagens),
+    ];
+    $ch = curl_init($cfg['url'] . '/chat/completions');
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . $cfg['key']],
+        CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE),
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_TIMEOUT => 90,
+    ]);
+    $corpo = curl_exec($ch);
+    $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $falha = curl_error($ch);
+    curl_close($ch);
+
+    if ($corpo === false) {
+        return ['ok' => false, 'erro' => $falha !== '' ? $falha : 'o cerebro nao respondeu'];
+    }
+    $json = json_decode((string)$corpo, true);
+    if ($status !== 200) {
+        $recado = mb_substr((string)($json['error']['message'] ?? 'erro do provedor'), 0, 160);
+        return ['ok' => false, 'erro' => 'HTTP ' . $status . ' ' . $recado];
+    }
+    $texto = irene_limpar((string)($json['choices'][0]['message']['content'] ?? ''));
+    return $texto !== '' ? ['ok' => true, 'texto' => $texto] : ['ok' => false, 'erro' => 'o cerebro devolveu resposta vazia'];
+}
+
 function irene_payload(): array
 {
     $raw = file_get_contents('php://input');
@@ -164,26 +210,49 @@ if (!$mensagens || $mensagens[count($mensagens) - 1]['role'] !== 'user') {
     exit;
 }
 
-/* Quem responde: "lmstudio|modelo" (vazio = modelo preferido do LM Studio). */
+/* Quem responde: "lmstudio|modelo" ou "cerebro|modelo" (vazio = preferido local). */
 $escolha = trim((string)($in['modelo'] ?? ''));
+$backend = '';
 $modelo = '';
 if ($escolha !== '' && strpos($escolha, '|') !== false) {
     $partes = explode('|', $escolha, 2);
+    $backend = strtolower(trim($partes[0]));
     $modelo = trim($partes[1]);
 }
-
-$lm = v2_lmstudio_modelos();
-$escolhido = $modelo !== '' ? $modelo : (v2_lmstudio_modelo_preferido() ?: ($lm[0] ?? 'qwen/qwen3-8b'));
 
 $resposta = '';
 $motor = '';
 $aviso = '';
-$r = irene_lmstudio($escolhido, $mensagens);
-if (!empty($r['ok'])) {
-    $resposta = (string)$r['texto'];
-    $motor = 'LM Studio · ' . $escolhido;
+
+if ($backend === 'cerebro') {
+    $qual = $modelo !== '' ? $modelo : (string)v2_cerebro()['modelo'];
+    $r = irene_cerebro($qual, $mensagens);
+    if (!empty($r['ok'])) {
+        $resposta = (string)$r['texto'];
+        $motor = 'Meu cérebro (Codex) · ' . $qual;
+    } else {
+        $aviso = 'Meu cérebro: ' . (string)($r['erro'] ?? 'falhou');
+        /* Se a internet/API falhar, o simulador continua de pé no modelo local. */
+        $lm = v2_lmstudio_modelos();
+        $local = v2_lmstudio_modelo_preferido() ?: ($lm[0] ?? '');
+        if ($local !== '') {
+            $r2 = irene_lmstudio($local, $mensagens);
+            if (!empty($r2['ok'])) {
+                $resposta = (string)$r2['texto'];
+                $motor = 'LM Studio (reserva) · ' . $local;
+            }
+        }
+    }
 } else {
-    $aviso = 'LM Studio: ' . (string)($r['erro'] ?? 'falhou');
+    $lm = v2_lmstudio_modelos();
+    $escolhido = $modelo !== '' ? $modelo : (v2_lmstudio_modelo_preferido() ?: ($lm[0] ?? 'qwen/qwen3-8b'));
+    $r = irene_lmstudio($escolhido, $mensagens);
+    if (!empty($r['ok'])) {
+        $resposta = (string)$r['texto'];
+        $motor = 'LM Studio · ' . $escolhido;
+    } else {
+        $aviso = 'LM Studio: ' . (string)($r['erro'] ?? 'falhou');
+    }
 }
 
 if ($resposta === '') {

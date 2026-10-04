@@ -80,6 +80,13 @@ O que fica salvo em `data/voz.json` e o que o sistema usa - conversa, simulador 
 automatico da Irene (`api/tts.php` sem parametros ja pega o que esta salvo).
 Pela URL tambem da para passar tudo: `?engine=`, `?voice=`, `?v=`, `?vel=` e `?tom=`.
 
+## Simulador (`?page=simulador`)
+
+O seletor "cerebro" oferece os modelos do LM Studio e tambem `cerebro|deepseek-chat`:
+o mesmo modelo que roda o Codex, chamado direto na API (`api/irene.php`). A chave vem da
+variavel de ambiente `DEEPSEEK_CODEX_KEY` e nunca e gravada em arquivo, log ou tela.
+Se a API falhar, o simulador cai no modelo local e o campo `motor` diz qual respondeu.
+
 | motor | offline | observacao |
 |---|---|---|
 | `kokoro` | sim | mais natural que roda 100% na CPU; pausa entre frases |

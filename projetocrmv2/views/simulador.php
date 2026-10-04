@@ -6,6 +6,7 @@
 $engine = (string)(v2_config()['tts_engine'] ?? 'windows');
 $lmModelos = v2_lmstudio_modelos();
 $lmLigado = count($lmModelos) > 0;
+$cerebroLigado = (bool)v2_cerebro()['ligado'];
 
 $cenarios = [
     'Oi! Quanto fica uma tatuagem no antebraço?',
@@ -30,6 +31,7 @@ v2_layout_top('simulador', 'Simulador');
     <?php else: ?>⚠️ LM Studio desligado — usando o playbook do estúdio<?php endif; ?>
   </span>
   <span class="badge b-gray">🎤 voz: <?= v2_h($engine) ?> · ritmo do estúdio</span>
+  <?php if ($cerebroLigado): ?><span class="badge b-violet">🧠 meu cérebro (Codex) na lista</span><?php endif; ?>
   <label class="fsep" for="simModelo" style="margin-left:8px">cérebro</label>
   <select class="fsel" id="simModelo">
     <?php foreach (v2_irene_modelos() as $k => $rotulo): ?>
