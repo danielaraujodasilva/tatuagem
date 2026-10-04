@@ -151,11 +151,245 @@ function v2_paginas(): array
     return [
         'hoje' => ['label' => 'Hoje', 'icon' => '☀'],
         'cliente' => ['label' => 'Cliente', 'icon' => '👤'],
-        'conversa' => ['label' => 'Conversa', 'icon' => '💬'],
+        'conversa' => ['label' => 'WhatsApp', 'icon' => '💬'],
         'aprendizado' => ['label' => 'Aprendizado', 'icon' => '📚'],
         'rotina' => ['label' => 'Rotina', 'icon' => '🔁'],
         'voz' => ['label' => 'Voz', 'icon' => '🎤'],
     ];
+}
+
+/* ---------- Status, periodo, filtros e URLs (compartilhado pelas telas) ---------- */
+
+/** Rotulos amigaveis dos status usados no CRM do WhatsApp. */
+function v2_status_opcoes(): array
+{
+    return [
+        'novo' => 'Novo',
+        'em_atendimento' => 'Em atendimento',
+        'lead_quente' => 'Lead quente',
+        'sem_retorno' => 'Sem retorno',
+        'agendado' => 'Agendado',
+        'fechado' => 'Fechado',
+        'perdido' => 'Perdido',
+    ];
+}
+
+function v2_status_label(?string $status): string
+{
+    $status = (string)$status;
+    $map = v2_status_opcoes();
+    return $map[$status] ?? ($status !== '' ? str_replace('_', ' ', $status) : '—');
+}
+
+/** Cor do selo para cada status. */
+function v2_status_classe(?string $status): string
+{
+    switch ((string)$status) {
+        case 'novo':
+        case 'lead_quente':
+            return 'b-red';
+        case 'em_atendimento':
+            return 'b-blue';
+        case 'agendado':
+        case 'fechado':
+            return 'b-green';
+        case 'sem_retorno':
+            return 'b-amber';
+    }
+    return 'b-gray';
+}
+
+function v2_periodo_opcoes(): array
+{
+    return [
+        'tudo' => 'Tudo',
+        'hoje' => 'Hoje',
+        '7d' => '7 dias',
+        '30d' => '30 dias',
+        'mes' => 'Este mês',
+        '90d' => '90 dias',
+    ];
+}
+
+/** Periodo escolhido na URL (ou "custom" quando veio de/ate). */
+function v2_periodo_atual(): string
+{
+    if (trim((string)($_GET['de'] ?? '')) !== '' || trim((string)($_GET['ate'] ?? '')) !== '') {
+        return 'custom';
+    }
+    $p = (string)($_GET['periodo'] ?? 'tudo');
+    return array_key_exists($p, v2_periodo_opcoes()) ? $p : 'tudo';
+}
+
+/** Intervalo [inicio, fim] em Y-m-d H:i:s, ou null quando o periodo e "tudo". */
+function v2_periodo_intervalo(?string $chave = null): ?array
+{
+    $chave = $chave ?? v2_periodo_atual();
+    $fim = date('Y-m-d') . ' 23:59:59';
+
+    switch ($chave) {
+        case 'hoje':
+            return [date('Y-m-d') . ' 00:00:00', $fim];
+        case '7d':
+            return [date('Y-m-d', strtotime('-6 days')) . ' 00:00:00', $fim];
+        case '30d':
+            return [date('Y-m-d', strtotime('-29 days')) . ' 00:00:00', $fim];
+        case '90d':
+            return [date('Y-m-d', strtotime('-89 days')) . ' 00:00:00', $fim];
+        case 'mes':
+            return [date('Y-m-01') . ' 00:00:00', $fim];
+        case 'custom':
+            $de = trim((string)($_GET['de'] ?? ''));
+            $ate = trim((string)($_GET['ate'] ?? ''));
+            $ini = preg_match('/^\d{4}-\d{2}-\d{2}$/', $de) === 1 ? $de . ' 00:00:00' : null;
+            $f = preg_match('/^\d{4}-\d{2}-\d{2}$/', $ate) === 1 ? $ate . ' 23:59:59' : null;
+            if ($ini === null && $f === null) {
+                return null;
+            }
+            return [$ini ?? '2000-01-01 00:00:00', $f ?? $fim];
+    }
+
+    return null;
+}
+
+function v2_periodo_label(?string $chave = null): string
+{
+    $chave = $chave ?? v2_periodo_atual();
+    if ($chave === 'custom') {
+        $de = trim((string)($_GET['de'] ?? ''));
+        $ate = trim((string)($_GET['ate'] ?? ''));
+        $a = $de !== '' ? date('d/m', strtotime($de)) : 'início';
+        $b = $ate !== '' ? date('d/m', strtotime($ate)) : 'hoje';
+        return $a . ' a ' . $b;
+    }
+    return v2_periodo_opcoes()[$chave] ?? 'Tudo';
+}
+
+/** Monta um link mantendo os filtros atuais; passe null/vazio no valor para remover. */
+function v2_url(array $overrides = [], array $remove = []): string
+{
+    $q = $_GET;
+    foreach ($remove as $k) {
+        unset($q[$k]);
+    }
+    foreach ($overrides as $k => $v) {
+        if ($v === null || $v === '') {
+            unset($q[$k]);
+        } else {
+            $q[$k] = $v;
+        }
+    }
+    return 'index.php' . ($q ? '?' . http_build_query($q) : '');
+}
+
+/** Barra de filtros reutilizavel: periodo (atalhos + intervalo livre). */
+function v2_filtro_periodo(array $remove = []): void
+{
+    $atual = v2_periodo_atual();
+    $de = trim((string)($_GET['de'] ?? ''));
+    $ate = trim((string)($_GET['ate'] ?? ''));
+    $bloqueados = array_merge($remove, ['de', 'ate', 'periodo']);
+    ?>
+    <div class="fbar">
+      <span class="flabel">📅 Período</span>
+      <?php foreach (v2_periodo_opcoes() as $k => $label): ?>
+        <a class="fchip<?= $k === $atual ? ' on' : '' ?>" href="<?= v2_h(v2_url(['periodo' => $k], ['de', 'ate'])) ?>"><?= v2_h($label) ?></a>
+      <?php endforeach; ?>
+      <form class="frange" method="get">
+        <?php foreach ($_GET as $k => $v): if (in_array($k, $bloqueados, true) || !is_scalar($v)) { continue; } ?>
+          <input type="hidden" name="<?= v2_h((string)$k) ?>" value="<?= v2_h((string)$v) ?>">
+        <?php endforeach; ?>
+        <input type="date" name="de" value="<?= v2_h($de) ?>" aria-label="de">
+        <span class="fsep">→</span>
+        <input type="date" name="ate" value="<?= v2_h($ate) ?>" aria-label="ate">
+        <button class="fgo" type="submit">aplicar</button>
+      </form>
+    </div>
+    <?php
+}
+
+/** Barra de busca livre (nome/telefone/interesse) mantendo os demais filtros. */
+function v2_barra_busca(string $placeholder = 'Buscar por nome, telefone ou interesse...'): void
+{
+    $atual = (string)($_GET['busca'] ?? '');
+    ?>
+    <form class="fbar" method="get">
+      <?php foreach ($_GET as $k => $v): if ($k === 'busca' || !is_scalar($v)) { continue; } ?>
+        <input type="hidden" name="<?= v2_h((string)$k) ?>" value="<?= v2_h((string)$v) ?>">
+      <?php endforeach; ?>
+      <div class="fsearch">
+        <input type="text" name="busca" value="<?= v2_h($atual) ?>" placeholder="<?= v2_h($placeholder) ?>">
+        <button type="submit">buscar</button>
+      </div>
+      <?php if ($atual !== ''): ?><a class="fchip" href="<?= v2_h(v2_url([], ['busca'])) ?>">✕ limpar</a><?php endif; ?>
+    </form>
+    <?php
+}
+
+/** Iniciais para o avatar. */
+function v2_iniciais(?string $nome): string
+{
+    $limpo = preg_replace('/[^A-Za-zÀ-ÿ ]/', '', (string)$nome) ?: 'C';
+    $limpo = trim(preg_replace('/\s+/', ' ', $limpo) ?? 'C');
+    if ($limpo === '') {
+        return 'C';
+    }
+    $partes = explode(' ', $limpo);
+    $ini = mb_substr($partes[0], 0, 1);
+    if (count($partes) > 1) {
+        $ini .= mb_substr($partes[count($partes) - 1], 0, 1);
+    }
+    return mb_strtoupper($ini, 'UTF-8');
+}
+
+/** Texto normalizado (minusculo, sem acento) para casar palavras-chave. */
+function v2_texto_normalizado(string $s): string
+{
+    $s = mb_strtolower($s, 'UTF-8');
+    return strtr($s, [
+        'á' => 'a', 'à' => 'a', 'ã' => 'a', 'â' => 'a', 'ä' => 'a',
+        'é' => 'e', 'ê' => 'e', 'è' => 'e',
+        'í' => 'i', 'ì' => 'i', 'î' => 'i',
+        'ó' => 'o', 'ô' => 'o', 'õ' => 'o', 'ò' => 'o',
+        'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+        'ç' => 'c',
+    ]);
+}
+
+/**
+ * Sugestao de resposta montada com o que a Irene aprendeu nas conversas.
+ * Nunca envia nada: e so um rascunho para o Daniel aprovar.
+ */
+function v2_sugestao_resposta(string $texto): ?array
+{
+    $t = v2_texto_normalizado($texto);
+    $tem = static function (string $regex) use ($t): bool {
+        return preg_match($regex, $t) === 1;
+    };
+
+    if ($tem('/\b(preco|valor|quanto|custa|custar|caro|barato|orcamento)\b/')) {
+        return ['motivo' => 'Perguntou preço', 'texto' => 'Oi! Depende do tamanho e do lugar, mas fica 699 sem pomada anestésica e 1100 com ela 🙌 Me conta o que você quer fazer que eu te passo certinho'];
+    }
+    if ($tem('/\b(endereco|onde|local|fica|chegar|estudio)\b/')) {
+        return ['motivo' => 'Perguntou o endereço', 'texto' => 'Fica na Rua Catende, 287B, Jd Nordeste — pertinho da estação Artur Alvim do metrô 🙌'];
+    }
+    if ($tem('/\b(doeu|doi|dor|medo|sofrer|aguent)\b/')) {
+        return ['motivo' => 'Medo de dor', 'texto' => 'Relaxa! A gente usa pomada anestésica e dá pra fazer em etapas 🙌 Você vai ficar tranquila'];
+    }
+    if ($tem('/\b(cuidado|cuidados|pomada|cicatriz|sol|piscina|mar|banho)\b/')) {
+        return ['motivo' => 'Dúvida de cuidados', 'texto' => 'Lavar com sabonete neutro, secar com papel e passar a pomada fininha 🙌 Nada de sol, piscina ou mar por 15 dias'];
+    }
+    if ($tem('/\b(horario|hora|horas|dia|dias|agenda|quando|sabado|domingo|vaga)\b/')) {
+        return ['motivo' => 'Perguntou horário', 'texto' => 'Tenho vaga sim! Qual dia e horário fica melhor pra você? 🙌'];
+    }
+    if ($tem('/\b(pensar|depois|vou ver|mais pra frente)\b/')) {
+        return ['motivo' => 'Cliente frio', 'texto' => 'Tranquilo! Só te digo que as vagas de fim de semana enchem rápido 🙌 quando quiser eu reservo'];
+    }
+    if (trim($texto) === '') {
+        return null;
+    }
+
+    return ['motivo' => 'Retomada aprendida (57x nas conversas)', 'texto' => 'Oi? Bora retomar o agendamento da sua tatuagem?'];
 }
 
 function v2_layout_top(string $page, string $title): void
@@ -168,7 +402,7 @@ function v2_layout_top(string $page, string $title): void
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= v2_h($title) ?> · Irene</title>
-<link rel="stylesheet" href="assets/app.css?v=2">
+<link rel="stylesheet" href="assets/app.css?v=3">
 </head>
 <body>
 <div class="shell">
@@ -275,6 +509,7 @@ function v2_tts_presets(): array
             'padrao' => ['rate' => '+4%', 'pitch' => '+2Hz', 'volume' => '+0%'],
             'variacoes' => [
                 'calor' => ['rate' => '+14%', 'pitch' => '-3Hz'],
+                'calor_rapido' => ['rate' => '+24%', 'pitch' => '-3Hz'],
                 'animada' => ['rate' => '+24%', 'pitch' => '+9Hz'],
                 'serena' => ['rate' => '-6%', 'pitch' => '-6Hz'],
             ],
@@ -283,6 +518,7 @@ function v2_tts_presets(): array
             'padrao' => ['length_scale' => 0.98, 'sentence_silence' => 0.32, 'noise_scale' => 0.667, 'noise_w' => 0.8],
             'variacoes' => [
                 'calor' => ['length_scale' => 1.06, 'sentence_silence' => 0.48],
+                'calor_rapido' => ['length_scale' => 0.92, 'sentence_silence' => 0.30],
                 'animada' => ['length_scale' => 0.90, 'sentence_silence' => 0.16],
                 'serena' => ['length_scale' => 1.22, 'sentence_silence' => 0.55],
             ],
@@ -291,6 +527,7 @@ function v2_tts_presets(): array
             'padrao' => ['speed' => 1.02, 'pausa_ms' => 220],
             'variacoes' => [
                 'calor' => ['speed' => 0.96, 'pausa_ms' => 300],
+                'calor_rapido' => ['speed' => 1.08, 'pausa_ms' => 220],
                 'animada' => ['speed' => 1.12, 'pausa_ms' => 120],
                 'serena' => ['speed' => 0.90, 'pausa_ms' => 400],
             ],
@@ -299,6 +536,7 @@ function v2_tts_presets(): array
             'padrao' => ['rate' => 0],
             'variacoes' => [
                 'calor' => ['rate' => -2],
+                'calor_rapido' => ['rate' => 1],
                 'animada' => ['rate' => 2],
             ],
         ],
@@ -321,4 +559,59 @@ function v2_tts_prosodia(string $engine, string $variant): array
         $p = array_merge($p, $presets[$engine]['variacoes'][$variant]);
     }
     return $p;
+}
+
+/* ---------- Mensagens do WhatsApp: rotulo e resumo ---------- */
+
+/** Rotulo curto para cada tipo de mensagem (icone + nome). */
+function v2_msg_rotulo(string $tipo, ?string $arquivo = null): string
+{
+    switch ($tipo) {
+        case 'audio':
+            return '🎙 áudio';
+        case 'image':
+            return '📷 imagem';
+        case 'video':
+            return '🎬 vídeo';
+        case 'document':
+            return '📄 ' . (($arquivo !== null && $arquivo !== '') ? $arquivo : 'documento');
+        case 'sticker':
+            return '🌟 figurinha';
+    }
+    return '';
+}
+
+/** Resumo de uma mensagem para a lista de conversas. */
+function v2_msg_preview(?string $tipo, ?string $texto, ?string $transcricao): string
+{
+    $tipo = (string)$tipo;
+    if ($tipo !== '' && $tipo !== 'texto') {
+        $rot = v2_msg_rotulo($tipo);
+        $extra = $tipo === 'audio' ? trim((string)$transcricao) : trim((string)$texto);
+        $extra = preg_replace('/\s+/u', ' ', (string)$extra) ?? '';
+        $extra = mb_substr($extra, 0, 70);
+        return $rot . ($extra !== '' ? ' · ' . $extra : '');
+    }
+    $txt = preg_replace('/\s+/u', ' ', trim((string)$texto)) ?? '';
+    return mb_substr($txt, 0, 90);
+}
+
+/** "ha 3 dias" a partir de uma data. */
+function v2_desde(?string $data): string
+{
+    if ($data === null || trim($data) === '' || strtotime($data) === false) {
+        return 'sem data';
+    }
+    $seg = time() - (int)strtotime($data);
+    if ($seg < 3600) {
+        return 'há ' . max(1, (int)round($seg / 60)) . ' min';
+    }
+    if ($seg < 86400) {
+        return 'há ' . (int)round($seg / 3600) . 'h';
+    }
+    $dias = (int)round($seg / 86400);
+    if ($dias < 30) {
+        return 'há ' . $dias . ' dia' . ($dias > 1 ? 's' : '');
+    }
+    return date('d/m/Y', (int)strtotime($data));
 }
