@@ -85,6 +85,36 @@ function irene_limpar(string $texto): string
     return trim(preg_replace('/\s+/u', ' ', $texto) ?? $texto);
 }
 
+/**
+ * Primeira mensagem de qualquer cliente: quem fala e quais sao as opcoes.
+ * Nao passa pelo modelo - e sempre igual, curtinha e sem erro.
+ */
+function irene_abertura(): string
+{
+    return "Oi! Aqui é a Irene, a inteligência artificial do estúdio 😊 "
+        . "O Daniel e a Hellen estão ocupados agora e ainda não podem te atender.\n"
+        . "Manda 1 pra aguardar falar direto com eles, ou 2 pra eu já tirar suas dúvidas enquanto isso 🙌";
+}
+
+/** Cliente respondeu o menu: 1 = esperar o Daniel/Hellen, 2 = falar comigo. */
+function irene_opcao(string $texto): ?array
+{
+    $limpo = trim(preg_replace('/[^0-9a-z]/i', '', mb_strtolower($texto)) ?? '');
+    if ($limpo === '1' || $limpo === 'um') {
+        return [
+            'texto' => 'Beleza! Já avisei a Hellen e o Daniel que você quer falar com eles 🙌 Só um minutinho que eles te chamam.',
+            'estado' => 'humano',
+        ];
+    }
+    if ($limpo === '2' || $limpo === 'dois') {
+        return [
+            'texto' => 'Fechou! Manda sua dúvida que eu já vou respondendo até a Hellen ou o Daniel assumirem 🙌',
+            'estado' => 'ajudando',
+        ];
+    }
+    return null;
+}
+
 /** LM Studio: API local compativel com OpenAI. */
 function irene_lmstudio(string $modelo, array $mensagens): array
 {
@@ -223,8 +253,27 @@ if ($escolha !== '' && strpos($escolha, '|') !== false) {
 $resposta = '';
 $motor = '';
 $aviso = '';
+$estado = 'ia';
 
-if ($backend === 'cerebro') {
+/* Regra do estudio: a primeira resposta nunca e do modelo, e o menu 1/2 tambem nao. */
+$jaFalei = false;
+foreach ($mensagens as $m) {
+    if ($m['role'] === 'assistant') {
+        $jaFalei = true;
+        break;
+    }
+}
+$ultima = (string)$mensagens[count($mensagens) - 1]['content'];
+
+if (!$jaFalei) {
+    $resposta = irene_abertura();
+    $motor = 'mensagem de abertura do estúdio';
+    $estado = 'menu';
+} elseif (($opcao = irene_opcao($ultima)) !== null) {
+    $resposta = $opcao['texto'];
+    $motor = 'mensagem do estúdio · opção ' . ($opcao['estado'] === 'humano' ? '1' : '2');
+    $estado = $opcao['estado'];
+} elseif ($backend === 'cerebro') {
     $qual = $modelo !== '' ? $modelo : (string)v2_cerebro()['modelo'];
     $r = irene_cerebro($qual, $mensagens);
     if (!empty($r['ok'])) {
@@ -272,6 +321,7 @@ echo json_encode([
     'ok' => true,
     'resposta' => $resposta,
     'motor' => $motor,
+    'estado' => $estado,
     'aviso' => $aviso,
     'audio' => 'api/tts.php?' . http_build_query([
         'engine' => $vozSistema['engine'],

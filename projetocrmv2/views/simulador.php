@@ -9,6 +9,8 @@ $lmLigado = count($lmModelos) > 0;
 $cerebroLigado = (bool)v2_cerebro()['ligado'];
 
 $cenarios = [
+    '1',
+    '2',
     'Oi! Quanto fica uma tatuagem no antebraço?',
     'Vocês ficam onde? Consigo chegar de metrô?',
     'Consigo fazer sábado?',
@@ -22,7 +24,7 @@ v2_layout_top('simulador', 'Simulador');
 <div class="head">
   <div class="kick">teste de atendimento</div>
   <h2>Você é o cliente. A Irene atende.</h2>
-  <p>Escreva como se fosse um cliente de verdade e veja como ela responde — texto, tom e o áudio na voz escolhida. <b>Nada disso chega a nenhum cliente.</b></p>
+  <p>Escreva como se fosse um cliente de verdade e veja como ela responde — texto, tom e o áudio na voz escolhida. <b>Nada disso chega a nenhum cliente.</b> Toda conversa nova começa com a mensagem padrão do estúdio (a Irene se apresenta e oferece 1 ou 2).</p>
 </div>
 
 <div class="card pad" style="margin-bottom:14px;display:flex;flex-wrap:wrap;gap:9px;align-items:center">
@@ -155,7 +157,9 @@ v2_layout_top('simulador', 'Simulador');
       tirarDigitando();
       if (!d.ok) { throw new Error(d.erro || 'falha na resposta'); }
       historico.push({ papel: 'irene', texto: d.resposta, audio: d.audio });
-      motor.textContent = 'motor: ' + d.motor + ' · ' + historico.length + ' mensagens no histórico';
+      var estado = d.estado === 'humano' ? ' · ⏳ aguardando a Hellen/Daniel'
+        : (d.estado === 'menu' ? ' · 🖐 abertura' : '');
+      motor.textContent = 'motor: ' + d.motor + estado + ' · ' + historico.length + ' mensagens no histórico';
       if (d.aviso) { aviso.textContent = '⚠️ ' + d.aviso; }
       if (!d.aviso) { aviso.textContent = 'resposta gerada · nada foi enviado'; }
     } catch (e) {

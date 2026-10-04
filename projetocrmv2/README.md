@@ -87,6 +87,15 @@ o mesmo modelo que roda o Codex, chamado direto na API (`api/irene.php`). A chav
 variavel de ambiente `DEEPSEEK_CODEX_KEY` e nunca e gravada em arquivo, log ou tela.
 Se a API falhar, o simulador cai no modelo local e o campo `motor` diz qual respondeu.
 
+## Abertura da conversa (regra fixa)
+
+Antes de qualquer resposta, a Irene se apresenta: diz que e a inteligencia artificial do
+estudio, que o Daniel e a Hellen estao ocupados, e oferece `1` (aguardar falar com eles)
+ou `2` (tirar duvidas com ela enquanto isso). Essa mensagem e o menu `1`/`2` **nao passam
+pelo modelo** - sao texto fixo em `api/irene.php` (`irene_abertura()` e `irene_opcao()`),
+entao saem sempre iguais e na hora. O campo `estado` da resposta diz em que ponto esta:
+`menu`, `humano`, `ajudando` ou `ia`.
+
 | motor | offline | observacao |
 |---|---|---|
 | `kokoro` | sim | mais natural que roda 100% na CPU; pausa entre frases |
