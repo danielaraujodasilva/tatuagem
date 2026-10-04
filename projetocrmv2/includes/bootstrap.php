@@ -403,7 +403,7 @@ function v2_layout_top(string $page, string $title): void
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= v2_h($title) ?> · Irene</title>
-<link rel="stylesheet" href="assets/app.css?v=3">
+<link rel="stylesheet" href="assets/app.css?v=4">
 </head>
 <body>
 <div class="shell">

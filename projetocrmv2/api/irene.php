@@ -227,6 +227,13 @@ function irene_mensagens(array $in): array
             continue;
         }
         $papel = ((string)($m['papel'] ?? '')) === 'irene' ? 'assistant' : 'user';
+        /* O cliente pode mandar varias mensagens seguidas: juntamos num unico
+           turno para o modelo enxergar todas as perguntas de uma vez. */
+        $ultimo = count($out) - 1;
+        if ($ultimo >= 0 && $out[$ultimo]['role'] === $papel) {
+            $out[$ultimo]['content'] = mb_substr($out[$ultimo]['content'] . "\n" . $texto, 0, 1200);
+            continue;
+        }
         $out[] = ['role' => $papel, 'content' => mb_substr($texto, 0, 800)];
     }
     return $out;
@@ -315,7 +322,22 @@ if ($resposta === '') {
     $motor = 'playbook do estúdio (IA local indisponível)';
 }
 
-$vozSistema = v2_voz_atual();
+/* Regra do estudio: a Irene so manda audio quando o cliente mandou audio.
+   O simulador pede "preview" para poder ouvir qualquer resposta na bancada. */
+$respondeuAudio = !empty($in['ultimo_audio']);
+$querPreview = !empty($in['preview']);
+$audio = '';
+if ($respondeuAudio || $querPreview) {
+    $vozSistema = v2_voz_atual();
+    $audio = 'api/tts.php?' . http_build_query([
+        'engine' => $vozSistema['engine'],
+        'voice' => $vozSistema['voz'],
+        'v' => $vozSistema['variacao'],
+        'vel' => (string)$vozSistema['vel'],
+        'tom' => (string)$vozSistema['tom'],
+        'text' => $resposta,
+    ], '', '&', PHP_QUERY_RFC3986);
+}
 
 echo json_encode([
     'ok' => true,
@@ -323,12 +345,6 @@ echo json_encode([
     'motor' => $motor,
     'estado' => $estado,
     'aviso' => $aviso,
-    'audio' => 'api/tts.php?' . http_build_query([
-        'engine' => $vozSistema['engine'],
-        'voice' => $vozSistema['voz'],
-        'v' => $vozSistema['variacao'],
-        'vel' => (string)$vozSistema['vel'],
-        'tom' => (string)$vozSistema['tom'],
-        'text' => $resposta,
-    ], '', '&', PHP_QUERY_RFC3986),
+    'audio' => $audio,
+    'respondeu_audio' => $respondeuAudio,
 ], JSON_UNESCAPED_UNICODE);

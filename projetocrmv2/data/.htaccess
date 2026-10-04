@@ -1,0 +1,5 @@
+# Nada aqui e servido direto pelo Apache: a voz salva, o cache de TTS e a
+# midia do simulador saem sempre pelo PHP (api/tts.php, api/voz.php,
+# api/simulador.php), que exige login. So bloqueia a leitura por URL.
+Options -Indexes
+Require all denied
