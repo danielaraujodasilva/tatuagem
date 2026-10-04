@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teste de voz · Irene</title>
+<style>
+  :root{--ink:#101828;--muted:#667085;--line:#e4e7ec;--soft:#f7f8fa;--brand:#e11d28;--brand-soft:#feecec;--green:#0d8a4a;--green-soft:#e7f7ee;--radius:16px}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--soft);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+  .wrap{width:min(760px,calc(100vw - 28px));margin:0 auto;padding:26px 0 60px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+  .logo{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-weight:800;color:#fff;background:linear-gradient(160deg,#ff8a8f,#e11d28);flex:none}
+  h1{margin:0;font-size:1.1rem}
+  header p{margin:2px 0 0;color:var(--muted);font-size:.8rem}
+  .intro{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin-bottom:18px}
+  .intro b{color:var(--brand)}
+  h2{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:26px 0 10px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px}
+  .card.pick{border-color:var(--brand);background:#fffafa}
+  .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px}
+  .top b{font-size:.95rem}
+  .tag{font-size:.66rem;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--soft);color:var(--muted)}
+  .tag.best{background:var(--brand-soft);color:var(--brand)}
+  .tag.ok{background:var(--green-soft);color:var(--green)}
+  .card p{margin:4px 0 8px;color:var(--muted);font-size:.82rem}
+  audio{width:100%;height:38px}
+  .why{font-size:.78rem;color:var(--muted);margin-top:6px}
+  footer{margin-top:30px;text-align:center;color:var(--muted);font-size:.75rem}
+  .lock{background:var(--green-soft);color:#0d6b31;border-radius:var(--radius);padding:14px 16px;font-size:.84rem;margin-bottom:18px}
+  .lock b{color:#0d6b31}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">IR</div>
+    <div><h1>Teste de voz &middot; Irene</h1><p>amostras geradas no est&uacute;dio &middot; nada aqui fala com cliente</p></div>
+  </header>
+
+  <div class="lock">
+    <b>Isto &eacute; s&oacute; para voc&ecirc; ouvir.</b> Nenhuma das amostras foi enviada para cliente nenhum, e o sistema que as gerou ainda n&atilde;o responde ningu&eacute;m. Quando voc&ecirc; escolher o tom, a&iacute; sim a gente liga o piloto autom&aacute;tico.
+  </div>
+
+  <div class="intro">
+    A frase &eacute; a mesma nas quatro primeiras &mdash; muda s&oacute; o ritmo e o tom (<b>a pros&oacute;dia</b>). Era isso que faltava para n&atilde;o parecer leitura de bula.
+    <div class="why">Texto: &ldquo;Oi, Ricardo! Aqui &eacute; a Ellen, do est&uacute;dio do Daniel. Vi que voc&ecirc; gostou do le&atilde;o, bora retomar o agendamento? Eu tenho vaga pra domingo.&rdquo;</div>
+  </div>
+
+  <h2>A mesma frase, quatro sentimentos</h2>
+
+  <div class="card">
+    <div class="top"><b>1 &middot; Como estava</b><span class="tag">ritmo padr&atilde;o</span></div>
+    <p>O jeito que voc&ecirc; ouviu e n&atilde;o gostou.</p>
+    <audio controls preload="none" src="amostras/amostra-01-edge-natural.mp3"></audio>
+  </div>
+
+  <div class="card pick">
+    <div class="top"><b>2 &middot; Com calor</b><span class="tag best">minha recomenda&ccedil;&atilde;o</span><span class="tag ok">-9% ritmo</span><span class="tag ok">-3Hz tom</span></div>
+    <p>Mais devagar e um pouco mais grave. &Eacute; a que eu usaria para falar com cliente.</p>
+    <audio controls preload="none" src="amostras/amostra-02-edge-calor.mp3"></audio>
+  </div>
+
+  <div class="card">
+    <div class="top"><b>3 &middot; Serena</b><span class="tag">-13% ritmo</span><span class="tag">-6Hz tom</span></div>
+    <p>Para pre&ccedil;o alto, cliente nervoso ou not&iacute;cia ruim.</p>
+    <audio controls preload="none" src="amostras/amostra-03-edge-serena.mp3"></audio>
+  </div>
+
+  <div class="card">
+    <div class="top"><b>4 &middot; Animada</b><span class="tag">+3% ritmo</span><span class="tag">+9Hz tom</span></div>
+    <p>Para promo&ccedil;&atilde;o, vaga abrindo, &ldquo;bora fechar&rdquo;.</p>
+    <audio controls preload="none" src="amostras/amostra-04-edge-animada.mp3"></audio>
+  </div>
+
+  <h2>A mesma voz falando de dinheiro</h2>
+
+  <div class="card">
+    <div class="top"><b>5 &middot; Pre&ccedil;o, com calor</b><span class="tag">outro contexto</span></div>
+    <p>&ldquo;Fica tranquilo, viu? A gente usa pomada anest&eacute;sica e d&aacute; pra fazer em etapas. Fica seiscentos e noventa e nove, e o sinal de cinquenta voc&ecirc; desconta no dia.&rdquo;</p>
+    <audio controls preload="none" src="amostras/amostra-05-edge-calor-preco.mp3"></audio>
+  </div>
+
+  <h2>Os dois motores que rodam offline</h2>
+
+  <div class="card">
+    <div class="top"><b>6 &middot; Piper</b><span class="tag ok">offline</span><span class="tag">voz masculina</span></div>
+    <p>Melhorou bastante com as pausas, mas em portugu&ecirc;s s&oacute; existe voz de homem.</p>
+    <audio controls preload="none" src="amostras/amostra-06-piper-calor.mp3"></audio>
+  </div>
+
+  <div class="card">
+    <div class="top"><b>7 &middot; Kokoro</b><span class="tag best">melhor offline</span><span class="tag ok">feminina</span></div>
+    <p>Feminina, gratuita e roda sem internet. Com pausa entre as frases.</p>
+    <audio controls preload="none" src="amostras/amostra-07-kokoro-calor.mp3"></audio>
+  </div>
+
+  <h2>Como responder</h2>
+  <div class="card">
+    <p style="margin:0;color:var(--ink)">Me diz o n&uacute;mero da que voc&ecirc; aprovou (ou &ldquo;nenhuma&rdquo;) e o que mudaria. A partir da sua escolha eu fixo esse tom como padr&atilde;o para cada situa&ccedil;&atilde;o: retomada, pre&ccedil;o, p&oacute;s-tattoo e avalia&ccedil;&atilde;o.</p>
+  </div>
+
+  <footer>projetocrmv2 &middot; amostras locais &middot; o CRM atual segue intacto</footer>
+</div>
+</body>
+</html>
