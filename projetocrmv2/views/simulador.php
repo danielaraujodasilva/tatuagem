@@ -4,11 +4,8 @@
  * Nada sai para cliente: a conversa vive so nesta tela.
  */
 $engine = (string)(v2_config()['tts_engine'] ?? 'windows');
-$ollamaLigado = false;
-if (function_exists('fsockopen')) {
-    $sock = @fsockopen('127.0.0.1', 11434, $errno, $errstr, 0.4);
-    if (is_resource($sock)) { $ollamaLigado = true; fclose($sock); }
-}
+$lmModelos = v2_lmstudio_modelos();
+$lmLigado = count($lmModelos) > 0;
 
 $cenarios = [
     'Oi! Quanto fica uma tatuagem no antebraço?',
@@ -28,14 +25,15 @@ v2_layout_top('simulador', 'Simulador');
 </div>
 
 <div class="card pad" style="margin-bottom:14px;display:flex;flex-wrap:wrap;gap:9px;align-items:center">
-  <span class="badge <?= $ollamaLigado ? 'b-green' : 'b-amber' ?>">
-    <?= $ollamaLigado ? '🧠 IA local ligada' : '⚠️ IA local desligada — usando o playbook do estúdio' ?>
+  <span class="badge <?= $lmLigado ? 'b-green' : 'b-amber' ?>">
+    <?php if ($lmLigado): ?>🧠 LM Studio ligado · <?= count($lmModelos) ?> modelo<?= count($lmModelos) > 1 ? 's' : '' ?>
+    <?php else: ?>⚠️ LM Studio desligado — usando o playbook do estúdio<?php endif; ?>
   </span>
   <span class="badge b-gray">🎤 voz: <?= v2_h($engine) ?> · ritmo do estúdio</span>
   <label class="fsep" for="simModelo" style="margin-left:8px">cérebro</label>
   <select class="fsel" id="simModelo">
     <?php foreach (v2_irene_modelos() as $k => $rotulo): ?>
-      <option value="<?= v2_h($k) ?>"><?= v2_h($rotulo) ?></option>
+      <option value="<?= v2_h($k) ?>"<?= strpos($rotulo, '· padrão') !== false ? ' selected' : '' ?>><?= v2_h($rotulo) ?></option>
     <?php endforeach; ?>
   </select>
   <span class="badge b-gray">🔒 simulação · nada é enviado</span>
@@ -156,7 +154,8 @@ v2_layout_top('simulador', 'Simulador');
       if (!d.ok) { throw new Error(d.erro || 'falha na resposta'); }
       historico.push({ papel: 'irene', texto: d.resposta, audio: d.audio });
       motor.textContent = 'motor: ' + d.motor + ' · ' + historico.length + ' mensagens no histórico';
-      aviso.textContent = 'resposta gerada · nada foi enviado';
+      if (d.aviso) { aviso.textContent = '⚠️ ' + d.aviso; }
+      if (!d.aviso) { aviso.textContent = 'resposta gerada · nada foi enviado'; }
     } catch (e) {
       tirarDigitando();
       aviso.textContent = 'erro: ' + e.message;

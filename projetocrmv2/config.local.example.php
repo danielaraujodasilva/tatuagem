@@ -14,4 +14,9 @@ return [
     'piper_voice' => '',                   // caminho do .onnx pt-BR
     'edge_voice' => 'pt-BR-FranciscaNeural',
     'windows_voice' => 'Microsoft Maria',
+
+    // IA local do simulador (?page=simulador)
+    // O LM Studio precisa do servidor local ligado (Developer > Start Server).
+    'lmstudio_url' => 'http://127.0.0.1:1234/v1',   // API compativel com OpenAI
+    'lmstudio_model' => '',                          // vazio = primeiro modelo carregado
 ];

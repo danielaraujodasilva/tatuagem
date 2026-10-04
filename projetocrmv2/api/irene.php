@@ -3,7 +3,9 @@ declare(strict_types=1);
 /**
  * Simulador de atendimento: recebe a conversa e devolve uma resposta da Irene.
  * NUNCA envia nada a cliente: responde so na tela, para o estudio validar a voz.
- * Motor: Ollama local (se estiver ligado) ou o playbook aprendido das conversas.
+ *
+ * Motor: LM Studio (API local compativel com OpenAI).
+ * Ultimo recurso: o playbook aprendido das conversas.
  */
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_staff();
@@ -26,12 +28,12 @@ function irene_estilo(): array
 
 /**
  * Instrucoes da Irene: jeito de falar do estudio + fatos do negocio.
- * Os fatos abaixo saem do playbook aprendido nas 2.715 conversas do WhatsApp.
+ * Os fatos saem do playbook aprendido nas 2.715 conversas do WhatsApp.
  */
 function irene_system(): string
 {
     $linhas = [
-        'Você é a Ellen, secretária do estúdio do Daniel, tatuador em São Paulo.',
+        'Você é a Irene, secretária do estúdio do Daniel, tatuador em São Paulo.',
         'Você atende no WhatsApp do estúdio.',
         '',
         'COMO FALAR:',
@@ -75,6 +77,62 @@ function irene_system(): string
     return implode("\n", $linhas);
 }
 
+/** Tira tags de raciocinio (qwen3 e afins). */
+function irene_limpar(string $texto): string
+{
+    $texto = preg_replace('/<think>[\s\S]*?<\/think>/i', ' ', $texto) ?? $texto;
+    $texto = preg_replace('/<\/?think>/i', ' ', $texto) ?? $texto;
+    return trim(preg_replace('/\s+/u', ' ', $texto) ?? $texto);
+}
+
+/** LM Studio: API local compativel com OpenAI. */
+function irene_lmstudio(string $modelo, array $mensagens): array
+{
+    if (!function_exists('curl_init')) {
+        return ['ok' => false, 'erro' => 'cURL indisponivel no PHP'];
+    }
+    // Qwen3 responde direto quando o ultimo "user" leva /no_think; sem isso ele
+    // gasta o limite de tokens "pensando" e a resposta sai vazia ou lenta.
+    if ($modelo !== '' && stripos($modelo, 'qwen3') !== false) {
+        for ($i = count($mensagens) - 1; $i >= 0; $i--) {
+            if (($mensagens[$i]['role'] ?? '') === 'user') {
+                $mensagens[$i]['content'] = rtrim((string)$mensagens[$i]['content']) . ' /no_think';
+                break;
+            }
+        }
+    }
+    $payload = [
+        'model' => $modelo,
+        'stream' => false,
+        'temperature' => 0.6,
+        'max_tokens' => 220,
+        'messages' => array_merge([['role' => 'system', 'content' => irene_system()]], $mensagens),
+    ];
+    $ch = curl_init(v2_lmstudio_url() . '/chat/completions');
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE),
+        CURLOPT_CONNECTTIMEOUT => 2,
+        CURLOPT_TIMEOUT => 150,
+    ]);
+    $corpo = curl_exec($ch);
+    $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $falha = curl_error($ch);
+    curl_close($ch);
+
+    if ($corpo === false) {
+        return ['ok' => false, 'erro' => $falha !== '' ? $falha : 'LM Studio nao respondeu'];
+    }
+    $json = json_decode((string)$corpo, true);
+    if ($status !== 200) {
+        return ['ok' => false, 'erro' => (string)($json['error']['message'] ?? ('LM Studio HTTP ' . $status))];
+    }
+    $texto = irene_limpar((string)($json['choices'][0]['message']['content'] ?? ''));
+    return $texto !== '' ? ['ok' => true, 'texto' => $texto] : ['ok' => false, 'erro' => 'LM Studio devolveu resposta vazia'];
+}
+
 function irene_payload(): array
 {
     $raw = file_get_contents('php://input');
@@ -98,22 +156,6 @@ function irene_mensagens(array $in): array
     return $out;
 }
 
-/** Config do Ollama: usa a mesma do CRM quando existir. */
-function irene_ollama(): array
-{
-    $url = 'http://localhost:11434';
-    $model = 'llama3:8b';
-    $cfg = __DIR__ . '/../../crm/data/config.json';
-    if (is_file($cfg)) {
-        $json = json_decode((string)file_get_contents($cfg), true);
-        if (is_array($json)) {
-            $url = rtrim((string)($json['ollama_url'] ?? $url), '/') ?: $url;
-            $model = trim((string)($json['ollama_model'] ?? $model)) ?: $model;
-        }
-    }
-    return [$url, $model];
-}
-
 $in = irene_payload();
 $mensagens = irene_mensagens($in);
 if (!$mensagens || $mensagens[count($mensagens) - 1]['role'] !== 'user') {
@@ -122,71 +164,44 @@ if (!$mensagens || $mensagens[count($mensagens) - 1]['role'] !== 'user') {
     exit;
 }
 
+/* Quem responde: "lmstudio|modelo" (vazio = modelo preferido do LM Studio). */
+$escolha = trim((string)($in['modelo'] ?? ''));
+$modelo = '';
+if ($escolha !== '' && strpos($escolha, '|') !== false) {
+    $partes = explode('|', $escolha, 2);
+    $modelo = trim($partes[1]);
+}
+
+$lm = v2_lmstudio_modelos();
+$escolhido = $modelo !== '' ? $modelo : (v2_lmstudio_modelo_preferido() ?: ($lm[0] ?? 'qwen/qwen3-8b'));
+
 $resposta = '';
 $motor = '';
-
-$modeloPedido = trim((string)($in['modelo'] ?? ''));
-
-if (function_exists('curl_init')) {
-    [$url, $model] = irene_ollama();
-    if ($modeloPedido !== '' && isset(v2_irene_modelos()[$modeloPedido])) {
-        $model = $modeloPedido;
-    }
-    $payload = [
-        'model' => $model,
-        'stream' => false,
-        'messages' => array_merge(
-            [['role' => 'system', 'content' => irene_system()]],
-            $mensagens
-        ),
-        'options' => [
-            'temperature' => 0.6,
-            'num_predict' => 200,
-            'stop' => ['<think>', '</think>', 'Thinking', 'done thinking'],
-        ],
-    ];
-
-    $ch = curl_init($url . '/api/chat');
-    curl_setopt_array($ch, [
-        CURLOPT_POST => true,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-        CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE),
-        CURLOPT_CONNECTTIMEOUT => 3,
-        CURLOPT_TIMEOUT => 150,
-    ]);
-    $corpo = curl_exec($ch);
-    $erro = curl_error($ch);
-    $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-    curl_close($ch);
-
-    if ($corpo !== false && $status === 200) {
-        $json = json_decode((string)$corpo, true);
-        $texto = trim((string)($json['message']['content'] ?? ''));
-        $texto = preg_replace('/<\/?think>/i', '', $texto) ?? $texto;
-        $texto = trim($texto);
-        if ($texto !== '') {
-            $resposta = $texto;
-            $motor = 'IA local · ' . $model;
-        }
-    }
+$aviso = '';
+$r = irene_lmstudio($escolhido, $mensagens);
+if (!empty($r['ok'])) {
+    $resposta = (string)$r['texto'];
+    $motor = 'LM Studio · ' . $escolhido;
+} else {
+    $aviso = 'LM Studio: ' . (string)($r['erro'] ?? 'falhou');
 }
 
 if ($resposta === '') {
-    // Plano B: o playbook aprendido das 2.715 conversas reais.
+    // Ultimo recurso: o playbook aprendido das 2.715 conversas reais.
     $ultima = '';
     for ($i = count($mensagens) - 1; $i >= 0; $i--) {
         if ($mensagens[$i]['role'] === 'user') { $ultima = (string)$mensagens[$i]['content']; break; }
     }
     $sug = v2_sugestao_resposta($ultima);
     $resposta = $sug['texto'] ?? 'Oi! Me conta o que você quer fazer que eu já te ajudo 🙌';
-    $motor = 'playbook do estúdio (IA local desligada)';
+    $motor = 'playbook do estúdio (IA local indisponível)';
 }
 
 echo json_encode([
     'ok' => true,
     'resposta' => $resposta,
     'motor' => $motor,
+    'aviso' => $aviso,
     'audio' => 'api/tts.php?engine=' . rawurlencode((string)(v2_config()['tts_engine'] ?? 'windows'))
         . '&v=calor_rapido&text=' . rawurlencode($resposta),
 ], JSON_UNESCAPED_UNICODE);

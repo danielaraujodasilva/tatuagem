@@ -617,13 +617,79 @@ function v2_desde(?string $data): string
     return date('d/m/Y', (int)strtotime($data));
 }
 
-/** Modelos locais (Ollama) que o simulador pode usar. */
+/* ---------- Motor de IA local do simulador (LM Studio) ---------- */
+
+/** Endereco da API local do LM Studio (OpenAI-compativel). */
+function v2_lmstudio_url(): string
+{
+    $url = trim((string)(v2_config()['lmstudio_url'] ?? ''));
+    if ($url === '') {
+        $url = 'http://127.0.0.1:1234/v1';
+    }
+    return rtrim($url, '/');
+}
+
+/** GET simples em JSON com timeout curto (nunca derruba a tela). */
+function v2_http_json(string $url, int $timeout = 4): ?array
+{
+    if (!function_exists('curl_init')) {
+        return null;
+    }
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CONNECTTIMEOUT => 1,
+        CURLOPT_TIMEOUT => $timeout,
+    ]);
+    $corpo = curl_exec($ch);
+    $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    curl_close($ch);
+    if ($corpo === false || $status !== 200) {
+        return null;
+    }
+    $json = json_decode((string)$corpo, true);
+    return is_array($json) ? $json : null;
+}
+
+/** Modelos carregados no LM Studio (ignora os de embedding). */
+function v2_lmstudio_modelos(): array
+{
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    $cache = [];
+    $json = v2_http_json(v2_lmstudio_url() . '/models', 4);
+    foreach (($json['data'] ?? []) as $m) {
+        $id = trim((string)($m['id'] ?? ''));
+        if ($id !== '' && stripos($id, 'embed') === false) {
+            $cache[] = $id;
+        }
+    }
+    return $cache;
+}
+
+/** Modelo do LM Studio preferido: o do config.local.php ou o primeiro carregado. */
+function v2_lmstudio_modelo_preferido(): string
+{
+    $escolhido = trim((string)(v2_config()['lmstudio_model'] ?? ''));
+    if ($escolhido !== '') {
+        return $escolhido;
+    }
+    $modelos = v2_lmstudio_modelos();
+    return $modelos[0] ?? '';
+}
+
+/** Catalogo para o seletor da tela: cada item e "backend|modelo". */
 function v2_irene_modelos(): array
 {
-    return [
-        'llama3:8b' => 'llama3:8b · padrão (o mesmo do CRM)',
-        'qwen2.5:7b' => 'qwen2.5:7b · mais caprichosa',
-        'llama3.1:8b' => 'llama3.1:8b · alternativa',
-        'llama3.2:3b' => 'llama3.2:3b · mais rápida e mais simples',
-    ];
+    $lista = [];
+    $preferido = v2_lmstudio_modelo_preferido();
+    foreach (v2_lmstudio_modelos() as $m) {
+        $lista['lmstudio|' . $m] = 'LM Studio · ' . $m . ($m === $preferido ? ' · padrão' : '');
+    }
+    if (!$lista) {
+        $lista['lmstudio|qwen/qwen3-8b'] = 'LM Studio · qwen/qwen3-8b (carregue um modelo no LM Studio)';
+    }
+    return $lista;
 }
