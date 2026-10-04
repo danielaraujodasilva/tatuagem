@@ -16,11 +16,27 @@ Nada e apagado, nada e alterado: o schema cria apenas tabelas novas com prefixo 
 | pagina | o que faz |
 |---|---|
 | `?page=hoje` | o que precisa de voce agora: conversas, agenda e rotina |
-| `?page=cliente` | cliente unico em 4 camadas + "ver como" |
-| `?page=conversa` | a regra do audio e o player de resposta |
-| `?page=rotina` | regras (`v2_regras`) e fila de tarefas |
+| `?page=cliente` | busca, lista de clientes e a ficha em 5 camadas + historico completo |
+| `?page=conversa` | WhatsApp do estudio: lista de conversas, historico e compositor (rascunho + audio) |
+| `?page=rotina` | regras (`v2_regras`) e fila de tarefas, com filtro de periodo |
 | `?page=voz` | comparacao de motores e prosodia |
 | `?page=aprendizado` | o que foi aprendido lendo as conversas reais |
+
+## Filtros e busca
+
+Todas as telas de lista aceitam os mesmos parametros na URL:
+
+- `periodo=tudo|hoje|7d|30d|mes|90d` ou `de=AAAA-MM-DD&ate=AAAA-MM-DD`
+- `busca=` (nome, telefone ou interesse)
+- `status=` (novo, em_atendimento, lead_quente, sem_retorno, agendado, fechado, perdido)
+- `ordem=recentes|parados|valor|nome` (nas listas)
+- `aguardando=1` (so conversas em que a ultima mensagem e do cliente)
+
+## Compositor (fase de validacao)
+
+`?page=conversa` mostra a conversa real e deixa escrever a resposta, mas **nao envia nada**:
+o texto vira rascunho local (localStorage) e o audio e gerado por `api/tts.php` so para ouvir.
+O envio (Baileys) entra apenas depois da validacao da voz.
 
 ## Estrutura
 
@@ -55,7 +71,7 @@ continuam intactas - as telas as leem em modo somente leitura.
 
 ## Voz (prosodia)
 
-Cada motor tem um ajuste padrao e variacoes nomeadas (`natural`, `calor`, `animada`, `serena`),
+Cada motor tem um ajuste padrao e variacoes nomeadas (`calor`, `calor_rapido`, `animada`, `serena`),
 ouviveis em `?page=voz` e aplicaveis via `api/tts.php?engine=edge&v=calor&text=...`.
 
 | motor | offline | observacao |

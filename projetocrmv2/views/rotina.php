@@ -23,7 +23,16 @@ if (!$regras) {
     ];
 }
 
-$tarefas = v2_instalado() ? v2_q($pdo, 'SELECT * FROM v2_tarefas ORDER BY previsto_para LIMIT 20') : [];
+$periodo = v2_periodo_intervalo();
+$tarefas = [];
+if (v2_instalado()) {
+    if ($periodo !== null) {
+        $tarefas = v2_q($pdo, 'SELECT * FROM v2_tarefas WHERE previsto_para >= ' . $pdo->quote($periodo[0])
+            . ' AND previsto_para <= ' . $pdo->quote($periodo[1]) . ' ORDER BY previsto_para LIMIT 20');
+    } else {
+        $tarefas = v2_q($pdo, 'SELECT * FROM v2_tarefas ORDER BY previsto_para LIMIT 20');
+    }
+}
 
 v2_layout_top('rotina', 'Rotina');
 ?>
@@ -32,6 +41,8 @@ v2_layout_top('rotina', 'Rotina');
   <h2>As regras viram tarefas com data</h2>
   <p>O sistema lembra por você: follow-up, pós-tattoo, cicatrização, avaliação, nova arte e reativação.</p>
 </div>
+
+<?php v2_filtro_periodo(); ?>
 
 <div class="grid g2" style="align-items:start">
   <div class="card pad">
@@ -46,7 +57,7 @@ v2_layout_top('rotina', 'Rotina');
   </div>
 
   <div class="card pad">
-    <p class="sect">📋 Fila de tarefas</p>
+    <p class="sect">📋 Fila de tarefas <span class="tag" style="margin-left:auto"><?= v2_h(v2_periodo_label()) ?></span></p>
     <?php if (!$tarefas): ?>
       <div class="note n-gray">Nenhuma tarefa na fila ainda. <?= v2_instalado() ? 'O motor gera as tarefas a partir dos eventos (agendamento, sessão concluída).' : 'Rode <code>database/schema_v2.sql</code> para criar a tabela de tarefas.' ?></div>
     <?php else: foreach ($tarefas as $t): ?>
