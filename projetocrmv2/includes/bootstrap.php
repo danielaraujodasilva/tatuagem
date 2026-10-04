@@ -272,27 +272,27 @@ function v2_tts_presets(): array
 {
     return [
         'edge' => [
-            'padrao' => ['rate' => '-4%', 'pitch' => '+2Hz', 'volume' => '+0%'],
+            'padrao' => ['rate' => '+4%', 'pitch' => '+2Hz', 'volume' => '+0%'],
             'variacoes' => [
-                'calor' => ['rate' => '-9%', 'pitch' => '-3Hz'],
-                'animada' => ['rate' => '+3%', 'pitch' => '+9Hz'],
-                'serena' => ['rate' => '-13%', 'pitch' => '-6Hz'],
+                'calor' => ['rate' => '+14%', 'pitch' => '-3Hz'],
+                'animada' => ['rate' => '+24%', 'pitch' => '+9Hz'],
+                'serena' => ['rate' => '-6%', 'pitch' => '-6Hz'],
             ],
         ],
         'piper' => [
-            'padrao' => ['length_scale' => 1.08, 'sentence_silence' => 0.32, 'noise_scale' => 0.667, 'noise_w' => 0.8],
+            'padrao' => ['length_scale' => 0.98, 'sentence_silence' => 0.32, 'noise_scale' => 0.667, 'noise_w' => 0.8],
             'variacoes' => [
-                'calor' => ['length_scale' => 1.20, 'sentence_silence' => 0.48],
-                'animada' => ['length_scale' => 0.97, 'sentence_silence' => 0.16],
-                'serena' => ['length_scale' => 1.30, 'sentence_silence' => 0.55],
+                'calor' => ['length_scale' => 1.06, 'sentence_silence' => 0.48],
+                'animada' => ['length_scale' => 0.90, 'sentence_silence' => 0.16],
+                'serena' => ['length_scale' => 1.22, 'sentence_silence' => 0.55],
             ],
         ],
         'kokoro' => [
-            'padrao' => ['speed' => 0.94, 'pausa_ms' => 260],
+            'padrao' => ['speed' => 1.02, 'pausa_ms' => 220],
             'variacoes' => [
-                'calor' => ['speed' => 0.86, 'pausa_ms' => 380],
-                'animada' => ['speed' => 1.04, 'pausa_ms' => 150],
-                'serena' => ['speed' => 0.80, 'pausa_ms' => 480],
+                'calor' => ['speed' => 0.96, 'pausa_ms' => 300],
+                'animada' => ['speed' => 1.12, 'pausa_ms' => 120],
+                'serena' => ['speed' => 0.90, 'pausa_ms' => 400],
             ],
         ],
         'windows' => [
