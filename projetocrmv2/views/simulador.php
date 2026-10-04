@@ -192,8 +192,17 @@ var VOZ = <?= json_encode(v2_voz_atual(), JSON_UNESCAPED_UNICODE) ?>;
       d.appendChild(anexoEl(m.anexo));
     }
 
-    var texto = m.papel === 'irene' ? (m.texto || '') : (m.legenda || (m.tipo === 'audio' ? m.texto : ''));
-    if (texto && !(m.anexo && m.anexo.tipo === 'audio' && m.legenda)) {
+    var texto;
+    if (m.papel === 'irene') {
+      texto = m.texto || '';
+    } else if (m.tipo === 'audio') {
+      texto = [m.legenda, m.texto].filter(Boolean).join(' · ');
+    } else if (m.anexo) {
+      texto = m.legenda || '';
+    } else {
+      texto = m.texto || '';
+    }
+    if (texto) {
       var t = document.createElement('div');
       t.className = 'mtxt';
       t.textContent = texto;
