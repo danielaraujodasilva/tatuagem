@@ -2,10 +2,9 @@
 /**
  * Cliente: busca, lista e a ficha completa em camadas + historico.
  */
-$pdo = v2_try(static fn() => v2_crm(), null);
-$ficha = v2_try(static fn() => v2_ficha(), null);
-$temChat = $pdo instanceof PDO && v2_tabela_existe($pdo, 'crm_whatsapp_clientes');
-$temMsgs = $pdo instanceof PDO && v2_tabela_existe($pdo, 'crm_whatsapp_mensagens');
+$studio = v2_try(static fn() => v2_studio(), null);
+$temChat = $studio instanceof PDO && v2_tabela_existe($studio, 'whatsapp_conversations');
+$temMsgs = $studio instanceof PDO && v2_tabela_existe($studio, 'whatsapp_messages');
 
 $id = (string)($_GET['id'] ?? '');
 $ver = (string)($_GET['ver'] ?? 'owner');
@@ -20,108 +19,82 @@ $periodo = $temMsgs ? v2_periodo_intervalo() : null;
 /* ---------- lista ---------- */
 $lista = [];
 if ($temChat) {
-    $sql = "SELECT c.id, c.nome, c.numero, c.status, c.valor, c.origem, c.interesse, c.data_ultimo_contato,
-                   a.recebidas, a.enviadas, a.total, a.ultima_data
-            FROM crm_whatsapp_clientes c
-            LEFT JOIN (
-                SELECT cliente_id, SUM(from_me = 0) AS recebidas, SUM(from_me = 1) AS enviadas,
-                       COUNT(*) AS total, MAX(data) AS ultima_data
-                FROM crm_whatsapp_mensagens GROUP BY cliente_id
-            ) a ON a.cliente_id = c.id
-            WHERE 1 = 1";
-    $par = [];
-    if ($busca !== '') {
-        $sql .= ' AND (c.nome LIKE ? OR c.numero LIKE ? OR c.interesse LIKE ?)';
-        $like = '%' . $busca . '%';
-        array_push($par, $like, $like, $like);
-    }
-    if ($fstatus !== '' && array_key_exists($fstatus, v2_status_opcoes())) {
-        $sql .= ' AND c.status = ?';
-        $par[] = $fstatus;
-    }
-    if ($periodo !== null) {
-        $sql .= ' AND a.ultima_data >= ? AND a.ultima_data <= ?';
-        array_push($par, $periodo[0], $periodo[1]);
-    }
-    if ($ordem === 'nome') {
-        $sql .= ' ORDER BY c.nome ASC';
-    } elseif ($ordem === 'valor') {
-        $sql .= ' ORDER BY c.valor DESC, a.ultima_data DESC';
-    } elseif ($ordem === 'parados') {
-        $sql .= ' ORDER BY (a.ultima_data IS NULL), a.ultima_data ASC';
-    } else {
-        $sql .= ' ORDER BY (a.ultima_data IS NULL), a.ultima_data DESC';
-    }
-    $sql .= ' LIMIT 300';
-
-    $lista = v2_try(static function () use ($pdo, $sql, $par) {
-        $st = $pdo->prepare($sql);
-        $st->execute($par);
-        return $st->fetchAll(PDO::FETCH_ASSOC);
-    }, []);
+    $lista = v2_studio_conversas($studio, [
+        'busca' => $busca,
+        'status' => $fstatus,
+        'periodo' => $periodo,
+        'ordem' => $ordem,
+        'limit' => 300,
+    ]);
 }
 
 /* ---------- cliente escolhido ---------- */
 $cliente = null;
 if ($id !== '' && $temChat) {
-    $stmt = $pdo->prepare('SELECT * FROM crm_whatsapp_clientes WHERE id = ? LIMIT 1');
-    $stmt->execute([$id]);
-    $cliente = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    foreach (v2_studio_conversas($studio, ['limit' => 1000]) as $c) {
+        if ((string)$c['id'] === $id) { $cliente = $c; break; }
+    }
 }
 if (!$cliente && $lista) {
-    $id = (string)$lista[0]['id'];
-    $stmt = $pdo->prepare('SELECT * FROM crm_whatsapp_clientes WHERE id = ? LIMIT 1');
-    $stmt->execute([$id]);
-    $cliente = $stmt->fetch(PDO::FETCH_ASSOC) ?: $lista[0];
+    $cliente = $lista[0];
+    $id = (string)$cliente['id'];
 }
 
 /* ---------- numeros da conversa ---------- */
 $contagem = ['recebidas' => 0, 'enviadas' => 0, 'primeira' => null, 'ultima' => null];
 $msgsHist = [];
 if ($cliente && $temMsgs) {
-    $cid = (string)$cliente['id'];
-    $sql = 'SELECT de, texto, data, from_me, tipo, transcricao FROM crm_whatsapp_mensagens WHERE cliente_id = ?';
-    $par = [$cid];
-    if ($periodo !== null) {
-        $sql .= ' AND data >= ? AND data <= ?';
-        array_push($par, $periodo[0], $periodo[1]);
-    }
-    $sql .= ' ORDER BY data DESC, id DESC LIMIT 80';
-    $msgsHist = v2_try(static function () use ($pdo, $sql, $par) {
-        $st = $pdo->prepare($sql);
-        $st->execute($par);
-        return $st->fetchAll(PDO::FETCH_ASSOC);
-    }, []);
-
-    $tot = v2_q($pdo, 'SELECT SUM(from_me = 0) recebidas, SUM(from_me = 1) enviadas,
-                              MIN(data) primeira, MAX(data) ultima
-                       FROM crm_whatsapp_mensagens WHERE cliente_id = ' . $pdo->quote($cid));
-    if ($tot) {
-        $contagem['recebidas'] = (int)($tot[0]['recebidas'] ?? 0);
-        $contagem['enviadas'] = (int)($tot[0]['enviadas'] ?? 0);
-        $contagem['primeira'] = $tot[0]['primeira'] ?? null;
-        $contagem['ultima'] = $tot[0]['ultima'] ?? null;
-    }
+    $msgsHist = v2_studio_mensagens($studio, (int)$cliente['id'], $periodo, 'desc', 80);
+    $contagem = v2_studio_contagem($studio, (int)$cliente['id']);
 }
 
 /* ---------- ficha do estudio (anamnese + sessoes) ---------- */
 $anamnese = null;
 $tatuagens = [];
-if ($ficha instanceof mysqli && $cliente) {
-    $norm = v2_norm((string)($cliente['numero'] ?? ''));
-    $like = '%' . substr($norm, -8) . '%';
-    $st = $ficha->prepare('SELECT * FROM clientes WHERE REPLACE(REPLACE(REPLACE(REPLACE(telefone," ",""),"-",""),"(",""),")","") LIKE ? LIMIT 1');
-    $st->bind_param('s', $like);
-    $st->execute();
-    $anamnese = $st->get_result()->fetch_assoc() ?: null;
+if ($studio instanceof PDO && $cliente) {
+    $sqlA = "SELECT c.id, c.name AS nome, c.phone AS telefone, c.email,
+                    c.birth_date AS data_nascimento, c.instagram AS instagram_cliente,
+                    c.occupation AS profissao,
+                    CONCAT_WS(', ', NULLIF(c.address_street, ''),
+                              NULLIF(TRIM(CONCAT(COALESCE(c.address_number, ''), ' ', COALESCE(c.address_complement, ''))), ''),
+                              NULLIF(c.address_neighborhood, ''), NULLIF(c.address_city, ''),
+                              NULLIF(c.address_state, '')) AS endereco,
+                    c.previous_tattoos AS historico_tatuagens, c.reference_style AS estilo_tatuagem,
+                    c.allergies AS alergias, c.health_conditions AS tem_doencas,
+                    c.medications AS uso_medicamentos, c.body_area, c.notes AS observacoes
+             FROM customers c WHERE 1 = 1";
+    $parA = [];
+    $cid = (int)($cliente['customer_id'] ?? 0);
+    if ($cid > 0) {
+        $sqlA .= ' AND c.id = ?';
+        $parA[] = $cid;
+    } else {
+        $norm = v2_norm((string)($cliente['numero'] ?? ''));
+        $sqlA .= ' AND REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(c.phone, ""), " ", ""), "-", ""), "(", ""), ")", "") LIKE ?';
+        $parA[] = '%' . substr($norm, -8) . '%';
+    }
+    $anamnese = v2_try(static function () use ($studio, $sqlA, $parA) {
+        $st = $studio->prepare($sqlA);
+        $st->execute($parA);
+        return $st->fetch(PDO::FETCH_ASSOC) ?: null;
+    }, null);
+
+    $sessoesSql = "SELECT COALESCE(NULLIF(a.title, ''), a.description) AS descricao,
+                          a.description AS observacoes, a.value AS valor,
+                          a.appointment_date AS data_tatuagem, a.start_time AS hora_inicio, a.status
+                   FROM appointments a WHERE ";
     if ($anamnese) {
-        $st2 = $ficha->prepare('SELECT descricao, observacoes, valor, data_tatuagem, hora_inicio, status FROM tatuagens WHERE cliente_id = ? ORDER BY data_tatuagem DESC LIMIT 20');
-        $st2->bind_param('i', $anamnese['id']);
-        $st2->execute();
-        $r = $st2->get_result();
-        while ($row = $r->fetch_assoc()) {
-            $tatuagens[] = $row;
-        }
+        $tatuagens = v2_try(static function () use ($studio, $sessoesSql, $anamnese) {
+            $st = $studio->prepare($sessoesSql . 'a.customer_id = ? ORDER BY a.appointment_date DESC LIMIT 20');
+            $st->execute([(int)$anamnese['id']]);
+            return $st->fetchAll(PDO::FETCH_ASSOC);
+        }, []);
+    } elseif ((int)($cliente['lead_id'] ?? 0) > 0) {
+        $tatuagens = v2_try(static function () use ($studio, $sessoesSql, $cliente) {
+            $st = $studio->prepare($sessoesSql . 'a.lead_id = ? ORDER BY a.appointment_date DESC LIMIT 20');
+            $st->execute([(int)$cliente['lead_id']]);
+            return $st->fetchAll(PDO::FETCH_ASSOC);
+        }, []);
     }
 }
 

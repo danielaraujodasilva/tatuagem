@@ -7,6 +7,15 @@ return [
     'crm_username' => 'seu_usuario',
     'crm_password' => 'sua_senha',
 
+    // banco ATUAL do estudio (plataforma projetocrm_<slug>: leads, clientes,
+    // agenda e WhatsApp). Se ficar vazio, a Irene descobre sozinha lendo a
+    // tabela "studios", usando as credenciais de projetocrm/config/database.php.
+    // Preencha apenas se o banco nao puder ser descoberto:
+    // 'studio_host' => 'localhost',
+    // 'studio_database' => 'projetocrm_cereja',
+    // 'studio_username' => 'root',
+    // 'studio_password' => '',
+
     // voz
     'tts_engine' => 'kokoro',              // kokoro | piper | edge | windows
     'kokoro_voice' => 'pf_dora',           // pf_dora | pm_alex | pm_santa

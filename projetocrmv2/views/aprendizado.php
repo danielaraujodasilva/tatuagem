@@ -1,9 +1,14 @@
 <?php
-$pdo = v2_try(static fn() => v2_crm(), null);
+$studio = v2_try(static fn() => v2_studio(), null);
 
 $msgs = [];
-if ($pdo instanceof PDO && v2_tabela_existe($pdo, 'crm_whatsapp_mensagens')) {
-    $msgs = v2_q($pdo, 'SELECT cliente_id, from_me, tipo, texto, transcricao, data FROM crm_whatsapp_mensagens ORDER BY cliente_id, data, id');
+if ($studio instanceof PDO && v2_tabela_existe($studio, 'whatsapp_messages') && v2_tabela_existe($studio, 'whatsapp_conversations')) {
+    $msgs = v2_q($studio, 'SELECT c.id AS cliente_id, m.from_me, m.message_type AS tipo,
+                                 COALESCE(NULLIF(m.body, ""), NULLIF(m.transcricao, "")) AS texto,
+                                 NULLIF(m.transcricao, "") AS transcricao, m.sent_at AS data
+                          FROM whatsapp_messages m
+                          JOIN whatsapp_conversations c ON c.id = m.conversation_id
+                          ORDER BY c.id, m.sent_at, m.id');
 }
 
 $conv = [];

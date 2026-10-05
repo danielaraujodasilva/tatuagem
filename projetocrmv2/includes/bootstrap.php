@@ -106,6 +106,258 @@ function v2_ficha(): mysqli
     return $conn;
 }
 
+/* ---------- Banco atual do estudio (plataforma projetocrm_<slug>) ---------- */
+
+/** Credenciais do CRM atual (projetocrm), que enxerga o banco do estudio. */
+function v2_plataforma_config(): array
+{
+    static $cfg = null;
+    if ($cfg !== null) {
+        return $cfg;
+    }
+
+    foreach ([
+        __DIR__ . '/../../projetocrm/config/database.local.php',
+        __DIR__ . '/../../projetocrm/config/database.php',
+    ] as $path) {
+        if (is_file($path)) {
+            $loaded = require $path;
+            if (is_array($loaded)) {
+                return $cfg = $loaded;
+            }
+        }
+    }
+
+    return $cfg = [];
+}
+
+/** Nome do banco do estudio ativo; usa o config ou descobre na plataforma. */
+function v2_studio_database(string $host, string $user, string $pass, string $plataforma = 'projetocrm_platform'): string
+{
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+
+    $nome = trim((string)(v2_config()['studio_database'] ?? ''));
+    if ($nome !== '') {
+        return $cache = $nome;
+    }
+
+    $nome = (string)v2_try(static function () use ($host, $user, $pass, $plataforma): string {
+        $plat = new PDO(
+            "mysql:host={$host};dbname={$plataforma};charset=utf8mb4",
+            $user,
+            $pass,
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 2]
+        );
+        $st = $plat->query("SELECT database_name FROM studios WHERE status = 'active' ORDER BY id LIMIT 1");
+        return (string)($st->fetchColumn() ?: '');
+    }, '');
+
+    if ($nome === '') {
+        $nome = 'projetocrm_cereja';
+    }
+
+    return $cache = $nome;
+}
+
+/**
+ * Conexao com o banco atual do estudio (leads, clientes, agenda e WhatsApp).
+ * Somente leitura aqui. O banco e descoberto pela plataforma ou pelo config
+ * (projetocrmv2/config.local.php: "studio_database").
+ */
+function v2_studio(): PDO
+{
+    static $pdo = null;
+    if ($pdo instanceof PDO) {
+        return $pdo;
+    }
+
+    $local = [];
+    $path = __DIR__ . '/../../crm/config.local.php';
+    if (is_file($path)) {
+        $loaded = require $path;
+        if (is_array($loaded)) {
+            $local = $loaded;
+        }
+    }
+
+    $cfg = v2_config();
+    $plat = v2_plataforma_config();
+
+    $host = (string)($cfg['studio_host'] ?? ($plat['host'] ?? ($local['host'] ?? (getenv('CRM_DB_HOST') ?: 'localhost'))));
+    $user = (string)($cfg['studio_username'] ?? ($plat['username'] ?? ($local['username'] ?? (getenv('CRM_DB_USER') ?: ''))));
+    $pass = (string)($cfg['studio_password'] ?? ($plat['password'] ?? ($local['password'] ?? (getenv('CRM_DB_PASS') ?: ''))));
+
+    $db = v2_studio_database($host, $user, $pass, (string)($plat['database'] ?? 'projetocrm_platform'));
+    if ($db === '' || $user === '') {
+        throw new RuntimeException('Estudio nao configurado (projetocrmv2/config.local.php: studio_database).');
+    }
+
+    $pdo = new PDO(
+        "mysql:host={$host};dbname={$db};charset=utf8mb4",
+        $user,
+        $pass,
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 3]
+    );
+
+    return $pdo;
+}
+
+/**
+ * Conversas do WhatsApp do estudio no formato que as telas ja conhecem.
+ * Filtros: busca, status, status_in[], ordem, periodo [inicio, fim], aguardando, limit.
+ */
+function v2_studio_conversas(PDO $pdo, array $filtros = []): array
+{
+    $busca = trim((string)($filtros['busca'] ?? ''));
+    $status = (string)($filtros['status'] ?? '');
+    $statusIn = is_array($filtros['status_in'] ?? null) ? $filtros['status_in'] : [];
+    $ordem = (string)($filtros['ordem'] ?? 'recentes');
+    $periodo = $filtros['periodo'] ?? null;
+    $limite = max(1, (int)($filtros['limit'] ?? 300));
+
+    $sql = "SELECT c.id,
+                   COALESCE(NULLIF(l.name, ''), NULLIF(c.name, ''), 'Cliente') AS nome,
+                   c.phone AS numero,
+                   CASE
+                       WHEN l.status = 'fechado' THEN 'fechado'
+                       WHEN l.status IN ('agendado', 'pre_agendado') THEN 'agendado'
+                       WHEN c.last_message_direction = 'in' THEN 'em_atendimento'
+                       WHEN c.last_message_direction = 'out' THEN 'sem_retorno'
+                       ELSE 'novo'
+                   END AS status,
+                   COALESCE(l.estimated_value, 0) AS valor,
+                   COALESCE(NULLIF(l.source, ''), NULLIF(l.interest, ''), 'WhatsApp') AS origem,
+                   COALESCE(NULLIF(l.interest, ''), c.last_message_preview, '') AS interesse,
+                   COALESCE(c.last_message_at, c.updated_at, c.created_at) AS data_ultimo_contato,
+                   COALESCE(c.attendance_mode, 'human') AS modo_atendimento,
+                   c.created_at AS created_at,
+                   c.lead_id, c.customer_id,
+                   (SELECT COUNT(*) FROM whatsapp_messages m WHERE m.conversation_id = c.id AND m.from_me = 0) AS recebidas,
+                   (SELECT COUNT(*) FROM whatsapp_messages m WHERE m.conversation_id = c.id AND m.from_me = 1) AS enviadas,
+                   (SELECT COUNT(*) FROM whatsapp_messages m WHERE m.conversation_id = c.id) AS total,
+                   (SELECT MAX(COALESCE(m.sent_at, m.created_at)) FROM whatsapp_messages m WHERE m.conversation_id = c.id) AS ultima_data,
+                   (SELECT CASE WHEN m.message_type IN ('text', 'texto') THEN 'texto'
+                                WHEN m.message_type IN ('unsupported', '') OR m.message_type IS NULL THEN 'texto'
+                                ELSE m.message_type END
+                      FROM whatsapp_messages m WHERE m.conversation_id = c.id
+                     ORDER BY COALESCE(m.sent_at, m.created_at) DESC, m.id DESC LIMIT 1) AS ultimo_tipo,
+                   (SELECT COALESCE(NULLIF(m.body, ''), NULLIF(m.transcricao, ''), '')
+                      FROM whatsapp_messages m WHERE m.conversation_id = c.id
+                     ORDER BY COALESCE(m.sent_at, m.created_at) DESC, m.id DESC LIMIT 1) AS ultimo_texto,
+                   (SELECT m.from_me FROM whatsapp_messages m WHERE m.conversation_id = c.id
+                     ORDER BY COALESCE(m.sent_at, m.created_at) DESC, m.id DESC LIMIT 1) AS ultimo_de,
+                   (SELECT COALESCE(NULLIF(m.transcricao, ''), NULLIF(m.transcript, ''))
+                      FROM whatsapp_messages m WHERE m.conversation_id = c.id
+                     ORDER BY COALESCE(m.sent_at, m.created_at) DESC, m.id DESC LIMIT 1) AS ultima_transcricao
+            FROM whatsapp_conversations c
+            LEFT JOIN leads l ON l.id = c.lead_id
+            WHERE 1 = 1";
+    $par = [];
+    if ($busca !== '') {
+        $sql .= ' AND (l.name LIKE ? OR c.name LIKE ? OR c.phone LIKE ? OR l.interest LIKE ?)';
+        $like = '%' . $busca . '%';
+        array_push($par, $like, $like, $like, $like);
+    }
+    if (is_array($periodo) && count($periodo) === 2) {
+        $sql .= ' AND COALESCE(c.last_message_at, c.updated_at, c.created_at) >= ?'
+              . ' AND COALESCE(c.last_message_at, c.updated_at, c.created_at) <= ?';
+        array_push($par, $periodo[0], $periodo[1]);
+    }
+
+    $having = [];
+    if ($status !== '' && array_key_exists($status, v2_status_opcoes())) {
+        $having[] = 'status = ?';
+        $par[] = $status;
+    } elseif ($statusIn) {
+        $marks = implode(', ', array_fill(0, count($statusIn), '?'));
+        $having[] = 'status IN (' . $marks . ')';
+        foreach ($statusIn as $s) {
+            $par[] = (string)$s;
+        }
+    }
+    if (!empty($filtros['aguardando'])) {
+        $having[] = 'ultimo_de = 0';
+    }
+    if ($having) {
+        $sql .= ' HAVING ' . implode(' AND ', $having);
+    }
+
+    if ($ordem === 'nome') {
+        $sql .= ' ORDER BY nome ASC';
+    } elseif ($ordem === 'valor') {
+        $sql .= ' ORDER BY valor DESC, ultima_data DESC';
+    } elseif ($ordem === 'parados') {
+        $sql .= ' ORDER BY (ultima_data IS NULL), ultima_data ASC';
+    } else {
+        $sql .= ' ORDER BY (ultima_data IS NULL), ultima_data DESC';
+    }
+    $sql .= ' LIMIT ' . $limite;
+
+    return v2_try(static function () use ($pdo, $sql, $par) {
+        $st = $pdo->prepare($sql);
+        $st->execute($par);
+        return $st->fetchAll(PDO::FETCH_ASSOC);
+    }, []);
+}
+
+/** Mensagens de uma conversa no formato antigo (de/texto/data/from_me/tipo/transcricao). */
+function v2_studio_mensagens(PDO $pdo, int $conversaId, ?array $periodo = null, string $ordem = 'asc', int $limite = 400): array
+{
+    $sql = "SELECT m.id, m.conversation_id AS cliente_id,
+                   CASE WHEN m.from_me = 1 THEN 'eu' ELSE 'cliente' END AS de,
+                   COALESCE(NULLIF(m.body, ''), NULLIF(m.transcricao, ''), '') AS texto,
+                   COALESCE(m.sent_at, m.created_at) AS data,
+                   m.from_me,
+                   CASE
+                       WHEN m.message_type IN ('text', 'texto') THEN 'texto'
+                       WHEN m.message_type IN ('unsupported', '') OR m.message_type IS NULL THEN 'texto'
+                       ELSE m.message_type
+                   END AS tipo,
+                   COALESCE(NULLIF(m.transcricao, ''), NULLIF(m.transcript, '')) AS transcricao,
+                   m.media_file_name, m.media_url
+            FROM whatsapp_messages m
+            WHERE m.conversation_id = ?";
+    $par = [$conversaId];
+    if (is_array($periodo) && count($periodo) === 2) {
+        $sql .= ' AND COALESCE(m.sent_at, m.created_at) >= ? AND COALESCE(m.sent_at, m.created_at) <= ?';
+        array_push($par, $periodo[0], $periodo[1]);
+    }
+    $sql .= $ordem === 'desc'
+        ? ' ORDER BY COALESCE(m.sent_at, m.created_at) DESC, m.id DESC'
+        : ' ORDER BY COALESCE(m.sent_at, m.created_at) ASC, m.id ASC';
+    $sql .= ' LIMIT ' . max(1, $limite);
+
+    return v2_try(static function () use ($pdo, $sql, $par) {
+        $st = $pdo->prepare($sql);
+        $st->execute($par);
+        return $st->fetchAll(PDO::FETCH_ASSOC);
+    }, []);
+}
+
+/** Recebidas/enviadas e primeira/ultima mensagem de uma conversa. */
+function v2_studio_contagem(PDO $pdo, int $conversaId): array
+{
+    $out = ['recebidas' => 0, 'enviadas' => 0, 'primeira' => null, 'ultima' => null];
+    $row = v2_try(static function () use ($pdo, $conversaId) {
+        $st = $pdo->prepare("SELECT SUM(from_me = 0) AS recebidas, SUM(from_me = 1) AS enviadas,
+                                    MIN(COALESCE(sent_at, created_at)) AS primeira,
+                                    MAX(COALESCE(sent_at, created_at)) AS ultima
+                             FROM whatsapp_messages WHERE conversation_id = ?");
+        $st->execute([$conversaId]);
+        return $st->fetch(PDO::FETCH_ASSOC) ?: null;
+    }, null);
+    if ($row) {
+        $out['recebidas'] = (int)($row['recebidas'] ?? 0);
+        $out['enviadas'] = (int)($row['enviadas'] ?? 0);
+        $out['primeira'] = $row['primeira'] ?? null;
+        $out['ultima'] = $row['ultima'] ?? null;
+    }
+    return $out;
+}
+
 function v2_h($value): string
 {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -153,6 +405,7 @@ function v2_paginas(): array
         'cliente' => ['label' => 'Cliente', 'icon' => '👤'],
         'conversa' => ['label' => 'WhatsApp', 'icon' => '💬'],
         'aprendizado' => ['label' => 'Aprendizado', 'icon' => '📚'],
+        'estudio' => ['label' => 'Estúdio', 'icon' => '🏠'],
         'rotina' => ['label' => 'Rotina', 'icon' => '🔁'],
         'voz' => ['label' => 'Voz', 'icon' => '🎤'],
         'simulador' => ['label' => 'Simulador', 'icon' => '🎭'],
@@ -436,6 +689,80 @@ function v2_layout_bottom(): void
 }
 
 
+/* ---------- Fatos do estúdio (o que a Irene usa para responder) ---------- */
+
+/** Arquivo onde ficam os fatos editados na tela Estúdio. */
+function v2_estudio_arquivo(): string
+{
+    return __DIR__ . '/../data/estudio.json';
+}
+
+/** Fatos que ja vinham no sistema; valem enquanto ninguem editar na tela. */
+function v2_estudio_padrao(): array
+{
+    return [
+        'Preço: 799 sem pomada anestésica ou 1200 com pomada anestésica.',
+        'Por região: 799 cada região (costas, peitoral, barriga, perna ou braço). Antebraço interno sai 500.',
+        'Cada sessão dura até 5 horas. Se o desenho não terminar na mesma sessão, cada sessão a mais custa o valor de uma sessão.',
+        'Promoção de fechamento: sessão de até 5 horas, em preto e branco, para costas, braço, perna ou peito — sai pelo preço da sessão. Não vale para cobertura nem reforma, e precisa dar pra finalizar no mesmo dia.',
+        'Cobertura ou reforma de tatuagem antiga não entra na promoção: é um trabalho mais complexo e precisa de avaliação do Daniel pra passar o valor.',
+        'Pomada anestésica é opcional e cobrada à parte: R$100 cada. Fechamento de costas costuma pedir 4 unidades e de braço, 2. Leva cerca de 1 hora pra fazer efeito e dura a sessão toda.',
+        'Reserva: sinal de 50,00, descontado no dia. O pix cai direto pro Daniel.',
+        'O restante pode ser pago no cartão de crédito, parcelado em até 12x com os juros da maquininha.',
+        'Atendemos todos os dias, com horários pra agendar às 10h e às 15h.',
+        'Pra avaliação, o cliente manda uma foto de referência e uma foto da área do corpo. A criação do desenho é feita pelo tatuador, na hora ou enviada antes pra aprovação.',
+        'Endereço: Rua Catende, 287B, Jd Nordeste, São Paulo (Itaquera) — pertinho da estação Artur Alvim do metrô.',
+        'São 3 tatuadores no estúdio.',
+        'Instagram: @danielaraujotatuador e @estudiocereja2.',
+        'Cuidados: lavar com sabonete neutro, secar com papel e passar a pomada fininha. Nada de sol, piscina ou mar por 15 dias.',
+        'Se o cliente mandar áudio, a resposta também é em áudio.',
+    ];
+}
+
+/** Fatos salvos na tela; sem nada salvo, devolve os padrao. */
+function v2_estudio_fatos(): array
+{
+    $bruto = @file_get_contents(v2_estudio_arquivo());
+    if ($bruto !== false) {
+        $json = json_decode((string)$bruto, true);
+        if (is_array($json) && !empty($json['fatos']) && is_array($json['fatos'])) {
+            $fatos = [];
+            foreach ($json['fatos'] as $linha) {
+                $linha = trim(preg_replace('/\s+/u', ' ', (string)$linha) ?? '');
+                if ($linha !== '') {
+                    $fatos[] = $linha;
+                }
+            }
+            if ($fatos) {
+                return $fatos;
+            }
+        }
+    }
+    return v2_estudio_padrao();
+}
+
+/** Grava os fatos (uma linha por fato). Vazio nao salva. */
+function v2_estudio_gravar(array $fatos): bool
+{
+    $limpos = [];
+    foreach ($fatos as $linha) {
+        $linha = trim(preg_replace('/\s+/u', ' ', (string)$linha) ?? '');
+        if ($linha !== '') {
+            $limpos[] = mb_substr($linha, 0, 400);
+        }
+    }
+    if (!$limpos) {
+        return false;
+    }
+
+    $dir = dirname(v2_estudio_arquivo());
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+    }
+
+    $json = json_encode(['fatos' => $limpos, 'salvo_em' => date('c')], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    return $json !== false && @file_put_contents(v2_estudio_arquivo(), $json, LOCK_EX) !== false;
+}
 /* ---------- Voz (TTS): utilitarios compartilhados pela tela e pela API ---------- */
 
 /** Localiza um executavel no PATH (Windows). */

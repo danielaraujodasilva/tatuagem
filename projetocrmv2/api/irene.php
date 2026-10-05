@@ -11,7 +11,45 @@ require_once __DIR__ . '/../includes/bootstrap.php';
 require_staff();
 
 header('Content-Type: application/json; charset=utf-8');
+ini_set('display_errors', '0'); // nunca despejar HTML de erro no meio do JSON
 set_time_limit(180);
+
+/**
+ * Proxies (Cloudflare/tunel) derrubam conexao parada e o navegador mostra "Load failed".
+ * Mandamos um espaco antes e de tempo em tempo enquanto o modelo pensa.
+ */
+function irene_abrir_conexao(): void
+{
+    static $feito = false;
+    if ($feito || PHP_SAPI === 'cli') { return; }
+    $feito = true;
+    echo str_repeat(' ', 512);
+    if (ob_get_level() > 0) { @ob_flush(); }
+    @flush();
+}
+
+/** Callback do cURL: pinga de 3 em 3s e cancela o modelo se o cliente desistiu. */
+function irene_ping($recurso, $baixadoTotal, $baixado, $enviadoTotal, $enviado): int
+{
+    static $ultimo = 0.0;
+    $agora = microtime(true);
+    if ($agora - $ultimo >= 3) {
+        $ultimo = $agora;
+        echo ' ';
+        if (ob_get_level() > 0) { @ob_flush(); }
+        @flush();
+    }
+    return connection_aborted() ? 1 : 0;
+}
+
+/* Se o PHP morrer no meio (fatal), ainda devolvemos JSON valido para a tela. */
+$GLOBALS['irene_entregue'] = false;
+register_shutdown_function(static function (): void {
+    if (!empty($GLOBALS['irene_entregue'])) { return; }
+    $erro = error_get_last();
+    if (!$erro || !in_array($erro['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true)) { return; }
+    echo "\n" . json_encode(['ok' => false, 'erro' => 'a Irene tropecou aqui no servidor, tenta de novo?'], JSON_UNESCAPED_UNICODE);
+});
 
 /** Falas de estilo que a Irene aprendeu nas conversas reais (tabela v2_aprendizado). */
 function irene_estilo(): array
@@ -48,19 +86,16 @@ function irene_system(): string
         '- Se a informação não estiver nos fatos abaixo, diga que já confirma com o Daniel.',
         '',
         'FATOS DO ESTÚDIO (use exatamente estes, nunca invente):',
-        '- Preço: 699 sem pomada anestésica e 1100 com pomada anestésica.',
-        '- Por região: 700 cada região (costas ou braço). Antebraço interno sai 500.',
-        '- Reserva: sinal de 50,00, descontado no dia. O pix cai direto pro Daniel.',
-        '- Endereço: Rua Catende, 287B, Jd Nordeste, São Paulo — pertinho da estação Artur Alvim do metrô.',
-        '- Cuidados: lavar com sabonete neutro, secar com papel e passar a pomada fininha. Nada de sol, piscina ou mar por 15 dias.',
-        '- Se o cliente mandar áudio, a resposta também é em áudio.',
-        '',
-        'EXEMPLOS DE COMO O ESTÚDIO RESPONDE:',
-        '- "Opa, legal! Qual seu nome? E já sabe qual tatuagem quer fazer?"',
-        '- "Oi? Bora retomar o agendamento da sua tatuagem?"',
-        '- "Fechou! Assim que tiver ideia de data me chama 🙌 Obrigada!"',
-        '- "Sem pressa! Qualquer dúvida me chama 🙌"',
     ];
+    foreach (v2_estudio_fatos() as $fato) {
+        $linhas[] = '- ' . $fato;
+    }
+    $linhas[] = '';
+    $linhas[] = 'EXEMPLOS DE COMO O ESTÚDIO RESPONDE:';
+    $linhas[] = '- "Opa, legal! Qual seu nome? E já sabe qual tatuagem quer fazer?"';
+    $linhas[] = '- "Oi? Bora retomar o agendamento da sua tatuagem?"';
+    $linhas[] = '- "Fechou! Assim que tiver ideia de data me chama 🙌 Obrigada!"';
+    $linhas[] = '- "Sem pressa! Qualquer dúvida me chama 🙌"';
 
     $estilo = irene_estilo();
     if ($estilo) {
@@ -91,7 +126,7 @@ function irene_limpar(string $texto): string
  */
 function irene_abertura(): string
 {
-    return "Oi! Aqui é a Irene, a inteligência artificial do estúdio 😊 "
+    return "Oi! Aqui é a Irene, a inteligência artificial do estúdio. 😊 "
         . "O Daniel e a Hellen estão ocupados agora e ainda não podem te atender.\n"
         . "Manda 1 pra aguardar falar direto com eles, ou 2 pra eu já tirar suas dúvidas enquanto isso 🙌";
 }
@@ -146,6 +181,8 @@ function irene_lmstudio(string $modelo, array $mensagens): array
         CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE),
         CURLOPT_CONNECTTIMEOUT => 2,
         CURLOPT_TIMEOUT => 150,
+        CURLOPT_NOPROGRESS => false,
+        CURLOPT_PROGRESSFUNCTION => 'irene_ping',
     ]);
     $corpo = curl_exec($ch);
     $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
@@ -191,6 +228,8 @@ function irene_cerebro(string $modelo, array $mensagens): array
         CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE),
         CURLOPT_CONNECTTIMEOUT => 5,
         CURLOPT_TIMEOUT => 90,
+        CURLOPT_NOPROGRESS => false,
+        CURLOPT_PROGRESSFUNCTION => 'irene_ping',
     ]);
     $corpo = curl_exec($ch);
     $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
@@ -282,6 +321,7 @@ if (!$jaFalei) {
     $estado = $opcao['estado'];
 } elseif ($backend === 'cerebro') {
     $qual = $modelo !== '' ? $modelo : (string)v2_cerebro()['modelo'];
+    irene_abrir_conexao();
     $r = irene_cerebro($qual, $mensagens);
     if (!empty($r['ok'])) {
         $resposta = (string)$r['texto'];
@@ -300,6 +340,7 @@ if (!$jaFalei) {
         }
     }
 } else {
+    irene_abrir_conexao();
     $lm = v2_lmstudio_modelos();
     $escolhido = $modelo !== '' ? $modelo : (v2_lmstudio_modelo_preferido() ?: ($lm[0] ?? 'qwen/qwen3-8b'));
     $r = irene_lmstudio($escolhido, $mensagens);
@@ -339,6 +380,7 @@ if ($respondeuAudio || $querPreview) {
     ], '', '&', PHP_QUERY_RFC3986);
 }
 
+$GLOBALS['irene_entregue'] = true;
 echo json_encode([
     'ok' => true,
     'resposta' => $resposta,

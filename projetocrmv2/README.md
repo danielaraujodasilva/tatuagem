@@ -21,6 +21,7 @@ Nada e apagado, nada e alterado: o schema cria apenas tabelas novas com prefixo 
 | `?page=rotina` | regras (`v2_regras`) e fila de tarefas, com filtro de periodo |
 | `?page=voz` | comparacao de motores e prosodia |
 | `?page=aprendizado` | o que foi aprendido lendo as conversas reais |
+| `?page=estudio` | os fatos do estudio (preco, endereco, reserva...) que a Irene usa para responder |
 
 ## Filtros e busca
 
@@ -58,8 +59,15 @@ projetocrmv2/
 ## Banco
 
 `schema_v2.sql` cria apenas `v2_clientes`, `v2_eventos`, `v2_tarefas`, `v2_regras` e `v2_aprendizado`.
-As tabelas atuais (`crm_whatsapp_clientes`, `crm_whatsapp_mensagens`, `clientes`, `tatuagens`, `leads`, ...)
-continuam intactas - as telas as leem em modo somente leitura.
+`v2_regras` e `v2_aprendizado` continuam no banco legado (`crm_simples`) e os ajustes de voz em `data/`.
+
+As telas de conversa, cliente, agenda e aprendizado leem o **banco atual do estudio**
+(`projetocrm_<slug>`, ex.: `projetocrm_cereja`), que tem `leads`, `customers`,
+`appointments`, `whatsapp_conversations` e `whatsapp_messages`. A conexao e descoberta
+automaticamente pela tabela `studios` da plataforma, usando as credenciais de
+`projetocrm/config/database.php`; para fixar no `config.local.php`, use
+`studio_host` / `studio_database` / `studio_username` / `studio_password`.
+Tudo em modo somente leitura - nada e apagado nem alterado no CRM atual.
 
 ## Como rodar
 

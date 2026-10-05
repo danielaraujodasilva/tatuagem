@@ -3,9 +3,9 @@
  * WhatsApp do sistema: lista de conversas + conversa + resposta.
  * Nesta fase NADA e enviado ao cliente: o compositor so monta rascunho e audio.
  */
-$pdo = v2_try(static fn() => v2_crm(), null);
-$temChat = $pdo instanceof PDO && v2_tabela_existe($pdo, 'crm_whatsapp_clientes');
-$temMsgs = $pdo instanceof PDO && v2_tabela_existe($pdo, 'crm_whatsapp_mensagens');
+$studio = v2_try(static fn() => v2_studio(), null);
+$temChat = $studio instanceof PDO && v2_tabela_existe($studio, 'whatsapp_conversations');
+$temMsgs = $studio instanceof PDO && v2_tabela_existe($studio, 'whatsapp_messages');
 
 $busca = trim((string)($_GET['busca'] ?? ''));
 $fstatus = (string)($_GET['status'] ?? '');
@@ -16,55 +16,14 @@ $periodo = $temMsgs ? v2_periodo_intervalo() : null;
 
 $conversas = [];
 if ($temChat && $temMsgs) {
-    $sql = "SELECT c.id, c.nome, c.numero, c.status, c.modo_atendimento, c.valor, c.interesse, c.data_ultimo_contato,
-                   a.recebidas, a.enviadas, a.total, a.ultima_data,
-                   u.tipo AS ultimo_tipo, u.texto AS ultimo_texto, u.from_me AS ultimo_de, u.transcricao AS ultima_transcricao
-            FROM crm_whatsapp_clientes c
-            LEFT JOIN (
-                SELECT cliente_id, SUM(from_me = 0) AS recebidas, SUM(from_me = 1) AS enviadas,
-                       COUNT(*) AS total, MAX(data) AS ultima_data
-                FROM crm_whatsapp_mensagens GROUP BY cliente_id
-            ) a ON a.cliente_id = c.id
-            LEFT JOIN crm_whatsapp_mensagens u ON u.id = (
-                SELECT m.id FROM crm_whatsapp_mensagens m
-                WHERE m.cliente_id = c.id ORDER BY m.data DESC, m.id DESC LIMIT 1
-            )
-            WHERE 1 = 1";
-    $par = [];
-
-    if ($busca !== '') {
-        $sql .= ' AND (c.nome LIKE ? OR c.numero LIKE ? OR c.interesse LIKE ?)';
-        $like = '%' . $busca . '%';
-        array_push($par, $like, $like, $like);
-    }
-    if ($fstatus !== '' && array_key_exists($fstatus, v2_status_opcoes())) {
-        $sql .= ' AND c.status = ?';
-        $par[] = $fstatus;
-    }
-    if ($periodo !== null) {
-        $sql .= ' AND a.ultima_data >= ? AND a.ultima_data <= ?';
-        array_push($par, $periodo[0], $periodo[1]);
-    }
-    if ($soAguardando) {
-        $sql .= ' AND u.from_me = 0';
-    }
-
-    if ($ordem === 'nome') {
-        $sql .= ' ORDER BY c.nome ASC';
-    } elseif ($ordem === 'valor') {
-        $sql .= ' ORDER BY c.valor DESC, a.ultima_data DESC';
-    } elseif ($ordem === 'parados') {
-        $sql .= ' ORDER BY (a.ultima_data IS NULL), a.ultima_data ASC';
-    } else {
-        $sql .= ' ORDER BY (a.ultima_data IS NULL), a.ultima_data DESC';
-    }
-    $sql .= ' LIMIT 300';
-
-    $conversas = v2_try(static function () use ($pdo, $sql, $par) {
-        $st = $pdo->prepare($sql);
-        $st->execute($par);
-        return $st->fetchAll(PDO::FETCH_ASSOC);
-    }, []);
+    $conversas = v2_studio_conversas($studio, [
+        'busca' => $busca,
+        'status' => $fstatus,
+        'periodo' => $periodo,
+        'ordem' => $ordem,
+        'aguardando' => $soAguardando,
+        'limit' => 300,
+    ]);
 }
 
 if ($id === '' && $conversas) {
@@ -74,16 +33,17 @@ if ($id === '' && $conversas) {
 $cliente = null;
 $msgs = [];
 if ($id !== '' && $temChat) {
-    $stmt = $pdo->prepare('SELECT * FROM crm_whatsapp_clientes WHERE id = ? LIMIT 1');
-    $stmt->execute([$id]);
-    $cliente = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    foreach ($conversas as $c) {
+        if ((string)$c['id'] === $id) { $cliente = $c; break; }
+    }
+    if (!$cliente) {
+        foreach (v2_studio_conversas($studio, ['limit' => 1000]) as $c) {
+            if ((string)$c['id'] === $id) { $cliente = $c; break; }
+        }
+    }
 }
 if ($cliente && $temMsgs) {
-    $stmt = $pdo->prepare('SELECT de, texto, data, from_me, tipo, transcricao, media_file_name, media_url
-                           FROM crm_whatsapp_mensagens WHERE cliente_id = ?
-                           ORDER BY data ASC, id ASC LIMIT 400');
-    $stmt->execute([$id]);
-    $msgs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $msgs = v2_studio_mensagens($studio, (int)$cliente['id'], null, 'asc', 400);
 }
 
 $ultimaEntrada = null;

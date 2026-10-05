@@ -273,6 +273,39 @@ var VOZ = <?= json_encode(v2_voz_atual(), JSON_UNESCAPED_UNICODE) ?>;
     timer = setTimeout(function () { timer = null; responder(); }, 1100);
   }
 
+  // A conexao as vezes morre no meio do caminho (tunel/proxy) antes de a Irene
+  // responder. Nesses casos tentamos de novo em vez de mostrar erro na tela.
+  async function pedirIrene(corpo) {
+    var ultimo = null;
+    for (var tentativa = 1; tentativa <= 3; tentativa++) {
+      var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      var alarme = ctrl ? setTimeout(function () { ctrl.abort(); }, 90000) : null;
+      try {
+        var r = await fetch('api/irene.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(corpo),
+          signal: ctrl ? ctrl.signal : undefined
+        });
+        if (r.status === 502 || r.status === 503 || r.status === 504) {
+          throw new Error('conexao caiu (' + r.status + ')');
+        }
+        var d = await r.json();
+        if (alarme) { clearTimeout(alarme); }
+        return d;
+      } catch (e) {
+        if (alarme) { clearTimeout(alarme); }
+        ultimo = (e && (e.name === 'TypeError' || e.name === 'AbortError'))
+          ? new Error('a conexão caiu no meio do caminho')
+          : e;
+        if (tentativa < 3) {
+          await new Promise(function (ok) { setTimeout(ok, 500 * tentativa); });
+        }
+      }
+    }
+    throw ultimo || new Error('a conexão caiu no meio do caminho');
+  }
+
   async function responder() {
     if (enviando || !pendentes) { return; }
     enviando = true;
@@ -282,17 +315,12 @@ var VOZ = <?= json_encode(v2_voz_atual(), JSON_UNESCAPED_UNICODE) ?>;
     var ultimo = historico[historico.length - 1] || {};
     var t0 = Date.now();
     try {
-      var r = await fetch('api/irene.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          historico: historico,
-          modelo: escolha(),
-          ultimo_audio: ultimo.tipo === 'audio',
-          preview: 1
-        })
+      var d = await pedirIrene({
+        historico: historico,
+        modelo: escolha(),
+        ultimo_audio: ultimo.tipo === 'audio',
+        preview: 1
       });
-      var d = await r.json();
       if (!d.ok) { throw new Error(d.erro || 'falha na resposta'); }
       historico.push({
         papel: 'irene',

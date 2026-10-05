@@ -1,9 +1,9 @@
 <?php
-$pdo = v2_try(static fn() => v2_crm(), null);
-$ficha = v2_try(static fn() => v2_ficha(), null);
+$studio = v2_try(static fn() => v2_studio(), null);
+$meta = v2_try(static fn() => v2_crm(), null);
 
-$temChat = $pdo instanceof PDO && v2_tabela_existe($pdo, 'crm_whatsapp_clientes');
-$temMsgs = $pdo instanceof PDO && v2_tabela_existe($pdo, 'crm_whatsapp_mensagens');
+$temChat = $studio instanceof PDO && v2_tabela_existe($studio, 'whatsapp_conversations');
+$temMsgs = $studio instanceof PDO && v2_tabela_existe($studio, 'whatsapp_messages');
 
 $atual = v2_periodo_atual();
 $periodo = $temMsgs ? v2_periodo_intervalo() : null;
@@ -14,62 +14,64 @@ $fimD = $fim !== null ? substr($fim, 0, 10) : null;
 
 /* ---------- conversas ---------- */
 $aguardando = [];
+$totalAguardando = 0;
+$totalConversas = 0;
 if ($temChat) {
-    $sql = "SELECT c.id, c.nome, c.numero, c.status, c.valor, c.data_ultimo_contato,
-                   (SELECT COUNT(*) FROM crm_whatsapp_mensagens m WHERE m.cliente_id = c.id AND m.from_me = 0) AS recebidas,
-                   (SELECT m.tipo FROM crm_whatsapp_mensagens m WHERE m.cliente_id = c.id ORDER BY m.data DESC, m.id DESC LIMIT 1) AS ultimo_tipo,
-                   (SELECT m.texto FROM crm_whatsapp_mensagens m WHERE m.cliente_id = c.id ORDER BY m.data DESC, m.id DESC LIMIT 1) AS ultimo_texto,
-                   (SELECT m.from_me FROM crm_whatsapp_mensagens m WHERE m.cliente_id = c.id ORDER BY m.data DESC, m.id DESC LIMIT 1) AS ultimo_de
-            FROM crm_whatsapp_clientes c
-            WHERE c.status IN ('novo','lead_quente','em_atendimento','sem_retorno')";
-    $par = [];
-    if ($periodo !== null) {
-        $sql .= ' AND c.data_ultimo_contato >= ? AND c.data_ultimo_contato <= ?';
-        array_push($par, $periodo[0], $periodo[1]);
-    }
-    $sql .= ' ORDER BY c.data_ultimo_contato DESC LIMIT 8';
-    $aguardando = v2_try(static function () use ($pdo, $sql, $par) {
-        $st = $pdo->prepare($sql);
-        $st->execute($par);
-        return $st->fetchAll(PDO::FETCH_ASSOC);
-    }, []);
+    $todas = v2_studio_conversas($studio, ['limit' => 1000]);
+    $totalConversas = count($todas);
+    $totalAguardando = count(array_filter($todas, static fn(array $c): bool => in_array((string)$c['status'], ['novo', 'lead_quente', 'em_atendimento', 'sem_retorno'], true)));
+    $aguardando = v2_studio_conversas($studio, [
+        'periodo' => $periodo,
+        'status_in' => ['novo', 'lead_quente', 'em_atendimento', 'sem_retorno'],
+        'ordem' => 'recentes',
+        'limit' => 8,
+    ]);
 }
-
-$totalAguardando = $temChat ? (int)v2_q1($pdo, "SELECT COUNT(*) total FROM crm_whatsapp_clientes WHERE status IN ('novo','lead_quente','em_atendimento','sem_retorno')") : 0;
-$totalConversas = $temChat ? (int)v2_q1($pdo, 'SELECT COUNT(*) total FROM crm_whatsapp_clientes') : 0;
 
 /* ---------- agenda do estudio ---------- */
 $sessoes = [];
 $valorPeriodo = 0.0;
 $aReceber = 0.0;
 $proxima = null;
-if ($ficha instanceof mysqli) {
+if ($studio instanceof PDO) {
+    $sqlS = "SELECT a.id, COALESCE(NULLIF(a.title, ''), a.description) AS descricao,
+                    a.start_time AS hora_inicio, a.value AS valor, a.status,
+                    a.appointment_date AS data_tatuagem,
+                    COALESCE(NULLIF(cu.name, ''), NULLIF(l.name, ''), 'Cliente') AS nome
+             FROM appointments a
+             LEFT JOIN customers cu ON cu.id = a.customer_id
+             LEFT JOIN leads l ON l.id = a.lead_id
+             WHERE a.status <> 'cancelado'";
+    $parS = [];
     if ($iniD !== null) {
-        $st = $ficha->prepare("SELECT t.id, t.descricao, t.hora_inicio, t.valor, t.status, t.data_tatuagem, c.nome
-                               FROM tatuagens t LEFT JOIN clientes c ON c.id = t.cliente_id
-                               WHERE t.status <> 'cancelado' AND t.data_tatuagem BETWEEN ? AND ?
-                               ORDER BY t.data_tatuagem DESC, t.hora_inicio LIMIT 200");
-        $st->bind_param('ss', $iniD, $fimD);
-        $st->execute();
-        $r = $st->get_result();
-    } else {
-        $r = $ficha->query("SELECT t.id, t.descricao, t.hora_inicio, t.valor, t.status, t.data_tatuagem, c.nome
-                            FROM tatuagens t LEFT JOIN clientes c ON c.id = t.cliente_id
-                            WHERE t.status <> 'cancelado'
-                            ORDER BY t.data_tatuagem DESC, t.hora_inicio LIMIT 200");
+        $sqlS .= ' AND a.appointment_date BETWEEN ? AND ?';
+        array_push($parS, $iniD, $fimD);
     }
-    while ($row = $r->fetch_assoc()) {
-        $sessoes[] = $row;
-        $valorPeriodo += (float)$row['valor'];
+    $sqlS .= ' ORDER BY a.appointment_date DESC, a.start_time LIMIT 200';
+    $sessoes = v2_try(static function () use ($studio, $sqlS, $parS) {
+        $st = $studio->prepare($sqlS);
+        $st->execute($parS);
+        return $st->fetchAll(PDO::FETCH_ASSOC);
+    }, []);
+    foreach ($sessoes as $s) {
+        $valorPeriodo += (float)$s['valor'];
     }
 
-    $aReceber = (float)($ficha->query("SELECT COALESCE(SUM(valor),0) v FROM tatuagens WHERE data_tatuagem >= CURDATE() AND status IN ('agendado','confirmado')")->fetch_assoc()['v'] ?? 0);
-    $prox = $ficha->query("SELECT t.data_tatuagem, t.hora_inicio, c.nome FROM tatuagens t LEFT JOIN clientes c ON c.id = t.cliente_id
-                           WHERE t.data_tatuagem >= CURDATE() AND t.status IN ('agendado','confirmado')
-                           ORDER BY t.data_tatuagem, t.hora_inicio LIMIT 1")->fetch_assoc();
-    if ($prox) {
-        $proxima = $prox;
-    }
+    $aReceber = (float)v2_try(static function () use ($studio) {
+        $st = $studio->query("SELECT COALESCE(SUM(value), 0) v FROM appointments
+                              WHERE appointment_date >= CURDATE() AND status IN ('confirmado', 'pre_agendado')");
+        return (float)$st->fetchColumn();
+    }, 0.0);
+    $proxima = v2_try(static function () use ($studio) {
+        $st = $studio->query("SELECT a.appointment_date, a.start_time,
+                                     COALESCE(NULLIF(cu.name, ''), NULLIF(l.name, ''), 'Cliente') AS nome
+                              FROM appointments a
+                              LEFT JOIN customers cu ON cu.id = a.customer_id
+                              LEFT JOIN leads l ON l.id = a.lead_id
+                              WHERE a.appointment_date >= CURDATE() AND a.status IN ('confirmado', 'pre_agendado')
+                              ORDER BY a.appointment_date, a.start_time LIMIT 1");
+        return $st->fetch(PDO::FETCH_ASSOC) ?: null;
+    }, null);
 }
 
 $sessoesHoje = 0;
@@ -82,13 +84,13 @@ $rotuloSessoes = $atual === 'hoje' ? 'Sessões de hoje' : 'Sessões no período'
 
 /* ---------- rotina ---------- */
 $tarefas = [];
-if (v2_instalado()) {
+if (v2_instalado() && $meta instanceof PDO) {
     if ($periodo !== null) {
-        $tarefas = v2_q($pdo, 'SELECT * FROM v2_tarefas WHERE status IN (\'pendente\',\'aprovada\')
-                              AND previsto_para >= ' . $pdo->quote($periodo[0]) . '
-                              AND previsto_para <= ' . $pdo->quote($periodo[1]) . ' ORDER BY previsto_para LIMIT 6');
+        $tarefas = v2_q($meta, 'SELECT * FROM v2_tarefas WHERE status IN (\'pendente\',\'aprovada\')
+                              AND previsto_para >= ' . $meta->quote($periodo[0]) . '
+                              AND previsto_para <= ' . $meta->quote($periodo[1]) . ' ORDER BY previsto_para LIMIT 6');
     } else {
-        $tarefas = v2_q($pdo, "SELECT * FROM v2_tarefas WHERE status IN ('pendente','aprovada')
+        $tarefas = v2_q($meta, "SELECT * FROM v2_tarefas WHERE status IN ('pendente','aprovada')
                                AND previsto_para <= DATE_ADD(NOW(), INTERVAL 7 DAY) ORDER BY previsto_para LIMIT 6");
     }
 }

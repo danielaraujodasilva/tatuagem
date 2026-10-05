@@ -2,7 +2,10 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/bootstrap.php';
-require_staff();
+/* Web exige login; a ponte local (CLI) reaproveita a mesma geracao. */
+if (PHP_SAPI !== 'cli') {
+    require_staff();
+}
 
 set_time_limit(180);
 
@@ -54,7 +57,13 @@ function v2_tts_erro(string $mensagem, int $codigo = 500): void
 }
 
 $texto = trim((string)($_GET['text'] ?? ''));
+/* A voz nao le emoji: remove pictogramas, seletores e ZWJ antes de gerar. */
+$texto = preg_replace('/[\x{1F000}-\x{1FAFF}\x{200D}\x{203C}\x{2049}\x{20E3}\x{2122}\x{2139}\x{2190}-\x{2BFF}\x{FE00}-\x{FE0F}]/u', '', $texto) ?? $texto;
+/* Pronuncia: escreva do jeito que a voz deve ler (ex.: Hellen soa "Ellen"). */
+$pronuncia = ['/\bHellen\b/iu' => 'Ellen'];
+$texto = preg_replace(array_keys($pronuncia), array_values($pronuncia), $texto) ?? $texto;
 $texto = preg_replace('/\s+/u', ' ', $texto) ?? '';
+$texto = trim($texto);
 $texto = mb_substr($texto, 0, 600);
 
 if ($texto === '') {
@@ -176,7 +185,7 @@ if (isset($_GET['json'])) {
         'variacao' => $variant,
         'vel' => $velocidade,
         'tom' => $tom,
-        'url' => 'tts.php?' . http_build_query([
+        'url' => 'api/tts.php?' . http_build_query([
             'engine' => $engine,
             'voice' => $nomeVoz,
             'v' => $variant,
