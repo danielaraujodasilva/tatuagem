@@ -312,17 +312,22 @@ var VOZ = <?= json_encode(v2_voz_atual(), JSON_UNESCAPED_UNICODE) ?>;
     pendentes = 0;
     render();
     aviso.textContent = 'a Irene está pensando...';
-    var ultimo = historico[historico.length - 1] || {};
+    // Guarda onde a resposta entra: se o cliente escrever de novo enquanto a
+    // Irene pensa, a resposta fica ANTES dessa mensagem nova (senao a proxima
+    // rodada veria a ultima mensagem como sendo da Irene e falharia).
+    var base = historico.length;
+    var ultimo = historico[base - 1] || {};
+    var conversa = historico.slice(0, base);
     var t0 = Date.now();
     try {
       var d = await pedirIrene({
-        historico: historico,
+        historico: conversa,
         modelo: escolha(),
         ultimo_audio: ultimo.tipo === 'audio',
         preview: 1
       });
       if (!d.ok) { throw new Error(d.erro || 'falha na resposta'); }
-      historico.push({
+      historico.splice(base, 0, {
         papel: 'irene',
         texto: d.resposta,
         motor: d.motor,
@@ -337,12 +342,12 @@ var VOZ = <?= json_encode(v2_voz_atual(), JSON_UNESCAPED_UNICODE) ?>;
       motor.textContent = 'motor: ' + d.motor + extra + ' · ' + historico.length + ' mensagens no histórico';
       aviso.textContent = d.aviso ? '⚠️ ' + d.aviso : 'resposta gerada · nada foi enviado';
     } catch (e) {
-      historico.push({ papel: 'irene', texto: '(não consegui responder: ' + e.message + ')', motor: 'erro', ms: Date.now() - t0 });
+      historico.splice(base, 0, { papel: 'irene', texto: '(não consegui responder: ' + e.message + ')', motor: 'erro', ms: Date.now() - t0 });
       aviso.textContent = 'erro: ' + e.message;
     }
     enviando = false;
     render();
-    if (pendentes) { agendar(); }
+    if (pendentes && historico.length && historico[historico.length - 1].papel === 'cliente') { agendar(); }
   }
 
   function enviarTexto() {
