@@ -3262,13 +3262,12 @@ function renderRecurring() {
       <div>
         <strong>${escapeHtml(rule.description)}</strong>
         <small>${escapeHtml(frequencyLabel(rule.frequency))} · proximo ${formatDate(rule.next_due_date)} · ${rule.is_active == 1 ? 'ativa' : 'inativa'}${rule.category_name ? ' · ' + escapeHtml(rule.category_name) : ''}${matcherCount ? ` · ${matcherCount} ${matcherCount === 1 ? 'forma reconhecida' : 'formas reconhecidas'}` : ''}</small>
-        ${(rule.boleto_arquivo || rule.boleto_codigo) ? `<small class="boleto-linha">${rule.boleto_codigo ? 'codigo ' + escapeHtml(String(rule.boleto_codigo)) : 'boleto sem codigo de barras'}${rule.boleto_atualizado_em ? ' · coletado ' + formatDate(String(rule.boleto_atualizado_em).slice(0, 10)) : ''}${rule.boleto_fonte ? ' · e-mail ' + escapeHtml(String(rule.boleto_fonte)) : ''}</small>` : ''}
+        ${(rule.boleto_arquivo || rule.boleto_codigo) ? `<div class="boleto-bloco"><small class="boleto-linha">${rule.boleto_codigo ? 'codigo ' + escapeHtml(String(rule.boleto_codigo)) : 'boleto sem codigo de barras'}${rule.boleto_atualizado_em ? ' · coletado ' + formatDate(String(rule.boleto_atualizado_em).slice(0, 10)) : ''}${rule.boleto_fonte ? ' · e-mail ' + escapeHtml(String(rule.boleto_fonte)) : ''}</small>${rule.boleto_codigo ? `<button type="button" class="link-btn boleto-copiar" data-boleto-copy="${rule.id}">Copiar codigo</button>` : ''}</div>` : ''}
       </div>
       <div class="row-actions">
         <span class="amount">${asMoney(rule.amount)}</span>
         <span class="status ${paid ? 'paid' : 'pending'}">${paid ? (rule.match_method === 'automatic' ? 'Paga automaticamente' : 'Paga') : 'Pendente'}</span>
         ${rule.boleto_arquivo ? `<a class="small-btn" href="boleto.php?id=${rule.id}" target="_blank" rel="noopener">Ver boleto</a>` : ''}
-        ${rule.boleto_codigo ? `<button class="small-btn" data-boleto-copy="${rule.id}">Copiar codigo</button>` : ''}
         <button class="small-btn" data-recurring-paid="${rule.id}" data-paid="${paid ? '0' : '1'}">${paid ? 'Desmarcar' : 'Marcar paga'}</button>
         <button class="small-btn" data-recurring-merge="${rule.id}">Mesclar</button>
         <button class="icon-btn" title="Editar recorrencia" data-recurring-edit="${rule.id}">✎</button>
@@ -3374,13 +3373,12 @@ function forecastRowHtml(item) {
       <div>
         <strong>${escapeHtml(item.rule.description)}</strong>
         <small>${escapeHtml(detail)}</small>
-        ${(item.rule.boleto_arquivo || item.rule.boleto_codigo) ? `<small class="boleto-linha">${item.rule.boleto_codigo ? 'codigo ' + escapeHtml(String(item.rule.boleto_codigo)) : 'boleto sem codigo de barras'}${item.rule.boleto_fonte ? ' · e-mail ' + escapeHtml(String(item.rule.boleto_fonte)) : ''}</small>` : ''}
+        ${(item.rule.boleto_arquivo || item.rule.boleto_codigo) ? `<div class="boleto-bloco"><small class="boleto-linha">${item.rule.boleto_codigo ? 'codigo ' + escapeHtml(String(item.rule.boleto_codigo)) : 'boleto sem codigo de barras'}${item.rule.boleto_fonte ? ' · e-mail ' + escapeHtml(String(item.rule.boleto_fonte)) : ''}</small>${item.rule.boleto_codigo ? `<button type="button" class="link-btn boleto-copiar" data-boleto-copy="${item.rule.id}">Copiar codigo</button>` : ''}</div>` : ''}
       </div>
       <div class="row-actions">
         <span class="amount">${asMoney(item.rule.amount)}</span>
         <span class="status ${paid ? 'paid' : 'pending'}">${paid ? 'Pago este mes' : 'Previsto'}</span>
         ${item.rule.boleto_arquivo ? `<a class="small-btn" href="boleto.php?id=${item.rule.id}" target="_blank" rel="noopener">Ver boleto</a>` : ''}
-        ${item.rule.boleto_codigo ? `<button class="small-btn" data-boleto-copy="${item.rule.id}">Copiar codigo</button>` : ''}
       </div>
     </div>`;
 }
