@@ -1261,7 +1261,7 @@ function build_overview(): array
         FROM transactions WHERE reference_month IS NOT NULL OR due_date IS NOT NULL GROUP BY month ORDER BY month")->fetchAll();
 
     $upcoming = db()->prepare("SELECT t.*, COALESCE(NULLIF(CONCAT_WS(' / ', pc.name, c.name), ''), 'Sem categoria') category_name FROM transactions t LEFT JOIN categories c ON c.id = t.category_id LEFT JOIN categories pc ON pc.id = c.parent_id
-        WHERE t.status IN ('pending','late') AND t.due_date <= DATE_ADD(CURDATE(), INTERVAL 21 DAY)
+        WHERE t.status IN ('pending','late') AND t.due_date >= CURDATE() AND t.due_date <= DATE_ADD(CURDATE(), INTERVAL 21 DAY)
         ORDER BY t.due_date ASC LIMIT 10");
     $upcoming->execute();
 

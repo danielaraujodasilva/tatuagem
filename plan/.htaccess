@@ -1,0 +1,15 @@
+# Arquivos internos do Plan: bloqueia acesso web direto (README, SQL, backups).
+<FilesMatch "\.(md|sql|sqlite|bak|log|ini|yml|yaml)($|[-.])">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+# Os PDFs de boleto ficam em storage/ e so saem pela pagina boleto.php (com login).
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^storage/ - [F,L]
+</IfModule>

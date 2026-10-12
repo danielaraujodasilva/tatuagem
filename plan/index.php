@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20260816-41">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20261010-45">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20260816-41" defer></script>
+    <script src="assets/app-bills-total.js?v=20261011-46" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -65,6 +65,7 @@ $csrf = csrf_token();
                     <button class="nav-item active" data-section="dashboard">Inicio</button>
                     <button class="nav-item" data-section="movements">Extratos</button>
                     <button class="nav-item" data-section="bills">Contas</button>
+                    <button class="nav-item" data-section="previsao">Previsao</button>
                 </div>
                 <details class="nav-more">
                     <summary>Mais opcoes</summary>
@@ -75,6 +76,22 @@ $csrf = csrf_token();
                         <button class="nav-item" data-section="budgets">Orcamentos</button>
                         <button class="nav-item" data-section="goals">Metas</button>
                         <button class="nav-item" data-section="recurring">Contas fixas</button>
+            </a>
+            <nav aria-label="Navegacao principal">
+                <div class="nav-group">
+                    <p class="nav-group-label">Principal</p>
+                    <button class="nav-item active" data-section="dashboard">Inicio</button>
+                    <button class="nav-item" data-section="movements">Extratos</button>
+                    <button class="nav-item" data-section="bills">Contas</button>
+                </div>
+                <details class="nav-more">
+                    <summary>Mais opcoes</summary>
+                    <div class="nav-more-items">
+                        <button class="nav-item" data-section="categoryAnalysis">Analise detalhada</button>
+                        <button class="nav-item" data-section="reconciliation">Conciliacao</button>
+                        <button class="nav-item" data-section="transactions">Importar planilha</button>
+                        <button class="nav-item" data-section="budgets">Orcamentos</button>
+                        <button class="nav-item" data-section="goals">Metas</button>
                         <button class="nav-item" data-section="accounts">Contas/Caixas</button>
                         <button class="nav-item" data-section="categories">Categorias</button>
                         <a class="nav-item logout-option" href="logout.php">Sair</a>
@@ -646,6 +663,40 @@ $csrf = csrf_token();
                         </div>
                     </div>
                     <div id="recurringList" class="stack-list"></div>
+                </div>
+            </section>
+            <section class="section" id="previsao">
+                <div class="section-intro">
+                    <div>
+                        <p class="eyebrow">Previsao automatica</p>
+                        <h2>Proximos vencimentos</h2>
+                        <p>Montado automaticamente a partir das suas contas fixas. Nada precisa ser digitado aqui: o sistema projeta as proximas cobrancas e soma por periodo.</p>
+                    </div>
+                    <button class="small-btn" data-nav-target="recurring">Editar contas fixas</button>
+                </div>
+
+                <div class="kpi-grid compact-kpis previsao-kpis">
+                    <article class="metric-card"><span>Proximos 7 dias</span><strong id="forecast7Total">R$ 0,00</strong></article>
+                    <article class="metric-card warning"><span>Proximos 30 dias</span><strong id="forecast30Total">R$ 0,00</strong></article>
+                    <article class="metric-card"><span>Custo fixo mensal</span><strong id="forecastMonthlyTotal">R$ 0,00</strong></article>
+                    <article class="metric-card success"><span>Mes atual pago</span><strong id="forecastMonthCovered">-</strong></article>
+                </div>
+
+                <div class="bill-board">
+                    <section class="panel bill-column">
+                        <div class="panel-head">
+                            <h2>Proximos 30 dias</h2>
+                            <span id="forecastNearCount">0 contas</span>
+                        </div>
+                        <div id="forecastNearList" class="stack-list"></div>
+                    </section>
+                    <section class="panel bill-column">
+                        <div class="panel-head">
+                            <h2>Total por mes</h2>
+                            <span id="forecastMonthsCount">0 meses</span>
+                        </div>
+                        <div id="forecastMonthsList" class="stack-list"></div>
+                    </section>
                 </div>
             </section>
         </main>

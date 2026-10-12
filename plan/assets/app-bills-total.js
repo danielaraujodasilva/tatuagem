@@ -275,6 +275,7 @@ const pageContexts = {
   budgets: ['Planejar', 'Orcamentos mensais', 'Defina limites por categoria e acompanhe suas escolhas.'],
   goals: ['Planejar', 'Metas', 'Acompanhe o progresso do que voce quer construir.'],
   recurring: ['Planejar', 'Contas fixas do mes', 'Veja rapidamente o que ja foi pago e o que ainda esta pendente.'],
+  previsao: ['Planejar', 'Previsao do mes', 'Projecao automatica dos proximos vencimentos, calculada a partir das contas fixas.'],
   accounts: ['Configurar', 'Contas e caixas', 'Organize onde o seu dinheiro fica e ajuste saldos quando precisar.'],
   categories: ['Configurar', 'Categorias', 'Use uma linguagem consistente para entender seus gastos.'],
 };
@@ -2141,6 +2142,7 @@ function renderStaticLists() {
   renderGoals();
   renderAccounts();
   renderRecurring();
+  renderPrevisao();
   renderBankAccountSelect();
   renderBankFilter();
 }
@@ -2203,7 +2205,7 @@ function renderBillList(targetId, rows, mode) {
         <strong>${escapeHtml(row.description)}</strong>
         <small>${formatDate(row.due_date)}</small>
         <div class="bill-category">${inlineCategorySelect(row, 'transaction')}</div>
-        <small>${originBadge(row)} ${row.payment_code ? '· ' + escapeHtml(compactPaymentCode(row.payment_code)) : ''}</small>
+        <small title="${escapeHtml(payableCode(row.payment_code))}">${originBadge(row)} ${row.payment_code ? '· ' + escapeHtml(compactPaymentCode(row.payment_code)) : ''}${payableCode(row.payment_code) ? ` <button type="button" class="link-btn bill-copy" data-copy-payment="${row.id}">Copiar</button>` : ''}</small>
       </div>
       <div class="bill-card-side">
         <span class="amount">${asMoney(row.amount)}</span>
@@ -2234,6 +2236,17 @@ function renderBillList(targetId, rows, mode) {
   });
   bindInlineCategoryControls(target);
   bindShareButtons(target);
+  target.querySelectorAll('[data-copy-payment]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const row = rows.find(item => String(item.id) === String(button.dataset.copyPayment));
+      const text = payableCode(row && row.payment_code);
+      if (!text) return;
+      const copied = await copyToClipboard(text);
+      button.textContent = copied ? 'Copiado!' : 'Copie manualmente';
+      clearTimeout(button.copyTimer);
+      button.copyTimer = setTimeout(() => { button.textContent = 'Copiar'; }, 1800);
+    });
+  });
 }
 
 function renderMovementSearchSuggestions() {
@@ -2290,6 +2303,45 @@ function compactPaymentCode(value) {
   return `${text.slice(0, 18)}...${text.slice(-10)}`;
 }
 
+function payableCode(value) {
+  let text = clean(value);
+  if (!text) return '';
+  text = text
+    .replace(/^pix\s+copia\s+e\s+cola\s*[:,-]?\s*/i, '')
+    .replace(/^pix\s*copia\s*cola\s*[:,-]?\s*/i, '')
+    .replace(/^pix\s*[:,-]?\s*/i, '')
+    .trim();
+  if (!text) return '';
+  const note = text.toLowerCase();
+  if (note.startsWith('sem conta') || note.startsWith('debito autom') || note.startsWith('débito autom')) return '';
+  return text;
+}
+
+async function copyToClipboard(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext !== false) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (error) {
+    // segue para o fallback abaixo
+  }
+  try {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', 'readonly');
+    area.style.position = 'fixed';
+    area.style.top = '-1000px';
+    document.body.appendChild(area);
+    area.select();
+    area.setSelectionRange(0, area.value.length);
+    const copied = document.execCommand('copy');
+    document.body.removeChild(area);
+    return copied;
+  } catch (error) {
+    return false;
+  }
+}
 function renderBanking() {
   renderBankSync();
   renderBankingSummary();
@@ -3210,10 +3262,13 @@ function renderRecurring() {
       <div>
         <strong>${escapeHtml(rule.description)}</strong>
         <small>${escapeHtml(frequencyLabel(rule.frequency))} · proximo ${formatDate(rule.next_due_date)} · ${rule.is_active == 1 ? 'ativa' : 'inativa'}${rule.category_name ? ' · ' + escapeHtml(rule.category_name) : ''}${matcherCount ? ` · ${matcherCount} ${matcherCount === 1 ? 'forma reconhecida' : 'formas reconhecidas'}` : ''}</small>
+        ${(rule.boleto_arquivo || rule.boleto_codigo) ? `<small class="boleto-linha">${rule.boleto_codigo ? 'codigo ' + escapeHtml(String(rule.boleto_codigo)) : 'boleto sem codigo de barras'}${rule.boleto_atualizado_em ? ' · coletado ' + formatDate(String(rule.boleto_atualizado_em).slice(0, 10)) : ''}${rule.boleto_fonte ? ' · e-mail ' + escapeHtml(String(rule.boleto_fonte)) : ''}</small>` : ''}
       </div>
       <div class="row-actions">
         <span class="amount">${asMoney(rule.amount)}</span>
         <span class="status ${paid ? 'paid' : 'pending'}">${paid ? (rule.match_method === 'automatic' ? 'Paga automaticamente' : 'Paga') : 'Pendente'}</span>
+        ${rule.boleto_arquivo ? `<a class="small-btn" href="boleto.php?id=${rule.id}" target="_blank" rel="noopener">Ver boleto</a>` : ''}
+        ${rule.boleto_codigo ? `<button class="small-btn" data-boleto-copy="${rule.id}">Copiar codigo</button>` : ''}
         <button class="small-btn" data-recurring-paid="${rule.id}" data-paid="${paid ? '0' : '1'}">${paid ? 'Desmarcar' : 'Marcar paga'}</button>
         <button class="small-btn" data-recurring-merge="${rule.id}">Mesclar</button>
         <button class="icon-btn" title="Editar recorrencia" data-recurring-edit="${rule.id}">✎</button>
@@ -3247,8 +3302,167 @@ function renderRecurring() {
   target.querySelectorAll('[data-recurring-delete]').forEach(button => {
     button.addEventListener('click', () => deleteRecurring(Number(button.dataset.recurringDelete)));
   });
+  target.querySelectorAll('[data-boleto-copy]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const rule = state.recurring.find(item => Number(item.id) === Number(button.dataset.boletoCopy));
+      if (!rule || !rule.boleto_codigo) return;
+      try {
+        await navigator.clipboard.writeText(String(rule.boleto_codigo));
+        button.textContent = 'Copiado!';
+        setTimeout(() => { button.textContent = 'Copiar codigo'; }, 2000);
+      } catch (error) {
+        alert('Codigo de barras: ' + rule.boleto_codigo);
+      }
+    });
+  });
 }
 
+function monthlyFixedEquivalent(rule) {
+  const amount = Number(rule.amount || 0);
+  const frequency = ['weekly', 'monthly', 'yearly'].includes(rule.frequency) ? rule.frequency : 'monthly';
+  if (frequency === 'weekly') return amount * (52 / 12);
+  if (frequency === 'yearly') return amount / 12;
+  return amount;
+}
+
+function parseForecastDate(value) {
+  if (!value) return null;
+  const [year, month, day] = String(value).split('-').map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+}
+
+function forecastDateKey(date) {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function addMonthsClamped(anchor, offset) {
+  const target = new Date(anchor.getFullYear(), anchor.getMonth() + offset, 1);
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(anchor.getDate(), lastDay));
+  return target;
+}
+
+function forecastOccurrences(rule, horizonStart, horizonEnd) {
+  const frequency = ['weekly', 'monthly', 'yearly'].includes(rule.frequency) ? rule.frequency : 'monthly';
+  const anchor = parseForecastDate(rule.next_due_date) || new Date(horizonStart.getFullYear(), horizonStart.getMonth(), horizonStart.getDate());
+  const dates = [];
+  if (frequency === 'weekly') {
+    const cursor = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate());
+    let guard = 0;
+    while (cursor < horizonStart && guard < 600) { cursor.setDate(cursor.getDate() + 7); guard += 1; }
+    while (cursor <= horizonEnd && guard < 900) { dates.push(new Date(cursor)); cursor.setDate(cursor.getDate() + 7); guard += 1; }
+    return dates;
+  }
+  const step = frequency === 'yearly' ? 12 : 1;
+  let offset = 0;
+  let guard = 0;
+  let candidate = addMonthsClamped(anchor, offset);
+  while (candidate < horizonStart && guard < 240) { offset += step; candidate = addMonthsClamped(anchor, offset); guard += 1; }
+  while (candidate <= horizonEnd && guard < 300) { dates.push(candidate); offset += step; candidate = addMonthsClamped(anchor, offset); guard += 1; }
+  return dates;
+}
+
+function forecastRowHtml(item) {
+  const currentMonth = item.key.slice(0, 7) === state.recurringMonth;
+  const paid = currentMonth && Number(item.rule.paid_this_month) === 1;
+  const detail = [formatDate(item.key), frequencyLabel(item.rule.frequency), item.rule.category_name].filter(Boolean).join(' · ');
+  return `
+    <div class="list-row${(item.rule.boleto_arquivo || item.rule.boleto_codigo) ? ' has-boleto' : ''}">
+      <div>
+        <strong>${escapeHtml(item.rule.description)}</strong>
+        <small>${escapeHtml(detail)}</small>
+        ${(item.rule.boleto_arquivo || item.rule.boleto_codigo) ? `<small class="boleto-linha">${item.rule.boleto_codigo ? 'codigo ' + escapeHtml(String(item.rule.boleto_codigo)) : 'boleto sem codigo de barras'}${item.rule.boleto_fonte ? ' · e-mail ' + escapeHtml(String(item.rule.boleto_fonte)) : ''}</small>` : ''}
+      </div>
+      <div class="row-actions">
+        <span class="amount">${asMoney(item.rule.amount)}</span>
+        <span class="status ${paid ? 'paid' : 'pending'}">${paid ? 'Pago este mes' : 'Previsto'}</span>
+        ${item.rule.boleto_arquivo ? `<a class="small-btn" href="boleto.php?id=${item.rule.id}" target="_blank" rel="noopener">Ver boleto</a>` : ''}
+        ${item.rule.boleto_codigo ? `<button class="small-btn" data-boleto-copy="${item.rule.id}">Copiar codigo</button>` : ''}
+      </div>
+    </div>`;
+}
+
+function bindBoletoCopy(root) {
+  if (!root) return;
+  root.querySelectorAll('[data-boleto-copy]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const rule = state.recurring.find(item => Number(item.id) === Number(button.dataset.boletoCopy));
+      if (!rule || !rule.boleto_codigo) return;
+      try {
+        await navigator.clipboard.writeText(String(rule.boleto_codigo));
+        button.textContent = 'Copiado!';
+        setTimeout(() => { button.textContent = 'Copiar codigo'; }, 2000);
+      } catch (error) {
+        alert('Codigo de barras: ' + rule.boleto_codigo);
+      }
+    });
+  });
+}
+
+function renderPrevisao() {
+  const target = document.querySelector('#forecastNearList');
+  if (!target) return;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const horizonEnd = new Date(today.getFullYear(), today.getMonth() + 4, 0);
+
+  const activeRules = state.recurring.filter(rule => Number(rule.is_active) === 1);
+  const occurrences = [];
+  activeRules.forEach(rule => {
+    forecastOccurrences(rule, monthStart, horizonEnd).forEach(date => {
+      occurrences.push({ rule, date, key: forecastDateKey(date) });
+    });
+  });
+  occurrences.sort((a, b) => a.date - b.date);
+
+  const upcoming = occurrences.filter(item => item.date >= today);
+  const withinDays = days => upcoming.filter(item => (item.date - today) / 86400000 <= days);
+  const sumRows = rows => sumAmounts(rows.map(item => ({ amount: item.rule.amount })));
+
+  setText('forecast7Total', asMoney(sumRows(withinDays(7))));
+  setText('forecast30Total', asMoney(sumRows(withinDays(30))));
+  setText('forecastMonthlyTotal', asMoney(activeRules.reduce((sum, rule) => sum + monthlyFixedEquivalent(rule), 0)));
+
+  const activeTotal = sumAmounts(activeRules);
+  const paidTotal = sumAmounts(activeRules.filter(rule => Number(rule.paid_this_month) === 1));
+  setText('forecastMonthCovered', activeTotal > 0 ? `${Math.round((paidTotal / activeTotal) * 100)}%` : '-');
+
+  const near = withinDays(30);
+  setText('forecastNearCount', near.length ? `${near.length} ${near.length === 1 ? 'conta' : 'contas'} · ${asMoney(sumRows(near))}` : '0 contas');
+  target.innerHTML = near.length ? near.map(forecastRowHtml).join('') : '<p class="muted">Nada vencendo nos proximos 30 dias.</p>';
+  bindBoletoCopy(target);
+
+  const bucketMap = new Map();
+  const buckets = [];
+  occurrences.forEach(item => {
+    const key = item.key.slice(0, 7);
+    if (!bucketMap.has(key)) {
+      bucketMap.set(key, { key, total: 0, count: 0 });
+      buckets.push(bucketMap.get(key));
+    }
+    const bucket = bucketMap.get(key);
+    bucket.total += Number(item.rule.amount || 0);
+    bucket.count += 1;
+  });
+  setText('forecastMonthsCount', `${buckets.length} ${buckets.length === 1 ? 'mes' : 'meses'}`);
+  const monthsTarget = document.querySelector('#forecastMonthsList');
+  if (monthsTarget) {
+    monthsTarget.innerHTML = buckets.length ? buckets.map(bucket => `
+      <div class="list-row">
+        <div>
+          <strong>${escapeHtml(formatReferenceMonth(bucket.key))}</strong>
+          <small>${bucket.count} ${bucket.count === 1 ? 'conta fixa' : 'contas fixas'}${bucket.key === state.recurringMonth ? ` · ${asMoney(paidTotal)} pagos de ${asMoney(activeTotal)}` : ''}</small>
+        </div>
+        <span class="amount">${asMoney(bucket.total)}</span>
+      </div>
+    `).join('') : '<p class="muted">Cadastre contas fixas para ver a previsao.</p>';
+  }
+}
 function recurringLocation(rule) {
   const category = norm(rule.category_name || '');
   if (category === 'moradia' || category.startsWith('moradia /')) return 'apartment';

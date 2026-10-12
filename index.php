@@ -56,6 +56,15 @@
   <?php
     $phone='5511999979785';
     $whatsapp='https://api.whatsapp.com/send?phone='.$phone.'&text='.rawurlencode('Oi Daniel! Vim pelo site e quero fazer um orçamento de tatuagem.');
+    // Clique de anuncio do Google que caiu na HOME (o gclid chega pela
+    // marcacao automatica). Antes a home nao gravava nada e o contato entrava
+    // como "indefinido" no CRM. Com o click id na URL, o botao passa pelo
+    // rastreio do CRM (grava gclid + carimbo de origem) antes do WhatsApp.
+    $clickId=(string)($_GET['gclid'] ?? ($_GET['wbraid'] ?? ($_GET['gbraid'] ?? '')));
+    if($clickId!=='' && preg_match('/^[A-Za-z0-9_\-]{10,200}$/',$clickId)===1){
+      $base=rtrim(str_replace('\\','/',dirname((string)($_SERVER['SCRIPT_NAME'] ?? '/'))),'/');
+      $whatsapp=$base.'/projetocrm/ir.php?src=google&gclid='.rawurlencode($clickId);
+    }
     $galleryDir=__DIR__.'/galeria';
     $galleryWeb='galeria';
     $galleryFiles=[];

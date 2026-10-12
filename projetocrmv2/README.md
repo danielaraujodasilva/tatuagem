@@ -112,3 +112,65 @@ entao saem sempre iguais e na hora. O campo `estado` da resposta diz em que pont
 | `windows` | sim | plano B nativo, qualidade media |
 
 Voz clonada (voz do estudio) exige GPU (XTTS v2 / Chatterbox) - proximo degrau.
+
+## Sincronizacao da ponte do WhatsApp (`tools/ponte_sync.php`)
+
+A tela `?page=conversa` le as tabelas do CRM (`whatsapp_conversations` / `whatsapp_messages`),
+que pararam de receber quando a API oficial caiu. O WhatsApp do estudio hoje roda na ponte
+Baileys (`whatsapp-origin-bridge`), que grava tudo em `dados/conversas.jsonl`.
+
+O job `tools/ponte_sync.php` le esse jsonl de forma incremental (offset guardado em
+`data/ponte_sync_state.json`) e faz upsert nas tabelas, sem disparar IA e sem enviar nada:
+
+- cria a conversa por telefone se ainda nao existir (nasce em `attendance_mode = human`);
+- insere a mensagem com id sintetico `ponte:<hash>` e evita duplicar o que a API oficial ja gravou;
+- atualiza preview/ultima data da conversa.
+
+Rodar a mao: `php tools/ponte_sync.php` (aceita `--dry-run` e `--reset`).
+No Windows roda de 2 em 2 minutos pela tarefa agendada "ProjetoCRMv2 Ponte WhatsApp Sync",
+que chama `tools/ponte_sync_oculto.vbs`. Log em `data/ponte_sync.log`.
+
+Enquanto o Baileys cair, o jsonl guarda o que ja entrou; ao voltar, o job repoe no banco.
+Se a propria ponte parar de gravar, nao ha o que repor - por isso a ponte precisa estar viva.
+
+## Tempo real na tela de conversa (`api/conversa_feed.php`)
+
+A tela `?page=conversa` e montada no servidor, entao antes so mudava com F5. Agora ela se
+atualiza sozinha:
+
+- `api/conversa_feed.php` responde uma "versao" barata do feed (contagem de mensagens/conversas
+  + ultimo id) e, quando o sync esta parado ha mais de 2s, acorda o `tools/ponte_sync.php`
+  (mesma trava do job; nao envia nada e nao cria lead);
+- o JavaScript da propria tela (`views/conversa.php`) pergunta essa versao a cada 5s e, quando
+  ela muda, rebusca a pagina e troca so a lista (`.iconvos`) e a conversa aberta (`.thead`/`.tbody`),
+  sem recarregar tudo nem perder o rascunho do compositor;
+- a pausa quando a aba esta em segundo plano e volta a checar ao focar de novo.
+
+O polling so acelera o que ja existe: quem alimenta o banco continua sendo o `ponte_sync.php`
+(tarefa agendada de 2 em 2 minutos, agora tambem disparada pela tela aberta).
+
+## Layout da conversa (padrao do CRM: `assets/conversa2.css`)
+
+A tela `?page=conversa` usa o **mesmo layout** da tela `studio_whatsapp_baileys` do CRM
+(classe `m2-*`): lista escura com abas Todas/Sem resposta, busca, menu de filtros, conversa
+com balões, horario em cada mensagem, resposta rapida e painel da conversa.
+
+- `assets/conversa2.css` e a copia de `projetocrm/assets/studio_whatsapp_mobile2.css` com um
+  bloco final que devolve o controle de pagina ao v2 (o original trava `html/body` para
+  tela cheia) e acrescenta o separador de dia (`.m2-dia`) e o estado desabilitado dos botoes.
+- O CSS so entra na tela de conversa (`includes/bootstrap.php`).
+- Os icones vem do Font Awesome por CDN (mesmo link usado pelo CRM).
+
+Ferramentas trazidas da tela do Baileys:
+
+| ferramenta | o que faz aqui |
+|---|---|
+| aba Todas / Sem resposta | filtra quem esta esperando resposta (`aguardando=1`) |
+| busca da lista | filtra na hora, no navegador, sem recarregar |
+| menu Filtros | status, ordem, periodo e intervalo de datas |
+| responder/citar | joga a mensagem citada dentro do rascunho |
+| emojis | painel de 80 emojis no rascunho |
+| painel da conversa | resumo (msgs/recebidas/enviadas), ficha do cliente, tom da voz e rascunho |
+| separador de dia | "Hoje" / data entre os blocos de mensagem |
+
+O envio continua desligado (modo validacao): os botoes de anexo e enviar aparecem apagados.

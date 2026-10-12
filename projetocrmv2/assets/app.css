@@ -78,7 +78,7 @@ body{margin:0;background:var(--bg);color:var(--ink);line-height:1.5;
 .bub{max-width:82%;padding:9px 12px;border-radius:14px;font-size:.86rem;box-shadow:0 1px 1px rgba(16,24,40,.06)}
 .bub.in{align-self:flex-start;background:#fff;border-top-left-radius:5px}
 .bub.out{align-self:flex-end;background:#d9fdd3;border-top-right-radius:5px}
-.bub .t{display:block;font-size:.64rem;color:#8a919c;text-align:right;margin-top:3px}
+.bub .t{display:block;font-size:.72rem;font-weight:600;color:#55606e;text-align:right;margin-top:4px}
 .bub audio{width:100%;margin-top:6px;height:34px}
 .task{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:13px;background:#fff;margin-bottom:10px}
 .task .s{width:9px;height:9px;border-radius:50%;flex:none}
@@ -125,7 +125,7 @@ code{background:var(--soft);padding:1px 6px;border-radius:6px;font-size:.82em}
 .convo .cwho{flex:1;min-width:0}
 .convo .cwho b{display:block;font-size:.86rem;font-weight:750}
 .convo .cwho small{display:block;color:var(--muted);font-size:.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.convo .cwho .cmeta{font-size:.7rem;color:#8d939e;margin-top:2px}
+.convo .cwho .cmeta{font-size:.7rem;color:#6b7280;margin-top:2px;overflow:visible;text-overflow:clip;white-space:normal}
 .convo .cside{flex:none;padding-top:2px}
 .needle{color:var(--brand);font-weight:800}
 .thread{display:flex;flex-direction:column;min-height:min(62vh,620px);max-height:min(78vh,780px);overflow:hidden}

@@ -116,7 +116,7 @@ v2_layout_top('hoje', 'Hoje');
     <p class="sect">💬 Precisa da sua resposta <span class="tag" style="margin-left:auto"><?= $totalAguardando ?> em aberto</span></p>
     <?php if (!$aguardando): ?>
       <div class="note n-gray">Nenhuma conversa em aberto. <a href="<?= v2_h(v2_url(['page' => 'conversa'])) ?>">ver o WhatsApp</a></div>
-    <?php else: foreach ($aguardando as $c): $esperando = (int)($c['ultimo_de'] ?? 1) === 0; ?>
+    <?php else: foreach ($aguardando as $c): $esperando = (int)($c['nao_lida'] ?? ((int)($c['ultimo_de'] ?? 1) === 0 ? 1 : 0)) === 1; ?>
       <div class="row">
         <span class="dotline dl-<?= $esperando ? 'red' : 'blue' ?>"></span>
         <div class="who">

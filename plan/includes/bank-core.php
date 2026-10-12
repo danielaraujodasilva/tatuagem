@@ -227,13 +227,21 @@ function build_bank_overview(): array
         MAX(transaction_date) latest_date
         FROM bank_transactions GROUP BY bank_name ORDER BY bank_name")->fetchAll();
 
-    $latestBalances = db()->query("SELECT bt.bank_name, bt.balance, bt.transaction_date
-        FROM bank_transactions bt
-        JOIN (
-            SELECT bank_name, MAX(CONCAT(transaction_date, LPAD(id, 12, '0'))) marker
-            FROM bank_transactions WHERE balance IS NOT NULL GROUP BY bank_name
-        ) latest ON latest.bank_name = bt.bank_name AND latest.marker = CONCAT(bt.transaction_date, LPAD(bt.id, 12, '0'))
-        ORDER BY bt.bank_name")->fetchAll();
+    // Saldo: usa primeiro o que o sync do banco informa (sempre o mais recente).
+    // Se o sync ainda nao rodou, cai no ultimo saldo lido no extrato importado.
+    $latestBalances = db()->query("SELECT p.bank_name, p.last_balance balance, DATE(p.last_synced_at) transaction_date
+        FROM bank_provider_accounts p
+        WHERE p.last_balance IS NOT NULL
+        ORDER BY p.bank_name")->fetchAll();
+    if (!$latestBalances) {
+        $latestBalances = db()->query("SELECT bt.bank_name, bt.balance, bt.transaction_date
+            FROM bank_transactions bt
+            JOIN (
+                SELECT bank_name, MAX(CONCAT(transaction_date, LPAD(id, 12, '0'))) marker
+                FROM bank_transactions WHERE balance IS NOT NULL GROUP BY bank_name
+            ) latest ON latest.bank_name = bt.bank_name AND latest.marker = CONCAT(bt.transaction_date, LPAD(bt.id, 12, '0'))
+            ORDER BY bt.bank_name")->fetchAll();
+    }
 
     return ['byBank' => $byBank, 'latestBalances' => $latestBalances];
 }

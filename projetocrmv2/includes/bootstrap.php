@@ -218,6 +218,13 @@ function v2_studio_conversas(PDO $pdo, array $filtros = []): array
     $periodo = $filtros['periodo'] ?? null;
     $limite = max(1, (int)($filtros['limit'] ?? 300));
 
+    // Estado de leitura mantido pelo ponte_sync (ver migracao_20261007_conversas_lidas.sql).
+    $camposLeitura = v2_coluna_existe($pdo, 'whatsapp_conversations', 'nao_lida')
+        ? ',
+                   COALESCE(c.nao_lida, 0) AS nao_lida,
+                   c.nao_lida_at AS nao_lida_at'
+        : '';
+
     $sql = "SELECT c.id,
                    COALESCE(NULLIF(l.name, ''), NULLIF(c.name, ''), 'Cliente') AS nome,
                    c.phone AS numero,
@@ -251,10 +258,13 @@ function v2_studio_conversas(PDO $pdo, array $filtros = []): array
                      ORDER BY COALESCE(m.sent_at, m.created_at) DESC, m.id DESC LIMIT 1) AS ultimo_de,
                    (SELECT COALESCE(NULLIF(m.transcricao, ''), NULLIF(m.transcript, ''))
                       FROM whatsapp_messages m WHERE m.conversation_id = c.id
-                     ORDER BY COALESCE(m.sent_at, m.created_at) DESC, m.id DESC LIMIT 1) AS ultima_transcricao
+                     ORDER BY COALESCE(m.sent_at, m.created_at) DESC, m.id DESC LIMIT 1) AS ultima_transcricao" . $camposLeitura . "
             FROM whatsapp_conversations c
             LEFT JOIN leads l ON l.id = c.lead_id
-            WHERE 1 = 1";
+            WHERE 1 = 1"
+            // Conversa chaveada por LID que foi mesclada na conversa real
+            // (tools/ponte_sync.php): nao entra em nenhuma lista.
+            . (v2_coluna_existe($pdo, 'whatsapp_conversations', 'merged_into_id') ? ' AND c.merged_into_id IS NULL' : '');
     $par = [];
     if ($busca !== '') {
         $sql .= ' AND (l.name LIKE ? OR c.name LIKE ? OR c.phone LIKE ? OR l.interest LIKE ?)';
@@ -279,7 +289,8 @@ function v2_studio_conversas(PDO $pdo, array $filtros = []): array
         }
     }
     if (!empty($filtros['aguardando'])) {
-        $having[] = 'ultimo_de = 0';
+        // "Sem resposta" = o cliente falou por ultimo (mesmo estado que o celular mostra como nao lida).
+        $having[] = $camposLeitura !== '' ? 'COALESCE(nao_lida, 0) = 1' : 'ultimo_de = 0';
     }
     if ($having) {
         $sql .= ' HAVING ' . implode(' AND ', $having);
@@ -387,6 +398,20 @@ function v2_tabela_existe(PDO $pdo, string $table): bool
     return v2_try(static function () use ($pdo, $table) {
         $stmt = $pdo->prepare('SHOW TABLES LIKE ?');
         $stmt->execute([$table]);
+        return (bool)$stmt->fetchColumn();
+    }, false);
+}
+/** Coluna existe? Usado para ligar recursos novos sem quebrar banco antigo. */
+function v2_coluna_existe(PDO $pdo, string $table, string $column): bool
+{
+    static $cache = [];
+    $chave = $table . '.' . $column;
+    if (array_key_exists($chave, $cache)) {
+        return $cache[$chave];
+    }
+    return $cache[$chave] = (bool)v2_try(static function () use ($pdo, $table, $column) {
+        $stmt = $pdo->prepare('SHOW COLUMNS FROM ' . $table . ' LIKE ?');
+        $stmt->execute([$column]);
         return (bool)$stmt->fetchColumn();
     }, false);
 }
@@ -656,7 +681,11 @@ function v2_layout_top(string $page, string $title): void
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= v2_h($title) ?> · Irene</title>
-<link rel="stylesheet" href="assets/app.css?v=4">
+<link rel="stylesheet" href="assets/app.css?v=5">
+<?php if ($page === 'conversa'): ?>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
+<link rel="stylesheet" href="assets/conversa2.css?v=2">
+<?php endif; ?>
 </head>
 <body>
 <div class="shell">

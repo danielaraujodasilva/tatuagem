@@ -24,3 +24,10 @@ crm/data/*.log
 crm/data/media/
 ficha/config/conexao.local.php
 witcher/runtime/
+codex/bridge/data/
+codex/uploads/
+codex/data/
+codex/ouvir-*/
+plan/migrations/*.local.sql
+plan/storage/
+plan/scripts/*.log
