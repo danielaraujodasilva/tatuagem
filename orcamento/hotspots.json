@@ -1,63 +1,573 @@
 {
   "frente": [
-    ["cabeca", "cabeca", "Cabeça", 46, 5, 8, 9],
-    ["pescoco", "pescoco", "Pescoço", 45, 15, 10, 5],
-    ["ombro_esq_frente", "ombros", "Ombro esq.", 30, 18, 14, 8],
-    ["ombro_dir_frente", "ombros", "Ombro dir.", 56, 18, 14, 8],
-    ["peito_esq", "peito", "Peitoral esq.", 38, 24, 12, 13],
-    ["peito_dir", "peito", "Peitoral dir.", 51, 24, 12, 13],
-    ["abdomen", "abdomen", "Abdômen", 43, 37, 14, 18],
-    ["costela_esq", "costela", "Costela esq.", 35, 34, 9, 20],
-    ["costela_dir", "costela", "Costela dir.", 57, 34, 9, 20],
-    ["quadril", "quadril", "Quadril", 41, 54, 18, 9],
-    ["braco_esq_frente", "braco_interno", "Braço sup. interno esq.", 23, 26, 11, 21],
-    ["braco_dir_frente", "braco_interno", "Braço sup. interno dir.", 66, 26, 11, 21],
-    ["antebraco_esq_interno", "antebraco_interno", "Antebraço interno esq.", 17, 44, 10, 21],
-    ["antebraco_dir_interno", "antebraco_interno", "Antebraço interno dir.", 73, 44, 10, 21],
-    ["pulso_esq", "pulso", "Punho esq.", 16, 64, 8, 5],
-    ["pulso_dir", "pulso", "Punho dir.", 76, 64, 8, 5],
-    ["mao_esq_palma", "mao_palma", "Mão palma esq.", 13, 68, 11, 11],
-    ["mao_dir_palma", "mao_palma", "Mão palma dir.", 77, 68, 11, 11],
-    ["coxa_esq_frontal", "coxa_frontal", "Coxa frontal esq.", 36, 61, 12, 24],
-    ["coxa_dir_frontal", "coxa_frontal", "Coxa frontal dir.", 52, 61, 12, 24],
-    ["joelho_esq", "joelho", "Joelho esq.", 38, 84, 10, 7],
-    ["joelho_dir", "joelho", "Joelho dir.", 53, 84, 10, 7],
-    ["canela_esq", "canela", "Canela esq.", 36, 90, 10, 20],
-    ["canela_dir", "canela", "Canela dir.", 54, 90, 10, 20],
-    ["tornozelo_esq", "tornozelo", "Tornozelo esq.", 35, 109, 11, 5],
-    ["tornozelo_dir", "tornozelo", "Tornozelo dir.", 55, 109, 11, 5],
-    ["pe_esq_dorso", "pe_dorso", "Pé dorso esq.", 33, 113, 14, 7],
-    ["pe_dir_dorso", "pe_dorso", "Pé dorso dir.", 54, 113, 14, 7]
+    [
+      "braco_dir_frente",
+      "braco_interno",
+      "Braço sup. interno dir.",
+      67.4,
+      19.5,
+      19.1,
+      19.7
+    ],
+    [
+      "quadril",
+      "quadril",
+      "Quadril",
+      36,
+      43.4,
+      32.3,
+      10.3
+    ],
+    [
+      "braco_esq_frente",
+      "braco_interno",
+      "Braço sup. interno esq.",
+      19.7,
+      20.2,
+      15.7,
+      19.1
+    ],
+    [
+      "coxa_esq_frontal",
+      "coxa_frontal",
+      "Coxa frontal esq.",
+      32,
+      48.8,
+      19.7,
+      15.7
+    ],
+    [
+      "coxa_dir_frontal",
+      "coxa_frontal",
+      "Coxa frontal dir.",
+      54.8,
+      46.4,
+      19.1,
+      18.1
+    ],
+    [
+      "abdomen",
+      "abdomen",
+      "Abdômen",
+      40.3,
+      31.4,
+      19.1,
+      12.6
+    ],
+    [
+      "peito_dir",
+      "peito",
+      "Peitoral dir.",
+      50.2,
+      16,
+      17.2,
+      15.5
+    ],
+    [
+      "cabeca",
+      "cabeca",
+      "Cabeça",
+      44.9,
+      2.2,
+      17.5,
+      13.3
+    ],
+    [
+      "peito_esq",
+      "peito",
+      "Peitoral esq.",
+      35.4,
+      18.1,
+      14.8,
+      13.8
+    ],
+    [
+      "costela_dir",
+      "costela",
+      "Costela dir.",
+      59.4,
+      24.7,
+      10.2,
+      21.7
+    ],
+    [
+      "canela_esq",
+      "canela",
+      "Canela esq.",
+      29.2,
+      70.2,
+      13.2,
+      15.9
+    ],
+    [
+      "canela_dir",
+      "canela",
+      "Canela dir.",
+      62.8,
+      70.2,
+      13.8,
+      16
+    ],
+    [
+      "antebraco_dir_interno",
+      "antebraco_interno",
+      "Antebraço interno dir.",
+      75.7,
+      35.3,
+      15.1,
+      10.5
+    ],
+    [
+      "costela_esq",
+      "costela",
+      "Costela esq.",
+      37.2,
+      27.2,
+      9.2,
+      16.2
+    ],
+    [
+      "antebraco_esq_interno",
+      "antebraco_interno",
+      "Antebraço interno esq.",
+      16.6,
+      35.5,
+      12.6,
+      11.2
+    ],
+    [
+      "ombro_dir_frente",
+      "ombros",
+      "Ombro dir.",
+      59.7,
+      15.2,
+      17.8,
+      8.3
+    ],
+    [
+      "ombro_esq_frente",
+      "ombros",
+      "Ombro esq.",
+      29.2,
+      15.7,
+      15.1,
+      7.6
+    ],
+    [
+      "mao_esq_palma",
+      "mao_palma",
+      "Mão palma esq.",
+      8,
+      47.2,
+      16.3,
+      6.4
+    ],
+    [
+      "mao_dir_palma",
+      "mao_palma",
+      "Mão palma dir.",
+      78.8,
+      47.4,
+      16.6,
+      6.2
+    ],
+    [
+      "joelho_esq",
+      "joelho",
+      "Joelho esq.",
+      32.3,
+      64.1,
+      13.5,
+      7.6
+    ],
+    [
+      "joelho_dir",
+      "joelho",
+      "Joelho dir.",
+      60,
+      64.1,
+      13.5,
+      6.2
+    ],
+    [
+      "pescoco",
+      "pescoco",
+      "Pescoço",
+      44.3,
+      12.2,
+      15.4,
+      5.9
+    ],
+    [
+      "pulso_dir",
+      "pulso",
+      "Punho dir.",
+      78.8,
+      44.1,
+      13.5,
+      4.7
+    ],
+    [
+      "dedos_mao_dir",
+      "dedos_mao",
+      "Dedos da mão dir.",
+      80.6,
+      53.6,
+      11.7,
+      4.8
+    ],
+    [
+      "pe_esq_dorso",
+      "pe_dorso",
+      "Pé dorso esq.",
+      26.8,
+      90,
+      11.1,
+      5.3
+    ],
+    [
+      "pulso_esq",
+      "pulso",
+      "Punho esq.",
+      13.8,
+      44.3,
+      10.5,
+      4
+    ],
+    [
+      "dedos_mao_esq",
+      "dedos_mao",
+      "Dedos da mão esq.",
+      11.1,
+      53.6,
+      9.8,
+      4.7
+    ],
+    [
+      "pe_dir_dorso",
+      "pe_dorso",
+      "Pé dorso dir.",
+      67.1,
+      90,
+      10.2,
+      4.7
+    ],
+    [
+      "dedos_pe_dir",
+      "dedos_pe",
+      "Dedos do pé dir.",
+      68.6,
+      93.1,
+      10.8,
+      3.8
+    ],
+    [
+      "tornozelo_esq",
+      "tornozelo",
+      "Tornozelo esq.",
+      30.2,
+      86,
+      8,
+      4
+    ],
+    [
+      "tornozelo_dir",
+      "tornozelo",
+      "Tornozelo dir.",
+      66.5,
+      86,
+      8.3,
+      4
+    ],
+    [
+      "dedos_pe_esq",
+      "dedos_pe",
+      "Dedos do pé esq.",
+      24.6,
+      93.1,
+      10.2,
+      3.1
+    ]
   ],
   "costas": [
-    ["cabeca_costas", "cabeca", "Cabeça", 46, 5, 8, 9],
-    ["nuca", "pescoco", "Nuca / pescoço", 45, 15, 10, 5],
-    ["ombro_esq_costas", "ombros", "Ombro esq.", 30, 18, 14, 8],
-    ["ombro_dir_costas", "ombros", "Ombro dir.", 56, 18, 14, 8],
-    ["costas_esq_alta", "costas_esquerda", "Costas esquerda", 37, 23, 13, 16],
-    ["costas_dir_alta", "costas_direita", "Costas direita", 50, 23, 13, 16],
-    ["costas_esq_media", "costas_esquerda", "Costas esquerda", 38, 38, 12, 13],
-    ["costas_dir_media", "costas_direita", "Costas direita", 50, 38, 12, 13],
-    ["costas_esq_baixa", "costas_esquerda", "Costas esquerda", 39, 50, 11, 11],
-    ["costas_dir_baixa", "costas_direita", "Costas direita", 50, 50, 11, 11],
-    ["lombar", "lombar", "Lombar", 41, 57, 18, 8],
-    ["braco_esq_costas", "braco_externo", "Braço sup. externo esq.", 23, 26, 11, 21],
-    ["braco_dir_costas", "braco_externo", "Braço sup. externo dir.", 66, 26, 11, 21],
-    ["antebraco_esq_externo", "antebraco_externo", "Antebraço externo esq.", 17, 44, 10, 21],
-    ["antebraco_dir_externo", "antebraco_externo", "Antebraço externo dir.", 73, 44, 10, 21],
-    ["mao_esq_dorso", "mao_dorso", "Mão dorso esq.", 13, 68, 11, 11],
-    ["mao_dir_dorso", "mao_dorso", "Mão dorso dir.", 77, 68, 11, 11],
-    ["gluteo_esq", "gluteo", "Glúteo esq.", 38, 62, 12, 12],
-    ["gluteo_dir", "gluteo", "Glúteo dir.", 51, 62, 12, 12],
-    ["coxa_esq_posterior", "coxa_posterior", "Coxa posterior esq.", 36, 72, 12, 22],
-    ["coxa_dir_posterior", "coxa_posterior", "Coxa posterior dir.", 52, 72, 12, 22],
-    ["joelho_esq_posterior", "joelho_posterior", "Joelho posterior esq.", 38, 93, 10, 6],
-    ["joelho_dir_posterior", "joelho_posterior", "Joelho posterior dir.", 53, 93, 10, 6],
-    ["panturrilha_esq", "panturrilha", "Panturrilha esq.", 36, 99, 10, 17],
-    ["panturrilha_dir", "panturrilha", "Panturrilha dir.", 54, 99, 10, 17],
-    ["tornozelo_esq_costas", "tornozelo", "Tornozelo esq.", 35, 115, 11, 5],
-    ["tornozelo_dir_costas", "tornozelo", "Tornozelo dir.", 55, 115, 11, 5],
-    ["pe_esq_planta", "pe_planta", "Pé planta esq.", 33, 119, 14, 7],
-    ["pe_dir_planta", "pe_planta", "Pé planta dir.", 54, 119, 14, 7]
+    [
+      "braco_esq_costas",
+      "braco_externo",
+      "Braço sup. externo esq.",
+      15.1,
+      18.8,
+      14.8,
+      20.7
+    ],
+    [
+      "braco_dir_costas",
+      "braco_externo",
+      "Braço sup. externo dir.",
+      70.2,
+      17.8,
+      16.7,
+      21.5
+    ],
+    [
+      "costas_esq_alta",
+      "costas_esquerda",
+      "Costas esquerda",
+      29.8,
+      18.3,
+      20.3,
+      14.7
+    ],
+    [
+      "coxa_esq_posterior",
+      "coxa_posterior",
+      "Coxa posterior esq.",
+      26.9,
+      58.3,
+      18,
+      16.7
+    ],
+    [
+      "cabeca_costas",
+      "cabeca",
+      "Cabeça",
+      38.7,
+      1.7,
+      23.9,
+      12.3
+    ],
+    [
+      "costas_dir_alta",
+      "costas_direita",
+      "Costas direita",
+      50.2,
+      18.3,
+      20,
+      14.7
+    ],
+    [
+      "gluteo_dir",
+      "gluteo",
+      "Glúteo dir.",
+      52.1,
+      48.2,
+      19.7,
+      12.5
+    ],
+    [
+      "coxa_dir_posterior",
+      "coxa_posterior",
+      "Coxa posterior dir.",
+      56.4,
+      60,
+      17,
+      14.2
+    ],
+    [
+      "ombro_esq_costas",
+      "ombros",
+      "Ombro esq.",
+      24.6,
+      13.2,
+      19,
+      10.8
+    ],
+    [
+      "ombro_dir_costas",
+      "ombros",
+      "Ombro dir.",
+      55.7,
+      13,
+      20.7,
+      10.8
+    ],
+    [
+      "costas_dir_media",
+      "costas_direita",
+      "Costas direita",
+      50.2,
+      33,
+      18,
+      10.8
+    ],
+    [
+      "gluteo_esq",
+      "gluteo",
+      "Glúteo esq.",
+      29.2,
+      49,
+      20,
+      11.8
+    ],
+    [
+      "costas_esq_media",
+      "costas_esquerda",
+      "Costas esquerda",
+      33.8,
+      33,
+      16.4,
+      10
+    ],
+    [
+      "costas_esq_baixa",
+      "costas_esquerda",
+      "Costas esquerda",
+      31.1,
+      43,
+      19,
+      8
+    ],
+    [
+      "costas_dir_baixa",
+      "costas_direita",
+      "Costas direita",
+      50.2,
+      43,
+      19.7,
+      8
+    ],
+    [
+      "lombar",
+      "lombar",
+      "Lombar",
+      45.9,
+      43.5,
+      16.1,
+      10
+    ],
+    [
+      "antebraco_esq_externo",
+      "antebraco_externo",
+      "Antebraço externo esq.",
+      9.5,
+      37.2,
+      15.7,
+      10.5
+    ],
+    [
+      "antebraco_dir_externo",
+      "antebraco_externo",
+      "Antebraço externo dir.",
+      77,
+      36,
+      13.4,
+      11.2
+    ],
+    [
+      "mao_esq_dorso",
+      "mao_dorso",
+      "Mão dorso esq.",
+      5.9,
+      46.3,
+      18,
+      7.8
+    ],
+    [
+      "nuca",
+      "pescoco",
+      "Nuca / pescoço",
+      41.6,
+      12,
+      16.4,
+      6.8
+    ],
+    [
+      "mao_dir_dorso",
+      "mao_dorso",
+      "Mão dorso dir.",
+      80.3,
+      46.7,
+      17,
+      6.8
+    ],
+    [
+      "joelho_esq_posterior",
+      "joelho_posterior",
+      "Joelho posterior esq.",
+      26.6,
+      73,
+      14.4,
+      6.8
+    ],
+    [
+      "joelho_dir_posterior",
+      "joelho_posterior",
+      "Joelho posterior dir.",
+      59.7,
+      72.7,
+      14.8,
+      7
+    ],
+    [
+      "pe_esq_planta",
+      "pe_planta",
+      "Pé planta esq.",
+      23.6,
+      88.5,
+      12.8,
+      5.2
+    ],
+    [
+      "pe_dir_planta",
+      "pe_planta",
+      "Pé planta dir.",
+      64.3,
+      88.5,
+      12.8,
+      5.2
+    ],
+    [
+      "panturrilha_esq",
+      "panturrilha",
+      "Panturrilha esq.",
+      27.2,
+      78.8,
+      10.8,
+      5.7
+    ],
+    [
+      "panturrilha_dir",
+      "panturrilha",
+      "Panturrilha dir.",
+      62.3,
+      79,
+      11.1,
+      5.5
+    ],
+    [
+      "dedos_mao_dorso_esq",
+      "dedos_mao",
+      "Dedos da mão esq.",
+      9.2,
+      53.5,
+      10.2,
+      4
+    ],
+    [
+      "dedos_mao_dorso_dir",
+      "dedos_mao",
+      "Dedos da mão dir.",
+      82.6,
+      53.5,
+      10.8,
+      4
+    ],
+    [
+      "tornozelo_esq_costas",
+      "tornozelo",
+      "Tornozelo esq.",
+      27.9,
+      84.5,
+      7.5,
+      4
+    ],
+    [
+      "tornozelo_dir_costas",
+      "tornozelo",
+      "Tornozelo dir.",
+      64.6,
+      84.5,
+      6.9,
+      4
+    ]
   ]
 }
