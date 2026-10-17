@@ -105,6 +105,16 @@ Regras:
 - Não trocar provedor/modelo sem pedido.
 - Evitar respostas longas no código e no output.
 
+## Navegador e Computer Use
+
+- A página `codex.danieltatuador.com` roda `codex exec` sem interface: o navegador interno (`iab`) não existe nessa sessão. Nunca tentar `createBrowserTab("iab", ...)`; usar o Chrome.
+- `cua.listBrowsers()` vazio significa que o Chrome está fechado. Antes de dizer que não há navegador, abrir no `node_repl`:
+  `const { sky } = await import("@oai/sky");`
+  `await sky.launch_app({ app: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" });`
+  Depois esperar alguns segundos e reler `cua.getState()`.
+- `cua.createBrowserTab("chrome", url)` não aceita `visible`; usar `{ sessionName: "🔎 ..." }`.
+- Apps nativos do Windows: usar `node_repl` + `@oai/sky`; o `cua_repl` roda com APIs nativas desativadas.
+
 ## Segurança
 
 - Nunca exponha secrets, tokens, senhas, chaves de API ou credenciais.
