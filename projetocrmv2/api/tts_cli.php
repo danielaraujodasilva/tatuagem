@@ -7,4 +7,28 @@ declare(strict_types=1);
  */
 $texto = (string)stream_get_contents(STDIN);
 $_GET = ['text' => $texto];
+
+/* Motor opcional por variavel de ambiente (BRIDGE_TTS_ENGINE=piper|windows|...).
+   Sem isso, vale a voz SALVA na tela Voz. */
+$motor = trim((string)getenv('BRIDGE_TTS_ENGINE'));
+if ($motor !== '') {
+    $_GET['engine'] = $motor;
+}
+$vozPonte = trim((string)getenv('BRIDGE_TTS_VOICE'));
+if ($vozPonte !== '') {
+    $_GET['voice'] = $vozPonte;
+}
+$ritmoPonte = trim((string)getenv('BRIDGE_TTS_VARIANT'));
+if ($ritmoPonte !== '') {
+    $_GET['v'] = $ritmoPonte;
+}
+$velPonte = trim((string)getenv('BRIDGE_TTS_VEL'));
+if ($velPonte !== '') {
+    $_GET['vel'] = $velPonte;
+}
+$tomPonte = trim((string)getenv('BRIDGE_TTS_TOM'));
+if ($tomPonte !== '') {
+    $_GET['tom'] = $tomPonte;
+}
+
 require __DIR__ . '/tts.php';
