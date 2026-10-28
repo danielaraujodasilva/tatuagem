@@ -133,12 +133,18 @@
 
     const sourceCanvas = document.getElementById('sourceChart');
     if (sourceCanvas) {
-        const palette = { meta: colors.red, google: colors.blue, instagram: colors.purple, whatsapp: colors.teal, google_agenda: colors.orange, outros: '#9c8f89', sem_lead: colors.grey };
+        const acquisition = report.channels;
+        const palette = { meta: colors.red, google: colors.blue, instagram: colors.purple, whatsapp: colors.teal, outros: '#9c8f89' };
+        const acquisitionTotal = acquisition.reduce((total, channel) => total + channel.conversations, 0);
+        const sourceCenter = document.getElementById('sourceCenter');
+        if (sourceCenter) {
+            sourceCenter.innerHTML = `<strong>${formatNumber(acquisitionTotal)}</strong><span>com origem</span>`;
+        }
         new Chart(sourceCanvas, {
             type: 'doughnut',
             data: {
-                labels: report.channels.map((channel) => channel.label),
-                datasets: [{ data: report.channels.map((channel) => channel.conversations), backgroundColor: report.channels.map((channel) => palette[channel.key] || colors.grey), borderWidth: 0, hoverOffset: 5 }],
+                labels: acquisition.map((channel) => channel.label),
+                datasets: [{ data: acquisition.map((channel) => channel.conversations), backgroundColor: acquisition.map((channel) => palette[channel.key] || colors.grey), borderWidth: 0, hoverOffset: 5 }],
             },
             options: {
                 responsive: true, maintainAspectRatio: false, cutout: '73%',
@@ -153,7 +159,7 @@
 
     const channelCanvas = document.getElementById('channelChart');
     if (channelCanvas) {
-        const acquisition = report.channels.filter((channel) => channel.key !== 'sem_lead');
+        const acquisition = report.channels;
         new Chart(channelCanvas, {
             type: 'bar',
             data: {
@@ -165,7 +171,7 @@
                 plugins: {
                     legend: { display: false },
                     datalabels: { display: true, anchor: 'end', align: 'right', color: colors.ink, font: { weight: '700' }, formatter: (value) => `${formatNumber(value, 1)}%` },
-                    tooltip: { callbacks: { label: (item) => ` ${formatNumber(item.raw, 1)}% de conversão` } },
+                    tooltip: { callbacks: { label: (item) => ` ${formatNumber(item.raw, 1)}% com agenda vinculada` } },
                 },
                 scales: {
                     x: { beginAtZero: true, grid: { color: 'rgba(255,255,255,.05)' }, ticks: { callback: (value) => `${value}%`, precision: 0 } },

@@ -85,11 +85,15 @@ $o = $relatorio['overview'] ?? [];
 $anteriorO = $anterior['overview'] ?? [];
 $agendaDate = $relatorio['agenda']['date'] ?? [];
 $agendaCreated = $relatorio['agenda']['created'] ?? [];
+$acquisitionContacts = (int)($o['acquisition_contacts'] ?? 0);
+$acquisitionPositive = (int)($o['acquisition_positive_conv'] ?? 0);
+$acquisitionConversion = (float)($o['acquisition_positive_conv_pct'] ?? 0.0);
+$agendaImportedContacts = (int)($o['agenda_imported_contacts'] ?? 0);
 
 $dContatos = relatorio_delta($o['contacts'] ?? 0, $anteriorO['contacts'] ?? 0);
 $dMensagens = relatorio_delta($o['messages'] ?? 0, $anteriorO['messages'] ?? 0);
 $dLeads = relatorio_delta($o['with_lead'] ?? 0, $anteriorO['with_lead'] ?? 0);
-$dConversao = relatorio_delta($o['positive_conv_pct'] ?? 0, $anteriorO['positive_conv_pct'] ?? 0, true);
+$dConversao = relatorio_delta($o['acquisition_positive_conv_pct'] ?? 0, $anteriorO['acquisition_positive_conv_pct'] ?? 0, true);
 $dAgenda = relatorio_delta($agendaCreated['retained'] ?? 0, $anterior['agenda']['created']['retained'] ?? 0);
 $dResposta = relatorio_delta($o['first_response_median'] ?? 0, $anteriorO['first_response_median'] ?? 0);
 $dFila = relatorio_delta($o['waiting_leads'] ?? 0, $anteriorO['waiting_leads'] ?? 0);
@@ -116,7 +120,7 @@ $reportJson = json_encode($relatorio, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SL
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="<?= ui_h($baseUrl) ?>/relatorios/assets/relatorios.css?v=20261028-6">
+    <link rel="stylesheet" href="<?= ui_h($baseUrl) ?>/relatorios/assets/relatorios.css?v=20261028-9">
 </head>
 <body>
 <div class="ambient ambient-one" aria-hidden="true"></div>
@@ -194,10 +198,10 @@ $reportJson = json_encode($relatorio, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SL
             </article>
             <article class="kpi-card kpi-accent">
                 <span class="kpi-icon"><i class="fa-solid fa-arrow-trend-up"></i></span>
-                <div class="kpi-label">Conversão em agenda</div>
-                <div class="kpi-value"><span data-countup="<?= (float)$o['positive_conv_pct'] ?>" data-decimals="1"><?= ui_num($o['positive_conv_pct'], 1) ?></span><small>%</small></div>
+                <div class="kpi-label">Conversão de aquisição</div>
+                <div class="kpi-value"><span data-countup="<?= $acquisitionConversion ?>" data-decimals="1"><?= ui_num($acquisitionConversion, 1) ?></span><small>%</small></div>
                 <?= ui_delta($dConversao, ' p.p.', false) ?> <span class="kpi-context">vs. mês anterior</span>
-                <p><?= ui_num($o['positive_conv']) ?> conversas com agenda positiva</p>
+                <p><?= ui_num($acquisitionPositive) ?> conversas de aquisição com agenda positiva</p>
             </article>
             <article class="kpi-card">
                 <span class="kpi-icon"><i class="fa-regular fa-calendar-check"></i></span>
@@ -248,17 +252,18 @@ $reportJson = json_encode($relatorio, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SL
 
         <article class="chart-card span-5">
             <div class="card-head">
-                <div><span class="section-kicker">Aquisição</span><h2>De onde vêm</h2><p>Origem informada no lead.</p></div>
+                <div><span class="section-kicker">Origem comercial</span><h2>De onde vêm</h2><p>Somente contatos com uma origem de aquisição registrada.</p></div>
             </div>
-            <div class="chart-wrap chart-doughnut"><canvas id="sourceChart" aria-label="Gráfico de origem dos contatos"></canvas><div class="donut-center" id="sourceCenter"><strong><?= ui_num($o['contacts']) ?></strong><span>contatos</span></div></div>
-            <div class="chart-foot"><i class="fa-solid fa-circle-info"></i> “Sem lead” também inclui contatos que ainda não entraram no funil.</div>
+            <div class="chart-wrap chart-doughnut"><canvas id="sourceChart" aria-label="Gráfico de origem dos contatos"></canvas><div class="donut-center" id="sourceCenter"><strong><?= ui_num($acquisitionContacts) ?></strong><span>com origem</span></div></div>
+            <div class="chart-foot"><i class="fa-solid fa-circle-info"></i> Contatos sem lead e a base histórica já agendada ficam fora desta leitura.</div>
         </article>
 
         <article class="chart-card span-7">
             <div class="card-head">
-                <div><span class="section-kicker">Canais</span><h2>Conversão por origem</h2><p>Conversas com pelo menos um agendamento confirmado ou concluído.</p></div>
+                <div><span class="section-kicker">Aquisição</span><h2>Conversão por canal</h2><p>Contatos de aquisição com agenda positiva vinculada ao lead, cliente ou telefone.</p></div>
             </div>
             <div class="chart-wrap chart-medium"><canvas id="channelChart" aria-label="Gráfico de conversão por canal"></canvas></div>
+            <div class="chart-foot"><i class="fa-solid fa-circle-info"></i> Cada conversa entra em um único canal comercial; a agenda é o destino, não a origem.</div>
         </article>
 
         <article class="chart-card span-5">
@@ -303,9 +308,10 @@ $reportJson = json_encode($relatorio, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SL
                 <div><span>Cobertura de lead</span><strong><?= ui_num($o['lead_coverage_pct'], 1) ?>%</strong><i><b style="width:<?= min(100, (float)$o['lead_coverage_pct']) ?>%"></b></i></div>
                 <div><span>Contatos sem lead</span><strong><?= ui_num($o['without_lead']) ?></strong><i><b style="width:<?= min(100, 100 - (float)$o['lead_coverage_pct']) ?>%"></b></i></div>
                 <div><span>Fechado no CRM</span><strong><?= ui_num($o['crm_closed']) ?></strong><i><b style="width:<?= min(100, (float)$o['crm_closed_pct']) ?>%"></b></i></div>
-                <div><span>Agenda comprovada</span><strong><?= ui_num($o['positive_conv']) ?></strong><i><b style="width:<?= min(100, (float)$o['positive_conv_pct']) ?>%"></b></i></div>
+                <div><span>Base histórica agendada</span><strong><?= ui_num($agendaImportedContacts) ?></strong><i><b style="width:<?= min(100, $agendaImportedContacts / max(1, (int)$o['contacts']) * 100) ?>%"></b></i></div>
+                <div><span>Agenda de aquisição</span><strong><?= ui_num($acquisitionPositive) ?></strong><i><b style="width:<?= min(100, $acquisitionConversion) ?>%"></b></i></div>
             </div>
-            <div class="health-note"><i class="fa-solid fa-scale-balanced"></i><p>A IA marcou <strong><?= ui_num($o['ai_closed']) ?></strong> vendas em <?= ui_num($o['ai_analyzed']) ?> conversas (<?= ui_num($o['ai_closed_pct'], 1) ?>%). Como só <strong><?= ui_num($o['positive_conv']) ?></strong> têm agenda positiva, o dashboard usa a agenda como fonte principal.</p></div>
+            <div class="health-note"><i class="fa-solid fa-scale-balanced"></i><p>A IA marcou <strong><?= ui_num($o['ai_closed']) ?></strong> vendas em <?= ui_num($o['ai_analyzed']) ?> conversas (<?= ui_num($o['ai_closed_pct'], 1) ?>%). A conversão de aquisição usa apenas <strong><?= ui_num($acquisitionPositive) ?></strong> agendas positivas de origens comerciais.</p></div>
         </article>
     </section>
 
@@ -330,7 +336,7 @@ $reportJson = json_encode($relatorio, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SL
                 </tbody>
             </table>
         </div>
-        <p class="table-note">A origem “Google Agenda” representa contatos que já chegaram com compromisso no calendário; não é comparável às origens de aquisição.</p>
+        <p class="table-note">A base histórica já agendada (<?= ui_num($agendaImportedContacts) ?> contatos no mês) não entra como canal nem na conversão de aquisição.</p>
     </section>
 
     <section class="section-block reveal" aria-labelledby="priority-title">
@@ -360,7 +366,7 @@ $reportJson = json_encode($relatorio, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SL
             <div class="method-content">
                 <p><strong>Contatos:</strong> conversas únicas com mensagem no período, sem duplicatas de LID.</p>
                 <p><strong>Lead qualificado:</strong> conversa vinculada a um registro em <code>leads</code>. A conversão leva em conta também vínculos por telefone para reduzir falhas do CRM.</p>
-                <p><strong>Agenda positiva:</strong> conversa com pelo menos um compromisso confirmado, concluído ou finalizado.</p>
+                <p><strong>Agenda positiva:</strong> conversa com pelo menos um compromisso confirmado, concluído ou finalizado, vinculado ao lead, cliente ou telefone.</p>
                 <p><strong>Objeções:</strong> leitura por palavras-chave nas mensagens recebidas; os temas podem se sobrepor. É um termômetro, não uma classificação perfeita.</p>
                 <p><strong>Tempo de resposta:</strong> mede o intervalo entre a mensagem do cliente e a primeira resposta do estúdio, apenas em conversas vinculadas a um lead.</p>
                 <p><strong>Parados 48h:</strong> leads cuja última mensagem tem mais de 48 horas, contado apenas no mês atual.</p>
@@ -378,7 +384,7 @@ $reportJson = json_encode($relatorio, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SL
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-<script src="<?= ui_h($baseUrl) ?>/relatorios/assets/relatorios.js?v=20261028-6"></script>
+<script src="<?= ui_h($baseUrl) ?>/relatorios/assets/relatorios.js?v=20261028-9"></script>
 </body>
 </html>
 

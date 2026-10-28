@@ -273,6 +273,8 @@ function relatorio_carregar(string $mes): array
             'quote_conversations' => 0, 'price_conversations' => 0,
             'positive_conv' => 0, 'positive_conv_pct' => 0.0,
             'new_positive_conv' => 0, 'new_positive_conv_pct' => 0.0,
+            'acquisition_contacts' => 0, 'acquisition_positive_conv' => 0,
+            'acquisition_positive_conv_pct' => 0.0, 'agenda_imported_contacts' => 0,
             'crm_closed' => 0, 'crm_closed_pct' => 0.0,
             'ai_analyzed' => 0, 'ai_closed' => 0, 'ai_closed_pct' => 0.0,
         ],
@@ -293,6 +295,8 @@ function relatorio_carregar(string $mes): array
     $crmClosed = 0;
     $statusCounts = [];
     $sourceCounts = [];
+    $acquisitionLeadContacts = 0;
+    $agendaImportedContacts = 0;
     $staleLimit = $now->modify('-' . RELATORIO_DIAS_PARADO . ' days')->getTimestamp();
 
     foreach ($conversas as $row) {
@@ -331,6 +335,11 @@ function relatorio_carregar(string $mes): array
             default => 'outros',
         };
         $sourceCounts[$sourceKey] = ($sourceCounts[$sourceKey] ?? 0) + 1;
+        if ($sourceKey === 'google_agenda') {
+            $agendaImportedContacts++;
+        } elseif ($hasLead) {
+            $acquisitionLeadContacts++;
+        }
     }
 
     $firstRows = relatorio_query(
@@ -534,6 +543,7 @@ function relatorio_carregar(string $mes): array
 
     $positiveConv = 0;
     $newPositiveConv = 0;
+    $acquisitionPositiveConv = 0;
     $positiveBySource = [];
     $customerDirectLinks = 0;
     foreach ($conversas as $row) {
@@ -602,6 +612,9 @@ function relatorio_carregar(string $mes): array
             default => 'outros',
         };
         $positiveBySource[$sourceKey] = ($positiveBySource[$sourceKey] ?? 0) + 1;
+        if ($sourceKey !== 'google_agenda' && $sourceKey !== 'sem_lead') {
+            $acquisitionPositiveConv++;
+        }
     }
 
     $agendaDate = relatorio_agenda_resumo($pdo, 'appointment_date', $start, $end);
@@ -625,6 +638,9 @@ function relatorio_carregar(string $mes): array
     ];
     $channels = [];
     foreach ($sourceCounts as $key => $count) {
+        if ($key === 'google_agenda' || $key === 'sem_lead') {
+            continue;
+        }
         $channels[] = [
             'key' => $key,
             'label' => $sourceLabels[$key] ?? ucfirst($key),
@@ -713,6 +729,10 @@ function relatorio_carregar(string $mes): array
         'price_conversations' => count($objections['price']['ids']),
         'positive_conv' => $positiveConv,
         'positive_conv_pct' => relatorio_pct($positiveConv, $withLead),
+        'acquisition_contacts' => $acquisitionLeadContacts,
+        'acquisition_positive_conv' => $acquisitionPositiveConv,
+        'acquisition_positive_conv_pct' => relatorio_pct($acquisitionPositiveConv, $acquisitionLeadContacts),
+        'agenda_imported_contacts' => $agendaImportedContacts,
         'new_positive_conv' => $newPositiveConv,
         'new_positive_conv_pct' => relatorio_pct($newPositiveConv, $withLead),
         'crm_closed' => $crmClosed,
@@ -819,6 +839,7 @@ function relatorio_carregar(string $mes): array
             'ai_closed' => (int)$ai['fechadas'],
             'ai_analyzed' => (int)$ai['analisadas'],
             'positive_conv' => $positiveConv,
+            'agenda_imported_contacts' => $agendaImportedContacts,
         ],
     ];
 }
