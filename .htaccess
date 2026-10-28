@@ -23,6 +23,7 @@ DirectoryIndex home.php index.php index.html
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteRule ^index\.php$ home.php [L]
+    RewriteRule ^relatorios/?$ relatorios/index.php [L,QSA]
 </IfModule>
 
 <IfModule mod_headers.c>

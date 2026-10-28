@@ -87,7 +87,7 @@ function auth_base_url(): string
         return substr($script, 0, $pos);
     }
 
-    foreach (['/crm/', '/ficha/', '/projetocrmv2/'] as $needle) {
+    foreach (['/crm/', '/ficha/', '/projetocrmv2/', '/relatorios/'] as $needle) {
         $pos = strpos($script, $needle);
         if ($pos !== false) {
             return substr($script, 0, $pos);

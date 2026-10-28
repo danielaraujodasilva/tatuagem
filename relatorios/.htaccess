@@ -1,0 +1,9 @@
+Options -Indexes
+
+<Files "dados.php">
+    Require all denied
+</Files>
+
+<IfModule mod_headers.c>
+    Header always set X-Robots-Tag "noindex, nofollow, noarchive"
+</IfModule>
