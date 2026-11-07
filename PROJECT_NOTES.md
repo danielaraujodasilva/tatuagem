@@ -123,7 +123,7 @@ Este arquivo e o mapa rapido do projeto para orientar trabalhos futuros no Codex
 - Tracking: cards de promoção não disparam mais conversão; usam `dataLayer` `promo_open`. A conversão Google/Meta só dispara nos links de WhatsApp (`whatsapp_click`), com `transport_type:'beacon'`.
 - `projetocrm/ir.php` aceita `msg` (mensagem do orçamento 3D) e mantém o `[ref]` para o CRM.
 - Conta Google Ads (07/11/2026): novo RSA `830880382064` com R$ 799 e final URL `/fechamento/`; anúncio antigo pausado; raio de 10 km em Artur Alvim (cidade removida); negativas de sorteio/rifa/grátis; meta `CONTACT~WEBSITE` com `biddable=false` na conta e na campanha; sitelinks/callouts/chamada criados.
-- Pendente na conta: o campo `include_in_conversions_metric` da ação "Contato" é imutável pela API (desmarcar na UI se quiser tirar da coluna Conversões); novo anúncio em revisão; PMax/YouTube seguem pausados; avaliar Maximizar Conversões depois de 30 dias de dados limpos.
+- Efeito da mudança de meta: a ação "Contato" ficou com `include_in_conversions_metric=false` (fora da coluna Conversões) e `biddable=false`; "Compra (CRM)" e "Orcamento (CRM)" seguem como principais. Novo anúncio em revisão; PMax/YouTube seguem pausados; avaliar Maximizar Conversões depois de 30 dias de dados limpos.
 - Backups em `_audit_backups/` (ignorado no git).
 
 ## Como usar este mapa
