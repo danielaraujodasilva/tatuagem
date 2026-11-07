@@ -181,7 +181,7 @@ gtag('config', 'G-CQHHDSD0PK');
     <div>
       <span class="eyebrow">Tatuador em Artur Alvim • Zona Leste</span>
       <h1>Tatuador em Artur Alvim.<br><strong>Fechamento em 1 sessão.</strong></h1>
-      <p class="sub">Realismo e black &amp; grey com projeto pensado para o corpo. Atendimento a poucos minutos do metrô Artur Alvim, na Zona Leste de São Paulo.</p>
+      <p class="sub">Realismo e black &amp; grey com projeto pensado para o corpo. Atendimento a poucos minutos do metrô Artur Alvim, na Zona Leste — recebo clientes de toda a Grande São Paulo.</p>
       <div class="price"><b>Fechamento a partir de R$ 799</b><span>preto e branco, conforme as regras da promoção</span></div>
       <div class="actions">
         <a class="btn btn-fill" href="<?= htmlspecialchars($whatsapp, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" onclick="trackLead('lp_hero')">Pedir orçamento no WhatsApp</a>
