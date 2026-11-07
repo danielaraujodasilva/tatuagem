@@ -31,3 +31,8 @@ codex/ouvir-*/
 plan/migrations/*.local.sql
 plan/storage/
 plan/scripts/*.log
+
+# Backups locais e derivados pesados de imagem (gerar no servidor se precisar)
+_audit_backups/
+galeria/large/
+galeria/thumbs/

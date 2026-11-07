@@ -18,6 +18,7 @@ json_decode($orcamentoJson, true);
 if (json_last_error() !== JSON_ERROR_NONE) {
     $orcamentoJson = '{}';
 }
+$fallbackWa = 'https://wa.me/5511999979785?text=' . rawurlencode('Olá! Quero um orçamento de tatuagem.');
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -25,6 +26,9 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Orçamento de Tattoo | Daniel Araujo</title>
+<meta name="description" content="Monte seu pré-orçamento de tatuagem por região do corpo e envie para o Daniel Araujo no WhatsApp. Estúdio em Artur Alvim, Zona Leste.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://danieltatuador.com/orcamento/">
 <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17619660621"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','AW-17619660621');</script>
 <style>
@@ -352,7 +356,7 @@ footer {
   <div class="site-actions">
     <a href="#hero">Início</a>
     <a href="#portfolio">Portfólio</a>
-    <a class="site-cta" id="topZap" href="#agendamento" target="_blank" rel="noopener noreferrer">Pedir orçamento</a>
+    <a class="site-cta" id="topZap" href="<?= htmlspecialchars($fallbackWa, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener noreferrer">Pedir orçamento</a>
   </div>
 </nav>
 <div class="shell">
@@ -360,7 +364,7 @@ footer {
 <section class="hero-banner">
   <span class="hero-kicker">Orçamento rápido e visual premium</span>
   <h1>Monte seu orçamento de tattoo com a cara do estúdio</h1>
-  <p>Escolha a região do corpo, aplique promoções e envie tudo pronto no WhatsApp. O visual foi alinhado para ficar mais próximo da identidade da página inicial.</p>
+  <p>Escolha a região do corpo, veja uma estimativa de projeto autoral e envie tudo pronto no WhatsApp. As promoções de fechamento do site principal têm regras próprias; aqui o valor é uma estimativa para peças maiores e projetos personalizados.</p>
   <div class="hero-actions">
     <a class="hero-action hero-action-primary" href="#agendamento">Quero meu orçamento</a>
     <a class="hero-action hero-action-secondary" href="#portfolio">Ver trabalhos</a>
@@ -381,12 +385,12 @@ footer {
   </main>
   <aside class="side">
     <details class="accordion"><summary>Sua seleção detalhada</summary><div class="accordion-body"><div id="selectionList" class="selection-list"></div></div></details>
-    <details class="accordion"><summary>Enviar para WhatsApp</summary><div class="accordion-body"><div class="field"><label>Nome completo</label><input id="cliente" placeholder="Digite seu nome"></div><div class="field"><label>Referência / ideia da tattoo</label><textarea id="referenciaTexto" maxlength="500" placeholder="Descreva sua ideia, estilo, referência..."></textarea></div><a id="zap" class="zap" href="#" target="_blank">Receber orçamento no WhatsApp</a><p class="note">Você será redirecionado com uma mensagem pronta.</p></div></details>
+    <details class="accordion"><summary>Enviar para WhatsApp</summary><div class="accordion-body"><div class="field"><label>Nome completo</label><input id="cliente" placeholder="Digite seu nome"></div><div class="field"><label>Referência / ideia da tattoo</label><textarea id="referenciaTexto" maxlength="500" placeholder="Descreva sua ideia, estilo, referência..."></textarea></div><a id="zap" class="zap" href="<?= htmlspecialchars($fallbackWa, ENT_QUOTES, 'UTF-8') ?>" target="_blank">Receber orçamento no WhatsApp</a><p class="note">Você será redirecionado com uma mensagem pronta.</p></div></details>
   </aside>
 </section>
 <details class="accordion regions"><summary>Todas as regiões disponíveis</summary><div class="accordion-body"><div id="regionGrid" class="region-grid"></div></div></details>
 <details class="accordion" style="margin-top:14px"><summary>Como funciona</summary><div class="accordion-body"><section class="foot"><div class="foot-card"><b>Como funciona</b>Selecione áreas, veja a estimativa e envie pelo WhatsApp.</div><div class="foot-card"><b>Orçamento personalizado</b>O valor final depende do tamanho, estilo e detalhamento.</div><div class="foot-card"><b>Atendimento rápido</b>As informações chegam organizadas.</div><div class="foot-card"><b>100% seguro</b>Seus dados não são compartilhados.</div></section></div></details>
-</div><div id="tooltip" class="tooltip"></div><a id="mobileCta" class="mobile-cta" href="#" target="_blank">Receber orçamento no WhatsApp</a>
+</div><div id="tooltip" class="tooltip"></div><a id="mobileCta" class="mobile-cta" href="<?= htmlspecialchars($fallbackWa, ENT_QUOTES, 'UTF-8') ?>" target="_blank">Receber orçamento no WhatsApp</a>
 <script>
 const FRONT_IMG='assets/body-front-muscular.png?v=1';
 const BACK_IMG='assets/body-back-muscular.png?v=1';
@@ -396,7 +400,7 @@ const VIEW_ADJUST={frente:{x:0,y:0},costas:{x:0,y:0}};
 function fixHotspot(view,h){const a=VIEW_ADJUST[view]||{x:0,y:0};const c=[...h];c[3]=Number(c[3])+a.x;c[4]=Number(c[4])+a.y;return c}
 function area(titulo,min,max,desc){return{titulo,preco:Math.round(((min+max)/2)/50)*50,min,max,desc}}
 function promo(titulo,desc,ids,desconto,view){return{titulo,desc,ids,desconto,view}}
-const phone='5511947573311';
+const phone='5511999979785';
 const areas={cabeca:area('Cabeça',2500,6500,'Área extrema e muito visível.'),pescoco:area('Pescoço',1500,3500,'Região de alto impacto.'),ombros:area('Ombro',1800,4200,'Excelente para encaixe anatômico.'),peito:area('Peitoral',2500,7000,'Área grande e visual.'),abdomen:area('Abdômen',2000,5600,'Área ampla e sensível.'),costela:area('Costela',1800,5600,'Ótima para composições laterais.'),quadril:area('Quadril',1500,4200,'Complemento de perna ou abdômen.'),costas_esquerda:area('Costas esquerda',10050,10050,'Metade esquerda das costas, unificada em uma leitura única.'),costas_direita:area('Costas direita',10050,10050,'Metade direita das costas, unificada em uma leitura única.'),lombar:area('Lombar',1500,4200,'Boa para peças centrais.'),braco_interno:area('Braço superior interno',1200,3500,'Metade superior interna.'),braco_externo:area('Braço superior externo',1400,3900,'Metade superior externa.'),antebraco_interno:area('Antebraço interno',1200,3400,'Área muito procurada.'),antebraco_externo:area('Antebraço externo',1200,3200,'Boa leitura no dia a dia.'),pulso:area('Punho',600,1600,'Área menor e delicada.'),mao_palma:area('Mão palma',900,2800,'Área delicada e de alto desgaste.'),mao_dorso:area('Mão dorso',900,2800,'Área muito visível.'),coxa_frontal:area('Coxa frontal',2500,7200,'Área ampla para peças grandes.'),coxa_posterior:area('Coxa posterior',2300,6600,'Boa para fechamento.'),gluteo:area('Glúteos',1800,4600,'Complemento de perna ou quadril.'),joelho:area('Joelho anterior',1200,3800,'Área complexa.'),joelho_posterior:area('Joelho posterior',900,2700,'Área sensível.'),canela:area('Canela',1800,4800,'Área de impacto visual.'),panturrilha:area('Panturrilha',1800,4800,'Boa curvatura.'),tornozelo:area('Tornozelo',600,1900,'Área menor para detalhes.'),pe_dorso:area('Pé dorso',900,2800,'Área visível.'),pe_planta:area('Pé planta',700,2200,'Alto desgaste.'),dedos_mao:area('Dedos da mão',400,1300,'Área pequena, visível e com alto desgaste. Melhor para símbolos simples e letras.'),dedos_pe:area('Dedos do pé',400,1100,'Área pequena, sensível e com alto desgaste. Melhor para marcas simples.')};
 let promos=[promo('Braço externo esquerdo','Ombro + braço superior externo + antebraço externo',['ombro_esq_costas','braco_esq_costas','antebraco_esq_externo'],.88,'costas'),promo('Braço interno esquerdo','Braço superior interno + antebraço interno',['braco_esq_frente','antebraco_esq_interno'],.9,'frente'),promo('Peitoral completo','Peito esquerdo + direito',['peito_esq','peito_dir'],.9,'frente'),promo('Costas completa','Costas esquerda + costas direita + lombar',['costas_esquerda','costas_direita','lombar'],.82,'costas')];
 const $=id=>document.getElementById(id), selected=new Map();
@@ -431,8 +435,33 @@ $('promoCurrent').style.display=est?.promo?'block':'none';
 if(est?.promo)$('promoCurrent').innerHTML=`<b>Promoção aplicada!</b> ${est.off}% OFF · ${money(est.gross)} → ${money(est.price)}`;
 renderPromos();links()}
 function renderPromos(){$('promoSelect').innerHTML='<option value="">Selecionar promoção</option>'+promos.map((p,i)=>`<option value="${i}">${p.titulo}</option>`).join('')}
-function links(){const est=calc();const client=$('cliente').value.trim()||'Cliente ainda não informou';const idea=$('referenciaTexto').value.trim()||'Não descreveu ainda';const areaText=[...selected.values()].map(i=>i.label).join(', ')||'a definir';const price=est?money(est.price):'Aguardando seleção';const msg=['Olá! Quero um orçamento de tatuagem.',`Nome: ${client}`,`Área escolhida: ${areaText}`,`Referência/ideia: ${idea}`,`Pré-orçamento: ${price}`,'Sei que o valor final depende de avaliação.'].join('\n');const href=`https://wa.me/${phone}?text=${encodeURIComponent(msg)}&utm_source=orcamento_3d`;['zap','mobileCta','topZap'].forEach(id=>$(id).href=href)}
-function trackOrcamento(){try{if(typeof gtag==='function')gtag('event','conversion',{send_to:'AW-17619660621/9Xp2CO_--qUbEM3e2tFB',event_category:'Orcamento',event_label:'whatsapp'})}catch(e){console.warn(e)}}
+function links(){
+  const est=calc();
+  const client=$('cliente').value.trim()||'Cliente ainda não informou';
+  const idea=$('referenciaTexto').value.trim()||'Não descreveu ainda';
+  const areaText=[...selected.values()].map(i=>i.label).join(', ')||'a definir';
+  const price=est?money(est.price):'Aguardando seleção';
+  const msg=['Olá! Quero um orçamento de tatuagem.',`Nome: ${client}`,`Área escolhida: ${areaText}`,`Referência/ideia: ${idea}`,`Pré-orçamento: ${price}`,'Sei que o valor final depende de avaliação.'].join('\n');
+  const params=new URLSearchParams(location.search);
+  const clickParam=['gclid','wbraid','gbraid'].find(k=>params.get(k));
+  const utm=(params.get('utm_source')||'').toLowerCase();
+  let src=params.get('src')||'';
+  if(!src){
+    if(clickParam||utm==='google') src='google';
+    else if(utm==='meta'||utm==='facebook'||utm==='fb'||params.get('fbclid')) src='meta';
+    else if(utm==='instagram') src='instagram';
+  }
+  let href;
+  if(src&&['meta','google','instagram','tiktok','indicacao','outro'].includes(src)){
+    const q=new URLSearchParams({src:src,msg:msg});
+    if(clickParam) q.set(clickParam,params.get(clickParam));
+    href='../projetocrm/ir.php?'+q.toString();
+  }else{
+    href=`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  }
+  ['zap','mobileCta','topZap'].forEach(id=>$(id).href=href);
+}
+function trackOrcamento(){try{window.dataLayer=window.dataLayer||[];dataLayer.push({event:'orcamento_whatsapp'});if(typeof gtag==='function')gtag('event','conversion',{send_to:'AW-17619660621/9Xp2CO_--qUbEM3e2tFB',event_category:'Orcamento',event_label:'whatsapp',transport_type:'beacon'})}catch(e){console.warn(e)}}
 function renderGrid(){const first={};['frente','costas'].forEach(v=>(raw[v]||[]).forEach(h=>{if(!first[h[1]])first[h[1]]={h,v}}));$('regionGrid').innerHTML=Object.keys(areas).map(k=>{const f=first[k];const h=f?fixHotspot(f.v,f.h):[null,k,k,45,45,12,12];const image=img(f?.v||'frente');return`<button class="region-card" data-region="${k}"><span class="mini"><span class="mini-layer"><img src="${image}"><i class="mini-hot" style="left:${h[3]}%;top:${h[4]}%;width:${h[5]}%;height:${h[6]}%"></i></span></span><span>${esc(areas[k].titulo)}</span></button>`}).join('');document.querySelectorAll('.region-card').forEach(b=>b.onclick=()=>selectRegion(b.dataset.region))}
 function setView(v){document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===v));$('frontBox').classList.toggle('hidden',v!=='frente');$('backBox').classList.toggle('hidden',v!=='costas')}
 $('selectionList').onclick=e=>{const b=e.target.closest('[data-remove]');if(b){selected.delete(b.dataset.remove);update()}};

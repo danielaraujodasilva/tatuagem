@@ -1,4 +1,22 @@
 User-agent: *
 Allow: /
 
+# Áreas administrativas e endpoints internos
+Disallow: /projetocrm/
+Disallow: /projetocrmv2/
+Disallow: /crm/
+Disallow: /ficha/
+Disallow: /auth/
+Disallow: /relatorios/
+Disallow: /deploy.php
+Disallow: /deploy.log
+Disallow: /autochat.php
+Disallow: /autochat_control.php
+Disallow: /autochat_media.php
+Disallow: /hardware.php
+Disallow: /hwtfq7.php
+
+# Versão antiga/duplicada da home
+Disallow: /v2/
+
 Sitemap: https://danieltatuador.com/sitemap.xml

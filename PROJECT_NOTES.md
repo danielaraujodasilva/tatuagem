@@ -115,6 +115,16 @@ Este arquivo e o mapa rapido do projeto para orientar trabalhos futuros no Codex
 - Melhorar documentacao dos modulos principais conforme forem sendo alterados.
 - Criar testes ou scripts de verificacao simples para fluxos criticos, se o projeto permitir.
 
+## Atualizações 07/11/2026 (Google Ads / conversão)
+
+- Home (`index.php`/`home.php`) agora renderiza 36 fotos; a galeria completa fica em `galeria/index.php` (48 por página, `?p=N`).
+- Derivados WebP da galeria: `galeria/thumbs/` (480px, grid) e `galeria/large/` (1600px, modal). Gerar no servidor com `php tools/gerar_thumbs_galeria.php` (ou `--so-thumbs`). O site cai na imagem original se o derivado não existir.
+- Landing page de Search: `fechamento/index.php`.
+- Tracking: cards de promoção não disparam mais conversão; usam `dataLayer` `promo_open`. A conversão Google/Meta só dispara nos links de WhatsApp (`whatsapp_click`), com `transport_type:'beacon'`.
+- `projetocrm/ir.php` aceita `msg` (mensagem do orçamento 3D) e mantém o `[ref]` para o CRM.
+- Pendente na conta Google Ads: revisar a ação primária "Contato" (hoje inflada), usar "Orçamento (CRM)"/"Compra (CRM)", alinhar o preço do anúncio (R$ 699 x R$ 799) e trocar a final URL para `/fechamento/` depois de validar.
+- Backups em `_audit_backups/` (ignorado no git).
+
 ## Como usar este mapa
 
 Ao iniciar uma tarefa no Codex, pedir para ler este arquivo primeiro quando o contexto estiver frio ou quando a conversa tiver mudado de dispositivo. Exemplo:

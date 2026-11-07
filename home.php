@@ -4,7 +4,8 @@ include __DIR__ . '/index.php';
 $html = ob_get_clean();
 
 $expiredPromo = '<div class="promo-col bg5" data-title="Sorteio Filantrópico" data-content="&lt;p&gt;Estamos ajudando uma mamãe que teve uma bebê e infelizmente está precisando de ajuda. Então, para cada pessoa que fizer a doação de algo que seja útil para ajudar essa mãe e/ou essa bebê, estará concorrendo a um fechamento no valor de R$999 com nossa equipe! O Sorteio será no dia 10 de Outubro de 2025!&lt;/p&gt;"><span>Sorteio Filantrópico</span></div>';
-$html = str_replace($expiredPromo, '', $html);
+$expiredPromo2 = '<div class="promo-col bg6" data-title="Sorteio do Matheus Soares" data-content="&lt;p&gt;O Matheus Soares está bancando uma tatuagem para um sorteado que seguir as regras dessa publicação aqui: https://www.instagram.com/p/DOrXJUHEZhm/ A tatuagem será sorteada no dia 10 de Outubro de 2025!&lt;/p&gt;"><span>Sorteio do Matheus Soares</span></div>';
+$html = str_replace([$expiredPromo, $expiredPromo2], '', $html);
 
 $heroOverride = <<<'HTML'
 <style id="hero-final-adjustments">
@@ -17,7 +18,13 @@ $heroOverride = <<<'HTML'
 }
 .hero-visual{
   position:relative;
-  min-height:1200px !important;
+  min-height:700px !important;
+}
+@media(min-width:721px){
+  .hero-grid{
+    padding-top:56px !important;
+    padding-bottom:88px !important;
+  }
 }
 .artist-silhouette{
   position:absolute;
@@ -49,9 +56,13 @@ $heroOverride = <<<'HTML'
     display:none !important;
   }
 }
+@media(prefers-reduced-motion:reduce){
+  .promo-track{transition:none !important;}
+}
 </style>
 <script id="promo-carousel-autoplay">
 document.addEventListener('DOMContentLoaded',function(){
+  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){return;}
   var wrapper=document.querySelector('.promo-carousel-wrapper');
   var track=document.querySelector('.promo-carousel-wrapper .promo-track');
   if(!wrapper||!track){return;}
