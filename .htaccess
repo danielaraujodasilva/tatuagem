@@ -8,10 +8,12 @@ DirectoryIndex home.php index.php index.html
     RewriteRule ^ https://danieltatuador.com%{REQUEST_URI} [R=301,L]
 
     # No modo proxy, o Apache pode receber HTTP mesmo quando o visitante usa HTTPS.
+    # Mantem o host pedido (ex.: codex.danieltatuador.com) em vez de mandar
+    # sempre para o dominio principal.
     RewriteCond %{HTTPS} !=on
     RewriteCond %{HTTP:X-Forwarded-Proto} !^https$ [NC]
     RewriteCond %{HTTP:CF-Visitor} !https [NC]
-    RewriteRule ^ https://danieltatuador.com%{REQUEST_URI} [R=301,L]
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 </IfModule>
 
 <IfModule mod_headers.c>
