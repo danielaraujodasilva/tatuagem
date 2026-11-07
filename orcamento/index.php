@@ -29,6 +29,7 @@ $fallbackWa = 'https://wa.me/5511999979785?text=' . rawurlencode('Olá! Quero um
 <meta name="description" content="Monte seu pré-orçamento de tatuagem por região do corpo e envie para o Daniel Araujo no WhatsApp. Estúdio em Artur Alvim, Zona Leste.">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://danieltatuador.com/orcamento/">
+<?php require dirname(__DIR__) . '/includes/consent_head.php'; ?>
 <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17619660621"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','AW-17619660621');</script>
 <style>
@@ -471,5 +472,6 @@ document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.data
 ['zap','mobileCta','topZap'].forEach(id=>$(id).addEventListener('click',trackOrcamento));
 draw('frente','frontBox');draw('costas','backBox');renderGrid();renderPromos();update();
 </script>
+<?php require dirname(__DIR__) . '/includes/consent_banner.php'; ?>
 </body>
 </html>

@@ -37,6 +37,7 @@ $canonical = 'https://danieltatuador.com/galeria/' . ($page > 1 ? '?p=' . $page 
 <meta property="og:image" content="https://danieltatuador.com/img/og-image.jpg">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://danieltatuador.com/galeria/">
+<?php require dirname(__DIR__) . '/includes/consent_head.php'; ?>
 <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17619660621"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','AW-17619660621');gtag('config','G-CQHHDSD0PK');</script>
 <style>
@@ -109,7 +110,7 @@ $canonical = 'https://danieltatuador.com/galeria/' . ($page > 1 ? '?p=' . $page 
 
 <footer class="wrap">
   <span>© <?= date('Y') ?> Daniel Araujo Tatuador • Rua Catende, 287B, Jd Nordeste, São Paulo/SP</span>
-  <span><a href="/">Site principal</a> · <a href="/fechamento/">Fechamento em 1 sessão</a> · <a href="/privacy.html">Privacidade</a> · <a href="/terms.html">Termos</a> · <a href="tel:+5511999979785" onclick="trackPhone('gal_footer')">(11) 99997-9785</a></span>
+  <span><a href="/">Site principal</a> · <a href="/fechamento/">Fechamento em 1 sessão</a> · <a href="/privacy.html">Privacidade</a> · <a href="/terms.html">Termos</a> · <a href="#" onclick="if(window.dtConsent){dtConsent.open();}return false;">Cookies</a> · <a href="tel:+5511999979785" onclick="trackPhone('gal_footer')">(11) 99997-9785</a></span>
 </footer>
 
 <a class="btn btn-fill mobile-bar" href="<?= htmlspecialchars($whatsapp, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" onclick="trackLead('gal_mobile')">Pedir orçamento no WhatsApp</a>
@@ -119,5 +120,6 @@ window.dataLayer=window.dataLayer||[];
 function trackLead(label){try{dataLayer.push({event:'whatsapp_click',label:label});if(typeof gtag==='function')gtag('event','conversion',{send_to:'AW-17619660621/o6mzCPX--qUbEM3e2tFB',event_category:'WhatsApp',event_label:label,transport_type:'beacon'});}catch(e){console.warn(e)}}
 function trackPhone(label){try{dataLayer.push({event:'phone_click',label:label});}catch(e){console.warn(e)}}
 </script>
+<?php require dirname(__DIR__) . '/includes/consent_banner.php'; ?>
 </body>
 </html>

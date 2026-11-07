@@ -39,6 +39,7 @@ if (is_file($reviewsFile)) {
 <meta name="twitter:title" content="Fechamento em 1 sessão em Artur Alvim | Daniel Araujo">
 <meta name="twitter:description" content="Fechamento em uma sessão, realismo e black & grey em Artur Alvim, Zona Leste.">
 <meta name="twitter:image" content="https://danieltatuador.com/img/og-image.jpg">
+<?php require dirname(__DIR__) . '/includes/consent_head.php'; ?>
 <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17619660621"></script>
 <script>
 window.dataLayer = window.dataLayer || [];
@@ -240,7 +241,7 @@ gtag('config', 'G-CQHHDSD0PK');
 
 <footer><div class="wrap foot">
   <span>© <?= date('Y') ?> Daniel Araujo Tatuador • Rua Catende, 287B, Jd Nordeste, São Paulo/SP</span>
-  <span><a href="/">Site principal</a> · <a href="/privacy.html">Privacidade</a> · <a href="/terms.html">Termos</a> · <a href="tel:+5511999979785" onclick="trackPhone('lp_footer')">(11) 99997-9785</a></span>
+  <span><a href="/">Site principal</a> · <a href="/privacy.html">Privacidade</a> · <a href="/terms.html">Termos</a> · <a href="#" onclick="if(window.dtConsent){dtConsent.open();}return false;">Cookies</a> · <a href="tel:+5511999979785" onclick="trackPhone('lp_footer')">(11) 99997-9785</a></span>
 </div></footer>
 
 <a class="btn btn-fill mobile-bar" href="<?= htmlspecialchars($whatsapp, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" onclick="trackLead('lp_mobile')">Pedir orçamento no WhatsApp</a>
@@ -251,5 +252,6 @@ function trackLead(label){try{dataLayer.push({event:'whatsapp_click',label:label
 function trackRoute(){try{dataLayer.push({event:'route_click',label:'google_maps'});if(typeof gtag==='function')gtag('event','conversion',{send_to:'AW-17619660621/Jaj6CPL--qUbEM3e2tFB',event_category:'Ver rota',event_label:'google_maps',transport_type:'beacon'});}catch(e){console.warn(e)}}
 function trackPhone(label){try{dataLayer.push({event:'phone_click',label:label});}catch(e){console.warn(e)}}
 </script>
+<?php require dirname(__DIR__) . '/includes/consent_banner.php'; ?>
 </body>
 </html>

@@ -122,7 +122,8 @@ Este arquivo e o mapa rapido do projeto para orientar trabalhos futuros no Codex
 - Landing page de Search: `fechamento/index.php`.
 - Tracking: cards de promoção não disparam mais conversão; usam `dataLayer` `promo_open`. A conversão Google/Meta só dispara nos links de WhatsApp (`whatsapp_click`), com `transport_type:'beacon'`.
 - `projetocrm/ir.php` aceita `msg` (mensagem do orçamento 3D) e mantém o `[ref]` para o CRM.
-- Pendente na conta Google Ads: revisar a ação primária "Contato" (hoje inflada), usar "Orçamento (CRM)"/"Compra (CRM)", alinhar o preço do anúncio (R$ 699 x R$ 799) e trocar a final URL para `/fechamento/` depois de validar.
+- Conta Google Ads (07/11/2026): novo RSA `830880382064` com R$ 799 e final URL `/fechamento/`; anúncio antigo pausado; raio de 10 km em Artur Alvim (cidade removida); negativas de sorteio/rifa/grátis; meta `CONTACT~WEBSITE` com `biddable=false` na conta e na campanha; sitelinks/callouts/chamada criados.
+- Pendente na conta: o campo `include_in_conversions_metric` da ação "Contato" é imutável pela API (desmarcar na UI se quiser tirar da coluna Conversões); novo anúncio em revisão; PMax/YouTube seguem pausados; avaliar Maximizar Conversões depois de 30 dias de dados limpos.
 - Backups em `_audit_backups/` (ignorado no git).
 
 ## Como usar este mapa
