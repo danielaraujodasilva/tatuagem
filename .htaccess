@@ -26,6 +26,8 @@ DirectoryIndex home.php index.php index.html
     RewriteEngine On
     RewriteRule ^index\.php$ home.php [L]
     RewriteRule ^relatorios/?$ relatorios/index.php [L,QSA]
+    # Link curto do comparativo de anuncios: /comparativo (sem redirect para http).
+    RewriteRule ^comparativo/?$ comparativo/index.html [L]
 </IfModule>
 
 <IfModule mod_headers.c>

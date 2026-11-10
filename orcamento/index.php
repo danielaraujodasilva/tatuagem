@@ -1,4 +1,6 @@
 <?php
+require dirname(__DIR__) . '/includes/ad_click.php';
+ad_click_capturar();
 $noCacheHeaders = [
     'Cache-Control: no-store, no-cache, must-revalidate, max-age=0',
     'Pragma: no-cache',
@@ -18,7 +20,10 @@ json_decode($orcamentoJson, true);
 if (json_last_error() !== JSON_ERROR_NONE) {
     $orcamentoJson = '{}';
 }
-$fallbackWa = 'https://wa.me/5511999979785?text=' . rawurlencode('Olá! Quero um orçamento de tatuagem.');
+$fallbackWa = ad_click_whatsapp_url(
+    'https://wa.me/5511999979785?text=' . rawurlencode('Olá! Quero um orçamento de tatuagem.'),
+    'Olá! Quero um orçamento de tatuagem.'
+);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -402,6 +407,7 @@ function fixHotspot(view,h){const a=VIEW_ADJUST[view]||{x:0,y:0};const c=[...h];
 function area(titulo,min,max,desc){return{titulo,preco:Math.round(((min+max)/2)/50)*50,min,max,desc}}
 function promo(titulo,desc,ids,desconto,view){return{titulo,desc,ids,desconto,view}}
 const phone='5511999979785';
+const AD_CLICK=<?= json_encode(ad_click_atual(), JSON_UNESCAPED_SLASHES) ?>;
 const areas={cabeca:area('Cabeça',2500,6500,'Área extrema e muito visível.'),pescoco:area('Pescoço',1500,3500,'Região de alto impacto.'),ombros:area('Ombro',1800,4200,'Excelente para encaixe anatômico.'),peito:area('Peitoral',2500,7000,'Área grande e visual.'),abdomen:area('Abdômen',2000,5600,'Área ampla e sensível.'),costela:area('Costela',1800,5600,'Ótima para composições laterais.'),quadril:area('Quadril',1500,4200,'Complemento de perna ou abdômen.'),costas_esquerda:area('Costas esquerda',10050,10050,'Metade esquerda das costas, unificada em uma leitura única.'),costas_direita:area('Costas direita',10050,10050,'Metade direita das costas, unificada em uma leitura única.'),lombar:area('Lombar',1500,4200,'Boa para peças centrais.'),braco_interno:area('Braço superior interno',1200,3500,'Metade superior interna.'),braco_externo:area('Braço superior externo',1400,3900,'Metade superior externa.'),antebraco_interno:area('Antebraço interno',1200,3400,'Área muito procurada.'),antebraco_externo:area('Antebraço externo',1200,3200,'Boa leitura no dia a dia.'),pulso:area('Punho',600,1600,'Área menor e delicada.'),mao_palma:area('Mão palma',900,2800,'Área delicada e de alto desgaste.'),mao_dorso:area('Mão dorso',900,2800,'Área muito visível.'),coxa_frontal:area('Coxa frontal',2500,7200,'Área ampla para peças grandes.'),coxa_posterior:area('Coxa posterior',2300,6600,'Boa para fechamento.'),gluteo:area('Glúteos',1800,4600,'Complemento de perna ou quadril.'),joelho:area('Joelho anterior',1200,3800,'Área complexa.'),joelho_posterior:area('Joelho posterior',900,2700,'Área sensível.'),canela:area('Canela',1800,4800,'Área de impacto visual.'),panturrilha:area('Panturrilha',1800,4800,'Boa curvatura.'),tornozelo:area('Tornozelo',600,1900,'Área menor para detalhes.'),pe_dorso:area('Pé dorso',900,2800,'Área visível.'),pe_planta:area('Pé planta',700,2200,'Alto desgaste.'),dedos_mao:area('Dedos da mão',400,1300,'Área pequena, visível e com alto desgaste. Melhor para símbolos simples e letras.'),dedos_pe:area('Dedos do pé',400,1100,'Área pequena, sensível e com alto desgaste. Melhor para marcas simples.')};
 let promos=[promo('Braço externo esquerdo','Ombro + braço superior externo + antebraço externo',['ombro_esq_costas','braco_esq_costas','antebraco_esq_externo'],.88,'costas'),promo('Braço interno esquerdo','Braço superior interno + antebraço interno',['braco_esq_frente','antebraco_esq_interno'],.9,'frente'),promo('Peitoral completo','Peito esquerdo + direito',['peito_esq','peito_dir'],.9,'frente'),promo('Costas completa','Costas esquerda + costas direita + lombar',['costas_esquerda','costas_direita','lombar'],.82,'costas')];
 const $=id=>document.getElementById(id), selected=new Map();
@@ -442,20 +448,22 @@ function links(){
   const idea=$('referenciaTexto').value.trim()||'Não descreveu ainda';
   const areaText=[...selected.values()].map(i=>i.label).join(', ')||'a definir';
   const price=est?money(est.price):'Aguardando seleção';
-  const msg=['Olá! Quero um orçamento de tatuagem.',`Nome: ${client}`,`Área escolhida: ${areaText}`,`Referência/ideia: ${idea}`,`Pré-orçamento: ${price}`,'Sei que o valor final depende de avaliação.'].join('\n');
   const params=new URLSearchParams(location.search);
-  const clickParam=['gclid','wbraid','gbraid'].find(k=>params.get(k));
+  const urlClick=['gclid','wbraid','gbraid'].find(k=>params.get(k));
+  const adClick=(typeof AD_CLICK!=='undefined'&&AD_CLICK&&AD_CLICK.valor)?AD_CLICK:(urlClick?{tipo:urlClick,valor:params.get(urlClick)}:null);
+  const saudacao=adClick?'Olá! Vim pelo Google e quero um orçamento de tatuagem.':'Olá! Quero um orçamento de tatuagem.';
+  const msg=[saudacao,`Nome: ${client}`,`Área escolhida: ${areaText}`,`Referência/ideia: ${idea}`,`Pré-orçamento: ${price}`,'Sei que o valor final depende de avaliação.'].join('\n');
   const utm=(params.get('utm_source')||'').toLowerCase();
   let src=params.get('src')||'';
   if(!src){
-    if(clickParam||utm==='google') src='google';
+    if(adClick||utm==='google') src='google';
     else if(utm==='meta'||utm==='facebook'||utm==='fb'||params.get('fbclid')) src='meta';
     else if(utm==='instagram') src='instagram';
   }
   let href;
   if(src&&['meta','google','instagram','tiktok','indicacao','outro'].includes(src)){
     const q=new URLSearchParams({src:src,msg:msg});
-    if(clickParam) q.set(clickParam,params.get(clickParam));
+    if(adClick) q.set(adClick.tipo,adClick.valor);
     href='../projetocrm/ir.php?'+q.toString();
   }else{
     href=`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;

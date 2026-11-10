@@ -1,11 +1,11 @@
 <?php
+require dirname(__DIR__) . '/includes/ad_click.php';
+ad_click_capturar();
 $phone = '5511999979785';
-$msg = 'Oi Daniel! Vim pela página de fechamento e quero um orçamento de fechamento em uma sessão.';
-$whatsapp = 'https://wa.me/' . $phone . '?text=' . rawurlencode($msg);
-$clickId = (string)($_GET['gclid'] ?? ($_GET['wbraid'] ?? ($_GET['gbraid'] ?? '')));
-if ($clickId !== '' && preg_match('/^[A-Za-z0-9_\-]{10,200}$/', $clickId) === 1) {
-    $whatsapp = '../projetocrm/ir.php?src=google&gclid=' . rawurlencode($clickId) . '&msg=' . rawurlencode($msg);
-}
+$msg = ad_click_atual() !== null
+    ? 'Oi Daniel! Vim pelo Google e quero um orçamento de fechamento em uma sessão.'
+    : 'Oi Daniel! Vim pela página de fechamento e quero um orçamento de fechamento em uma sessão.';
+$whatsapp = ad_click_whatsapp_url('https://wa.me/' . $phone . '?text=' . rawurlencode($msg), $msg);
 $reviews = [];
 $reviewsFile = dirname(__DIR__) . '/reviews.json';
 if (is_file($reviewsFile)) {

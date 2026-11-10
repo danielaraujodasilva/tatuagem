@@ -1,0 +1,9 @@
+# Serve /comparativo direto (sem o 301 para /comparativo/, que o proxy
+# montava como http:// e obrigava um segundo redirect para https).
+DirectorySlash Off
+DirectoryIndex index.html
+
+<IfModule mod_headers.c>
+    Header set X-Robots-Tag "noindex, nofollow"
+    Header set Cache-Control "no-store"
+</IfModule>
