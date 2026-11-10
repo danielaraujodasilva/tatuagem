@@ -12,7 +12,7 @@ $csrf = csrf_token();
     <title>Plan Financeiro</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="stylesheet" href="assets/app-bills-total.css?v=20261011-47">
+    <link rel="stylesheet" href="assets/app-bills-total.css?v=20261110-2">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +21,7 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20261011-47" defer></script>
+    <script src="assets/app-bills-total.js?v=20261110-2" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -777,6 +777,7 @@ $csrf = csrf_token();
             <label>Categoria<select name="category_id" data-categories></select></label>
             <label>Frequencia<select name="frequency"><option value="monthly">Mensal</option><option value="weekly">Semanal</option><option value="yearly">Anual</option></select></label>
             <label>Proximo vencimento<input name="next_due_date" type="date"></label>
+            <label class="wide">Codigo de pagamento (PIX/boleto)<textarea name="boleto_codigo" rows="2" placeholder="Cole aqui para substituir o codigo automatico"></textarea></label>
             <label class="check-row"><input name="is_active" type="checkbox" checked> Ativa</label>
             <div class="modal-actions"><button type="button" class="ghost-btn" data-close>Cancelar</button><button class="primary-btn">Salvar</button></div>
         </form>

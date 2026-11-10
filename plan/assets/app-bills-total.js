@@ -3249,6 +3249,24 @@ function renderAccounts() {
   });
 }
 
+function paymentSourceLabel(source) {
+  const value = String(source || '').trim();
+  const normalized = value.toLowerCase();
+  if (!value) return '';
+  if (normalized === 'historico') return 'historico';
+  if (normalized === 'manual') return 'manual';
+  if (normalized === 'enel') return 'e-mail Enel';
+  if (normalized === 'lider') return 'e-mail Lider Fibra';
+  if (normalized === 'comgas') return 'e-mail Comgas';
+  return 'e-mail ' + value;
+}
+
+function paymentCodeLabel(code) {
+  const text = String(code || '');
+  if (text.length <= 70) return text;
+  return `${text.slice(0, 24)}...${text.slice(-12)}`;
+}
+
 function renderRecurring() {
   const target = document.querySelector('#recurringList');
   if (!target) return;
@@ -3262,7 +3280,7 @@ function renderRecurring() {
       <div>
         <strong>${escapeHtml(rule.description)}</strong>
         <small>${escapeHtml(frequencyLabel(rule.frequency))} · proximo ${formatDate(rule.next_due_date)} · ${rule.is_active == 1 ? 'ativa' : 'inativa'}${rule.category_name ? ' · ' + escapeHtml(rule.category_name) : ''}${matcherCount ? ` · ${matcherCount} ${matcherCount === 1 ? 'forma reconhecida' : 'formas reconhecidas'}` : ''}</small>
-        ${(rule.boleto_arquivo || rule.boleto_codigo) ? `<div class="boleto-bloco"><small class="boleto-linha">${rule.boleto_codigo ? 'codigo ' + escapeHtml(String(rule.boleto_codigo)) : 'boleto sem codigo de barras'}${rule.boleto_atualizado_em ? ' · coletado ' + formatDate(String(rule.boleto_atualizado_em).slice(0, 10)) : ''}${rule.boleto_fonte ? ' · e-mail ' + escapeHtml(String(rule.boleto_fonte)) : ''}</small>${rule.boleto_codigo ? `<button type="button" class="link-btn boleto-copiar" data-boleto-copy="${rule.id}">Copiar codigo</button>` : ''}</div>` : ''}
+        ${(rule.boleto_arquivo || rule.boleto_codigo) ? `<div class="boleto-bloco"><small class="boleto-linha"${rule.boleto_codigo ? ` title="${escapeHtml(String(rule.boleto_codigo))}"` : ''}>${rule.boleto_codigo ? 'codigo ' + escapeHtml(paymentCodeLabel(rule.boleto_codigo)) : 'boleto sem codigo de barras'}${rule.boleto_atualizado_em ? ' · coletado ' + formatDate(String(rule.boleto_atualizado_em).slice(0, 10)) : ''}${rule.boleto_fonte ? ' · ' + escapeHtml(paymentSourceLabel(rule.boleto_fonte)) : ''}</small>${rule.boleto_codigo ? `<button type="button" class="link-btn boleto-copiar" data-boleto-copy="${rule.id}">Copiar codigo</button>` : ''}</div>` : ''}
       </div>
       <div class="row-actions">
         <span class="amount">${asMoney(rule.amount)}</span>
@@ -3373,7 +3391,7 @@ function forecastRowHtml(item) {
       <div>
         <strong>${escapeHtml(item.rule.description)}</strong>
         <small>${escapeHtml(detail)}</small>
-        ${(item.rule.boleto_arquivo || item.rule.boleto_codigo) ? `<div class="boleto-bloco"><small class="boleto-linha">${item.rule.boleto_codigo ? 'codigo ' + escapeHtml(String(item.rule.boleto_codigo)) : 'boleto sem codigo de barras'}${item.rule.boleto_fonte ? ' · e-mail ' + escapeHtml(String(item.rule.boleto_fonte)) : ''}</small>${item.rule.boleto_codigo ? `<button type="button" class="link-btn boleto-copiar" data-boleto-copy="${item.rule.id}">Copiar codigo</button>` : ''}</div>` : ''}
+        ${(item.rule.boleto_arquivo || item.rule.boleto_codigo) ? `<div class="boleto-bloco"><small class="boleto-linha"${item.rule.boleto_codigo ? ` title="${escapeHtml(String(item.rule.boleto_codigo))}"` : ''}>${item.rule.boleto_codigo ? 'codigo ' + escapeHtml(paymentCodeLabel(item.rule.boleto_codigo)) : 'boleto sem codigo de barras'}${item.rule.boleto_fonte ? ' · ' + escapeHtml(paymentSourceLabel(item.rule.boleto_fonte)) : ''}</small>${item.rule.boleto_codigo ? `<button type="button" class="link-btn boleto-copiar" data-boleto-copy="${item.rule.id}">Copiar codigo</button>` : ''}</div>` : ''}
       </div>
       <div class="row-actions">
         <span class="amount">${asMoney(item.rule.amount)}</span>
@@ -3614,6 +3632,7 @@ function prepareRecurringForm(rule = null) {
   form.elements.category_id.value = rule?.category_id || '';
   form.elements.frequency.value = rule?.frequency || 'monthly';
   form.elements.next_due_date.value = rule?.next_due_date || '';
+  form.elements.boleto_codigo.value = '';
   form.elements.is_active.checked = rule ? rule.is_active == 1 : true;
   setText('recurringFormTitle', rule ? 'Editar conta fixa' : 'Nova conta fixa');
 }

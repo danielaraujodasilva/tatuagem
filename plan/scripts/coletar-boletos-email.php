@@ -23,6 +23,7 @@ const BOL_ESTUDIO = ['id' => 1, 'database_name' => 'projetocrm_cereja'];
 const BOL_MAPA_ENEL = [
     '0204225111' => 'Enel',
     '0204225099' => 'Enel',
+    '0200869904' => 'Enel Estúdio',
 ];
 const BOL_MAPA_LIDER = [
     '3335' => 'Internet Estudio',

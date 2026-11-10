@@ -4,6 +4,7 @@ declare(strict_types=1);
 require __DIR__ . '/includes/bootstrap.php';
 require __DIR__ . '/includes/bank-core.php';
 require __DIR__ . '/includes/bank-sync.php';
+require __DIR__ . '/includes/recurring-payment-info.php';
 
 $action = $_GET['action'] ?? '';
 
@@ -78,6 +79,8 @@ function bootstrap(array $user): never
     ensure_bank_sync_schema();
     ensure_recurring_payment_schema();
     sync_recurring_payments();
+    ensure_recurring_payment_info_schema();
+    sync_recurring_payment_info();
     ensure_default_users();
     $recurringMonth = date('Y-m');
     $recurringStmt = db()->prepare("SELECT r.*, COALESCE(NULLIF(CONCAT_WS(' / ', p.name, c.name), ''), 'Sem categoria') category_name,
@@ -646,6 +649,16 @@ function save_recurring(): never
     if ($sourceBankTransactionId > 0) {
         save_recurring_matcher($id, $sourceBankTransactionId);
         $matchResult = sync_recurring_payments($id);
+    }
+    // Codigo colado manualmente (PIX fixo, boleto de sistema/WhatsApp). Campo
+    // vazio mantem o codigo automatico que veio do e-mail ou do historico.
+    $codigoManual = trim((string)($input['boleto_codigo'] ?? ''));
+    if ($codigoManual !== '') {
+        $extraido = recurring_payment_info_extract($codigoManual);
+        $codigo = $extraido['codigo'] ?? $codigoManual;
+        db()->prepare("UPDATE recurring_rules SET boleto_codigo = ?, boleto_fonte = 'manual', boleto_atualizado_em = NOW() WHERE id = ?")
+            ->execute([$codigo, $id]);
+        audit('update_payment_code', 'recurring_rule', $id, ['source' => 'manual']);
     }
     json_response(['ok' => true, 'id' => $id, 'automaticPayments' => $matchResult['matched']]);
 }
