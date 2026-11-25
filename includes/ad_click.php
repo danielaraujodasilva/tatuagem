@@ -105,3 +105,47 @@ function ad_click_whatsapp_url(string $fallback, string $msg = '', string $src =
     $query = ad_click_query($msg, $src);
     return $query === '' ? $fallback : '/projetocrm/ir.php?' . $query;
 }
+
+/**
+ * Registra a visita na landing page quando veio de clique pago do Google.
+ *
+ * Serve para separar "o anuncio trouxe clique mas a pagina nem abriu" de
+ * "abriu a pagina e nao clicou no WhatsApp". Grava uma linha por clique a cada
+ * 30 min em storage/logs/ads_lp_views.jsonl (best effort, nunca quebra a pagina).
+ */
+function ad_lp_view_registrar(string $pagina = ''): void
+{
+    $click = ad_click_atual();
+    if ($click === null) {
+        return;
+    }
+
+    $chaveCookie = 'ad_lp_' . substr(sha1($click['valor']), 0, 14);
+    if (!empty($_COOKIE[$chaveCookie])) {
+        return;
+    }
+    if (!headers_sent()) {
+        setcookie($chaveCookie, '1', [
+            'expires'  => time() + 1800,
+            'path'     => '/',
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+    }
+
+    $linha = json_encode([
+        'at'         => (new DateTimeImmutable('now', new DateTimeZone('America/Sao_Paulo')))->format('c'),
+        'pagina'     => $pagina,
+        'click_tipo' => $click['tipo'],
+        'click_id'   => $click['valor'],
+        'ip'         => substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 64),
+        'ua'         => substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255),
+        'referer'    => substr((string)($_SERVER['HTTP_REFERER'] ?? ''), 0, 255),
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+    $dir = dirname(__DIR__) . '/storage/logs';
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+    }
+    @file_put_contents($dir . '/ads_lp_views.jsonl', $linha . "\n", FILE_APPEND | LOCK_EX);
+}

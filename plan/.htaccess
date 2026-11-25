@@ -11,5 +11,6 @@
 # Os PDFs de boleto ficam em storage/ e so saem pela pagina boleto.php (com login).
 <IfModule mod_rewrite.c>
     RewriteEngine On
+    RewriteRule ^ordem/?$ ordem.php [L,QSA]
     RewriteRule ^storage/ - [F,L]
 </IfModule>

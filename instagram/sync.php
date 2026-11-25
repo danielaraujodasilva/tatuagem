@@ -200,6 +200,16 @@ function ig_prepare_gallery_dir(string $galleryDir, bool $replaceLocalGallery): 
     return $result;
 }
 
+/** Troca o numero pessoal antigo pelo numero do estudio nas legendas do site. */
+function ig_limpar_telefone(string $texto): string
+{
+    $t = $texto;
+    $t = preg_replace('/\(?\s*11\s*\)?\s*9?4757[-\s]?3311/iu', '(11) 99997-9785', $t);
+    $t = preg_replace('/\b11947573311\b/', '11999979785', $t);
+    $t = preg_replace('/\b94757[-\s]?3311\b/', '99997-9785', $t);
+    return $t;
+}
+
 function ig_normalize_item(array $item): ?array
 {
     $mediaType = (string)($item['media_type'] ?? '');
@@ -208,7 +218,7 @@ function ig_normalize_item(array $item): ?array
     $imageUrl = $thumbUrl !== '' ? $thumbUrl : $mediaUrl;
     if ($imageUrl === '') return null;
 
-    $caption = (string)($item['caption'] ?? '');
+    $caption = ig_limpar_telefone((string)($item['caption'] ?? ''));
     $id = preg_replace('/[^a-zA-Z0-9_-]/', '', (string)($item['id'] ?? uniqid('ig_', true)));
 
     return [

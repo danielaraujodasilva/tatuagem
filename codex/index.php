@@ -16,15 +16,15 @@ $nome = $user['name'] ?? $user['email'] ?? '';
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Codex · Daniel Tatuador</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="assets/app.css?v=20261004-5">
+    <link rel="stylesheet" href="assets/app.css?v=20261113-voz-hf7">
     <script>
         window.CODEX_BOOT = {
             authenticated: <?= $user ? 'true' : 'false' ?>,
             csrf: <?= json_encode($csrf) ?>,
-            user: <?= json_encode($user ? ['name' => $nome] : null) ?>
+            user: <?= json_encode($user ? ['name' => $nome, 'email' => (string)($user['email'] ?? '')] : null) ?>
         };
     </script>
-    <script src="assets/app.js?v=20261031-dsh2" defer></script>
+    <script src="assets/app.js?v=20261113-voz-hf7" defer></script>
 </head>
 <body class="<?= $user ? 'is-app' : 'is-login' ?>">
 <?php if (!$user): ?>
@@ -98,8 +98,39 @@ $nome = $user['name'] ?? $user['email'] ?? '';
             <footer class="composer">
                 <div class="attach-chips" id="attachChips" hidden></div>
                 <div class="queue" id="queueList" hidden></div>
+                <div class="voice-status" id="voiceStatus" hidden>
+                    <span class="voice-orb" id="voiceOrb" data-estado="off" hidden aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <circle class="orb-ring" cx="12" cy="12" r="9"></circle>
+                            <rect class="orb-bar orb-b1" x="7" y="9" width="2" height="6" rx="1"></rect>
+                            <rect class="orb-bar orb-b2" x="11" y="6" width="2" height="12" rx="1"></rect>
+                            <rect class="orb-bar orb-b3" x="15" y="9" width="2" height="6" rx="1"></rect>
+                        </svg>
+                    </span>
+                    <span id="voiceStatusText"></span>
+                    <button class="voice-link" id="voiceStop" type="button" hidden>parar</button>
+                    <button class="voice-link" id="voiceMute" type="button" hidden>mudo</button>
+                </div>
                 <div class="composer-row">
-                    <button class="icon-btn attach-btn" id="attachBtn" type="button" aria-label="Anexar arquivos" title="Anexar arquivos">&#128206;</button>
+                    <div class="composer-tools">
+                        <button class="icon-btn attach-btn" id="attachBtn" type="button" aria-label="Anexar arquivos" title="Anexar arquivos">&#128206;</button>
+                        <button class="icon-btn mic-btn" id="micBtn" type="button" aria-label="Falar" title="Falar: grava, transcreve e envia" aria-pressed="false">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect x="9" y="2" width="6" height="11" rx="3"></rect>
+                                <path d="M5 10v1a7 7 0 0 0 14 0v-1"></path>
+                                <line x1="12" y1="19" x2="12" y2="22"></line>
+                            </svg>
+                        </button>
+                        <button class="icon-btn handsfree-btn" id="handsFreeBtn" type="button" aria-label="Mãos livres" title="Mãos livres: ouve, detecta quando você para e envia sozinho" aria-pressed="false">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M4 10v4"></path>
+                                <path d="M8 6v12"></path>
+                                <path d="M12 8v8"></path>
+                                <path d="M16 4v16"></path>
+                                <path d="M20 9v6"></path>
+                            </svg>
+                        </button>
+                    </div>
                     <textarea id="prompt" rows="1" placeholder="Escreva um pedido..." autocomplete="off"></textarea>
                     <div class="composer-actions">
                         <button class="stop-btn" id="stopBtn" type="button" hidden>Parar</button>
@@ -113,3 +144,11 @@ $nome = $user['name'] ?? $user['email'] ?? '';
 <?php endif; ?>
 </body>
 </html>
+
+
+
+
+
+
+
+

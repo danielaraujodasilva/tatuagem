@@ -1,10 +1,11 @@
 <?php
 require dirname(__DIR__) . '/includes/ad_click.php';
 ad_click_capturar();
+ad_lp_view_registrar('fechamento');
 $phone = '5511999979785';
 $msg = ad_click_atual() !== null
-    ? 'Oi Daniel! Vim pelo Google e quero um orçamento de fechamento em uma sessão.'
-    : 'Oi Daniel! Vim pela página de fechamento e quero um orçamento de fechamento em uma sessão.';
+    ? 'Oi! Vim pelo Google e quero um orçamento de fechamento.'
+    : 'Oi! Vim pela página de fechamento e quero um orçamento.';
 $whatsapp = ad_click_whatsapp_url('https://wa.me/' . $phone . '?text=' . rawurlencode($msg), $msg);
 $reviews = [];
 $reviewsFile = dirname(__DIR__) . '/reviews.json';
@@ -106,9 +107,10 @@ gtag('config', 'G-CQHHDSD0PK');
   .top .btn{min-height:44px;padding:10px 15px}
   .hero{padding:52px 0 46px;border-bottom:1px solid var(--line)}
   .hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:44px;align-items:center}
+  .hero-grid > *{min-width:0}
   .eyebrow{display:inline-flex;align-items:center;gap:10px;color:var(--muted);font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:900}
   .eyebrow:before{content:'';width:34px;height:1px;background:var(--gold)}
-  h1{font-family:'Barlow Condensed',Impact,'Arial Black',Arial,sans-serif;font-size:clamp(42px,5.4vw,70px);line-height:.95;text-transform:uppercase;letter-spacing:.02em;margin:16px 0 0}
+  h1{font-family:'Barlow Condensed',Impact,'Arial Black',Arial,sans-serif;font-size:clamp(42px,5.4vw,70px);line-height:.95;text-transform:uppercase;letter-spacing:.02em;margin:16px 0 0;overflow-wrap:break-word}
   h1 strong{color:var(--gold2)}
   .sub{color:#ded4c6;font-size:17px;line-height:1.7;margin:18px 0 0;max-width:560px}
   .price{margin:22px 0 0;display:inline-flex;flex-wrap:wrap;gap:8px;align-items:baseline;border:1px solid rgba(226,184,113,.34);border-radius:10px;padding:12px 15px;background:rgba(201,150,74,.09)}
@@ -125,9 +127,8 @@ gtag('config', 'G-CQHHDSD0PK');
   .sec-head{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:22px}
   h2{font-family:'Barlow Condensed',Impact,sans-serif;font-size:clamp(30px,3.4vw,44px);line-height:1;text-transform:uppercase;letter-spacing:.06em;margin:0}
   .kicker{color:var(--muted);font-size:14px;margin:8px 0 0}
-  .gal{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-  .gal img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;border:1px solid rgba(226,184,113,.18);filter:saturate(.85) contrast(1.05);background:#0b0907}
-  .gal img:first-child{grid-column:span 2;grid-row:span 2;aspect-ratio:1/1}
+  .gal{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .gal img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:10px;border:1px solid rgba(226,184,113,.18);filter:saturate(.85) contrast(1.05);background:#0b0907}
   .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
   .step{border:1px solid rgba(226,184,113,.16);border-radius:12px;background:rgba(255,255,255,.03);padding:20px}
   .step b{display:block;font-family:'Barlow Condensed',Impact,sans-serif;font-size:30px;color:var(--gold2);line-height:1}
@@ -150,12 +151,11 @@ gtag('config', 'G-CQHHDSD0PK');
   footer{padding:26px 0 92px;color:var(--muted);font-size:13px}
   .foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
   .foot a{color:var(--gold2)}
-  .mobile-bar{display:none;position:fixed;left:14px;right:14px;bottom:14px;z-index:60}
+  .mobile-bar{display:none;position:fixed;left:14px;right:14px;bottom:calc(14px + var(--dt-consent-h, 0px));z-index:60;transition:bottom .2s}
   @media(max-width:900px){
     .hero-grid{grid-template-columns:1fr;gap:24px}
     .hero-media,.hero-media img{min-height:340px}
     .gal{grid-template-columns:repeat(2,1fr)}
-    .gal img:first-child{grid-column:span 2;grid-row:auto}
     .steps,.reviews{grid-template-columns:1fr}
     .faq{grid-template-columns:1fr}
     .final{grid-template-columns:1fr}
@@ -181,29 +181,39 @@ gtag('config', 'G-CQHHDSD0PK');
     <div>
       <span class="eyebrow">Tatuador em Artur Alvim • Zona Leste</span>
       <h1>Tatuador em Artur Alvim.<br><strong>Fechamento em 1 sessão.</strong></h1>
-      <p class="sub">Realismo e black &amp; grey com projeto pensado para o corpo. Atendimento a poucos minutos do metrô Artur Alvim, na Zona Leste — recebo clientes de toda a Grande São Paulo.</p>
       <div class="price"><b>Fechamento a partir de R$ 799</b><span>preto e branco, conforme as regras da promoção</span></div>
       <div class="actions">
         <a class="btn btn-fill" href="<?= htmlspecialchars($whatsapp, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" onclick="trackLead('lp_hero')">Pedir orçamento no WhatsApp</a>
         <a class="btn" href="https://www.google.com/maps/dir/?api=1&amp;destination=Rua+Catende%2C+287B%2C+Jardim+Nordeste%2C+S%C3%A3o+Paulo%2C+SP" target="_blank" rel="noopener" onclick="trackRoute()">Ver rota no Google Maps</a>
       </div>
+      <p class="sub">Realismo e black &amp; grey com projeto pensado para o corpo. Atendimento a poucos minutos do metrô Artur Alvim, na Zona Leste — recebo clientes de toda a Grande São Paulo.</p>
       <ul class="trust"><li>Orçamento sem compromisso</li><li>Sinal de R$ 50 abatido no valor</li><li>+10 anos de experiência</li><li>Higiene e materiais descartáveis</li></ul>
       <p style="margin:18px 0 0;color:var(--muted);font-size:13px">Prefere ligar? <a href="tel:+5511999979785" onclick="trackPhone('lp_phone')" style="color:var(--gold2);font-weight:800">(11) 99997-9785</a></p>
     </div>
     <div class="hero-media">
-      <img src="/img/bg6.jpg" alt="Tatuagem black & grey de samurai feita por Daniel Araujo" width="800" height="800" fetchpriority="high">
+      <img src="/galeria/large/7ff6dcb2343d1f1a.webp" alt="Fechamento de peitoral com anjos, feito por Daniel Araujo em Artur Alvim" width="1200" height="1600" fetchpriority="high">
       <span class="hero-tag">Fechamento em uma sessão</span>
     </div>
   </div></section>
 
   <section class="section"><div class="wrap">
-    <div class="sec-head"><div><h2>Trabalhos recentes</h2><p class="kicker">Uma amostra do estilo: contraste, leitura e encaixe no corpo.</p></div><a class="btn" href="/#portfolio">Ver galeria completa</a></div>
+    <div class="sec-head"><div><h2>Fechamentos recentes</h2><p class="kicker">Trabalhos reais feitos no estúdio: braço, perna, costas e peitoral.</p></div><a class="btn" href="/galeria/">Ver galeria completa</a></div>
     <div class="gal">
-      <img src="/img/bg1.jpg" alt="Tatuagem autoral de Daniel Araujo" width="800" height="800" loading="lazy" decoding="async">
-      <img src="/img/bg2.jpg" alt="Tatuagem black & grey de Daniel Araujo" width="800" height="800" loading="lazy" decoding="async">
-      <img src="/img/bg3.jpg" alt="Tatuagem realista de Daniel Araujo" width="800" height="800" loading="lazy" decoding="async">
-      <img src="/img/bg8.jpg" alt="Tatuagem autoral no estúdio em Artur Alvim" width="800" height="800" loading="lazy" decoding="async">
-      <img src="/img/eu.jpg" alt="Daniel Araujo tatuando no estúdio em Artur Alvim" width="1200" height="1600" loading="lazy" decoding="async">
+      <?php
+        // Fotos reais da galeria (nao usar os bg* de stock). O thumb WebP e gerado
+        // por tools/gerar_thumbs_galeria.php; se faltar, cai na imagem original.
+        $fechamentoFotos = [
+          ['hash' => 'd0a55f5fed1ad254', 'file' => 'instagram_001_17856628548693817.jpg', 'alt' => 'Fechamento de peitoral e pescoço com arte ornamental, feito por Daniel Araujo'],
+          ['hash' => 'de6add9551fe22ec', 'file' => 'instagram_004_18075433919337006.jpg', 'alt' => 'Fechamento de perna com rosa e rosto em black & grey, feito por Daniel Araujo'],
+          ['hash' => '08e1961ba026ca46', 'file' => 'instagram_006_17933616558464170.jpg', 'alt' => 'Fechamento de costas e ombro com leopardo e flores, feito por Daniel Araujo'],
+          ['hash' => '686c1b39341410f8', 'file' => 'instagram_010_17902494579447796.jpg', 'alt' => 'Fechamento de costas com rosto e serpentes, feito por Daniel Araujo'],
+        ];
+        foreach ($fechamentoFotos as $i => $foto):
+          $thumbPath = '/galeria/thumbs/' . $foto['hash'] . '.webp';
+          $src = is_file(dirname(__DIR__) . $thumbPath) ? $thumbPath : '/galeria/' . rawurlencode($foto['file']);
+      ?>
+      <img src="<?= htmlspecialchars($src, ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($foto['alt'], ENT_QUOTES, 'UTF-8') ?>" width="480" height="600" loading="<?= $i === 0 ? 'eager' : 'lazy' ?>" decoding="async">
+      <?php endforeach; ?>
     </div>
   </div></section>
 

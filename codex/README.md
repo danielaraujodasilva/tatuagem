@@ -32,14 +32,41 @@ o token em `codex/bridge/data/token.txt`.
 
 ## Conversas
 
-- A conversa aberta (e o turno em andamento) fica salva no navegador: ao
-  recarregar a pagina voce volta para onde estava.
-- O acompanhamento do turno usa SSE (`api.php?action=stream`); se o navegador
-  ou proxy nao suportar, cai sozinho para polling no `/run`.
+- Cada aba do navegador tem a propria conversa aberta (`sessionStorage`). Abrir
+  a conversa B numa aba nao troca mais a conversa da aba A.
+- Cada conversa tem a propria fila de prompts, o proprio rascunho/anexos e o
+  proprio turno. Da para deixar duas conversas rodando ao mesmo tempo e trocar
+  entre elas sem a resposta de uma cair na outra.
+- A conversa aberta (e o turno em andamento) fica salva na aba: ao recarregar a
+  pagina voce volta para onde estava.
+- Acompanhamento do turno via SSE (`api.php?action=stream`); se o navegador ou
+  proxy nao suportar, cai sozinho para polling no `/run`.
 - A busca na barra lateral procura no titulo e tambem dentro das mensagens.
 - Apagar uma conversa move o rollout para `codex/bridge/data/sessoes_apagadas/`.
   O botao `Apagadas` na barra lateral lista e restaura; o que passar de 30 dias
   e removido de vez.
+- O pontinho verde na lista indica turno rodando naquela conversa. Se o mesmo
+  turno for aberto em outra aba, a segunda aba acompanha o mesmo turno e poe o
+  prompt dela na fila (a ponte responde 409 com o `runId`).
+
+## Informacoes da mensagem
+
+Cada balao (seu ou do agente) tem um botao discreto `i` ao lado de `copiar`.
+Ele abre um modal com o que o log do DSH permite saber sobre aquela mensagem:
+
+- data/hora (local, ISO/UTC e fuso), tempo de geracao, tempo ate o primeiro
+  token, duracao do turno e tokens por segundo;
+- tokens de entrada/saida, cache de leitura/escrita, total do passo, total do
+  turno e consumo acumulado da sessao;
+- login/e-mail de quem enviou (quando o prompt veio do site), IP, navegador e
+  usuario do Windows que roda a ponte;
+- modelo/provedor, turno, passo, ferramentas usadas, tamanho do texto e o JSON
+  bruto para conferencia.
+
+O autor e gravado pela ponte em `bridge/data/autores.json` quando o turno
+termina (o log do DSH nao guarda o login). Mensagens antigas, ou criadas direto
+na janela do app, aparecem como "nao registrado". O modal se atualiza sozinho
+enquanto a resposta esta sendo gerada.
 
 ## Subir
 
@@ -158,6 +185,11 @@ app (ou o contrario).
   (JSONL com um frame zstd por registro; `bridge/dsh.js` descomprime frame a frame).
 - Ao criar uma conversa nova pelo site, a sessao e registrada em
   `%USERPROFILE%\.dsh\storages\workspace.json` para aparecer tambem na janela do DSH.
+- A lista de conversas do site se atualiza sozinha a cada ~20 s e ao voltar para
+  a aba: conversa criada direto na janela do DSH aparece no site sem F5. O
+  contrario (site -> janela do DSH) depende de o app reler o `workspace.json`;
+  se a janela ja estava aberta, feche/abra a lista ou reinicie o app para ver a
+  sessao nova.
 - Ao **continuar** uma conversa existente, o turno roda no `cwd` gravado no cabecalho
   daquela sessao (`dsh.js: cwdDaSessao`), nao no workspace padrao. O DSH recusa retomar
   uma sessao em outro diretorio (`session ... was recorded in X, not Y`); era o que
@@ -165,9 +197,9 @@ app (ou o contrario).
 - A ponte precisa de `DEEPSEEK_API_KEY` (o `start-codex-bridge.ps1` copia de
   `DEEPSEEK_CODEX_KEY`). Sem isso o `dsh headless` falha com `MISSING_CREDENTIAL`.
 
-Limite conhecido: Codex e DSH sao motores diferentes, cada um com sua sessao.
-So as conversas com motor `DSH` sao as mesmas nos dois lugares; as marcadas
-`Codex` continuam existindo apenas no Codex.
-
-Um turno iniciado pelo site nao deve rodar ao mesmo tempo que a mesma conversa
-esta com turno aberto na janela do DSH.
+Limite conhecido: a ponte so enxerga os turnos que ela mesma iniciou. Se a
+mesma conversa estiver gerando **na janela do DSH** e voce mandar um prompt pelo
+site ao mesmo tempo, os dois escritores podem disputar a sessao. O site evita
+dois turnos simultaneos na mesma conversa quando os dois vieram dele (409), mas
+nao consegue ver o turno aberto dentro do app. Nesse caso, espere a resposta do
+app terminar antes de mandar pelo site (ou vice-versa).

@@ -382,6 +382,12 @@ function ponte_importar(PDO $pdo, array $rec, bool $dryRun, array &$lidMap = [])
     $mediaSalva = trim((string)($rec['media_saved'] ?? ''));
     $transcricaoErro = trim((string)($rec['transcription_error'] ?? ''));
     $direcao = $fromMe ? 'out' : 'in';
+    // Mensagens automaticas da ponte (Irene: followup/confirmacao de agenda, e o
+    // alerta de saldo de Ads) sao marcadas no feed com `automatico`/`motor`. Sem
+    // isso, todo `from_me` caia como "human" e o CRM nao distinguia a Irene da
+    // equipe — impossivel medir o atendimento automatico.
+    $ehAutomatico = !empty($rec['automatico']) || !empty($rec['motor']);
+    $senderType = $fromMe ? ($ehAutomatico ? 'bot' : 'human') : 'customer';
 
     $cnt = $pdo->prepare('SELECT id, name, last_message_at FROM whatsapp_conversations WHERE phone = ? ORDER BY id LIMIT 1');
     $cnt->execute([$phone]);
@@ -462,7 +468,7 @@ function ponte_importar(PDO $pdo, array $rec, bool $dryRun, array &$lidMap = [])
             $ins->execute([
                 $conversaId,
                 $direcao,
-                $fromMe ? 'human' : 'customer',
+                $senderType,
                 $corpo !== '' ? $corpo : null,
                 $mediaSalva !== '' ? basename($mediaSalva) : null,
                 $mediaSalva !== '' ? $mediaSalva : null,

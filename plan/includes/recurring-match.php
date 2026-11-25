@@ -169,6 +169,7 @@ function sync_recurring_payments(?int $onlyRuleId = null): array
     }
 
     $matched = 0;
+    $touchedMonths = [];
     foreach ($patterns as $pattern) {
         foreach (($pattern['months'] ?? []) as $month => $monthTransactions) {
             $available = array_values($monthTransactions);
@@ -187,9 +188,21 @@ function sync_recurring_payments(?int $onlyRuleId = null): array
                     (string)$transaction['transaction_date'] . ' 12:00:00',
                     (int)$transaction['id'],
                 ]);
-                $matched += $insert->rowCount();
+                $inserted = $insert->rowCount();
+                $matched += $inserted;
+                if ($inserted > 0) {
+                    $touchedMonths[$month] = true;
+                }
             }
         }
     }
+
+    if ($touchedMonths) {
+        require_once __DIR__ . '/recurring-link.php';
+        foreach (array_keys($touchedMonths) as $touchedMonth) {
+            apply_rule_payments_to_transactions($touchedMonth);
+        }
+    }
+
     return ['matched' => $matched];
 }

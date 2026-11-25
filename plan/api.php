@@ -5,6 +5,8 @@ require __DIR__ . '/includes/bootstrap.php';
 require __DIR__ . '/includes/bank-core.php';
 require __DIR__ . '/includes/bank-sync.php';
 require __DIR__ . '/includes/recurring-payment-info.php';
+require __DIR__ . '/includes/bill-order.php';
+require __DIR__ . '/includes/recurring-link.php';
 
 $action = $_GET['action'] ?? '';
 
@@ -52,6 +54,8 @@ try {
         'merge_recurring' => merge_recurring(),
         'delete_recurring' => delete_recurring(),
         'toggle_recurring_paid' => toggle_recurring_paid(),
+        'bill_order' => bill_order_list(),
+        'save_bill_order' => save_bill_order(),
         'bank_transactions' => bank_transactions(),
         'bank_sync_status' => json_response(['ok' => true, 'bankSync' => bank_sync_status()]),
         'sync_banks' => sync_banks(),
@@ -179,6 +183,29 @@ function transactions(): never
     json_response(['ok' => true, 'transactions' => $stmt->fetchAll(), 'overview' => build_overview()]);
 }
 
+function bill_order_list(): never
+{
+    $month = trim((string)($_GET['month'] ?? date('Y-m')));
+    if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
+        json_response(['ok' => false, 'message' => 'Mes invalido.'], 422);
+    }
+    $ids = bill_order_ids((int)$_SESSION['user_id'], $month);
+    json_response(['ok' => true, 'month' => $month, 'ids' => $ids]);
+}
+
+function save_bill_order(): never
+{
+    $input = json_input();
+    $month = trim((string)($input['month'] ?? ''));
+    if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
+        json_response(['ok' => false, 'message' => 'Mes invalido.'], 422);
+    }
+    $ids = is_array($input['ids'] ?? null) ? $input['ids'] : [];
+    $saved = bill_order_save((int)$_SESSION['user_id'], $month, $ids);
+    audit('save_bill_order', 'transaction', null, ['month' => $month, 'count' => count($saved)]);
+    json_response(['ok' => true, 'ids' => $saved]);
+}
+
 function save_transaction(): never
 {
     ensure_finance_schema();
@@ -239,6 +266,7 @@ function toggle_paid(): never
     $status = ($input['status'] ?? '') === 'paid' ? 'paid' : 'pending';
     $paidAt = $status === 'paid' ? date('Y-m-d') : null;
     db()->prepare('UPDATE transactions SET status = ?, paid_at = ?, updated_at = NOW() WHERE id = ?')->execute([$status, $paidAt, $id]);
+    sync_transaction_to_rule_payment($id, $status === 'paid');
     audit('toggle_paid', 'transaction', $id, ['status' => $status]);
     json_response(['ok' => true]);
 }
@@ -1315,6 +1343,7 @@ function toggle_recurring_paid(): never
         VALUES (?, ?, NOW(), ?, 'manual', NULL)
         ON DUPLICATE KEY UPDATE paid_at=VALUES(paid_at), status=VALUES(status), match_method='manual', source_bank_transaction_id=NULL")
         ->execute([$id, $month, $status]);
+    sync_rule_payment_to_transactions($id, $month, $paid);
     audit('toggle_paid', 'recurring_rule', $id, ['month' => $month, 'paid' => $paid]);
     json_response(['ok' => true]);
 }

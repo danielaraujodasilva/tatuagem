@@ -26,8 +26,10 @@ const BOL_MAPA_ENEL = [
     '0200869904' => 'Enel Estúdio',
 ];
 const BOL_MAPA_LIDER = [
-    '3335' => 'Internet Estudio',
-    '4375' => 'Internet ap',
+    // Contrato 3335 = apartamento (149,99) e 4375 = estudio (99,99),
+    // conforme a aba mensal da planilha. Estava invertido e trocava os boletos.
+    '3335' => 'Internet ap',
+    '4375' => 'Internet Estudio',
 ];
 const BOL_MAPA_COMGAS = [
     '68777582' => 'Comgas',

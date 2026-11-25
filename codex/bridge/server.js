@@ -18,7 +18,14 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { listar as listarSessoesDSH, lerMensagens as lerMensagensDSH, rodar as rodarDSH, registrarSessao as registrarSessaoDSH } from './dsh.js';
+import {
+  listar as listarSessoesDSH,
+  lerMensagens as lerMensagensDSH,
+  rodar as rodarDSH,
+  registrarSessao as registrarSessaoDSH,
+  registrarAutor as registrarAutorDSH,
+  removerPresetDaSessao,
+} from './dsh.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -807,13 +814,75 @@ function rodarQueue(run, prompt, threadId) {
   });
 }
 
+/** Grava o autor uma vez so; no sucesso, antes de o site buscar a sessao. */
+function registrarAutorDoRun(run) {
+  if (run.autorRegistrado || run.fonte !== 'dsh' || !run.idReal || !run.usuario) return;
+  run.autorRegistrado = true;
+  try {
+    registrarAutorDSH(run.idReal, run.prompt, run.usuario, {
+      ip: run.ip,
+      userAgent: run.userAgent,
+      runId: run.id,
+      enviadoEm: run.inicio,
+      concluidoEm: Date.now(),
+    });
+  } catch (erro) {
+    log('autor_registrar_falhou', { id: run.idReal, erro: String(erro?.message || erro) });
+  }
+}
+
 async function executarRun(run) {
+  if (run.status === 'error' || run.status === 'cancelled') return;
   run.status = 'running';
   run.inicioExecucao = Date.now();
   log('run_inicio', { run: run.id, threadId: run.threadId, novo: run.novo });
   try {
     if (run.fonte === 'dsh') {
-      await rodarDSH(run, run.prompt, run.idReal, CFG.timeoutMs);
+      // Conversa criada no app desktop sai carimbada com agent preset, e o
+      // runner one-shot do DSH recusa compor presets. O erro chega como evento
+      // (turn.failed) e tambem pode vir por stderr; nos dois casos tira o
+      // carimbo do cabecalho (com backup) e tenta de novo UMA vez: o site
+      // continua a mesma conversa em vez de morrer num erro tecnico.
+      const migrarPreset = async () => {
+        if (!run.idReal) return false;
+        const migracao = removerPresetDaSessao(run.idReal);
+        log('sessao_preset_removido', {
+          id: run.idReal,
+          ok: migracao.ok,
+          motivo: migracao.motivo || '',
+          preset: migracao.preset || '',
+        });
+        if (!migracao.ok) return false;
+        run.status = 'running';
+        run.erro = null;
+        run.eventos = run.eventos.filter((e) => !(e.kind === 'error' && /one-shot runner does not compose/.test(String(e.text || ''))));
+        run.eventos.push({
+          kind: 'status',
+          text: 'Conversa criada no app com o preset "' + migracao.preset + '"; o site retomou na composicao padrao.',
+        });
+        return true;
+      };
+      try {
+        await rodarDSH(run, run.prompt, run.idReal, CFG.timeoutMs);
+        if (run.status === 'error' && /one-shot runner does not compose/.test(String(run.erro || ''))) {
+          if (await migrarPreset()) await rodarDSH(run, run.prompt, run.idReal, CFG.timeoutMs);
+        }
+        // A conversa aberta na janela do app fica com o handle de escrita
+        // travado: o site nao consegue escrever nela ao mesmo tempo.
+        if (run.status === 'error' && /already owned by an active write handle/.test(String(run.erro || ''))) {
+          run.eventos = run.eventos.filter((e) => !(e.kind === 'error' && /active write handle/.test(String(e.text || ''))));
+          run.eventos.push({
+            kind: 'error',
+            text: 'Essa conversa esta aberta no app do DSH agora. Feche a janela dela no app (ou espere alguns segundos) e mande de novo, ou comece uma conversa nova aqui no site.',
+          });
+          run.erro = 'conversa aberta no app (write handle ativo)';
+        }
+      } catch (erro) {
+        const detalhe = String(erro?.message || erro);
+        if (!/one-shot runner does not compose/.test(detalhe)) throw erro;
+        if (!(await migrarPreset())) throw erro;
+        await rodarDSH(run, run.prompt, run.idReal, CFG.timeoutMs);
+      }
     } else if (run.threadId) {
       try {
         await rodarExec(run, run.prompt, run.threadId);
@@ -829,6 +898,9 @@ async function executarRun(run) {
     } else {
       await rodarExec(run, run.prompt, null);
     }
+    // Grava o autor antes de marcar como concluido: o site recarrega a sessao
+    // assim que ve o status "done" e precisa achar esse registro.
+    registrarAutorDoRun(run);
     if (run.status !== 'error') run.status = 'done';
     // Conversa nova do DSH: registra no workspace do app para aparecer na janela do DSH.
     if (run.fonte === 'dsh' && run.novo && run.idReal && run.status === 'done') {
@@ -848,12 +920,27 @@ async function executarRun(run) {
   } finally {
     run.fim = Date.now();
     run.proc = null;
+    for (const ev of run.eventos) {
+      if (ev && ev.meta && ev.meta.live) {
+        ev.meta.live = false;
+        ev.meta.endedAt = run.fimTurno || run.fim;
+      }
+    }
+    // Caminho de erro: a sessao pode ter sido criada mesmo sem status "done".
+    registrarAutorDoRun(run);
     log('run_fim', { run: run.id, status: run.status, ms: run.fim - run.inicioExecucao });
   }
 }
 
 function agendar(run) {
   const iniciar = () => {
+    // Cancelado enquanto estava na fila global (maxConcurrent): nao roda
+    // depois, so passa a vez para o proximo.
+    if (run.status === 'error' || run.status === 'cancelled') {
+      const proximo = filaGlobal.shift();
+      if (proximo) proximo();
+      return;
+    }
     ativos += 1;
     executarRun(run).finally(() => {
       ativos -= 1;
@@ -870,11 +957,22 @@ function agendar(run) {
 }
 
 function runAtivaNaThread(threadId) {
-  if (!threadId) return false;
+  return Boolean(runAtivaNaThreadObj(threadId));
+}
+
+/** Run que esta rodando/na fila desta sessao (para nao misturar turnos). */
+function runAtivaNaThreadObj(threadId) {
+  if (!threadId) return null;
+  const alvo = String(threadId);
+  const semPrefixo = alvo.replace(/^dsh:/, '');
   for (const run of runs.values()) {
-    if (run.threadId === threadId && (run.status === 'running' || run.status === 'queued')) return true;
+    if (run.status !== 'running' && run.status !== 'queued') continue;
+    const dono = String(run.threadId || '');
+    if (dono === alvo || run.idReal === semPrefixo || dono.replace(/^dsh:/, '') === semPrefixo) {
+      return run;
+    }
   }
-  return false;
+  return null;
 }
 
 // ------------------------------------------------------------------ stream
@@ -888,7 +986,26 @@ function snapshotRun(run) {
     texto: run.texto,
     erro: run.erro,
     eventos: run.eventos,
+    inicio: run.inicio,
+    inicioExecucao: run.inicioExecucao || null,
+    fim: run.fim,
     ms: (run.fim || Date.now()) - run.inicio,
+    // Metadados ao vivo para o modal de informacoes.
+    turno: run.turno ?? null,
+    etapa: run.etapa ?? null,
+    inicioTurno: run.inicioTurno ?? null,
+    inicioEtapa: run.inicioEtapa ?? null,
+    fimTurno: run.fimTurno ?? null,
+    motivo: run.motivo ?? null,
+    uso: run.uso || null,
+    passos: Array.isArray(run.passos) ? run.passos : [],
+    modelo: run.modelo || MODELO,
+    provedor: run.provedor || PROVEDOR,
+    usuario: run.usuario || null,
+    ip: run.ip || '',
+    userAgent: run.userAgent || '',
+    cwd: run.cwd || '',
+    maquina: process.env.USERNAME || process.env.USER || '',
   };
 }
 
@@ -991,13 +1108,28 @@ const servidor = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'GET' && url.pathname === '/sessions') {
-      return responderJson(res, 200, { ok: true, sessions: listarTodasSessoes() });
+      const sessoes = listarTodasSessoes();
+      // Marca na lista o que esta rodando agora: a pagina consegue mostrar que
+      // a conversa esta viva mesmo quando o turno foi disparado em outra aba.
+      for (const sessao of sessoes) {
+        const ativa = runAtivaNaThreadObj(sessao.id);
+        sessao.running = Boolean(ativa);
+        sessao.runId = ativa ? ativa.id : null;
+      }
+      return responderJson(res, 200, { ok: true, sessions: sessoes });
     }
 
     if (req.method === 'GET' && url.pathname === '/session') {
       const id = url.searchParams.get('id') || '';
       const sessao = id.startsWith('dsh:') ? lerMensagensDSH(id) : lerMensagens(id);
       if (!sessao) return responderJson(res, 404, { ok: false, error: 'sessao nao encontrada' });
+      const ativa = runAtivaNaThreadObj(id);
+      sessao.runAtiva = ativa ? {
+        id: ativa.id,
+        status: ativa.status,
+        threadId: ativa.threadId,
+        inicio: ativa.inicio,
+      } : null;
       return responderJson(res, 200, { ok: true, session: sessao });
     }
 
@@ -1047,18 +1179,35 @@ const servidor = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/send') {
       const corpo = JSON.parse(await lerCorpo(req) || '{}');
       const prompt = String(corpo?.prompt || '').trim();
-      const threadId = String(corpo?.threadId || '').trim() || null;
+      let threadId = String(corpo?.threadId || '').trim() || null;
+      // Aceita id com ou sem o prefixo do DSH; tudo nesta ponte e DSH agora.
+      if (threadId && !threadId.startsWith('dsh:')) threadId = 'dsh:' + threadId;
       const images = (Array.isArray(corpo?.images) ? corpo.images : [])
         .map((caminho) => String(caminho || '').trim())
         .filter(Boolean)
         .slice(0, 10);
       if (!prompt) return responderJson(res, 400, { ok: false, error: 'prompt vazio' });
-      if (runAtivaNaThread(threadId)) {
-        return responderJson(res, 409, { ok: false, error: 'ja existe um turno em andamento nesta conversa' });
+      const ativa = runAtivaNaThreadObj(threadId);
+      if (ativa) {
+        return responderJson(res, 409, {
+          ok: false,
+          error: 'ja existe um turno em andamento nesta conversa',
+          runId: ativa.id,
+          status: ativa.status,
+          threadId: ativa.threadId,
+        });
       }
       // O site agora conversa apenas com o DeepSeek Harness.
       const fonte = 'dsh';
       const idReal = fonte === 'dsh' && threadId ? String(threadId).replace(/^dsh:/, '') : null;
+      const usuario = corpo?.usuario && typeof corpo.usuario === 'object'
+        ? {
+            id: Number(corpo.usuario.id) || null,
+            nome: String(corpo.usuario.nome || corpo.usuario.name || '').slice(0, 160),
+            email: String(corpo.usuario.email || '').slice(0, 200),
+            fonte: 'site',
+          }
+        : null;
       const run = {
         id: 'run_' + (++runSeq).toString(36) + '_' + Date.now().toString(36),
         prompt,
@@ -1076,6 +1225,19 @@ const servidor = http.createServer(async (req, res) => {
         inicio: Date.now(),
         fim: null,
         proc: null,
+        usuario,
+        ip: String(corpo?.ip || '').slice(0, 80),
+        userAgent: String(corpo?.userAgent || '').slice(0, 300),
+        modelo: MODELO,
+        provedor: PROVEDOR,
+        uso: null,
+        passos: [],
+        turno: null,
+        etapa: null,
+        inicioTurno: null,
+        inicioEtapa: null,
+        fimTurno: null,
+        motivo: null,
       };
       runs.set(run.id, run);
       limparRunsAntigas();

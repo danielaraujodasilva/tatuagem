@@ -13,6 +13,7 @@ $csrf = csrf_token();
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="stylesheet" href="assets/app-bills-total.css?v=20261110-2">
+    <link rel="stylesheet" href="assets/pay.css?v=20261110-4">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
     <script>
@@ -21,7 +22,8 @@ $csrf = csrf_token();
             csrf: <?= json_encode($csrf) ?>
         };
     </script>
-    <script src="assets/app-bills-total.js?v=20261110-2" defer></script>
+    <script src="assets/app-bills-total.js?v=20261110-4" defer></script>
+    <script src="assets/pay.js?v=20261110-8" defer></script>
 </head>
 <body>
 <?php if (!$user): ?>
@@ -76,6 +78,7 @@ $csrf = csrf_token();
                         <button class="nav-item" data-section="budgets">Orcamentos</button>
                         <button class="nav-item" data-section="goals">Metas</button>
                         <button class="nav-item" data-section="recurring">Contas fixas</button>
+                        <a class="nav-item" href="ordem.php">Ordem de pagamento</a>
             </a>
             <nav aria-label="Navegacao principal">
                 <div class="nav-group">
@@ -94,6 +97,7 @@ $csrf = csrf_token();
                         <button class="nav-item" data-section="goals">Metas</button>
                         <button class="nav-item" data-section="accounts">Contas/Caixas</button>
                         <button class="nav-item" data-section="categories">Categorias</button>
+                        <a class="nav-item" href="ordem.php">Ordem de pagamento</a>
                         <a class="nav-item logout-option" href="logout.php">Sair</a>
                     </div>
                 </details>
@@ -826,3 +830,11 @@ $csrf = csrf_token();
 <?php endif; ?>
 </body>
 </html>
+
+
+
+
+
+
+
+

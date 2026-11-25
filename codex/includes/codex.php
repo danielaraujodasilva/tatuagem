@@ -61,7 +61,12 @@ function codex_bridge_call(string $metodo, string $rota, ?array $corpo = null, i
         return ['ok' => false, 'message' => 'Resposta invalida da ponte do Codex.'];
     }
     if ($status >= 400) {
-        return ['ok' => false, 'message' => (string)($dados['error'] ?? ('Erro ' . $status))];
+        // Mantem os campos que a ponte devolveu (ex.: runId no 409 de turno
+        // ja em andamento) e informa o status para o api.php repassar.
+        $dados['ok'] = false;
+        $dados['message'] = (string)($dados['message'] ?? $dados['error'] ?? ('Erro ' . $status));
+        $dados['bridge_status'] = $status;
+        return $dados;
     }
 
     return $dados;
@@ -158,6 +163,174 @@ function codex_bridge_stream(string $rota, int $timeout = 21600): void
     ]);
     curl_exec($ch);
     curl_close($ch);
+}
+
+// ------------------------------------------------------------------ voz
+
+/** Porta do worker local de voz (Whisper + Kokoro). */
+function codex_voz_port(): int
+{
+    return (int)(getenv('CODEX_VOZ_PORT') ?: 3060);
+}
+
+/** Token compartilhado com o worker de voz (voz/token.txt). */
+function codex_voz_token(): string
+{
+    $token = @file_get_contents(__DIR__ . '/../voz/token.txt');
+    return $token === false ? '' : trim($token);
+}
+
+/**
+ * Chama o worker de voz em 127.0.0.1. O corpo pode ser binario (ASR) ou JSON
+ * (TTS). Devolve sempre um array com ok.
+ */
+function codex_voz_call(
+    string $metodo,
+    string $rota,
+    ?string $corpo = null,
+    string $tipo = 'application/json',
+    int $timeout = 120
+): array {
+    if (!function_exists('curl_init')) {
+        return ['ok' => false, 'message' => 'Extensao cURL do PHP nao esta habilitada.'];
+    }
+
+    $headers = ['Accept: application/json'];
+    $token = codex_voz_token();
+    if ($token !== '') {
+        $headers[] = 'X-Voz-Token: ' . $token;
+    }
+
+    $opcoes = [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CUSTOMREQUEST => $metodo,
+        CURLOPT_CONNECTTIMEOUT => 2,
+        CURLOPT_TIMEOUT => max(3, $timeout),
+    ];
+
+    if ($corpo !== null) {
+        $headers[] = 'Content-Type: ' . $tipo;
+        $headers[] = 'Content-Length: ' . strlen($corpo);
+        $opcoes[CURLOPT_POSTFIELDS] = $corpo;
+    }
+    $opcoes[CURLOPT_HTTPHEADER] = $headers;
+
+    $ch = curl_init('http://127.0.0.1:' . codex_voz_port() . $rota);
+    curl_setopt_array($ch, $opcoes);
+    $resposta = curl_exec($ch);
+    $erro = curl_error($ch);
+    $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($resposta === false) {
+        // O detalhe do cURL fica no log; na tela basta saber que esta desligado.
+        @error_log('codex voz: ' . $erro);
+        return [
+            'ok' => false,
+            'online' => false,
+            'message' => 'Servico de voz desligado. Estou tentando religar; tente de novo em alguns segundos.',
+        ];
+    }
+
+    $dados = json_decode((string)$resposta, true);
+    if (!is_array($dados)) {
+        return ['ok' => false, 'message' => 'Resposta invalida do worker de voz.'];
+    }
+    if ($status >= 400) {
+        return [
+            'ok' => false,
+            'message' => (string)($dados['message'] ?? ('Erro ' . $status)),
+        ];
+    }
+
+    return $dados;
+}
+
+/** Estado do worker para a tela (nunca lanca erro). */
+function codex_voz_status(): array
+{
+    $saude = codex_voz_call('GET', '/health', null, 'application/json', 3);
+    if (!empty($saude['ok'])) {
+        return ['ok' => true, 'online' => true, 'worker' => $saude];
+    }
+    return [
+        'ok' => true,
+        'online' => false,
+        'message' => (string)($saude['message'] ?? 'Worker de voz offline.'),
+    ];
+}
+
+/** True se o worker responde ao /health agora. */
+function codex_voz_online(): bool
+{
+    $saude = codex_voz_call('GET', '/health', null, 'application/json', 2);
+    return !empty($saude['ok']);
+}
+
+/**
+ * Garante o worker de voz de pe. Se estiver desligado, chama o start-voz.ps1
+ * (roda como o mesmo usuario do Apache) e espera os modelos carregarem.
+ * Serve de auto-cura quando o watchdog do logon nao subiu.
+ */
+function codex_voz_garantir(int $espera = 20): bool
+{
+    if (codex_voz_online()) {
+        return true;
+    }
+
+    $script = realpath(__DIR__ . '/../voz/start-voz.ps1');
+    if ($script !== false && function_exists('exec')) {
+        $cmd = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File '
+            . escapeshellarg($script);
+        @exec($cmd . ' 2>&1');
+    }
+
+    $ate = time() + max(5, $espera);
+    do {
+        usleep(500000);
+        if (codex_voz_online()) {
+            return true;
+        }
+    } while (time() < $ate);
+
+    return false;
+}
+
+/** Sobe o worker em background sem esperar os modelos (pre-aquecimento). */
+function codex_voz_iniciar(): bool
+{
+    $script = realpath(__DIR__ . '/../voz/start-voz.ps1');
+    if ($script === false || !function_exists('exec')) {
+        return false;
+    }
+    $cmd = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File '
+        . escapeshellarg($script);
+    @exec($cmd . ' 2>&1');
+    return true;
+}
+
+/** Caminho do ffmpeg (usado para converter o audio do navegador). */
+function codex_ffmpeg(): ?string
+{
+    $candidatos = [
+        (string)(getenv('CODEX_FFMPEG') ?: ''),
+        'C:\\ffmpeg\\bin\\ffmpeg.exe',
+    ];
+    foreach ($candidatos as $candidato) {
+        if ($candidato !== '' && is_file($candidato)) {
+            return $candidato;
+        }
+    }
+    if (function_exists('shell_exec')) {
+        $onde = trim((string)@shell_exec('where ffmpeg 2>NUL'));
+        if ($onde !== '') {
+            $primeira = trim((string)strtok($onde, "\r\n"));
+            if ($primeira !== '' && is_file($primeira)) {
+                return $primeira;
+            }
+        }
+    }
+    return null;
 }
 
 // ------------------------------------------------------------------ acesso

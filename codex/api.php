@@ -77,6 +77,10 @@ try {
         'send' => enviar(),
         'run' => json_response(codex_bridge_call('GET', '/run?id=' . urlencode((string)($_GET['id'] ?? '')), null, 15)),
         'cancel' => cancelar(),
+        'voz' => transcrever_voz(),
+        'falar' => falar_texto(),
+        'voz-status' => json_response(codex_voz_status()),
+        'voz-aquecer' => aquecer_voz(),
         default => json_response(['ok' => false, 'message' => 'Acao desconhecida.'], 404),
     };
 } catch (Throwable $e) {
@@ -116,14 +120,32 @@ function enviar(): never
     }
 
     $threadId = trim((string)($input['threadId'] ?? ''));
+    $usuario = current_user();
 
-    json_response(codex_bridge_call('POST', '/send', [
+    $resposta = codex_bridge_call('POST', '/send', [
         'prompt' => $prompt,
         'threadId' => $threadId !== '' ? $threadId : null,
         'fonte' => (string)($input['fonte'] ?? ''),
         'cwd' => (string)($input['cwd'] ?? ''),
         'images' => $images,
-    ], 20));
+        // Ficam gravados junto da mensagem para o modal "informacoes".
+        'usuario' => $usuario ? [
+            'id' => (int)$usuario['id'],
+            'nome' => (string)$usuario['name'],
+            'email' => (string)$usuario['email'],
+        ] : null,
+        'ip' => codex_client_ip(),
+        'userAgent' => mb_substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 300),
+    ], 20);
+
+    // 409 = a conversa ja tem um turno rodando (outra aba, por exemplo).
+    // Devolve o runId para a pagina conseguir acompanhar esse turno.
+    $status = (int)($resposta['bridge_status'] ?? 0);
+    unset($resposta['bridge_status']);
+    if ($status >= 400) {
+        json_response($resposta, $status === 409 ? 409 : 502);
+    }
+    json_response($resposta);
 }
 
 function cancelar(): never
@@ -163,4 +185,131 @@ function restaurar_sessao(): never
         json_response(['ok' => false, 'message' => 'Conversa invalida.'], 422);
     }
     json_response(codex_bridge_call('POST', '/session-restore', ['id' => $id], 20));
+}
+
+/** Pre-aquece o worker de voz em background (chamado ao abrir a tela). */
+function aquecer_voz(): never
+{
+    set_time_limit(30);
+    session_write_close();
+    codex_voz_iniciar();
+    json_response(['ok' => true]);
+}
+
+/**
+ * Recebe o audio gravado no navegador (webm/ogg/mp4), converte para WAV
+ * 16 kHz mono e manda para o Whisper local. Devolve o texto.
+ */
+function transcrever_voz(): never
+{
+    set_time_limit(180);
+    session_write_close();
+
+    if (empty($_FILES['audio']) || !is_array($_FILES['audio'])) {
+        json_response(['ok' => false, 'message' => 'Nenhum audio recebido.'], 422);
+    }
+    $arquivo = $_FILES['audio'];
+    $erro = (int)($arquivo['error'] ?? UPLOAD_ERR_NO_FILE);
+    if ($erro !== UPLOAD_ERR_OK) {
+        json_response(['ok' => false, 'message' => 'Falha no envio do audio (' . $erro . ').'], 422);
+    }
+
+    $tmp = (string)($arquivo['tmp_name'] ?? '');
+    $tamanho = (int)($arquivo['size'] ?? 0);
+    if ($tmp === '' || !is_uploaded_file($tmp) || $tamanho <= 0) {
+        json_response(['ok' => false, 'message' => 'Audio invalido.'], 422);
+    }
+    if ($tamanho > 20 * 1024 * 1024) {
+        json_response(['ok' => false, 'message' => 'Audio maior que 20 MB.'], 413);
+    }
+
+    $ffmpeg = codex_ffmpeg();
+    if ($ffmpeg === null) {
+        json_response(['ok' => false, 'message' => 'ffmpeg nao encontrado no servidor.'], 503);
+    }
+    if (!function_exists('exec')) {
+        json_response(['ok' => false, 'message' => 'exec() desabilitado no PHP.'], 503);
+    }
+
+    $base = tempnam(sys_get_temp_dir(), 'codexvoz_');
+    if ($base === false) {
+        json_response(['ok' => false, 'message' => 'Sem espaco temporario.'], 500);
+    }
+    $entrada = $base . '.audio';
+    $wav = $base . '.wav';
+    @unlink($base);
+
+    if (!move_uploaded_file($tmp, $entrada)) {
+        @unlink($entrada);
+        json_response(['ok' => false, 'message' => 'Nao consegui salvar o audio.'], 500);
+    }
+
+    $comando = escapeshellarg($ffmpeg)
+        . ' -y -loglevel error -i ' . escapeshellarg($entrada)
+        . ' -t 90 -vn -ac 1 -ar 16000 -f wav ' . escapeshellarg($wav);
+    $saida = [];
+    $codigo = 0;
+    @exec($comando . ' 2>&1', $saida, $codigo);
+    @unlink($entrada);
+
+    if ($codigo !== 0 || !is_file($wav) || (int)@filesize($wav) <= 64) {
+        @unlink($wav);
+        $detalhe = trim(implode(' ', array_slice($saida, -2)));
+        json_response([
+            'ok' => false,
+            'message' => 'Nao consegui converter o audio.' . ($detalhe !== '' ? ' ' . $detalhe : ''),
+        ], 422);
+    }
+
+    $binario = @file_get_contents($wav);
+    @unlink($wav);
+    if ($binario === false || strlen($binario) <= 64) {
+        json_response(['ok' => false, 'message' => 'Audio convertido vazio.'], 422);
+    }
+
+    if (!codex_voz_garantir()) {
+        json_response([
+            'ok' => false,
+            'message' => 'Nao consegui ligar o servico de voz agora. Tente de novo em instantes.',
+        ], 503);
+    }
+
+    json_response(codex_voz_call('POST', '/asr', $binario, 'audio/wav', 120));
+}
+
+/** Gera a voz de um trecho de resposta (base64 WAV) para a fila do navegador. */
+function falar_texto(): never
+{
+    set_time_limit(180);
+    session_write_close();
+
+    $input = json_input();
+    $texto = trim((string)($input['texto'] ?? ''));
+    if ($texto === '') {
+        json_response(['ok' => false, 'message' => 'Texto vazio.'], 422);
+    }
+    if (mb_strlen($texto) > 1200) {
+        $texto = mb_substr($texto, 0, 1200);
+    }
+    $voz = trim((string)($input['voz'] ?? 'pf_dora'));
+    $velocidade = (float)($input['velocidade'] ?? 1.0);
+
+    $corpo = json_encode([
+        'texto' => $texto,
+        'voz' => $voz,
+        'velocidade' => $velocidade,
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+    if ($corpo === false) {
+        json_response(['ok' => false, 'message' => 'Texto invalido.'], 422);
+    }
+
+    if (!codex_voz_garantir()) {
+        json_response([
+            'ok' => false,
+            'message' => 'Nao consegui ligar o servico de voz agora. Tente de novo em instantes.',
+        ], 503);
+    }
+
+    json_response(codex_voz_call('POST', '/tts', $corpo, 'application/json', 120));
 }

@@ -32,12 +32,20 @@
   ready(function(){
     var box = document.getElementById('dtConsent');
     if (!box) { return; }
+    function ajustar(){
+      var h = box.hidden ? 0 : box.offsetHeight;
+      document.documentElement.style.setProperty('--dt-consent-h', h + 'px');
+    }
     var stored = window.dtConsent && window.dtConsent.get ? window.dtConsent.get() : null;
     if (!stored) { box.hidden = false; }
+    ajustar();
+    setTimeout(ajustar, 50);
+    window.addEventListener('resize', ajustar);
+    window.addEventListener('load', ajustar);
     var accept = document.getElementById('dtConsentAccept');
     var reject = document.getElementById('dtConsentReject');
-    if (accept) { accept.addEventListener('click', function(){ if(window.dtConsent){ window.dtConsent.set(true); } box.hidden = true; }); }
-    if (reject) { reject.addEventListener('click', function(){ if(window.dtConsent){ window.dtConsent.set(false); } box.hidden = true; }); }
+    if (accept) { accept.addEventListener('click', function(){ if(window.dtConsent){ window.dtConsent.set(true); } box.hidden = true; ajustar(); }); }
+    if (reject) { reject.addEventListener('click', function(){ if(window.dtConsent){ window.dtConsent.set(false); } box.hidden = true; ajustar(); }); }
   });
 })();
 </script>
