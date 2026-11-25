@@ -25,6 +25,11 @@ DirectoryIndex home.php index.php index.html
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteRule ^index\.php$ home.php [L]
+    # Portais privados dos tatuadores (agenda). O deploy faz reset --hard neste
+    # arquivo, por isso cada portal tem tambem uma pasta de fallback no docroot
+    # (/theo/index.php e /fernando/index.php).
+    RewriteRule ^theo/?$ projetocrm/theo.php [L,QSA]
+    RewriteRule ^fernando/?$ projetocrm/fernando.php [L,QSA]
     RewriteRule ^relatorios/?$ relatorios/index.php [L,QSA]
     # Link curto do comparativo de anuncios: /comparativo (sem redirect para http).
     RewriteRule ^comparativo/?$ comparativo/index.html [L]
